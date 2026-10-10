@@ -2,10 +2,16 @@ import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, ty
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { metadataMatch } from '@/lib/searchIndex';
+import { labelPath } from '@/lib/labelTree';
+import { useUiStore } from '@/stores/uiStore';
+import { LabelBadge } from '@/components/shared/LabelBadge';
+import type { Label } from '@/types/database';
 
 interface SearchDetailsProps {
   name: string;
-  labels: string[];
+  labels: Label[];
+  labelCatalog: Label[];
+  onRemoveLabel?: (labelId: string) => Promise<void>;
   keywords?: string[];
   languages?: ReactNode;
   query: string;
@@ -15,7 +21,7 @@ interface SearchDetailsProps {
 const OPEN_EVENT = 'sprintbrain:search-details';
 
 /** Contextual metadata: hover/focus to preview, click or tap to keep it open. */
-export function SearchDetails({ name, labels, keywords = [], languages, query, visibleText }: SearchDetailsProps) {
+export function SearchDetails({ name, labels, labelCatalog, onRemoveLabel, keywords = [], languages, query, visibleText }: SearchDetailsProps) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -23,7 +29,32 @@ export function SearchDetails({ name, labels, keywords = [], languages, query, v
   const skipFocus = useRef(false);
   const [mode, setMode] = useState<'preview' | 'pinned' | null>(null);
   const [position, setPosition] = useState<CSSProperties>({});
-  const match = metadataMatch(query, visibleText, labels, keywords);
+  const [removingLabel, setRemovingLabel] = useState<string | null>(null);
+  const [removedLabel, setRemovedLabel] = useState(false);
+  const removing = useRef(false);
+  const match = metadataMatch(query, visibleText, labels.map((label) => labelPath(labelCatalog, label.id)), keywords);
+
+  async function removeLabel(labelId: string) {
+    if (!onRemoveLabel || removing.current) return;
+    removing.current = true;
+    cancelTimer();
+    setMode('pinned');
+    // The optimistic update removes this button. Keep focus in the panel.
+    panel.current?.focus();
+    setRemovingLabel(labelId);
+    setRemovedLabel(true);
+    try {
+      await onRemoveLabel(labelId);
+      useUiStore.getState().showToast('Label removed');
+    } catch {
+      // The label store restores the assignment; report failure even if a
+      // label filter temporarily removed this item from the current results.
+      useUiStore.getState().showToast('Could not remove label. Please try again.', 'error');
+    } finally {
+      removing.current = false;
+      setRemovingLabel(null);
+    }
+  }
 
   const cancelTimer = useCallback(() => {
     clearTimeout(timer.current);
@@ -109,7 +140,7 @@ export function SearchDetails({ name, labels, keywords = [], languages, query, v
     if (mode === 'pinned') panel.current?.focus();
   }, [mode]);
 
-  if (!labels.length && !keywords.length && !languages) return null;
+  if (!labels.length && !keywords.length && !languages && !mode) return null;
 
   return (
     <span className="inline-flex min-w-0 flex-col items-start">
@@ -174,14 +205,31 @@ export function SearchDetails({ name, labels, keywords = [], languages, query, v
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
-          {([['Labels', labels], ['Search keywords', keywords]] as const).map(([heading, values]) => values.length > 0 && (
-            <section key={heading} className="mt-3 first:mt-0" aria-label={heading}>
-              <h3 className="mb-1.5 text-xs font-medium text-ink-muted">{heading}</h3>
+          {(labels.length > 0 || removedLabel) && (
+            <section className="mt-3" aria-label="Labels" aria-busy={removingLabel !== null}>
+              <h3 className="mb-1.5 text-xs font-medium text-ink-muted">Labels</h3>
+              {labels.length > 0 ? (
+                <ul className="flex flex-wrap gap-1.5">
+                  {labels.map((label) => (
+                    <li key={label.id} className="max-w-full">
+                      <LabelBadge label={label} path={labelPath(labelCatalog, label.id)} variant="detail"
+                        disabled={removingLabel !== null}
+                        onRemove={onRemoveLabel ? () => void removeLabel(label.id) : undefined} />
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-xs text-ink-muted">No labels</p>}
+              {removingLabel && <p role="status" className="mt-1.5 text-xs text-ink-muted">Removing label…</p>}
+            </section>
+          )}
+          {keywords.length > 0 && (
+            <section className="mt-3" aria-label="Search keywords">
+              <h3 className="mb-1.5 text-xs font-medium text-ink-muted">Search keywords</h3>
               <ul className="flex flex-wrap gap-1.5">
-                {values.map((value, index) => <li key={`${index}-${value}`} className="max-w-full whitespace-normal break-words rounded-md bg-bg-alt px-2 py-1 text-xs leading-relaxed">{value}</li>)}
+                {keywords.map((value, index) => <li key={`${index}-${value}`} className="max-w-full whitespace-normal break-words rounded-md bg-bg-alt px-2 py-1 text-xs leading-relaxed">{value}</li>)}
               </ul>
             </section>
-          ))}
+          )}
           {languages && (
             <section className="mt-3" aria-label="Languages">
               <h3 className="mb-1.5 text-xs font-medium text-ink-muted">Languages</h3>

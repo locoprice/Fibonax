@@ -5,7 +5,6 @@ import { ActionMenu, ActionMenuItem, ActionMenuSeparator } from '@/components/ui
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchDetails } from '@/components/shared/SearchDetails';
-import { labelPath } from '@/lib/labelTree';
 import { useSearchStore } from '@/stores/searchStore';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
@@ -214,7 +213,12 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         <SearchDetails
           name={prompt.name}
-          labels={labels.map((label) => labelPath(labelCatalog, label.id))}
+          labels={labels}
+          labelCatalog={labelCatalog}
+          onRemoveLabel={(labelId) => {
+            const store = useLabelStore.getState();
+            return store.setPromptLabels(prompt.id, (store.promptLabels.get(prompt.id) ?? []).filter((id) => id !== labelId));
+          }}
           query={query}
           visibleText={[prompt.name, prompt.shortcut ?? '', prompt.intent_category ?? '']}
         />

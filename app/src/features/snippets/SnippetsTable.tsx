@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { SearchDetails } from '@/components/shared/SearchDetails';
-import { labelPath } from '@/lib/labelTree';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
 import { DND_SNIPPET } from '@/features/org/FolderTree';
@@ -476,7 +475,12 @@ export function SnippetsTable() {
                         {row.is_formula ? <Badge variant="primary">formula</Badge> : null}
                         <SearchDetails
                           name={displayName}
-                          labels={resolveLabels(row.id, labelAssignments, labelCatalog).map((label) => labelPath(labelCatalog, label.id))}
+                          labels={resolveLabels(row.id, labelAssignments, labelCatalog)}
+                          labelCatalog={labelCatalog}
+                          onRemoveLabel={(labelId) => {
+                            const store = useLabelStore.getState();
+                            return store.setSnippetLabels(row.id, (store.snippetLabels.get(row.id) ?? []).filter((id) => id !== labelId));
+                          }}
                           keywords={row.alternative_queries}
                           query={filterQuery}
                           visibleText={[displayName, ...row.triggers]}
