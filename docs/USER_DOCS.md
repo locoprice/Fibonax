@@ -32,7 +32,7 @@ CI runs all three on every push to `develop`.
 | Part of the product | Where it lives in the code | Page |
 |---|---|---|
 | Sign-up, sign-in, first snippet | `app/src/routes/{SignupPage,LoginPage}.tsx`, `app/src/components/auth/` | `quickstart` |
-| Extension install, sign-in, popup, popup settings | `extension/popup/`, `extension/manifest.json` | `install-extension` |
+| Extension install, sign-in, popup, popup settings, popup footer (saint of the day, days to Christmas) | `extension/popup/`, `extension/shared/saint-of-day.js`, `extension/manifest.json` | `install-extension` |
 | Typing triggers, the menu, fill form, right-click, selection suggestions, Undo, capitalization | `extension/content/content.js`, `extension/background/background.js`, `extension/shared/fill-form.js` | `text-snippets/insert` |
 | Snippet editor, folders, labels, list, bulk actions, unused notice | `app/src/features/snippets/`, `app/src/features/org/`, `app/src/features/labels/` | `text-snippets/create-and-organize` |
 | Field builders: Text, Number, Date/Time, Automatic, Range, Choice, Button | `app/src/features/snippets/Form*Dialog.tsx`, `app/src/lib/form*Token.ts`, `extension/formula-engine.js` | `text-snippets/dynamic-fields` |
@@ -51,7 +51,7 @@ CI runs all three on every push to `develop`.
 | Phone page, including its Brains page, Paste & save, Share beside Copy, and the Share menu entry (`manifest.webmanifest`) | `app/public/mobile/` | `apps/mobile` |
 | Where the extension runs | `content.js` field detection | `integrations/supported-sites` |
 | Notion sync | `NotionSyncPanel.tsx`, `extension/services/notion-sync/notion-sync.js` | `integrations/notion-sync` |
-| Account, branding, unused months | `app/src/features/settings/{AccountPanel,BrandingPanel,InactivityPanel}.tsx` | `settings/account` |
+| Account, branding, unused months, Santo del Giorno switch, dashboard footer (saint of the day, days to Christmas) | `app/src/features/settings/{AccountPanel,BrandingPanel,InactivityPanel,SaintOfDayPanel}.tsx`, `app/src/components/layout/{SaintOfDay,ChristmasCountdown}.tsx` | `settings/account` |
 | Triggers | `InlineTriggerPanel.tsx`, `extension/auth/auth.js` | `settings/triggers` |
 | Password, devices, login activity | `app/src/features/settings/{PasswordPanel,SecurityPanel}.tsx` | `settings/security` |
 | Analytics | `app/src/routes/AnalyticsPage.tsx`, `app/src/features/analytics/`, `app/src/lib/api/analyticsApi.ts` | `settings/analytics` |

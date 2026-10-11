@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { ChristmasCountdown } from '@/components/layout/ChristmasCountdown';
+import { SaintOfDay } from '@/components/layout/SaintOfDay';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Topbar } from '@/components/layout/Topbar';
 import { ChangelogModal } from '@/components/layout/ChangelogModal';
@@ -74,8 +76,8 @@ export function DashboardLayout() {
               <Outlet />
             </div>
           </main>
-          <footer className="flex items-center justify-between border-t border-line bg-bg-alt px-4 py-1">
-            <div className="flex items-center gap-2.5">
+          <footer className="flex items-center gap-4 border-t border-line bg-bg-alt px-4 py-1">
+            <div className="flex shrink-0 items-center gap-2.5">
               <button
                 type="button"
                 onClick={() => setChangelogOpen(true)}
@@ -98,7 +100,13 @@ export function DashboardLayout() {
                 />
               </a>
             </div>
-            <div className="flex items-center gap-3">
+            {/* Between the version and the links: the saint gives way first on a
+                tight footer, the Christmas countdown never does. */}
+            <div className="flex min-w-0 flex-1 items-center gap-4">
+              <SaintOfDay />
+              <ChristmasCountdown />
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setContactOpen(true)}
@@ -131,7 +139,7 @@ export function DashboardLayout() {
                 Cookies
               </a>
             </div>
-            <span className="font-mono text-[10px] text-ink-subtle">{RELEASE_DATE}</span>
+            <span className="shrink-0 font-mono text-[10px] text-ink-subtle">{RELEASE_DATE}</span>
           </footer>
         </div>
       </div>

@@ -367,6 +367,14 @@ html,body{
 .ver-btn{font-family:var(--sb-mono);font-size:var(--sb-fs-10);font-weight:600;color:var(--sb-ink-muted);background:none;border:none;cursor:pointer;flex-shrink:0;transition:color var(--sb-dur-fast)}
 .ver-btn:hover{color:var(--sb-azure)}
 .ver-btn:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px;border-radius:var(--sb-r-sm)}
+/* Between the version and Open Dashboard. The saint gives way first on a tight
+   footer; the Christmas line never shrinks. Neither neighbour can be pushed,
+   both are flex-shrink:0. */
+.lmid{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:14px}
+.saint,.xmas{font-family:var(--sb-mono);font-size:var(--sb-fs-10);color:var(--sb-ink-muted)}
+.saint{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xmas{flex-shrink:0;white-space:nowrap}
+.sep{flex-shrink:0;width:1px;height:12px;background:var(--sb-line)}
 .dash-link{
   display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 8px;margin-right:-8px;flex-shrink:0;
   font-family:inherit;font-size:var(--sb-fs-13);font-weight:600;color:var(--sb-azure);
@@ -657,6 +665,14 @@ html,body{
   <!-- FOOTER -->
   <div class="lfoot">
     <button class="ver-btn" id="ver-btn" title="View changelog"></button>
+    <!-- SANTO DEL GIORNO + DAYS TO CHRISTMAS: rules in shared/saint-of-day.js.
+         The saint starts hidden and has a switch in Settings; the Christmas line
+         is always shown and has none. The divider is shown only with the saint. -->
+    <div class="lmid">
+      <span class="saint" id="saint" lang="it" hidden></span>
+      <span class="sep" id="saint-sep" aria-hidden="true" hidden></span>
+      <span class="xmas" id="xmas"></span>
+    </div>
     <button class="dash-link" id="bdash">
       Open Dashboard
       <svg viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
@@ -703,6 +719,17 @@ html,body{
       <div class="set-note">A snippet inserted at the start of a message, a new line, or after a <strong>.</strong> <strong>!</strong> <strong>?</strong> opens with a capital letter. Mid-sentence it is left as written.</div>
     </div>
 
+    <!-- SANTO DEL GIORNO — extension-local preference, on until turned off -->
+    <div class="set-sec">
+      <div class="set-row">
+        <label for="tcfg-saint" style="font-size:11px;font-weight:600;color:var(--sb-ink);flex:1;display:flex;align-items:center;gap:4px;cursor:pointer">
+          <span class="ic" style="color:var(--sb-azure)"><svg viewBox="0 0 24 24"><path d="M10 9h4"/><path d="M12 7v5"/><path d="M14 22v-4a2 2 0 0 0-4 0v4"/><path d="M18 22V5.618a1 1 0 0 0-.553-.894l-4.553-2.277a2 2 0 0 0-1.788 0L6.553 4.724A1 1 0 0 0 6 5.618V22"/><path d="m18 7 3.447 1.724a1 1 0 0 1 .553.894V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.618a1 1 0 0 1 .553-.894L6 7"/></svg></span> Santo del Giorno
+        </label>
+        <input type="checkbox" id="tcfg-saint" checked style="width:16px;height:16px;accent-color:var(--sb-azure);cursor:pointer">
+      </div>
+      <div class="set-note">Shows the saint of the day in the footer, read from Vatican News. This applies to this device only.</div>
+    </div>
+
     <!-- DEFAULT LANGUAGE -->
     <div class="set-sec">
       <div class="lbl" style="margin-bottom:8px;color:var(--sb-azure)">Default Language</div>
@@ -736,6 +763,7 @@ html,body{
 <script src="../shared/fill-form.js"></script>
 <script src="../shared/inactivity.js"></script>
 <script src="../shared/interactive-steps.js"></script>
+<script src="../shared/saint-of-day.js"></script>
 <script src="popup.js"></script>
 
 <!-- ═══ CHANGELOG MODAL ═══ -->

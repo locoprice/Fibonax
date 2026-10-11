@@ -9,6 +9,7 @@ import { InlineTriggerPanel } from '@/features/settings/InlineTriggerPanel';
 import { IntegrationsPanel } from '@/features/settings/IntegrationsPanel';
 import { NotionSyncPanel } from '@/features/settings/NotionSyncPanel';
 import { PasswordPanel } from '@/features/settings/PasswordPanel';
+import { SaintOfDayPanel } from '@/features/settings/SaintOfDayPanel';
 import { SecurityPanel } from '@/features/settings/SecurityPanel';
 import { useSettingsStore } from '@/stores/settingsStore';
 
@@ -48,6 +49,7 @@ export function SettingsPage() {
           <BrandingPanel />
           <InlineTriggerPanel />
           <InactivityPanel />
+          <SaintOfDayPanel />
         </TabsContent>
         <TabsContent value="security" className="space-y-4">
           <PasswordPanel />

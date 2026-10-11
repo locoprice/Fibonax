@@ -1039,6 +1039,13 @@ function boot() {
       if (dl) dl.value = userPrefs.defaultLang;
     });
 
+    SBSaintOfDay.loadEnabled(function(on) {
+      saintOn = on;
+      var sw = gi('tcfg-saint');
+      if (sw) sw.checked = on;
+      showSaint();
+    });
+
     // The snooze list and the offline last-used mirror. Repaints on arrival
     // because the library load below does not wait for it, and the notice stays
     // hidden until both have landed.
@@ -2673,6 +2680,7 @@ on('sq','input', function(e){
   else { selIdx=-1; renderList(e.target.value); }
 });
 on('cfg-default-lang','change', function(e){ userPrefs.defaultLang = e.target.value; saveUserPrefs(); });
+on('tcfg-saint','change', function(e){ saintOn = e.target.checked; SBSaintOfDay.saveEnabled(saintOn); showSaint(); });
 // Interactive Steps switch in the Prompts tab.
 if (gi('p-steps-on')) {
   SBInteractiveSteps.load(function(stored){ interactiveStepsOn = stored; gi('p-steps-on').checked = stored; });
@@ -2740,6 +2748,69 @@ document.addEventListener('keydown', function(e){
   }
 });
 
+// ── SANTO DEL GIORNO + DAYS TO CHRISTMAS (footer) ──────────────────
+// The rules live in shared/saint-of-day.js, with a dashboard copy pinned by
+// scripts/check-saint-of-day.js. The saint comes from the saint-of-the-day
+// server function, kept on this device for the day and shown only while the
+// Settings switch is on. The Christmas line is plain date arithmetic: no
+// network, no switch, always shown.
+var saintOn = true;
+
+function renderXmas() {
+  var el = gi('xmas');
+  if (el) el.textContent = SBSaintOfDay.christmasLabel(SBSaintOfDay.daysToChristmas(Date.now()));
+}
+
+// textContent only: the name came over the network. null hides the line and
+// the divider that sits between it and the Christmas line.
+function renderSaint(name) {
+  var el = gi('saint');
+  if (!el) return;
+  el.textContent = name ? SBSaintOfDay.label(name) : '';
+  el.hidden = !name;
+  var sep = gi('saint-sep');
+  if (sep) sep.hidden = !name;
+}
+
+// Asks the server function. Any answer that is not a usable saint leaves the
+// line hidden, quietly: it is a courtesy, and an error bar over it would be
+// worse than its absence. The function logs why on its side.
+function fetchSaint() {
+  sbAuthHeaders(function(err, headers) {
+    if (err || !headers) return;
+    var ctl = new AbortController();
+    var timer = setTimeout(function() { ctl.abort(); }, 8000);
+    fetch(SB_SUPA_URL + '/functions/v1/' + SBSaintOfDay.FUNCTION_NAME, {
+      method: 'POST',
+      signal: ctl.signal,
+      headers: { apikey: headers.apikey, Authorization: headers.Authorization, 'Content-Type': 'application/json' },
+      body: '{}'
+    }).then(function(r) {
+      return r.ok ? r.json() : null;
+    }).then(function(body) {
+      clearTimeout(timer);
+      var reading = SBSaintOfDay.readResponse(body);
+      if (!reading) { renderSaint(null); return; }
+      SBSaintOfDay.saveCache(SBSaintOfDay.makeEntry(reading, Date.now()));
+      if (saintOn) renderSaint(reading.name);
+    }).catch(function() {
+      clearTimeout(timer);
+      renderSaint(null);
+    });
+  });
+}
+
+// A saint kept on this device is shown at once and costs no request. One that
+// is no longer today's is never shown while the new one loads.
+function showSaint() {
+  if (!saintOn) { renderSaint(null); return; }
+  SBSaintOfDay.loadCache(function(entry) {
+    if (entry && SBSaintOfDay.isFresh(entry, Date.now())) { renderSaint(entry.name); return; }
+    renderSaint(null);
+    fetchSaint();
+  });
+}
+
 // Changelog events — version bar AND changelog modal are rendered AFTER this <script>
 // tag in popup.html, so we wait for DOM ready before binding (otherwise gi() returns null).
 document.addEventListener('DOMContentLoaded', function() {
@@ -2748,6 +2819,7 @@ document.addEventListener('DOMContentLoaded', function() {
     v.textContent = 'v' + chrome.runtime.getManifest().version;
     v.addEventListener('click', openChangelog);
   }
+  renderXmas();
   var clx = document.getElementById('cl-x');
   if (clx) clx.addEventListener('click', closeChangelog);
   var clbg = document.getElementById('cl-bg');

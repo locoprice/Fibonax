@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { applyTheme, getStoredTheme, type ThemePreference } from '@/lib/theme';
+import { loadSaintEnabled, saveSaintEnabled } from '@/lib/saintOfDay';
 
 // Cross-cutting UI state. Kept separate from feature stores to avoid coupling
 // the snippet panel state with global modals or theme toggles in the future.
@@ -82,6 +83,12 @@ interface UiStore {
   // persisted so a screen that needs the room keeps it. Starts expanded.
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
+
+  // The "Santo del Giorno" line in the footer. A per-device switch in Settings,
+  // on until turned off. It lives here so the footer and the Settings switch
+  // follow each other live. The Christmas countdown beside it has no switch.
+  saintOfDayEnabled: boolean;
+  setSaintOfDayEnabled: (on: boolean) => void;
 }
 
 const PREVIEW_KEY = 'sprintbrain-snippet-preview';
@@ -220,5 +227,12 @@ export const useUiStore = create<UiStore>((set) => ({
   setSidebarCollapsed: (collapsed) => {
     storeSidebarCollapsed(collapsed);
     set({ sidebarCollapsed: collapsed });
+  },
+
+  saintOfDayEnabled: loadSaintEnabled(),
+  setSaintOfDayEnabled: (on) => {
+    // A browser that refuses the write still follows the switch for this visit.
+    saveSaintEnabled(on);
+    set({ saintOfDayEnabled: on });
   },
 }));

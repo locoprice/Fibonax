@@ -1,0 +1,396 @@
+{
+  "_about": "Shared case table for the Santo del Giorno footer. scripts/check-saint-of-day.js runs extension/shared/saint-of-day.js and app/src/lib/saintOfDay.ts over it, and app/src/__tests__/saintOfDay.test.ts runs the dashboard copy over it. Expected values are worked out by hand from the calendar, not from the code.",
+  "isOn": [
+    [
+      true,
+      true
+    ],
+    [
+      "true",
+      true
+    ],
+    [
+      null,
+      true
+    ],
+    [
+      false,
+      false
+    ],
+    [
+      "false",
+      false
+    ],
+    [
+      0,
+      true
+    ],
+    [
+      "no",
+      true
+    ]
+  ],
+  "cleanName": [
+    [
+      "San Francesco d’Assisi",
+      "San Francesco d’Assisi"
+    ],
+    [
+      "  Santa   Teresa  \n d’Avila ",
+      "Santa Teresa d’Avila"
+    ],
+    [
+      "",
+      null
+    ],
+    [
+      "   ",
+      null
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      42,
+      null
+    ],
+    [
+      "San <b>Luca</b>",
+      null
+    ],
+    [
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ],
+    [
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      null
+    ]
+  ],
+  "readResponse": [
+    [
+      {
+        "ok": true,
+        "date": "2026-10-11",
+        "name": "San Giovanni XXIII"
+      },
+      {
+        "name": "San Giovanni XXIII",
+        "date": "2026-10-11"
+      }
+    ],
+    [
+      {
+        "ok": true,
+        "date": "2026-10-11",
+        "name": "  San   Luca "
+      },
+      {
+        "name": "San Luca",
+        "date": "2026-10-11"
+      }
+    ],
+    [
+      {
+        "ok": false,
+        "date": "2026-10-11",
+        "name": "San Luca"
+      },
+      null
+    ],
+    [
+      {
+        "error": "saint_unavailable"
+      },
+      null
+    ],
+    [
+      {
+        "ok": true,
+        "date": "2026-10-11"
+      },
+      null
+    ],
+    [
+      {
+        "ok": true,
+        "name": "San Luca"
+      },
+      null
+    ],
+    [
+      {
+        "ok": true,
+        "date": "11/10/2026",
+        "name": "San Luca"
+      },
+      null
+    ],
+    [
+      {
+        "ok": true,
+        "date": "2026-10-11",
+        "name": ""
+      },
+      null
+    ],
+    [
+      {
+        "ok": true,
+        "date": "2026-10-11",
+        "name": "<script>"
+      },
+      null
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      "San Luca",
+      null
+    ]
+  ],
+  "romeDay": [
+    [
+      "2026-10-10T21:59:59Z",
+      "2026-10-10"
+    ],
+    [
+      "2026-10-10T22:00:00Z",
+      "2026-10-11"
+    ],
+    [
+      "2026-12-31T22:59:59Z",
+      "2026-12-31"
+    ],
+    [
+      "2026-12-31T23:00:00Z",
+      "2027-01-01"
+    ],
+    [
+      "2026-03-28T23:30:00Z",
+      "2026-03-29"
+    ]
+  ],
+  "fresh": [
+    {
+      "name": "read an hour ago, same day in Rome",
+      "entry": {
+        "name": "San Luca",
+        "date": "2026-10-11",
+        "fetchedAtIso": "2026-10-11T08:00:00Z"
+      },
+      "nowIso": "2026-10-11T09:00:00Z",
+      "fresh": true
+    },
+    {
+      "name": "under 24 hours old but past midnight in Rome",
+      "entry": {
+        "name": "San Luca",
+        "date": "2026-10-11",
+        "fetchedAtIso": "2026-10-11T00:30:00Z"
+      },
+      "nowIso": "2026-10-11T22:00:00Z",
+      "fresh": false
+    },
+    {
+      "name": "exactly 24 hours old on the 25-hour day the clocks go back",
+      "entry": {
+        "name": "San Luca",
+        "date": "2026-10-25",
+        "fetchedAtIso": "2026-10-24T22:00:00Z"
+      },
+      "nowIso": "2026-10-25T22:00:00Z",
+      "fresh": false
+    },
+    {
+      "name": "one minute under 24 hours on that same day",
+      "entry": {
+        "name": "San Luca",
+        "date": "2026-10-25",
+        "fetchedAtIso": "2026-10-24T22:01:00Z"
+      },
+      "nowIso": "2026-10-25T22:00:00Z",
+      "fresh": true
+    },
+    {
+      "name": "read on yesterday’s date",
+      "entry": {
+        "name": "San Luca",
+        "date": "2026-10-10",
+        "fetchedAtIso": "2026-10-11T08:00:00Z"
+      },
+      "nowIso": "2026-10-11T09:00:00Z",
+      "fresh": false
+    },
+    {
+      "name": "stamped in the future (clock moved back)",
+      "entry": {
+        "name": "San Luca",
+        "date": "2026-10-11",
+        "fetchedAtIso": "2026-10-11T10:00:00Z"
+      },
+      "nowIso": "2026-10-11T09:00:00Z",
+      "fresh": false
+    },
+    {
+      "name": "stored value is not an object",
+      "entryRaw": "junk",
+      "nowIso": "2026-10-11T09:00:00Z",
+      "fresh": false
+    },
+    {
+      "name": "nothing stored",
+      "entryRaw": null,
+      "nowIso": "2026-10-11T09:00:00Z",
+      "fresh": false
+    },
+    {
+      "name": "stored name is empty",
+      "entry": {
+        "name": "",
+        "date": "2026-10-11",
+        "fetchedAtIso": "2026-10-11T08:00:00Z"
+      },
+      "nowIso": "2026-10-11T09:00:00Z",
+      "fresh": false
+    },
+    {
+      "name": "stored date is missing",
+      "entry": {
+        "name": "San Luca",
+        "fetchedAtIso": "2026-10-11T08:00:00Z"
+      },
+      "nowIso": "2026-10-11T09:00:00Z",
+      "fresh": false
+    },
+    {
+      "name": "stored time is not a number",
+      "entryRaw": {
+        "name": "San Luca",
+        "date": "2026-10-11",
+        "fetchedAt": "yesterday"
+      },
+      "nowIso": "2026-10-11T09:00:00Z",
+      "fresh": false
+    }
+  ],
+  "label": [
+    [
+      "San Francesco d’Assisi",
+      "Santo del Giorno · San Francesco d’Assisi"
+    ]
+  ],
+  "christmas": [
+    {
+      "local": [
+        2026,
+        10,
+        11,
+        12
+      ],
+      "days": 75,
+      "label": "75 days to Christmas"
+    },
+    {
+      "local": [
+        2026,
+        1,
+        1,
+        0
+      ],
+      "days": 358,
+      "label": "358 days to Christmas"
+    },
+    {
+      "local": [
+        2026,
+        12,
+        24,
+        23
+      ],
+      "days": 1,
+      "label": "1 day to Christmas"
+    },
+    {
+      "local": [
+        2026,
+        12,
+        25,
+        0
+      ],
+      "days": 0,
+      "label": "Merry Christmas"
+    },
+    {
+      "local": [
+        2026,
+        12,
+        25,
+        23
+      ],
+      "days": 0,
+      "label": "Merry Christmas"
+    },
+    {
+      "local": [
+        2026,
+        12,
+        26,
+        0
+      ],
+      "days": 364,
+      "label": "364 days to Christmas"
+    },
+    {
+      "local": [
+        2026,
+        12,
+        31,
+        23
+      ],
+      "days": 359,
+      "label": "359 days to Christmas"
+    },
+    {
+      "local": [
+        2027,
+        1,
+        1,
+        12
+      ],
+      "days": 358,
+      "label": "358 days to Christmas"
+    },
+    {
+      "local": [
+        2028,
+        2,
+        29,
+        12
+      ],
+      "days": 300,
+      "label": "300 days to Christmas"
+    }
+  ],
+  "christmasLabelOnly": [
+    [
+      -1,
+      ""
+    ],
+    [
+      null,
+      ""
+    ],
+    [
+      "5",
+      ""
+    ],
+    [
+      2,
+      "2 days to Christmas"
+    ]
+  ]
+}
