@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Loader2, Pin, Search, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -386,6 +386,7 @@ export function SnippetsTable() {
             const updateScope = multiLang && updatedLanguages.length === group.languages.length
               ? 'All languages'
               : updatedLanguages.map((lang) => LANG_LABEL[lang]).join(' · ');
+            const lastEditor = row.updated_by ? resolveUserName(row.updated_by) : 'Unknown';
             const variantIds = group.variants.map((v) => v.id);
             const isSelected = variantIds.every((id) => selectedIds.has(id));
             // Any language variant failing breaks the snippet — including one
@@ -504,8 +505,11 @@ export function SnippetsTable() {
                   className="px-3 py-3 2xl:px-5 text-ink-muted"
                   title={`${updateScope}\n${attributionTitle(resolveUserName, row.user_id, row.updated_by, row.updated_at)}`}
                 >
-                  <span className="whitespace-nowrap">{formatDistanceToNow(new Date(row.updated_at), { addSuffix: true })}</span>
-                  <span className="block text-xs">{updateScope}</span>
+                  <span className="block text-sm font-medium leading-5">Last edited on {format(new Date(row.updated_at), 'MMM d, yyyy')}</span>
+                  <span className="block max-w-64 break-words text-xs leading-5">
+                    {updateScope}
+                    {lastEditor !== 'Unknown' && <> · by {lastEditor}</>}
+                  </span>
                 </td>
                 <td
                   className="px-3 py-3 2xl:px-5 text-right font-mono text-xs tabular-nums text-ink-muted"

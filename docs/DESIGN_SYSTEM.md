@@ -326,9 +326,12 @@ Labels, **Search keywords** and **Languages** have separate headings and wrap wi
 Languages use their full names and existing palette. Grouped desktop rows keep
 their language selector inside this panel, with 44px targets and a selected ring.
 Keep the visible Updated date tied to its language with compact copy such as
-“22 days ago · English”. Dates shared by translations in one saved snippet
+“Last edited on Sep 7, 2026”, followed by “English · by Alex” on a secondary line.
+Show the existing resolved last editor only when known; never substitute the creator.
+Keep the full timestamp and attribution in the existing tooltip. Dates shared by translations in one saved snippet
 are labelled “All languages”; a partially shared update names the affected
-languages. Mobile uses the same wording in its information sheet.
+languages. Mobile retains the language-scope wording in its information sheet;
+the Jotform-inspired date and editor layout applies to the dashboard Updated column.
 Single-language snippets also expose Details, even without labels or keywords.
 On mobile, the information sheet lists languages; the snippet detail page keeps
 the existing language selection for copying and sharing.
