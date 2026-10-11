@@ -1,3 +1,4 @@
+import { Clock3 } from 'lucide-react';
 import { reviewStatusHint, reviewStatusLabel, reviewTone, type ReviewStatus, type ReviewTone } from '@/lib/reviewStatus';
 import { cn } from '@/lib/utils';
 
@@ -30,10 +31,13 @@ export function ReviewStatusBadge({ status, className }: ReviewStatusBadgeProps)
       title={reviewStatusHint(status)}
       className={cn(
         'inline-flex shrink-0 items-center rounded-full border px-1.5 py-px text-[10px] font-semibold leading-4',
-        TONE_CLASS[tone],
+        status === 'under_review'
+          ? 'gap-1 rounded-none border-0 bg-transparent px-0 font-medium text-ink-muted'
+          : TONE_CLASS[tone],
         className,
       )}
     >
+      {status === 'under_review' && <Clock3 className="h-3 w-3 shrink-0" aria-hidden="true" />}
       {reviewStatusLabel(status)}
     </span>
   );

@@ -341,3 +341,7 @@ On phones, Details opens the existing information sheet, with full metadata,
 a 44px close target and keyboard dismissal. This adapts the approved progressive
 disclosure pattern to touch, following Apple popover guidance and WCAG hover/focus
 requirements. The private Notion benchmark library was unavailable during review.
+
+### Under-review indicator
+
+`under_review` is a quiet inline clock with muted text, without a filled background or pill border. It distinguishes review state from the blue `formula` capability badge by shape as well as colour. Reuse the existing muted text tokens and 12 px clock on dashboard, mobile and extension. Labels, hints, status rules and actions remain unchanged.
