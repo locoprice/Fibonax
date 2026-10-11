@@ -1115,6 +1115,16 @@
       "find": "</span> Less repetition. <strong>More execution.</strong>",
       "replace": "</span> Menos repetición. <strong>Más acción.</strong>",
       "count": 1
+    },
+    {
+      "find": "title=\"Opens in a new tab\">Docs<svg",
+      "replace": "title=\"Se abre en una pestaña nueva\">Docs<svg",
+      "count": 1
+    },
+    {
+      "find": "<span class=\"sr-only\"> (opens in a new tab)</span>",
+      "replace": "<span class=\"sr-only\"> (se abre en una pestaña nueva)</span>",
+      "count": 1
     }
   ],
   "pricingEntries": [

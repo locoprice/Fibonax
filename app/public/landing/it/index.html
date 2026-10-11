@@ -396,6 +396,10 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 .foot-links{display:flex;flex-wrap:wrap;gap:20px;font-size:13.5px;color:#C7C7CC}
 .foot-links a{color:#C7C7CC}
 .foot-links a:hover{color:#fff}
+.foot-ext{display:inline-flex;align-items:center;gap:4px}
+.foot-ext svg{flex-shrink:0;opacity:.75;transition:transform .15s,opacity .15s}
+.foot-ext:hover svg{opacity:1;transform:translate(1px,-1px)}
+.foot-ext .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* LANGUAGE PICKER
    Lives in the footer rather than the nav: the bar has no room left for it
    once a primary CTA and an account menu are in there, and every language
@@ -1977,6 +1981,7 @@ body.cm-locked{overflow:hidden}
       <a href="/legal/terms-and-conditions.html">Termini</a>
       <a href="/legal/cookie-policy.html">Cookie</a>
       <a href="https://sprintbrain.instatus.com/" target="_blank" rel="noopener">Stato</a>
+      <a href="https://docs.sprintbrain.com/" class="foot-ext" target="_blank" rel="noopener" title="Si apre in una nuova scheda">Docs<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg><span class="sr-only"> (si apre in una nuova scheda)</span></a>
     </div>
     <div class="foot-brand">
       © <span id="foot-year">2026</span> SprintBrain<span id="foot-ver"> · {{EXT_VERSION}}</span><span id="foot-updated"> · Aggiornato {{RELEASE_MONTH}}</span>
@@ -2451,7 +2456,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.66.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.66.1';
   // Heal the hero badge on unstamped serves (sprintbrain.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
