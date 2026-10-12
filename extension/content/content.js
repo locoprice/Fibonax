@@ -1525,6 +1525,7 @@ function _sbAdjustHtml(cfg) {
   var a = cfg.adjust;
   if (!a) return '';
   var k = xesc(cfg.key), rows = '';
+  var fieldName = xesc(cfg.label || cfg.key.replace(/_/g, ' '));
 
   function optList(items, sel) {
     return items.map(function(o) {
@@ -1538,27 +1539,27 @@ function _sbAdjustHtml(cfg) {
 
   if (a.formats.length) {
     rows += '<div class="sb-adjrow"><span class="sb-adjlbl">Format</span>' +
-            '<select class="sb-fmt" data-key="' + k + '">' + optList(a.formats, cfg.format) +
+            '<select class="sb-fmt" aria-label="Format for ' + fieldName + '" data-key="' + k + '">' + optList(a.formats, cfg.format) +
             '</select></div>';
   }
 
   if (a.modes.length) {
     rows += '<div class="sb-adjrow"><span class="sb-adjlbl">Day</span>' +
-            '<select class="sb-daymode" data-key="' + k + '">' + optList(a.modes, 'none') + '</select>' +
+            '<select class="sb-daymode" aria-label="Day adjustment for ' + fieldName + '" data-key="' + k + '">' + optList(a.modes, 'none') + '</select>' +
             '<span class="sb-dayfixed" data-key="' + k + '" hidden>' +
-              '<input type="number" class="sb-dayn" data-key="' + k + '" min="1" step="1" value="1">' +
-              '<select class="sb-dayu" data-key="' + k + '">' + optList(a.units, 'D') + '</select>' +
+              '<input type="number" class="sb-dayn" aria-label="Offset amount for ' + fieldName + '" data-key="' + k + '" min="1" step="1" value="1">' +
+              '<select class="sb-dayu" aria-label="Offset unit for ' + fieldName + '" data-key="' + k + '">' + optList(a.units, 'D') + '</select>' +
               '<label class="sb-adjchk"><input type="checkbox" class="sb-dayback" data-key="' + k + '">backwards</label>' +
             '</span>' +
-            '<select class="sb-daynamed" data-key="' + k + '" hidden>' + optList(a.days, '') + '</select>' +
+            '<select class="sb-daynamed" aria-label="Named day for ' + fieldName + '" data-key="' + k + '" hidden>' + optList(a.days, '') + '</select>' +
             '</div>';
   }
 
   if (a.hours.length) {
     rows += '<div class="sb-adjrow"><span class="sb-adjlbl">Clock</span>' +
-            '<select class="sb-hh" data-key="' + k + '">' + optList(a.hours, a.hour) + '</select>' +
+            '<select class="sb-hh" aria-label="Hour for ' + fieldName + '" data-key="' + k + '">' + optList(a.hours, a.hour) + '</select>' +
             '<span class="sb-adjsep">:</span>' +
-            '<select class="sb-mm" data-key="' + k + '">' + optList(a.minutes, a.minute) + '</select>' +
+            '<select class="sb-mm" aria-label="Minute for ' + fieldName + '" data-key="' + k + '">' + optList(a.minutes, a.minute) + '</select>' +
             '</div>';
   }
 
@@ -1850,6 +1851,14 @@ function showOverlay(targetEl, snip, scLen, done) {
     } else {
       inp = '<input type="'+(cfg.type==='number'?'number':'text')+'" class="sb-inp" data-key="'+key+'" placeholder="'+key.replace(/_/g,' ')+'" value="'+xesc(cfg.value)+'">';
     }
+    // Presentation-only naming: answer keys, defaults and handlers stay intact.
+    var fieldId = 'sb-fill-' + i;
+    var fieldLabel = cfg.label || cfg.before || key.replace(/_/g, ' ');
+    if (blockControl) {
+      inp = inp.replace('class="sb-multi"', 'class="sb-multi" role="group" aria-label="'+xesc(fieldLabel)+'"');
+    } else {
+      inp = inp.replace('class="sb-inp"', 'class="sb-inp" id="'+fieldId+'" aria-label="'+xesc(fieldLabel)+'"');
+    }
     // The row reads like the snippet — "Rate Plan: [ Refundable ] per night".
     // Only a field with no prose around it falls back to its key, which is
     // otherwise noise: an unnamed menu's key is a hash like MENU_1yvog3p.
@@ -1857,13 +1866,17 @@ function showOverlay(targetEl, snip, scLen, done) {
     var post = cfg.after  ? '<span class="sb-ctx">'+xesc(cfg.after)+'</span>'  : '';
     // A caption the author gave the box wins; otherwise only a box with no prose
     // around it falls back to its key.
-    var lbl  = cfg.label ? '<label class="sb-lbl">'+xesc(cfg.label)+'</label>'
-      : ((pre || post) ? '' : '<label class="sb-lbl">{'+xesc(key)+'}</label>');
+    var lbl  = cfg.label ? '<label class="sb-lbl"'+(blockControl ? '' : ' for="'+fieldId+'"')+'>'+xesc(cfg.label)+'</label>'
+      : ((pre || post) ? '' : '<label class="sb-lbl"'+(blockControl ? '' : ' for="'+fieldId+'"')+'>'+xesc(key.replace(/_/g,' '))+'</label>');
     // Where a field that reads its value off a page says what the last read
     // found ("From link", "Not on the page"). Empty and hidden until a read,
     // and absent from every field the author never pointed at a page.
     var mark = cfg.link ? '<div class="sb-linkmark" data-linkmark="'+xesc(key)+'" hidden></div>' : '';
-    fhtml += '<div class="sb-field">' + lbl + (blockControl
+    // Only presentation changes: keep field and keyboard order, and leave
+    // choices or longer sentences room to read across the whole form.
+    var wideField = blockControl || cfg.type === 'datetime' || cfg.type === 'datetime-local' || ((cfg.before || '').length + (cfg.after || '').length > 72) || (cfg.label || '').length > 64;
+    var fieldWidth = wideField ? ' sb-field--wide' : (cfg.type === 'number' ? ' sb-field--compact' : '');
+    fhtml += '<div class="sb-field'+fieldWidth+'">' + lbl + (blockControl
       ? (pre ? '<div class="sb-ctxline">'+pre+'</div>' : '') + inp +
         (post ? '<div class="sb-ctxline">'+post+'</div>' : '')
       : '<div class="sb-row">'+pre+inp+post+'</div>') + mark + _sbAdjustHtml(cfg) + '</div>';
@@ -1880,32 +1893,41 @@ function showOverlay(targetEl, snip, scLen, done) {
 
   var el = document.createElement('div');
   el.id = 'sb-overlay';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-labelledby', 'sb-fill-title');
+  el.setAttribute('aria-describedby', 'sb-fill-description');
   el.innerHTML =
     '<div class="sb-hdr">' +
-      '<span class="sb-logo">\u26a1 Sprintbrain</span>' +
-      '<span class="sb-title">'+xesc(snip.title)+'</span>' +
-      '<button class="sb-close">&#x2715;</button>' +
+      '<h2 class="sb-function-name" id="sb-fill-title">'+xesc(snip.title)+'</h2>' +
+      '<button type="button" class="sb-close" aria-label="Cancel insertion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>' +
     '</div>' +
-    (reviewWarning(snip) ? '<div class="sb-revwarn" role="alert">' + xesc(reviewWarning(snip)) + '</div>' : '') +
-    (vm.linkable ? _sbLinkHtml() : '') +
-    '<div class="sb-fields">'+fhtml+'</div>' +
-    '<div class="sb-prev" id="sb-prev"></div>' +
+    '<div class="sb-form-content">' +
+      '<div class="sb-heading"><h3 class="sb-title">Fill in your snippet</h3>' +
+        '<p id="sb-fill-description">Fill in the fields, then insert your message.</p></div>' +
+      (reviewWarning(snip) ? '<div class="sb-revwarn" role="alert">' + xesc(reviewWarning(snip)) + '</div>' : '') +
+      (vm.linkable ? _sbLinkHtml() : '') +
+      '<div class="sb-fields">'+fhtml+'</div>' +
+      '<section class="sb-preview" aria-labelledby="sb-preview-label">' +
+        '<div class="sb-preview-heading"><h3 id="sb-preview-label">Message preview</h3><span>First 5 lines</span></div>' +
+        '<div class="sb-prev" id="sb-prev"></div>' +
+      '</section>' +
+    '</div>' +
     '<div class="sb-foot">' +
-      '<button class="sb-insert">Insert message \u21b5</button>' +
       '<span class="sb-tip">Enter \u00b7 Esc to cancel</span>' +
+      '<button type="button" class="sb-insert">Insert message <span aria-hidden="true">\u21b5</span></button>' +
     '</div>';
 
   el.style.cssText =
     'position:fixed!important;top:50%!important;left:50%!important;' +
     'transform:translate(-50%,-50%)!important;z-index:2147483647!important;' +
     'display:flex!important;flex-direction:column!important;' +
-    'width:540px!important;max-width:94vw!important;max-height:88vh!important;' +
+    'width:800px!important;max-width:calc(100vw - var(--sb-s-8))!important;max-height:calc(100dvh - var(--sb-s-8))!important;' +
     'overflow:hidden!important;' +
-    'box-shadow:0 20px 60px rgba(0,0,0,.28),0 4px 16px rgba(0,0,0,.12)!important;';
+    'box-shadow:var(--sb-shadow-xl)!important;';
 
   var bd = document.createElement('div');
   bd.id = 'sb-bd';
-  bd.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2147483646;';
+  bd.style.cssText = 'position:fixed;inset:0;background:var(--sb-scrim);z-index:2147483646;';
 
   document.body.appendChild(bd);
   document.body.appendChild(el);
@@ -1934,7 +1956,7 @@ function showOverlay(targetEl, snip, scLen, done) {
         }
       });
       // Keeps the field being worked in on screen. The panel scrolls its field
-      // area past 88vh, so on a long form the caret could otherwise sit below
+      // content within the viewport, so on a long form the caret could sit below
       // the fold. Bound to focus rather than to the move above, so Tab and a
       // plain click get it too. 'nearest' means a form that already fits on
       // screen never jumps.
@@ -3803,115 +3825,89 @@ document.addEventListener('input', function(e) {
     '@keyframes sbSummaryIn{from{opacity:0;transform:translate(-50%,-48%)}to{opacity:1;transform:translate(-50%,-50%)}}' +
     '@keyframes sbConfettiBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}15%{opacity:1}65%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--cel-x)),calc(-50% + var(--cel-y))) rotate(var(--cel-turn)) scale(.7)}}' +
     '@media(prefers-reduced-motion:reduce){#sb-celebrate{animation:none;}#sb-celebrate .sb-cel-confetti{display:none;}}' +
-    '#sb-overlay{background:#fff;border-radius:12px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;font-size:13px;color:#18181B;}' +
-    // Flex column: header, preview and footer keep their size; the
-    // fields area is the only part that scrolls, and only when a snippet has
-    // more fields than fit in 88vh. A short form shows no scrollbar at all.
-    '#sb-overlay > *{flex:none;}' +
-    '#sb-overlay .sb-hdr{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border-bottom:1px solid #E4E4E7;}' +
-    '#sb-overlay .sb-revwarn{padding:7px 14px;background:var(--sb-warn-bg);border-bottom:1px solid var(--sb-warn-bdr);color:var(--sb-warn);font-size:12px;font-weight:600;}' +
-    '#sb-overlay .sb-logo{font-weight:700;font-size:13px;color:#1B4FD8;}' +
-    '#sb-overlay .sb-title{font-size:11px;color:#52525B;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
-    '#sb-overlay .sb-close{background:transparent;border:none;cursor:pointer;font-size:16px;color:#A1A1AA;padding:0;line-height:1;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;touch-action:manipulation;}' +
-    '#sb-overlay .sb-close:hover{color:#18181B;}' +
-    '#sb-overlay .sb-fields{padding:12px 14px;display:flex;flex-direction:column;gap:8px;flex:1 1 auto;min-height:0;overflow-y:auto;}' +
-    '#sb-overlay .sb-field{display:flex;flex-direction:column;gap:3px;}' +
-    '#sb-overlay .sb-lbl{font-size:9px;font-weight:700;color:#1B4FD8;text-transform:uppercase;letter-spacing:.08em;font-family:monospace;}' +
-    // Inline sentence: the control sits in the prose that surrounds it in the
-    // body. Wraps rather than overflowing, since the panel is only 540px wide.
-    '#sb-overlay .sb-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}' +
-    '#sb-overlay .sb-row .sb-inp{flex:1 1 130px;width:auto;min-width:0;}' +
-    '#sb-overlay .sb-ctx{font-size:12px;color:#52525B;line-height:1.35;}' +
-    '#sb-overlay .sb-ctxline{font-size:12px;color:#52525B;line-height:1.35;}' +
-    '#sb-overlay .sb-inp{background:#F4F4F5;border:1px solid #E4E4E7;border-radius:8px;padding:7px 10px;font-size:16px;color:#18181B;font-family:inherit;outline:none;width:100%;box-sizing:border-box;touch-action:manipulation;transition:border-color .15s,box-shadow .15s;}' +
-    '#sb-overlay .sb-inp:focus{border-color:#1B4FD8;background:#fff;box-shadow:0 0 0 3px rgba(27,79,216,.14);}' +
-    // What the person types is bold and in full ink, so it stands apart from
-    // the snippet's own words around it, which stay grey and regular. The hint
-    // stays regular, so an empty box never looks filled. Same on all four fill
-    // surfaces.
-    '#sb-overlay .sb-inp[type=text],#sb-overlay .sb-inp[type=number]{font-weight:700;}' +
-    '#sb-overlay .sb-inp::placeholder{font-weight:400;}' +
-    '#sb-overlay .sb-inp[type=date],#sb-overlay .sb-inp[type=time],#sb-overlay .sb-inp[type=datetime-local]{color:#1B4FD8;border-color:#BED0FF;background:#EEF2FF;}' +
-    '#sb-overlay select.sb-inp{-webkit-appearance:none;background-image:url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0l5 6 5-6z" fill="%231B4FD8"/></svg>\');background-repeat:no-repeat;background-position:right 8px center;padding-right:26px;cursor:pointer;}' +
-    // Adjust panel. A quiet link under the picker, not a button: it competes
-    // with Insert for attention otherwise, and it is a detour most expansions
-    // never take. Open, it indents under the field it belongs to and picks up
-    // the same blue the date inputs already carry, so the rows read as part of
-    // that field rather than as a second form.
-    // align-self, not inline-block: .sb-field is a flex column, so an
-    // inline-block child is blockified to the full width and the button's own
-    // centred text lands the link in the middle of the row.
-    '#sb-overlay .sb-adj{align-self:flex-start;margin:4px 0 0 2px;padding:2px 4px;background:none;border:none;font-family:inherit;font-size:11px;font-weight:600;color:#71717A;cursor:pointer;line-height:1.4;}' +
-    '#sb-overlay .sb-adj:hover{color:#1B4FD8;}' +
-    '#sb-overlay .sb-adj[aria-expanded=true]{color:#1B4FD8;}' +
-    '#sb-overlay .sb-adjbox{display:flex;flex-direction:column;gap:6px;margin:4px 0 2px 2px;padding:8px 10px;background:#F8FAFF;border:1px solid #E4E9F7;border-radius:8px;}' +
-    '#sb-overlay .sb-adjrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}' +
-    '#sb-overlay .sb-adjlbl{flex:none;width:46px;font-size:10px;font-weight:600;color:#71717A;text-transform:uppercase;letter-spacing:.04em;}' +
-    '#sb-overlay .sb-adjbox select,#sb-overlay .sb-adjbox input[type=number]{flex:1 1 auto;min-width:0;box-sizing:border-box;height:28px;padding:0 8px;background:#fff;border:1px solid #D4D4D8;border-radius:6px;font-family:inherit;font-size:12px;color:#18181B;cursor:pointer;}' +
-    '#sb-overlay .sb-adjbox select:focus,#sb-overlay .sb-adjbox input[type=number]:focus{outline:none;border-color:#1B4FD8;}' +
-    '#sb-overlay .sb-adjbox input[type=number]{flex:0 0 58px;cursor:text;}' +
-    '#sb-overlay .sb-dayfixed{display:flex;flex:1 1 100%;align-items:center;gap:6px;}' +
-    '#sb-overlay .sb-adjchk{display:flex;align-items:center;gap:4px;flex:none;font-size:11px;color:#52525B;cursor:pointer;}' +
-    '#sb-overlay .sb-adjchk input{accent-color:#1B4FD8;cursor:pointer;margin:0;}' +
-    '#sb-overlay .sb-adjsep{flex:none;font-size:12px;color:#71717A;}' +
-    // Scoped inside the box on purpose: a bare .sb-hh loses to
-    // `.sb-adjbox select` on specificity, and the two clock controls then
-    // stretch across the row.
-    '#sb-overlay .sb-adjbox .sb-hh,#sb-overlay .sb-adjbox .sb-mm{flex:0 0 68px;}' +
-    // An author `display` beats the browser's own [hidden]{display:none}, so
-    // both flex boxes above would ignore the attribute and sit permanently
-    // open. Stated here rather than swapped for a class, because `hidden` is
-    // what the panel toggles on all four surfaces.
-    '#sb-overlay .sb-adjbox[hidden],#sb-overlay .sb-dayfixed[hidden]{display:none;}' +
-    '#sb-overlay .sb-btnrow{display:flex;flex-wrap:wrap;gap:6px;padding-top:2px;}' +
-    '#sb-overlay .sb-actbtn{background:#EEF2FF;border:1px solid #BED0FF;border-radius:8px;padding:7px 12px;font-size:13px;font-weight:600;color:#1B4FD8;font-family:inherit;cursor:pointer;min-height:32px;touch-action:manipulation;transition:background .15s;}' +
-    '#sb-overlay .sb-actbtn:hover{background:#E0EAFF;}' +
-    '#sb-overlay .sb-actbtn:active{transform:scale(.97);}' +
-    '#sb-overlay .sb-btnerr{color:#DC2626;font-size:11px;line-height:1.5;padding-top:2px;}' +
-    // Fill from link. A band of its own between the header and the fields, so
-    // it stays in view however long the form scrolls, in the light blue the
-    // Adjust panel already uses for "a tool that fills fields in". The input
-    // takes the field look but not the field class: it is never an answer.
-    '#sb-overlay .sb-link{display:flex;flex-direction:column;gap:5px;padding:10px 14px;background:#F8FAFF;border-bottom:1px solid #E4E9F7;}' +
-    '#sb-overlay .sb-linklbl{font-size:11px;font-weight:600;color:#52525B;}' +
-    '#sb-overlay .sb-linkrow{display:flex;align-items:stretch;gap:6px;}' +
-    '#sb-overlay .sb-linkinp{flex:1 1 auto;min-width:0;box-sizing:border-box;margin:0;background:#fff;border:1px solid #E4E4E7;border-radius:8px;padding:7px 10px;font-size:14px;color:#18181B;font-family:inherit;outline:none;touch-action:manipulation;transition:border-color .15s,box-shadow .15s;}' +
-    '#sb-overlay .sb-linkinp:focus{border-color:#1B4FD8;box-shadow:0 0 0 3px rgba(27,79,216,.14);}' +
-    '#sb-overlay .sb-linkinp::placeholder{color:#A1A1AA;}' +
-    '#sb-overlay .sb-linkbtn{flex:none;margin:0;background:#EEF2FF;border:1px solid #BED0FF;border-radius:8px;padding:0 16px;font-size:13px;font-weight:600;color:#1B4FD8;font-family:inherit;cursor:pointer;min-height:34px;touch-action:manipulation;transition:background .15s;}' +
-    '#sb-overlay .sb-linkbtn:hover{background:#E0EAFF;}' +
-    '#sb-overlay .sb-linkbtn:focus-visible{outline:2px solid #1B4FD8;outline-offset:2px;}' +
-    '#sb-overlay .sb-linkbtn:disabled{opacity:.55;cursor:default;background:#EEF2FF;}' +
-    '#sb-overlay .sb-linkmsg{font-size:11px;line-height:1.5;color:#52525B;}' +
-    '#sb-overlay .sb-linkmsg:empty{display:none;}' +
-    '#sb-overlay .sb-linkmsg.sb-linkerr{color:#DC2626;}' +
-    // Text, never colour alone: "From link" reads the same to someone who
-    // cannot tell the blue from the grey.
-    '#sb-overlay .sb-linkmark{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;line-height:1.4;}' +
-    '#sb-overlay .sb-linkmark[hidden]{display:none;}' +
-    // A mark belongs to the field above it, so it hugs that field and keeps
-    // clear of the next one. Under a menu it is pulled up past the empty half
-    // of the last option row, which is otherwise as far from it as the next
-    // field's label is.
-    '#sb-overlay .sb-multi + .sb-linkmark{margin-top:-6px;}' +
-    '#sb-overlay .sb-field:has(> .sb-linkmark:not([hidden])){margin-bottom:6px;}' +
-    '#sb-overlay .sb-linkbadge{display:inline-block;padding:1px 7px;border-radius:999px;background:#EEF2FF;border:1px solid #BED0FF;color:#1B4FD8;font-size:10px;font-weight:700;}' +
-    '#sb-overlay .sb-linknote{color:#71717A;}' +
-    '#sb-overlay .sb-linknote.sb-linkwarn{color:var(--sb-warn);font-weight:600;}' +
-    // One option per line, each a plain row: the circle says "pick one of
-    // these" the way a paper form does. Wrapped pills read as tags or filters,
-    // not as a question waiting for an answer, and a long option had to be
-    // hunted for across a wrapped line.
-    '#sb-overlay .sb-multi{display:flex;flex-direction:column;gap:2px;box-sizing:border-box;}' +
-    '#sb-overlay .sb-opt{display:flex;align-items:center;gap:10px;background:transparent;border:none;border-radius:8px;padding:4px 6px;font-size:13px;color:#18181B;cursor:pointer;min-height:32px;touch-action:manipulation;transition:background .12s;}' +
-    '#sb-overlay .sb-opt:hover{background:#F4F4F5;}' +
-    '#sb-overlay .sb-opt input.sb-inp{width:auto;padding:0;margin:0;flex:none;background:none;border:none;box-shadow:none;accent-color:#1B4FD8;cursor:pointer;min-height:0;}' +
-    '#sb-overlay .sb-opt:has(input:checked){color:#1B4FD8;font-weight:600;}' +
-    '#sb-overlay .sb-prev{margin:0 14px;padding:8px 10px;background:#F4F4F5;border:1px solid #E4E4E7;border-radius:8px;font-size:11px;color:#52525B;line-height:1.6;white-space:pre-wrap;max-height:92px;overflow:hidden;}' +
-    '#sb-overlay .sb-foot{padding:10px 14px;border-top:1px solid #E4E4E7;display:flex;align-items:center;gap:8px;background:#FAFAFA;}' +
-    '#sb-overlay .sb-insert{padding:8px 18px;background:#1B4FD8;border:none;border-radius:8px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit;min-height:44px;touch-action:manipulation;}' +
-    '#sb-overlay .sb-insert:hover{background:#1440B0;}' +
-    '#sb-overlay .sb-tip{font-size:10px;color:#A1A1AA;}' +
+    // The header and action stay visible; one scroll region holds the whole form.
+    // All answers and their existing handlers remain inside the same dialog.
+    "#sb-overlay{all:initial;box-sizing:border-box;background:var(--sb-bg);border:1px solid var(--sb-line);border-radius:var(--sb-r-2xl);font-family:var(--sb-font);font-size:var(--sb-fs-13);color:var(--sb-ink);line-height:1.5;text-align:left;color-scheme:light;-webkit-font-smoothing:antialiased;}" +
+    "#sb-overlay *,#sb-overlay *::before,#sb-overlay *::after{box-sizing:border-box;}" +
+    "#sb-overlay h2,#sb-overlay h3,#sb-overlay p{margin:0;padding:0;font:inherit;color:inherit;}" +
+    "#sb-overlay button{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:var(--sb-s-2);min-height:calc(var(--sb-s-10) + var(--sb-s-1));border:1px solid transparent;border-radius:var(--sb-r-lg);font-family:inherit;font-size:var(--sb-fs-13);font-weight:600;line-height:1.3;cursor:pointer;touch-action:manipulation;}" +
+    "#sb-overlay button:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px;}" +
+    "#sb-overlay .sb-hdr{flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--sb-s-3);padding:var(--sb-s-2) var(--sb-s-6);border-bottom:1px solid var(--sb-line);}" +
+    "#sb-overlay .sb-function-name{min-width:0;font-size:var(--sb-fs-14);font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere;}" +
+    "#sb-overlay .sb-close{flex:none;width:calc(var(--sb-s-10) + var(--sb-s-1));padding:0;color:var(--sb-ink-muted);}" +
+    "#sb-overlay .sb-close:hover{background:var(--sb-bg-muted);color:var(--sb-ink);}" +
+    "#sb-overlay .sb-close svg{display:block;}" +
+    "#sb-overlay .sb-form-content{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scroll-padding-block:var(--sb-s-3);padding:var(--sb-s-5) var(--sb-s-6);}" +
+    "#sb-overlay .sb-heading{margin-bottom:var(--sb-s-4);}" +
+    "#sb-overlay .sb-title{font-size:var(--sb-fs-20);font-weight:600;letter-spacing:-.03em;line-height:1.25;overflow-wrap:anywhere;}" +
+    "#sb-overlay #sb-fill-description{margin-top:var(--sb-s-1);font-size:var(--sb-fs-13);color:var(--sb-ink-muted);}" +
+    "#sb-overlay .sb-revwarn{margin-bottom:var(--sb-s-5);padding:var(--sb-s-3) var(--sb-s-4);border:1px solid var(--sb-warn-bdr);border-radius:var(--sb-r-lg);background:var(--sb-warn-bg);color:var(--sb-ink);font-size:var(--sb-fs-12);}" +
+    "#sb-overlay .sb-fields{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:var(--sb-s-4);}" +
+    "#sb-overlay .sb-field{display:flex;flex-direction:column;gap:var(--sb-s-2);min-width:0;}" +
+    "#sb-overlay .sb-lbl{display:block;margin:0;font-family:inherit;font-size:var(--sb-fs-12);font-weight:600;color:var(--sb-ink);line-height:1.4;text-transform:none;letter-spacing:normal;overflow-wrap:anywhere;}" +
+    "#sb-overlay .sb-row{display:flex;align-items:center;gap:var(--sb-s-2);flex-wrap:wrap;}" +
+    "#sb-overlay .sb-row .sb-inp{flex:1 1 130px;width:auto;min-width:0;}" +
+    "#sb-overlay .sb-ctx,#sb-overlay .sb-ctxline{font-size:var(--sb-fs-13);font-weight:400;color:var(--sb-ink-muted);line-height:1.5;overflow-wrap:anywhere;}" +
+    "#sb-overlay .sb-inp{display:block;margin:0;width:100%;min-width:0;min-height:calc(var(--sb-s-10) + var(--sb-s-1));padding:var(--sb-s-2) var(--sb-s-3);background:var(--sb-bg);border:1px solid var(--sb-line-2);border-radius:var(--sb-r-lg);font-family:inherit;font-size:var(--sb-fs-16);line-height:1.4;color:var(--sb-ink);outline:none;touch-action:manipulation;transition:border-color var(--sb-dur-base),box-shadow var(--sb-dur-base);}" +
+    "#sb-overlay .sb-inp:hover{border-color:var(--sb-ink-muted);}" +
+    "#sb-overlay .sb-inp:focus{border-color:var(--sb-azure);box-shadow:0 0 0 3px var(--sb-azure-glow);}" +
+    "#sb-overlay .sb-inp[type=text],#sb-overlay .sb-inp[type=number]{font-weight:700;}" +
+    "#sb-overlay .sb-inp::placeholder{font-weight:400;color:var(--sb-ink-muted);opacity:1;}" +
+    "#sb-overlay .sb-inp[type=date],#sb-overlay .sb-inp[type=time],#sb-overlay .sb-inp[type=datetime-local]{color:var(--sb-azure);}" +
+    "#sb-overlay .sb-adj{align-self:flex-start;padding:var(--sb-s-1) var(--sb-s-2);margin:calc(-1 * var(--sb-s-1)) 0;font-size:var(--sb-fs-12);font-weight:500;color:var(--sb-ink-muted);}" +
+    "#sb-overlay .sb-adj:hover,#sb-overlay .sb-adj[aria-expanded=true]{color:var(--sb-azure);background:var(--sb-azure-bg);}" +
+    "#sb-overlay .sb-adjbox{display:flex;flex-direction:column;gap:var(--sb-s-3);padding:var(--sb-s-4);background:var(--sb-bg-alt);border:1px solid var(--sb-line);border-radius:var(--sb-r-lg);}" +
+    "#sb-overlay .sb-adjrow{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sb-s-2);}" +
+    "#sb-overlay .sb-adjlbl{flex:none;width:var(--sb-s-12);font-size:var(--sb-fs-12);font-weight:500;color:var(--sb-ink-muted);}" +
+    "#sb-overlay .sb-adjbox select,#sb-overlay .sb-adjbox input[type=number]{flex:1 1 auto;min-width:0;max-width:100%;min-height:calc(var(--sb-s-10) + var(--sb-s-1));padding:var(--sb-s-2);background:var(--sb-bg);border:1px solid var(--sb-line-2);border-radius:var(--sb-r-md);font-family:inherit;font-size:var(--sb-fs-13);color:var(--sb-ink);cursor:pointer;}" +
+    "#sb-overlay .sb-adjbox select:focus,#sb-overlay .sb-adjbox input[type=number]:focus{outline:2px solid var(--sb-azure);outline-offset:2px;}" +
+    "#sb-overlay .sb-adjbox input[type=number]{flex:0 1 calc(var(--sb-s-8) * 2);cursor:text;}" +
+    "#sb-overlay .sb-dayfixed{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:center;gap:var(--sb-s-2);}" +
+    "#sb-overlay .sb-dayfixed select{flex:1 1 calc(var(--sb-s-12) * 2);}" +
+    "#sb-overlay .sb-adjchk{display:flex;align-items:center;gap:var(--sb-s-2);min-height:calc(var(--sb-s-10) + var(--sb-s-1));font-size:var(--sb-fs-12);color:var(--sb-ink-muted);cursor:pointer;}" +
+    "#sb-overlay .sb-adjchk input{accent-color:var(--sb-azure);cursor:pointer;margin:0;}" +
+    "#sb-overlay .sb-adjsep{flex:none;font-size:var(--sb-fs-13);color:var(--sb-ink-muted);}" +
+    "#sb-overlay .sb-adjbox .sb-hh,#sb-overlay .sb-adjbox .sb-mm{flex:0 1 calc(var(--sb-s-8) * 2);}" +
+    "#sb-overlay .sb-btnrow{display:flex;flex-wrap:wrap;gap:var(--sb-s-2);}" +
+    "#sb-overlay .sb-actbtn{padding:var(--sb-s-2) var(--sb-s-3);border-color:var(--sb-line-2);color:var(--sb-ink);background:var(--sb-bg);}" +
+    "#sb-overlay .sb-actbtn:hover{background:var(--sb-bg-muted);}" +
+    "#sb-overlay .sb-btnerr{color:var(--sb-danger);font-size:var(--sb-fs-12);line-height:1.5;}" +
+    "#sb-overlay .sb-link{display:flex;flex-direction:column;gap:var(--sb-s-2);margin-bottom:var(--sb-s-6);padding:var(--sb-s-4);background:var(--sb-azure-bg);border:1px solid var(--sb-azure-bdr);border-radius:var(--sb-r-xl);}" +
+    "#sb-overlay .sb-linklbl{font-size:var(--sb-fs-13);font-weight:600;color:var(--sb-ink);}" +
+    "#sb-overlay .sb-linkrow{display:flex;align-items:stretch;gap:var(--sb-s-2);}" +
+    "#sb-overlay .sb-linkinp{flex:1 1 auto;min-width:0;margin:0;background:var(--sb-bg);border:1px solid var(--sb-line-2);border-radius:var(--sb-r-lg);padding:var(--sb-s-3);font-size:var(--sb-fs-16);color:var(--sb-ink);font-family:inherit;outline:none;}" +
+    "#sb-overlay .sb-linkinp:focus{border-color:var(--sb-azure);box-shadow:0 0 0 3px var(--sb-azure-glow);}" +
+    "#sb-overlay .sb-linkinp::placeholder{color:var(--sb-ink-muted);opacity:1;}" +
+    "#sb-overlay .sb-linkbtn{flex:none;padding:var(--sb-s-2) var(--sb-s-3);border-color:var(--sb-azure-bdr);background:var(--sb-bg);color:var(--sb-azure);}" +
+    "#sb-overlay .sb-linkbtn:hover{background:var(--sb-azure-bg);}" +
+    "#sb-overlay .sb-linkbtn:disabled{opacity:.55;cursor:default;}" +
+    "#sb-overlay .sb-linkmsg{font-size:var(--sb-fs-12);line-height:1.5;color:var(--sb-ink-muted);}" +
+    "#sb-overlay .sb-linkmsg:empty{display:none;}" +
+    "#sb-overlay .sb-linkmsg.sb-linkerr{color:var(--sb-danger);}" +
+    "#sb-overlay .sb-linkmark{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sb-s-2);font-size:var(--sb-fs-12);line-height:1.4;}" +
+    "#sb-overlay .sb-linkbadge{display:inline-block;padding:var(--sb-s-1) var(--sb-s-2);border:1px solid var(--sb-azure-bdr);border-radius:var(--sb-r-sm);background:var(--sb-azure-bg);color:var(--sb-azure);font-size:var(--sb-fs-11);font-weight:600;}" +
+    "#sb-overlay .sb-linknote,#sb-overlay .sb-linknote.sb-linkwarn{color:var(--sb-ink-muted);}" +
+    "#sb-overlay .sb-multi{display:flex;flex-direction:column;gap:var(--sb-s-1);max-width:100%;}" +
+    "#sb-overlay .sb-opt{display:flex;align-items:center;gap:var(--sb-s-3);min-height:calc(var(--sb-s-10) + var(--sb-s-1));padding:var(--sb-s-2) var(--sb-s-3);border:1px solid var(--sb-line);border-radius:var(--sb-r-lg);font-size:var(--sb-fs-13);color:var(--sb-ink);cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere;}" +
+    "#sb-overlay .sb-opt:hover{background:var(--sb-bg-alt);}" +
+    "#sb-overlay .sb-opt input.sb-inp{display:inline-block;width:var(--sb-s-4);height:var(--sb-s-4);min-height:0;padding:0;margin:0;flex:none;box-shadow:none;accent-color:var(--sb-azure);cursor:pointer;}" +
+    "#sb-overlay .sb-opt:has(input:checked){border-color:var(--sb-azure-bdr);background:var(--sb-azure-bg);color:var(--sb-azure);font-weight:600;}" +
+    "#sb-overlay .sb-opt:has(input:focus-visible){outline:2px solid var(--sb-azure);outline-offset:2px;}" +
+    "#sb-overlay .sb-preview{margin-top:var(--sb-s-4);padding:var(--sb-s-3) var(--sb-s-4);background:var(--sb-bg-alt);border-radius:var(--sb-r-xl);}" +
+    "#sb-overlay .sb-preview-heading{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sb-s-2);margin-bottom:var(--sb-s-2);}" +
+    "#sb-overlay #sb-preview-label{font-size:var(--sb-fs-12);font-weight:600;color:var(--sb-ink);}" +
+    "#sb-overlay .sb-preview-heading>span{font-size:var(--sb-fs-11);color:var(--sb-ink-muted);}" +
+    "#sb-overlay .sb-prev{font-family:inherit;font-size:var(--sb-fs-13);font-weight:400;color:var(--sb-ink-muted);line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;}" +
+    "#sb-overlay .sb-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--sb-s-4);padding:var(--sb-s-3) var(--sb-s-6);border-top:1px solid var(--sb-line);background:var(--sb-bg);}" +
+    "#sb-overlay .sb-insert{min-height:calc(var(--sb-s-10) + var(--sb-s-1));padding:var(--sb-s-3) var(--sb-s-5);background:var(--sb-azure);color:var(--sb-bg);border-radius:var(--sb-r-xl);font-size:var(--sb-fs-14);}" +
+    "#sb-overlay .sb-insert:hover{background:var(--sb-azure-dark);}" +
+    "#sb-overlay .sb-insert>span{font-size:var(--sb-fs-16);}" +
+    "#sb-overlay .sb-tip{font-size:var(--sb-fs-11);color:var(--sb-ink-muted);}" +
+    "#sb-overlay [hidden]{display:none;}" +
+    "@media(min-width:600px){#sb-overlay .sb-fields{grid-template-columns:repeat(6,minmax(0,1fr));}#sb-overlay .sb-field{grid-column:span 3;}#sb-overlay .sb-field--wide,#sb-overlay .sb-btnrow,#sb-overlay .sb-btnerr{grid-column:1/-1;}}" +
+    "@media(min-width:720px){#sb-overlay .sb-field--compact{grid-column:span 2;}}" +
+    "@media(max-width:480px){#sb-overlay .sb-hdr{padding:var(--sb-s-2) var(--sb-s-5);}#sb-overlay .sb-form-content{padding:var(--sb-s-5);}#sb-overlay .sb-foot{flex-direction:column-reverse;gap:var(--sb-s-2);padding:var(--sb-s-3) var(--sb-s-5);}#sb-overlay .sb-insert{width:100%;}#sb-overlay .sb-adjbox select,#sb-overlay .sb-adjbox input[type=number]{font-size:var(--sb-fs-16);}#sb-overlay .sb-linkrow{flex-wrap:wrap;}#sb-overlay .sb-linkinp{flex-basis:100%;}#sb-overlay .sb-linkbtn{width:100%;}}" +
+    "@media(prefers-reduced-motion:reduce){#sb-overlay .sb-inp{transition:none;}}" +
     '#sb-trigger-picker .sb-tp-item,#sb-sel-suggest .sb-ss-item{touch-action:manipulation;border-radius:8px;transition:background .12s ease;}' +
     '#sb-trigger-picker .sb-tp-item:hover,#sb-sel-suggest .sb-ss-item:hover{background:#F4F4F5;}';
   document.head.appendChild(s);
