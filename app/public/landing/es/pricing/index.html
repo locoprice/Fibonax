@@ -129,37 +129,14 @@ img,svg{display:block;max-width:100%}
 /* HERO */
 .hero{
   padding:54px 24px 72px;position:relative;overflow:hidden;
-  background:
-    radial-gradient(ellipse 74% 46% at 50% -6%,rgba(27,79,216,.10) 0%,rgba(27,79,216,0) 64%),
-    radial-gradient(ellipse 42% 30% at 84% 4%,rgba(127,168,248,.16) 0%,rgba(127,168,248,0) 62%),
-    var(--bg)}
-/* ambient grid wash, fades out toward the edges */
-.hero::before{
-  content:"";position:absolute;inset:0;pointer-events:none;
-  background-image:
-    linear-gradient(rgba(27,79,216,.05) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(27,79,216,.05) 1px,transparent 1px);
-  background-size:68px 68px;
-  mask:radial-gradient(ellipse 64% 58% at 50% 0%,#000 0%,transparent 74%);
-  -webkit-mask:radial-gradient(ellipse 64% 58% at 50% 0%,#000 0%,transparent 74%)}
+  background:var(--bg)}
 .hero-inner{max-width:var(--max);margin:0 auto;text-align:center;position:relative;z-index:1}
-.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;
-  background:rgba(255,255,255,.7);color:var(--primary);
-  border:1px solid var(--primary-lt);
-  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
-  padding:6px 14px 6px 12px;border-radius:100px;font-size:13px;font-weight:600;
+.hero-eyebrow{display:inline-block;color:var(--primary);
+  font-size:13px;font-weight:600;
   margin-bottom:20px}
-.hero-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;
-  background:var(--primary);animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .hero h1{font-size:clamp(40px,5.3vw,64px);font-weight:800;letter-spacing:-.032em;
   line-height:1.03;margin-bottom:18px;color:var(--text)}
-.hero h1 span{
-  background:linear-gradient(115deg,var(--primary) 0%,#5B82F0 40%,#7FA8F8 60%,var(--primary) 100%);
-  background-size:220% 100%;
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  animation:heroSheen 9s ease-in-out infinite}
-@keyframes heroSheen{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.hero h1 span{color:var(--primary)}
 
 /* FOOTER */
 footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#0d0d0d}
@@ -274,7 +251,6 @@ body.cm-locked{overflow:hidden}
 }
 @media(max-width:640px){
 .hero{padding:56px 20px 52px}
-  .hero::before{background-size:44px 44px}
   .hero h1{letter-spacing:-.028em}
 footer{padding:28px 20px}
   .foot-support{margin-bottom:22px;padding-bottom:22px;gap:16px}
@@ -576,7 +552,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.67.1';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.67.2';
   // Heal the hero badge on unstamped serves (sprintbrain.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
