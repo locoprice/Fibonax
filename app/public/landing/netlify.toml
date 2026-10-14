@@ -10,6 +10,19 @@
   status = 301
   force  = true
 
+# Former brand domain → fibonax.com, permanently, keeping the path
+[[redirects]]
+  from   = "https://sprintbrain.com/*"
+  to     = "https://fibonax.com/:splat"
+  status = 301
+  force  = true
+
+[[redirects]]
+  from   = "https://www.sprintbrain.com/*"
+  to     = "https://fibonax.com/:splat"
+  status = 301
+  force  = true
+
 # Cache static assets aggressively
 [[headers]]
   for = "/*.html"

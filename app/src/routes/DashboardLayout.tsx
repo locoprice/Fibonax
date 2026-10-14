@@ -87,7 +87,7 @@ export function DashboardLayout() {
               </button>
               {/* Netlify deploy status — live badge served by Netlify. */}
               <a
-                href="https://app.netlify.com/projects/sprintbrain/deploys"
+                href="https://app.netlify.com/projects/fibonaxai/deploys"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Netlify deploy status"
