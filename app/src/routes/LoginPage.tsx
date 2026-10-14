@@ -18,8 +18,8 @@ import { authErrorMessage } from '@/lib/authCallback';
 
 type LoginView = 'email' | 'sent' | 'password' | 'recovery' | 'recovery_sent';
 
-const TERMS_URL = 'https://sprintbrain.com/legal/terms-and-conditions.html';
-const PRIVACY_URL = 'https://sprintbrain.com/legal/privacy-policy.html';
+const TERMS_URL = 'https://fibonax.com/legal/terms-and-conditions.html';
+const PRIVACY_URL = 'https://fibonax.com/legal/privacy-policy.html';
 /** Where a password reset link lands: the Password card in Settings. */
 const PASSWORD_SETTINGS_PATH = '/settings?tab=security';
 
@@ -219,7 +219,7 @@ export function LoginPage() {
             S
           </div>
           <span className="text-[16px] font-bold tracking-tight text-ink">
-            SprintBrain
+            Fibonax
           </span>
         </div>
 
@@ -351,7 +351,7 @@ export function LoginPage() {
               </p>
 
               <p className="text-center text-sm text-ink-muted">
-                New to SprintBrain?{' '}
+                New to Fibonax?{' '}
                 <Link
                   to="/signup"
                   className="font-medium text-primary underline-offset-2 hover:underline"

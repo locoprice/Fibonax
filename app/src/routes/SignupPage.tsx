@@ -178,7 +178,7 @@ export function SignupPage() {
             S
           </div>
           <span className="text-[16px] font-bold tracking-tight text-ink">
-            SprintBrain
+            Fibonax
           </span>
         </div>
 
@@ -275,7 +275,7 @@ export function SignupPage() {
               <p className="text-center text-[11px] text-ink-subtle">
                 By continuing you agree to our{' '}
                 <a
-                  href="https://sprintbrain.com/legal/terms-and-conditions.html"
+                  href="https://fibonax.com/legal/terms-and-conditions.html"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline-offset-2 hover:underline"
@@ -284,7 +284,7 @@ export function SignupPage() {
                 </a>{' '}
                 and{' '}
                 <a
-                  href="https://sprintbrain.com/legal/privacy-policy.html"
+                  href="https://fibonax.com/legal/privacy-policy.html"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline-offset-2 hover:underline"

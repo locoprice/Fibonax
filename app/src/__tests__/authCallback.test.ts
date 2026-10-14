@@ -49,13 +49,13 @@ describe('isAuthProviderEnabled', () => {
 
 describe('googleRedirectUrl', () => {
   it('returns to /auth/callback marked as a Google sign-in', () => {
-    expect(googleRedirectUrl('https://app.sprintbrain.com', '/')).toBe(
-      'https://app.sprintbrain.com/auth/callback?provider=google',
+    expect(googleRedirectUrl('https://app.fibonax.com', '/')).toBe(
+      'https://app.fibonax.com/auth/callback?provider=google',
     );
   });
 
   it('carries a deep link through the round trip', () => {
-    const url = new URL(googleRedirectUrl('https://app.sprintbrain.com', '/invite?org=1'));
+    const url = new URL(googleRedirectUrl('https://app.fibonax.com', '/invite?org=1'));
     expect(url.pathname).toBe('/auth/callback');
     expect(url.searchParams.get('provider')).toBe('google');
     expect(url.searchParams.get('next')).toBe('/invite?org=1');

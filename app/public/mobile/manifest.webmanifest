@@ -1,7 +1,7 @@
 {
   "id": "/mobile/",
-  "name": "SprintBrain",
-  "short_name": "SprintBrain",
+  "name": "Fibonax",
+  "short_name": "Fibonax",
   "description": "Your snippets, prompts and Brains on the phone. Save text and links from any app into a Brain.",
   "start_url": "/mobile/",
   "scope": "/",

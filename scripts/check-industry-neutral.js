@@ -1,7 +1,7 @@
 // Gate for the server functions in services/supabase/functions/, including the
 // instructions they send to the AI model.
 //
-// SprintBrain ships to every industry (root CLAUDE.md, Industry-Neutral). The
+// Fibonax ships to every industry (root CLAUDE.md, Industry-Neutral). The
 // suggest-labels prompt once told the model it worked for a hospitality team
 // and gave {guest_name} as its example placeholder. This keeps the words the
 // user manual already bans (vertical-words.js) out of every function.

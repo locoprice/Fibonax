@@ -1,11 +1,11 @@
-# SprintBrain — Engineering Reference
+# Fibonax — Engineering Reference
 
 > **On-demand reference.** Orientation material pulled out of the root `CLAUDE.md` to keep always-on context lean. Read when a task touches repo structure, the CI pipeline, or testing. For the fuller project narrative see `docs/PROJECT_CONTEXT.md`.
 
 ## 📦 Monorepo Structure
 
 ```
-SprintBrain/
+Fibonax/
 ├── CLAUDE.md                          # Root — global engineering standards (always-on guardrails)
 ├── netlify.toml                       # Netlify deploy (base: app/, publishes dist/)
 ├── .github/workflows/ci.yml           # CI pipeline (runs on push to develop)

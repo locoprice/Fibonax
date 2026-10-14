@@ -1,4 +1,4 @@
-// ── SPRINTBRAIN SHARED TOOLTIP (Avada style) ──────────────────────
+// ── FIBONAX SHARED TOOLTIP (Avada style) ──────────────────────
 // Canonical vanilla implementation. Loaded by extension/popup/popup.html. The
 // mobile app and the landing site inline a copy of this file because neither
 // can reach extension/ at runtime: /mobile/ is a single-file app by design,

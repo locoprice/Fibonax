@@ -1,15 +1,15 @@
-# app/CLAUDE.md — SprintBrain Dashboard (React)
+# app/CLAUDE.md — Fibonax Dashboard (React)
 
 **Document Version**: 2.4
 **Last Updated**: 2026-06-06
-**Project**: SprintBrain SaaS Dashboard (app/)
+**Project**: Fibonax SaaS Dashboard (app/)
 **Purpose**: AI development reference for the React dashboard. The Chrome extension lives in `extension/` and follows a different stack — see `../docs/CLAUDE.md` for that codebase.
 
 ---
 
 ## ⚠️ PHASE 2 — PRE-SEED: ZERO DEFECT STANDARD
 
-**SprintBrain is in active pre-seed fundraising. This is a top-class SaaS product. Every line of code shipped must be production-ready, stable, and polished. There is zero tolerance for bugs, regressions, or rough edges.**
+**Fibonax is in active pre-seed fundraising. This is a top-class SaaS product. Every line of code shipped must be production-ready, stable, and polished. There is zero tolerance for bugs, regressions, or rough edges.**
 
 ### Non-negotiable quality rules for this phase:
 - **No bug ships.** If something breaks, stop everything and fix it before moving on.
@@ -31,11 +31,11 @@
 
 ## 1. What this is
 
-The SprintBrain dashboard is a **desktop-only single-page application** served at the site root (`/`) on Netlify. It is the SaaS surface complementary to the Chrome extension and the mobile companion at `/mobile/`.
+The Fibonax dashboard is a **desktop-only single-page application** served at the site root (`/`) on Netlify. It is the SaaS surface complementary to the Chrome extension and the mobile companion at `/mobile/`.
 
 **Scope (v2.28.0)**: Supabase OTP authentication (open signups — any valid email; the original `@leibtour.com` gate was dropped, see §4.8) with live reads + full CRUD for snippets, folders, and prompts (AUTH-001 + SNIPPETS-CRUD-001 + PROMPTS-001 all shipped). Analytics still uses mock fixtures pending the `snippet_events` time-series table (`ANALYTICS-001`). Dashboard now includes an `ExtensionLinkPage` for connecting the Chrome extension to a logged-in user session.
 
-**Audience**: hospitality operators (LeibTour) primarily; B2B prospects evaluating SprintBrain.
+**Audience**: hospitality operators (LeibTour) primarily; B2B prospects evaluating Fibonax.
 
 ---
 

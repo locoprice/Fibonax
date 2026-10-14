@@ -55,7 +55,7 @@ export const TRIGGER_MAX_LENGTH = 60;
  * Suggest a shortcut token from a snippet name — "Quote — English" → `quote_english`.
  *
  * Modelled on ACF's Field Label → Field Name behaviour, adapted to what a
- * SprintBrain trigger actually permits (`[a-zA-Z0-9_-]`, 60 chars, no prefix):
+ * Fibonax trigger actually permits (`[a-zA-Z0-9_-]`, 60 chars, no prefix):
  *
  *   - Accents are folded, not dropped. "Español" has to become `espanol`;
  *     stripping the character outright would leave `espaol`.

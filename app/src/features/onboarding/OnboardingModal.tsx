@@ -10,7 +10,7 @@ interface Props {
 }
 
 /**
- * "Getting Started" modal — plays the SprintBrain onboarding animation
+ * "Getting Started" modal — plays the Fibonax onboarding animation
  * (install → mobile companion → trigger expansion → outro). Follows the
  * ChangelogModal pattern: scrim + Escape-to-close + click-outside. The
  * animation autoplays and loops; "Replay" remounts it from the first frame.
@@ -41,7 +41,7 @@ export function OnboardingModal({ open, onClose }: Props): ReactElement | null {
         <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-5 py-4">
           <Zap className="h-4 w-4 shrink-0 text-primary" />
           <span className="flex-1 text-[15px] font-bold text-ink">
-            Getting started with SprintBrain
+            Getting started with Fibonax
           </span>
           <button
             type="button"

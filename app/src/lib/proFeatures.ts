@@ -16,7 +16,7 @@
 export const PRO_SOON_LABEL = 'Available to Pro users soon';
 
 export type ProFeature =
-  /** Ask SprintBrain: the search panel's answer row. */
+  /** Ask Fibonax: the search panel's answer row. */
   | 'ask'
   /** Draft from text, in the snippet, prompt and Brain item editors. */
   | 'draft'

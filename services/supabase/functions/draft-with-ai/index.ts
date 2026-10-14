@@ -59,7 +59,7 @@ type Mode = 'new' | 'update';
 const LANGUAGES = ['EN', 'IT', 'ES', 'FR', 'MULTI'] as const;
 const MEMORY_KINDS = ['fact', 'note', 'conversation'] as const;
 
-const BASE_PROMPT = `You help a team at work turn text they paste (an email, a chat, a document, notes) into reusable content for SprintBrain, their library of snippets (ready-to-send texts), prompts (instructions for an AI assistant) and Brains (stored knowledge an AI assistant reads). The team could work in any field; take the subject from the text and assume no industry.
+const BASE_PROMPT = `You help a team at work turn text they paste (an email, a chat, a document, notes) into reusable content for Fibonax, their library of snippets (ready-to-send texts), prompts (instructions for an AI assistant) and Brains (stored knowledge an AI assistant reads). The team could work in any field; take the subject from the text and assume no industry.
 
 Rules for every draft:
 - Use only what the pasted text says. Never add a fact, price, policy, date, promise, contact detail or step that is not in it.

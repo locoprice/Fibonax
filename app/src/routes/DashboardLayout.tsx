@@ -115,7 +115,7 @@ export function DashboardLayout() {
                 Support
               </button>
               <a
-                href="https://sprintbrain.com/legal/privacy-policy.html"
+                href="https://fibonax.com/legal/privacy-policy.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-[10px] text-ink-subtle transition-colors hover:text-primary"
@@ -123,7 +123,7 @@ export function DashboardLayout() {
                 Privacy
               </a>
               <a
-                href="https://sprintbrain.com/legal/terms-and-conditions.html"
+                href="https://fibonax.com/legal/terms-and-conditions.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-[10px] text-ink-subtle transition-colors hover:text-primary"
@@ -131,7 +131,7 @@ export function DashboardLayout() {
                 Terms
               </a>
               <a
-                href="https://sprintbrain.com/legal/cookie-policy.html"
+                href="https://fibonax.com/legal/cookie-policy.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-[10px] text-ink-subtle transition-colors hover:text-primary"

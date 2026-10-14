@@ -1,4 +1,4 @@
-# SprintBrain — Design System v1.1 (Canonical)
+# Fibonax — Design System v1.1 (Canonical)
 
 > **On-demand reference.** Pulled out of the root `CLAUDE.md` to keep always-on context lean. **Read this file before any UI, CSS, component, or token change** — it is the single source of truth for visual decisions.
 
@@ -278,7 +278,7 @@ The screenshot stage uses CSS perspective, floating layers and pointer tilt, wit
 
 Transforms and opacity drive the device and layers; four lightweight SVG stroke paths animate their dash offsets. All loops share `--sb-animation-state`, pausing outside the viewport, in a hidden document, or through the 44 px pause control. Manual pause freezes their current positions. Reduced-motion preferences disable motion. Tabs support Left/Right, Home/End, visible focus and a labelled panel. Below 590 px the four tabs stay visible above stacked copy and artwork. Without JavaScript, the original platform and security text remains readable.
 
-The four local, content-hashed image assets live in `app/public/landing/assets/platforms/`. Chrome Extension and Web Dashboard use real SprintBrain captures from the official Chrome Web Store gallery; Security uses a capture of the existing SprintBrain security section. Mobile Website uses the original 1080 × 2316 JPEG supplied by the user, displayed in full with `object-fit: contain`, without resampling or altering its contents. Each image retains its source link, intrinsic dimensions and percentage crop inside a clipping frame. Update `RELATIVE_ASSETS` in `scripts/build-landing-i18n.js` when replacing an asset, then regenerate IT/ES from the English source and locale maps.
+The four local, content-hashed image assets live in `app/public/landing/assets/platforms/`. Chrome Extension and Web Dashboard use real Fibonax captures from the official Chrome Web Store gallery; Security uses a capture of the existing Fibonax security section. Mobile Website uses the original 1080 × 2316 JPEG supplied by the user, displayed in full with `object-fit: contain`, without resampling or altering its contents. Each image retains its source link, intrinsic dimensions and percentage crop inside a clipping frame. Update `RELATIVE_ASSETS` in `scripts/build-landing-i18n.js` when replacing an asset, then regenerate IT/ES from the English source and locale maps.
 
 | Surface  | Mockup section                                | Live screenshot                                                       |
 | -------- | --------------------------------------------- | --------------------------------------------------------------------- |

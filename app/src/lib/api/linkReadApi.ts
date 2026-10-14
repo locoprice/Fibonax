@@ -6,7 +6,7 @@ import { linkText } from '@/lib/fillFormEngine';
 // Fill from link.
 //
 // Calls the read-link edge function, which opens the page somebody pasted from
-// SprintBrain's servers and hands back its visible text as ordered pieces. What
+// Fibonax's servers and hands back its visible text as ordered pieces. What
 // those pieces put in the form is decided by shared/fill-form.js
 // (readFromPage), never here. Every sentence shown for a failure comes from
 // the same module (linkText), so the four fill surfaces word it identically.
@@ -60,7 +60,7 @@ function parsePage(data: unknown): LinkPage | null {
 
 /** The `linkText` key for a failed call. */
 async function failureCode(error: unknown): Promise<string> {
-  // The request never reached SprintBrain: the person is offline, or a
+  // The request never reached Fibonax: the person is offline, or a
   // network in between refused it.
   if (error instanceof FunctionsFetchError) return 'offline';
   if (error instanceof FunctionsHttpError) {

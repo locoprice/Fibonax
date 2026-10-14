@@ -1,4 +1,4 @@
-name: SprintBrain CI
+name: Fibonax CI
 
 on:
   push:
@@ -74,7 +74,7 @@ jobs:
       - name: Santo del Giorno + Christmas countdown parity check
         run: node scripts/check-saint-of-day.js
 
-      - name: Ask SprintBrain parity check
+      - name: Ask Fibonax parity check
         run: node scripts/check-ask-knowledge.js
 
       - name: Review status parity check
@@ -95,7 +95,7 @@ jobs:
       - name: User docs house rules
         run: node scripts/check-docs.js
 
-      # The same checks Mintlify runs before it publishes docs.sprintbrain.com.
+      # The same checks Mintlify runs before it publishes docs.fibonax.com.
       # A failed publish keeps the old site live without telling anyone, so it
       # has to fail here instead. Pinned so a CLI release cannot change the verdict.
       - name: User docs build and links
@@ -112,4 +112,4 @@ jobs:
           test -f user-docs/docs.json
 
       - name: CI Passed
-        run: echo "SprintBrain CI OK"
+        run: echo "Fibonax CI OK"

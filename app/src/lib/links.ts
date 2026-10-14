@@ -9,7 +9,7 @@ export const RESOURCE_LINKS: Record<
   'docs' | 'investors' | 'bugs' | 'discussions' | 'github' | 'status',
   string | null
 > = {
-  docs: 'https://docs.sprintbrain.com',
+  docs: 'https://docs.fibonax.com',
   investors: 'https://form.jotform.com/locoprice/investors',
   bugs: 'https://form.jotform.com/locoprice/accuracy',
   discussions: 'https://github.com/locoprice/SprintBrain/discussions',

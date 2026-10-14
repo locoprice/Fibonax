@@ -78,7 +78,7 @@ export function GlobalSearch() {
   const navigate = useNavigate();
 
   const [activeIndex, setActiveIndex] = useState(0);
-  // The question being answered by Ask SprintBrain, or null while the panel
+  // The question being answered by Ask Fibonax, or null while the panel
   // lists search results. Frozen when asked, so editing the box afterwards
   // returns to results rather than re-asking on every keystroke.
   const [askFor, setAskFor] = useState<string | null>(null);
@@ -188,7 +188,7 @@ export function GlobalSearch() {
   }
 
   const askText = input.trim();
-  // The row shows once there is a question to ask. While Ask SprintBrain is
+  // The row shows once there is a question to ask. While Ask Fibonax is
   // Pro-only it shows locked, and neither the row nor the shortcut can ask.
   const showAskRow = askText.length >= ASK_QUESTION_MIN;
   const askAvailable = isProFeatureAvailable('ask');
@@ -287,7 +287,7 @@ export function GlobalSearch() {
               >
                 <MessageCircleQuestion className="h-4 w-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-ink">Ask SprintBrain</p>
+                  <p className="text-sm font-medium text-ink">Ask Fibonax</p>
                   <p className="truncate text-xs text-ink-subtle">
                     Answer &ldquo;{askText}&rdquo; from your snippets and Brains
                   </p>
@@ -309,7 +309,7 @@ export function GlobalSearch() {
                 >
                   <MessageCircleQuestion className="h-4 w-4 shrink-0 text-primary" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-ink">Ask SprintBrain</p>
+                    <p className="text-sm font-medium text-ink">Ask Fibonax</p>
                     <p className="truncate text-xs text-ink-subtle">
                       Answer &ldquo;{askText}&rdquo; from your snippets and Brains
                     </p>

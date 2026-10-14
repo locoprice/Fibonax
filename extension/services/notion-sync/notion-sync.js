@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────
-// SPRINTBRAIN — notion-sync.js  v2.3
+// FIBONAX — notion-sync.js  v2.3
 // Fix: upsert dedup — one Notion page per snippet group, multi-lang
 // Body EN / Body IT / Body ES / Body MULTI per-language properties
 // Pagination, backoff, debounce, offline cache all intact
@@ -144,7 +144,7 @@ var NotionSync = (function () {
     return _fetchPage(null);
   }
 
-  /* ── Map a Notion page → SprintBrain snippet object ────────── */
+  /* ── Map a Notion page → Fibonax snippet object ────────── */
   function _extractText(arr) {
     if (!Array.isArray(arr) || !arr.length) return '';
     return arr.map(function (b) { return b.plain_text || ''; }).join('');
@@ -411,7 +411,7 @@ var NotionSync = (function () {
           })
           .catch(function (err) {
             _releaseLock();
-            console.error('[SprintBrain NotionSync] Failed:', err.message, {
+            console.error('[Fibonax NotionSync] Failed:', err.message, {
               timestamp: syncStart,
               dbId: cfg.dbId
             });

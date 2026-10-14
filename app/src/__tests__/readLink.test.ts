@@ -4,7 +4,7 @@ import { declaredCharset, decodeEntities, pageText } from '../../../services/sup
 
 // Fill from link — the server half.
 //
-// read-link opens a page somebody pasted, from SprintBrain's servers, and hands
+// read-link opens a page somebody pasted, from Fibonax's servers, and hands
 // back its visible text. These tests pin the two things that must never go
 // wrong there: which links it may open at all, and that what comes back is the
 // page's text, in the page's order, with nothing hidden mixed in.

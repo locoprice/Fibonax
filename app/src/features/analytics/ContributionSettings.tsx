@@ -16,7 +16,7 @@ interface ContributionSettingsProps {
 
 /**
  * GitHub-style "Contribution settings" dropdown. Layout, sizing, and the
- * checkbox-row interaction mirror GitHub; the palette is SprintBrain azure.
+ * checkbox-row interaction mirror GitHub; the palette is Fibonax azure.
  */
 export function ContributionSettings({ items }: ContributionSettingsProps) {
   const [open, setOpen] = useState(false);

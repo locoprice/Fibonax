@@ -1,4 +1,4 @@
-# SprintBrain
+# Fibonax
 
 > Text expander and dynamic snippet platform. Type a short trigger in any web field and get back a structured template with live formulas, per field prompts, and team shared libraries. Ships to every industry: nothing the product seeds names a vertical.
 
@@ -6,7 +6,7 @@ This file is a high density orientation index for coding agents (Claude Code and
 
 ## Overview
 
-SprintBrain is a Chrome extension (Manifest V3) plus a companion SaaS dashboard. A user types a trigger prefix (default `;;`, configurable per account) followed by a shortcut in any editable web field. The extension expands it into a template that can include input fields, conditionals, and inline formulas.
+Fibonax is a Chrome extension (Manifest V3) plus a companion SaaS dashboard. A user types a trigger prefix (default `;;`, configurable per account) followed by a shortcut in any editable web field. The extension expands it into a template that can include input fields, conditionals, and inline formulas.
 
 The product is three content types in one shell: **snippets** (trigger, expand), **prompts** (longer AI-prompt text, dashboard-authored, read-only on the extension), and **memory** (durable facts an AI assistant can pull into a conversation, stored as shards and served over an MCP server). Tripartite Parity (root `CLAUDE.md`) makes this non-negotiable: a UI capability added to one is added to all three, in the same change, on every surface where they exist.
 
@@ -18,7 +18,7 @@ Three surfaces exist. See Architecture & Parity below for exactly what stays in 
 | Dashboard | `app/` (React) | The real home for CRUD, team/org sharing, analytics, settings. Desktop only (viewports under 1024px redirect to `/mobile/`). |
 | Mobile companion | `app/public/mobile/` | Used daily; fully synchronised on what a snippet *is and does* in the same task as every other surface. Brains can be read, copied, shared and added to there, and text or links from other apps saved into them (Save to Brain: Share menu, Shortcut, Paste & save; the Brain is suggested from the words, as in the extension). Only the management layer (folder rename/delete, full CRUD admin, managing Brains) is intentionally absent. |
 
-The marketing site (`sprintbrain.com`) is a separate Netlify deploy rooted at `app/public/landing/`. English is the only language authored directly; Italian and Spanish copy is always human supplied (ask Valentina or Alessandro), never machine translated.
+The marketing site (`fibonax.com`) is a separate Netlify deploy rooted at `app/public/landing/`. English is the only language authored directly; Italian and Spanish copy is always human supplied (ask Valentina or Alessandro), never machine translated.
 
 ## Architecture & Parity
 
@@ -49,7 +49,7 @@ There is no single "extension vs. standalone app" parity switch. What is actuall
 | Supabase URL | `https://eyowustlbqujaimaxggt.supabase.co` |
 | Supabase region | `eu-west-1` (verified live against the project; the published privacy policy currently states eu-central-1/Frankfurt, which is wrong and worth fixing separately) |
 | GitHub | `https://github.com/locoprice/SprintBrain` |
-| Dashboard (frontend) | `https://app.sprintbrain.com`. Netlify site built from the root `netlify.toml` (`base = "app"`, publishes `app/dist`). Also the origin whitelisted in `extension/manifest.json`'s `externally_connectable`, used for the extension's SSO handoff. Distinct from the marketing site below, which is a separate Netlify site with its own config at `app/public/landing/netlify.toml`. |
+| Dashboard (frontend) | `https://app.fibonax.com`. Netlify site built from the root `netlify.toml` (`base = "app"`, publishes `app/dist`). Also the origin whitelisted in `extension/manifest.json`'s `externally_connectable`, used for the extension's SSO handoff. Distinct from the marketing site below, which is a separate Netlify site with its own config at `app/public/landing/netlify.toml`. |
 | Notion sync | Per account, user configured (Settings -> Notion, `app/src/features/settings/NotionSyncPanel.tsx`). Each user supplies their own integration token and database ID. There is no single project wide Notion database, so no database ID is listed here as a system fact. |
 
 The Supabase anon/publishable key is intentionally committed client side (`app/src/lib/supabase.ts`, `extension/auth/auth.js`). Row Level Security is the actual security boundary, not key secrecy. The Notion integration token is the real secret and lives only as a Supabase edge function secret; it is never in the repo and never reaches the browser (`services/supabase/functions/notion-*-push` proxy it server to server).
@@ -64,7 +64,7 @@ The Supabase anon/publishable key is intentionally committed client side (`app/s
 ## Folder Layout
 
 ```
-SprintBrain/
+Fibonax/
 ├── CLAUDE.md                     # Root engineering standards, read first
 ├── extension/                    # Chrome MV3 extension, vanilla JS, no build
 │   ├── manifest.json

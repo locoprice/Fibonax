@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// SprintBrain working memory over MCP (MEMORY-001).
+// Fibonax working memory over MCP (MEMORY-001).
 //
 // The orchestrator. It holds one WorkingMemory for the life of the process and
 // exposes the attach/detach cycle as tools, so the agent driving a task can
@@ -45,7 +45,7 @@ import {
 } from './supabase.ts';
 
 const SERVER_NAME = 'sprintbrain-memory';
-const SERVER_VERSION = '3.67.2';
+const SERVER_VERSION = '3.68.0';
 
 /** Budget before any step has been entered. Replaced by the step's own budget on the first transition. */
 const DEFAULT_BUDGET = 4000;
@@ -350,7 +350,7 @@ server.registerTool(
   {
     title: 'Save something to memory',
     description:
-      'Write one new item into the user\'s SprintBrain memory, so a later session can attach it. Use it when something worth keeping comes out of this conversation: a decision and its reason, a constraint, a fact about how their systems work. Creates a new item every time and never edits an existing one. Needs a token issued with the write scope.',
+      'Write one new item into the user\'s Fibonax memory, so a later session can attach it. Use it when something worth keeping comes out of this conversation: a decision and its reason, a constraint, a fact about how their systems work. Creates a new item every time and never edits an existing one. Needs a token issued with the write scope.',
     inputSchema: {
       name: z.string().describe('Short title, how the item is listed. Make it specific enough to recognise months later.'),
       body: z.string().describe('The text to remember, in full.'),

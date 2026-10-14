@@ -4,7 +4,7 @@
 // it by relative path (app/src/__tests__/readLink.test.ts), the same way it
 // loads translate-body/tokenMask.ts.
 //
-// read-link fetches a page somebody pasted, from SprintBrain's own servers. A
+// read-link fetches a page somebody pasted, from Fibonax's own servers. A
 // link that names a machine inside a private network, or the server itself,
 // would turn that into a way to reach things the person could never reach
 // from their own browser. So a link is refused unless it is plainly a public

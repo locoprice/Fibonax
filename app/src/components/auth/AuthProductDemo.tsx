@@ -164,7 +164,7 @@ export function AuthProductDemo() {
   }
 
   return (
-    <div ref={root} className="relative w-full" role="region" aria-label="SprintBrain product demo">
+    <div ref={root} className="relative w-full" role="region" aria-label="Fibonax product demo">
       <div className="mb-6 flex items-center gap-3 pb-2">
         <div className="flex min-w-0 flex-1 gap-2 rounded-[12px] border border-white/20 bg-white/10 p-2" role="group" aria-label="Choose a demo">
           {SCENES.map(({ name, icon: Icon }, index) => (

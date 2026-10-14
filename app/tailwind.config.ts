@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss';
 
-// SprintBrain dashboard — Tailwind v3 theme.
+// Fibonax dashboard — Tailwind v3 theme.
 // Tokens mirror the legacy index.html palette so design language stays coherent
 // with the marketing landing now served at /landing/.
 const config: Config = {

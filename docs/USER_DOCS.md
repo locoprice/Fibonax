@@ -1,4 +1,4 @@
-# User docs (docs.sprintbrain.com)
+# User docs (docs.fibonax.com)
 
 > On-demand reference for the 📘 User Docs rule in the root `CLAUDE.md`. Read it before changing anything a user can see, to find the page that has to change with it.
 
@@ -8,7 +8,7 @@
 - **Publishing:** Mintlify's GitHub app watches `locoprice/SprintBrain`, branch `main`, subdirectory `/user-docs`, and republishes the site on every push to `main`, in about a minute. Nobody clicks anything.
 - **Timing:** work lands on `develop`; the docs go live at the develop to main promotion, together with the release they describe.
 - **Only here:** never edit in Mintlify's web editor. Its commits would skip `develop` and the gates.
-- **Domain:** docs.sprintbrain.com is set in the Mintlify dashboard. DNS is on Netlify: `CNAME docs` to `cname.mintlify.builders`, plus the two TXT records Mintlify asked for (`_acme-challenge.docs`, `_cf-custom-hostname.docs`).
+- **Domain:** docs.fibonax.com is set in the Mintlify dashboard. DNS is on Netlify: `CNAME docs` to `cname.mintlify.builders`, plus the two TXT records Mintlify asked for (`_acme-challenge.docs`, `_cf-custom-hostname.docs`).
 - **History:** until 2026-09 the content lived only in Mintlify's hosted repo. Its snippet pages sat in `snippets/`, a folder name Mintlify reserves for reusable text blocks, so they were never published. The content was moved here, rewritten against v3.49.7, and the folder renamed to `text-snippets/`.
 
 ## Preview locally
@@ -64,7 +64,7 @@ A new page gets a row here and an entry in the `docs.json` menu in the same chan
 These exist in the product but don't work for users, so the manual stays silent about them until they're fixed. When one is fixed, document it in the same task.
 
 - **Translate from EN** (snippet editor): the `translate-body` edge function is not deployed. Shown locked for Pro since v3.61.0.
-- **Ask SprintBrain** (dashboard search panel, phone) and **Draft with AI** (snippet, prompt and Brain item editors): locked for Pro since v3.61.0 ("Available to Pro users soon"). Their pages are kept, unpublished, in `docs/pro-features/`, with the lines to restore when they turn on.
+- **Ask Fibonax** (dashboard search panel, phone) and **Draft with AI** (snippet, prompt and Brain item editors): locked for Pro since v3.61.0 ("Available to Pro users soon"). Their pages are kept, unpublished, in `docs/pro-features/`, with the lines to restore when they turn on.
 - **Notion button on prompt cards**: the `notion-prompt-push` edge function is not deployed.
 - **Push to Notion** (snippets): writes to one database set on the server, not to the account's own Notion.
 - **Triggers card**: the Shortcut prefix buttons and the Snippet key / Prompt key choices are saved but never read by the extension.

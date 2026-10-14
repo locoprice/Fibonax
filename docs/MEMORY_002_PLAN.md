@@ -1,4 +1,4 @@
-# SprintBrain Memory: authoritative implementation plan
+# Fibonax Memory: authoritative implementation plan
 
 **Targets**: v3.1.0, the architecture actually in production.
 **Supersedes**: the v2.168.0-era draft of this file, revised 2026-08-27 after the architecture
@@ -10,9 +10,9 @@ are now enforced as principles below.
 
 ## 1. Product vision
 
-SprintBrain is becoming an **LLM-independent external memory and context layer**.
+Fibonax is becoming an **LLM-independent external memory and context layer**.
 
-> The user owns their knowledge. SprintBrain stores and organises it, retrieves what is
+> The user owns their knowledge. Fibonax stores and organises it, retrieves what is
 > relevant, builds the optimal context, and makes that context available to any AI through
 > MCP or an API.
 
@@ -23,7 +23,7 @@ Concretely:
 
 ```
 User knowledge (memory items, snippets, prompts, documents)
-   → SprintBrain retrieval
+   → Fibonax retrieval
    → Context Builder
    → MCP / API
    → ChatGPT, Claude, Gemini, Cursor, or whatever comes next

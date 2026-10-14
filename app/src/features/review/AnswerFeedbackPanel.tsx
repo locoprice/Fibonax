@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 /**
  * "Answer feedback" (AI-KNOWLEDGE P1).
  *
- * The review list behind the Was this right? buttons on Ask SprintBrain. You
+ * The review list behind the Was this right? buttons on Ask Fibonax. You
  * see your own feedback; a team admin also sees what the team filed. Opening a
  * source is how it gets fixed: nothing here edits content, and resolving a row
  * only closes it.
@@ -92,7 +92,7 @@ export function AnswerFeedbackPanel() {
           Answer feedback
         </CardTitle>
         <CardDescription>
-          What people said about Ask SprintBrain answers. Open a source to fix it, then mark the
+          What people said about Ask Fibonax answers. Open a source to fix it, then mark the
           feedback resolved. Feedback never changes a snippet or a Brain by itself. Team admins see
           their whole team&rsquo;s feedback; everyone else sees their own.
         </CardDescription>

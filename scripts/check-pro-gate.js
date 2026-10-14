@@ -1,7 +1,7 @@
 // Pro lock gate (docs/pro-features/README.md).
 //
 // Five features call the AI service and cost real money per use: Ask
-// SprintBrain, Draft with AI, Translate from EN, Suggest labels and Read a
+// Fibonax, Draft with AI, Translate from EN, Suggest labels and Read a
 // picture. Until the Pro plan exists each is shown locked ("Available to Pro
 // users soon") and cannot start a request. Their switches live in
 // app/src/lib/proFeatures.ts; the phone carries its own copy of the label and

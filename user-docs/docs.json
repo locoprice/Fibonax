@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "name": "SprintBrain",
+  "name": "Fibonax",
   "theme": "almond",
   "colors": {
     "primary": "#1b4fd8",
@@ -16,7 +16,7 @@
     "primary": {
       "type": "button",
       "label": "Open Dashboard",
-      "href": "https://app.sprintbrain.com"
+      "href": "https://app.fibonax.com"
     }
   },
   "navigation": {
@@ -105,5 +105,5 @@
       "destination": "/text-snippets/version-history"
     }
   ],
-  "description": "Documentation for SprintBrain: snippets, prompts and Brains you use in any text field, alone or with your team."
+  "description": "Documentation for Fibonax: snippets, prompts and Brains you use in any text field, alone or with your team."
 }

@@ -1,12 +1,12 @@
-# Netlify config for the marketing site — sprintbrain.com
+# Netlify config for the marketing site — fibonax.com
 # No build step: static HTML served directly.
 # Base dir in Netlify dashboard: app/public/landing
 # Publish dir: .
 
 # www → apex redirect
 [[redirects]]
-  from   = "https://www.sprintbrain.com/*"
-  to     = "https://sprintbrain.com/:splat"
+  from   = "https://www.fibonax.com/*"
+  to     = "https://fibonax.com/:splat"
   status = 301
   force  = true
 

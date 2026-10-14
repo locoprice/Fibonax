@@ -8,7 +8,7 @@ import {
 // TRANSLATE-001 — the placeholder guarantee.
 //
 // These tests are the feature's safety net: they assert that no shape of token
-// SprintBrain supports can be altered by a translation round trip, and that a
+// Fibonax supports can be altered by a translation round trip, and that a
 // model which mangles one is refused rather than believed.
 
 /** Stand-in for the model: translates prose, leaves sentinels alone. */

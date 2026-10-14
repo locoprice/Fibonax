@@ -1,5 +1,5 @@
 # Chrome Web Store — Submission Copy
-**Extension:** SprintBrain
+**Extension:** Fibonax
 **Version:** 2.142.0
 **Category:** Productivity
 **Language:** English
@@ -23,14 +23,14 @@ AI prompt library and text expander. Free team sharing, dynamic snippets with li
 ## Full Description (paste into "Detailed description")
 
 ```
-SprintBrain is a free AI productivity extension that turns your best text into a shortcut. Store snippets, AI prompts, and calculation templates in one shared library, then expand any of them with a short trigger inside any text field on any website: Gmail, Outlook, Slack, Notion, WhatsApp Web, ChatGPT, Claude, your CRM, or your booking platform.
+Fibonax is a free AI productivity extension that turns your best text into a shortcut. Store snippets, AI prompts, and calculation templates in one shared library, then expand any of them with a short trigger inside any text field on any website: Gmail, Outlook, Slack, Notion, WhatsApp Web, ChatGPT, Claude, your CRM, or your booking platform.
 
-Teams lose hours every week retyping the same quotes, replies, and AI prompts, then lose consistency when everyone keeps a private copy. SprintBrain gives your whole team one source of truth and makes it available exactly where the typing happens.
+Teams lose hours every week retyping the same quotes, replies, and AI prompts, then lose consistency when everyone keeps a private copy. Fibonax gives your whole team one source of truth and makes it available exactly where the typing happens.
 
 
 FREE TEAM MANAGEMENT, INCLUDED FROM THE START
 
-Team collaboration is not a paid add-on in SprintBrain. It is the core of the product, and it costs nothing.
+Team collaboration is not a paid add-on in Fibonax. It is the core of the product, and it costs nothing.
 
 • Share a folder with your whole team or with specific teammates. The folder is the permission boundary, so every snippet, prompt, and formula inside it inherits the access you grant.
 • Three access levels: View (use it), Edit (use and modify it), Owner (full control, including sharing).
@@ -45,7 +45,7 @@ Result: one approved wording per situation, adopted by the whole team, updated o
 
 ADVANCED AI SUPPORT: A PROMPT LIBRARY THAT FOLLOWS YOU
 
-SprintBrain treats AI prompts as first-class assets, not as notes buried in a document.
+Fibonax treats AI prompts as first-class assets, not as notes buried in a document.
 
 • Keep your production prompts for ChatGPT, Claude, Gemini, and any other model in a searchable library alongside your text templates.
 • Type the prompt trigger (default: """) in any input to browse the library, or give a prompt its own shortcut and expand it straight into the model's chat box.
@@ -56,10 +56,10 @@ SprintBrain treats AI prompts as first-class assets, not as notes buried in a do
 
 PROMPT AND SNIPPET CUSTOMIZATION
 
-Static text is where most text expanders stop. SprintBrain makes every template adapt to the situation.
+Static text is where most text expanders stop. Fibonax makes every template adapt to the situation.
 
 • Structured prompt builder: compose prompts from role, objective, context, examples, reasoning, and constraints blocks, and enable only the blocks a given task needs.
-• Dynamic fields: write {{guest_name}} or use {formtext:}, {formdate:}, and {formmenu:} and SprintBrain asks for the values at insertion time through an inline overlay, with text, number, date, and dropdown field types.
+• Dynamic fields: write {{guest_name}} or use {formtext:}, {formdate:}, and {formmenu:} and Fibonax asks for the values at insertion time through an inline overlay, with text, number, date, and dropdown field types.
 • Live formulas: totals, discounts, fees, taxes, and net prices are calculated the instant the template expands. Math, parentheses, round, floor, ceil, abs, min, and max are supported, plus local variables with {var: NAME = ...}.
 • Full conditional logic: {if:}, {elseif:}, {else}, {endif} shows or hides entire paragraphs based on the values you just filled in, with both text comparisons and numeric comparisons.
 • Date and time tokens: insert today's date in any format with {time:}, and calculate the number of nights or days between two dates with datetimediff.
@@ -71,9 +71,9 @@ Static text is where most text expanders stop. SprintBrain makes every template 
 
 MOVING FROM TEXT BLAZE
 
-SprintBrain reads the syntax you already know, so you do not rewrite your library to switch.
+Fibonax reads the syntax you already know, so you do not rewrite your library to switch.
 
-• Export your Text Blaze snippets to JSON and import the file straight into SprintBrain. Grouped exports, flat arrays, and SprintBrain's own export format are all accepted.
+• Export your Text Blaze snippets to JSON and import the file straight into Fibonax. Grouped exports, flat arrays, and Fibonax's own export format are all accepted.
 • The template syntax is compatible: {formtext:}, {formdate:}, {formmenu:}, {time:}, {if:}, {elseif:}, {else}, {endif}, and {{placeholders}} behave the way you expect.
 • Export your library back to JSON whenever you want. Your content stays yours and stays portable.
 
@@ -84,8 +84,8 @@ NOTION SYNCHRONIZATION
 
 If your team already writes in Notion, keep writing there.
 
-• Connect a Notion database and SprintBrain mirrors it into your library, refreshed automatically in the background every five minutes.
-• Sync runs both ways: edits made in SprintBrain are pushed back to Notion as one clean row per snippet, with a separate body property per language, so multi-language templates never explode into duplicate pages.
+• Connect a Notion database and Fibonax mirrors it into your library, refreshed automatically in the background every five minutes.
+• Sync runs both ways: edits made in Fibonax are pushed back to Notion as one clean row per snippet, with a separate body property per language, so multi-language templates never explode into duplicate pages.
 • Incremental sync based on last edited time, with retries, offline caching, and a manual force-sync when you cannot wait.
 • Reviewers comment and approve in Notion; the approved wording reaches every teammate's extension within the minute.
 • Notion credentials are entered once and shared between the dashboard and the extension automatically.
@@ -104,12 +104,12 @@ Know what your team actually uses, and recover anything you change by mistake.
 
 HOW IT WORKS
 
-1. Install SprintBrain and sign in with a free account. Choose a magic link or a six digit code, with no password to remember.
+1. Install Fibonax and sign in with a free account. Choose a magic link or a six digit code, with no password to remember.
 2. Create snippets, prompts, and folders in the web dashboard, import a JSON or Text Blaze export, or pull them from Notion.
 3. Insert your text in whichever way suits the moment:
    • Type your trigger plus the shortcut in any text field and press Tab. The trigger disappears and the finished text takes its place.
    • Right-click the field and pick from a context menu that mirrors your folders, with a submenu per language.
-   • Select a few words in a field and SprintBrain suggests matching snippets in a small menu anchored to the selection. Pick one and it replaces the selection.
+   • Select a few words in a field and Fibonax suggests matching snippets in a small menu anchored to the selection. Pick one and it replaces the selection.
    • Open the extension popup, search, fill the fields, and copy the finished text.
 
 
@@ -128,7 +128,7 @@ WHO IT IS FOR
 • Anyone who types the same thing twice and wants that time back
 
 
-HOW SPRINTBRAIN GOT HERE
+HOW FIBONAX GOT HERE
 
 More than 200 releases since March 2026, backed by an automated test suite that runs on every change. A short history of what has landed:
 
@@ -155,8 +155,8 @@ GET STARTED
 
 Install the extension, create a free account, and share your first folder with your team. Setup takes about two minutes.
 
-Website: https://sprintbrain.com
-Dashboard: https://app.sprintbrain.com
+Website: https://fibonax.com
+Dashboard: https://app.fibonax.com
 ```
 
 ---
@@ -202,7 +202,7 @@ Rules applied:
 | Math whitelist + `{var:}` locals + `{time:}` + `datetimediff` | `FUNS = { round, floor, ceil, abs, min, max, datetimediff }` at `formula-engine.js:31`; header contract at `formula-engine.js:5-23` | ✅ |
 | `{if:}` / `{elseif:}` / `{else}` / `{endif}`, text and numeric comparisons | `formula-engine.js:542,565`; numeric comparisons v2.63.9 | ✅ Extension and dashboard only. **Not** claimed for mobile — the mobile resolver has no `elseif` branch (audit §5.3) |
 | Gendered greetings agreeing with the name | `sbNameGender()` at `formula-engine.js:231`, applied at `:294,:320`; shipped v2.116.0 | ✅ |
-| Text Blaze JSON import, grouped or flat, plus SprintBrain export | `snippetIo.ts:72,129,152` accepts `{groups:[{snippets:[]}]}`, flat arrays, and SprintBrain envelopes; export at `:43` | ✅ |
+| Text Blaze JSON import, grouped or flat, plus Fibonax export | `snippetIo.ts:72,129,152` accepts `{groups:[{snippets:[]}]}`, flat arrays, and Fibonax envelopes; export at `:43` | ✅ |
 | Selection-triggered suggestions | `content.js:142` block, toggle `triggerCfg.selectionSuggestions`; shipped v2.56.0 | ✅ |
 | Contribution heatmap, top triggers, usage charts | `ActivityHeatmap.tsx`, `TopTriggersTable.tsx`, `UsageChart.tsx`, `ContributionActivity.tsx`; `analyticsApi.ts` aggregates live over `public.snippet_events` | ✅ ANALYTICS-001 is shipped in production despite `app/CLAUDE.md` §7 listing it open (audit §6.1) |
 | Version history with diff and restore | `revisionsApi.ts`, `VersionHistoryPanel.tsx`, `diffUtils.ts`; shipped v2.54.0 | ✅ |
@@ -237,13 +237,13 @@ until they are real. Do not add them in a future edit without re-checking:
 *(Paste verbatim into the "Permission justification" field in the Developer Dashboard)*
 
 **storage**
-SprintBrain stores your snippet and prompt library in `chrome.storage` to keep expansions instant and available offline. Authentication tokens, sync timestamps, and user preferences (active trigger, default language) are also persisted locally.
+Fibonax stores your snippet and prompt library in `chrome.storage` to keep expansions instant and available offline. Authentication tokens, sync timestamps, and user preferences (active trigger, default language) are also persisted locally.
 
 **activeTab**
 Required so that context menu clicks can identify the active tab and send the selected snippet to the correct page for insertion.
 
 **contextMenus**
-SprintBrain builds a dynamic right-click menu that mirrors your library, grouped by folder with language submenus. Clicking an entry inserts the snippet into the focused field on the current page.
+Fibonax builds a dynamic right-click menu that mirrors your library, grouped by folder with language submenus. Clicking an entry inserts the snippet into the focused field on the current page.
 
 **alarms**
 A repeating alarm fires every 5 minutes to pull updates from your connected Notion database in the background. Without this permission the Manifest V3 service worker cannot schedule periodic tasks.
@@ -252,13 +252,13 @@ A repeating alarm fires every 5 minutes to pull updates from your connected Noti
 Snippet expansion must work in any text field on any website: CRMs, booking platforms, email clients, chat tools, AI chat interfaces, and internal dashboards all use different origins. Restricting to a fixed list of domains would make the core feature non-functional for most users. The content script runs at `document_idle`, injects no UI unless the user types a configured trigger, and reads no page content beyond the keystroke buffer needed for trigger detection.
 
 **Host permission: `https://eyowustlbqujaimaxggt.supabase.co/*`**
-SprintBrain authenticates users and stores snippet, prompt, folder, and sharing data on a Supabase backend. All calls are authenticated with a JWT obtained via email OTP. The key embedded in the extension is a Supabase publishable key; access is enforced server side through Row Level Security.
+Fibonax authenticates users and stores snippet, prompt, folder, and sharing data on a Supabase backend. All calls are authenticated with a JWT obtained via email OTP. The key embedded in the extension is a Supabase publishable key; access is enforced server side through Row Level Security.
 
 **Host permission: `https://api.notion.com/*`**
 Users who connect a Notion database can sync their library in both directions. The extension calls the Notion API using the integration key the user enters, which is stored for that user's account and never shared with third parties.
 
-**`externally_connectable`: `https://app.sprintbrain.com/*`**
-The dashboard hands a one-time session token to the extension so signing in on the web signs you in in Chrome. Only the SprintBrain dashboard origin can message the extension, and the handoff mints a session the extension owns independently.
+**`externally_connectable`: `https://app.fibonax.com/*`**
+The dashboard hands a one-time session token to the extension so signing in on the web signs you in in Chrome. Only the Fibonax dashboard origin can message the extension, and the handoff mints a session the extension owns independently.
 
 ---
 
@@ -269,8 +269,8 @@ The dashboard hands a one-time session token to the extension so signing in on t
 | Primary category | Productivity |
 | Language | English |
 | Support email | support@sprintbrain.com *(verify this address exists before submission)* |
-| Homepage URL | https://sprintbrain.com |
-| Privacy policy URL | https://sprintbrain.com/privacy *(required before submission)* |
+| Homepage URL | https://fibonax.com |
+| Privacy policy URL | https://fibonax.com/privacy *(required before submission)* |
 | Store item ID | `khdpimdpkgmmaimpbfjgglnpaemmopoo` |
 
 ---
@@ -300,4 +300,4 @@ Tagline: **"Your team's snippets and AI prompts. One trigger away."**
 ## Single-Purpose Statement
 *(If asked during review)*
 
-SprintBrain has a single purpose: letting users store reusable text snippets and AI prompts and expand them into any text field on any website using a customisable keyboard trigger. Team sharing, Notion sync, and the dashboard all serve that one purpose by determining which snippets a user can expand.
+Fibonax has a single purpose: letting users store reusable text snippets and AI prompts and expand them into any text field on any website using a customisable keyboard trigger. Team sharing, Notion sync, and the dashboard all serve that one purpose by determining which snippets a user can expand.

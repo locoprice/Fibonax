@@ -1,5 +1,5 @@
 // Gate for the user manual in user-docs/, which Mintlify publishes to
-// docs.sprintbrain.com on every push to main.
+// docs.fibonax.com on every push to main.
 //
 // Mintlify's own `mint validate` and `mint broken-links` check the build. This
 // checks what they cannot know: the house rules, and the one folder name that

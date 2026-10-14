@@ -1,4 +1,4 @@
-# SprintBrain Memory: architecture review
+# Fibonax Memory: architecture review
 
 **Scope**: review only. No production code, migrations, endpoints or schema changes were made.
 **Reviewed**: 2026-08-27, against the live database and the working tree.
@@ -59,7 +59,7 @@ Almost all of it. Specifically worth keeping as-is:
 
 ### 2.1 Essential, blocking the vision
 
-**G1. Snippets and prompts are invisible to retrieval.** The vision is "SprintBrain owns the
+**G1. Snippets and prompts are invisible to retrieval.** The vision is "Fibonax owns the
 user's knowledge". Today memory retrieval sees `memory_shards` and nothing else. A user's
 snippets (108 rows in production) and prompts are the bulk of their actual knowledge and are
 unreachable from any AI. `MEMORY_002_PLAN.md` does not mention them once. This is the single

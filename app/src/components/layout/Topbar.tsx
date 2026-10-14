@@ -28,7 +28,7 @@ export function Topbar() {
         <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-primary text-sm font-extrabold text-white">
           S
         </div>
-        <span className="text-[15px] font-bold tracking-tight text-ink">SprintBrain</span>
+        <span className="text-[15px] font-bold tracking-tight text-ink">Fibonax</span>
         {(companyLogo || companyName) && (
           <>
             <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-ink-subtle" aria-hidden="true" />

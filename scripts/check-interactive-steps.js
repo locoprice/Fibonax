@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // INTERACTIVE STEPS gate.
 //
-// "Interactive Steps" puts a block before a prompt when SprintBrain hands it
+// "Interactive Steps" puts a block before a prompt when Fibonax hands it
 // out. It is decided once in extension/shared/interactive-steps.js and reaches
 // four surfaces, so this gate pins what they share:
 //

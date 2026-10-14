@@ -47,11 +47,11 @@ No CTA. The guide instructs an action whose only outcome is a wall.
 
 ## 1. The access states, stated honestly
 
-The brief asks for Private / Team-shared / Public. **Public does not exist in SprintBrain and cannot be shown without lying to the user.** There is no anonymous read path: `20260819000000_revoke_anon_table_grants.sql` revoked anon table grants, every read is RLS-scoped to `auth.uid()`, and no share tokens or public URLs exist.
+The brief asks for Private / Team-shared / Public. **Public does not exist in Fibonax and cannot be shown without lying to the user.** There is no anonymous read path: `20260819000000_revoke_anon_table_grants.sql` revoked anon table grants, every read is RLS-scoped to `auth.uid()`, and no share tokens or public URLs exist.
 
 The three real states map cleanly onto Drive anyway:
 
-| SprintBrain state | Drive equivalent | Mechanism |
+| Fibonax state | Drive equivalent | Mechanism |
 | --- | --- | --- |
 | **Private** | Restricted, owner only | No `folder_permissions` row. `organization_id` is `NULL`. |
 | **Specific people** | Restricted + named people | One or more `principal_type='user'` grants. |
@@ -229,7 +229,7 @@ Four changes from what ships today:
 
 1. **Private gets a glyph.** Absence of a badge has never taught anyone anything.
 2. **Items inherit their folder's badge**, rendered at reduced opacity, tooltip `Shared because it's in Client replies`. This is Drive's inherited-share convention and it closes §0.3.
-3. **Folders shared with you carry the owner's avatar** on the row. SprintBrain has no separate "Shared with me" location, so the signal moves to the row. Reuses the existing `Avatar`.
+3. **Folders shared with you carry the owner's avatar** on the row. Fibonax has no separate "Shared with me" location, so the signal moves to the row. Reuses the existing `Avatar`.
 4. **The badge becomes a button.** Clicking it opens the share sheet. Drive's chip is clickable; today's is inert decoration.
 
 ---

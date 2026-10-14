@@ -1,7 +1,7 @@
 // Small user-agent reader for the Security tab — turns a raw UA string into
 // "Chrome on Windows" plus a device kind for icon selection. Deliberately not
 // a full parser (no versions, no bots): sessions here were created by real
-// browsers signing in to SprintBrain, so a handful of ordered checks covers
+// browsers signing in to Fibonax, so a handful of ordered checks covers
 // the population. Order matters — Edge/Opera embed "Chrome", Chrome embeds
 // "Safari", iOS Chrome is "CriOS".
 

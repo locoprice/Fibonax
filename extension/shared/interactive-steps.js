@@ -1,6 +1,6 @@
 // interactive-steps.js: the "Interactive Steps" prompt setting, decided once.
 //
-// When the switch is on, a prompt handed out by SprintBrain starts with a block
+// When the switch is on, a prompt handed out by Fibonax starts with a block
 // that asks the AI to work one step at a time and wait for the user between
 // steps. Every surface that hands out a prompt carries the switch:
 //
@@ -9,7 +9,7 @@
 //   app/public/mobile/index.html      Prompts page, copy and share (generated copy)
 //   app/src/lib/interactiveSteps.ts   dashboard preview window, copy (TS copy)
 //
-// The block is added when a prompt leaves SprintBrain and is never saved into
+// The block is added when a prompt leaves Fibonax and is never saved into
 // the prompt, so switching it off gives back exactly the text that was written.
 //
 // The setting belongs to the device, not the account. The extension keeps it in

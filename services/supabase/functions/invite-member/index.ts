@@ -36,7 +36,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 // localhost link is dead on arrival — and there is one Supabase project, so an
 // invitation created from a dev server is in the same database the production
 // dashboard reads. Honoring Origin only ever produced a broken email.
-const DASHBOARD_ORIGIN = 'https://app.sprintbrain.com';
+const DASHBOARD_ORIGIN = 'https://app.fibonax.com';
 
 const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // matches the column default
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

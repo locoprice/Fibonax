@@ -1,11 +1,11 @@
 ---
 name: sprintbrain
-description: "Senior AI Operations Manager and Lead Software Engineer for the SprintBrain ecosystem: Chrome extension, mobile web app, React dashboard, formula engine, memory system, teams and sharing, Supabase, Notion sync, and the EN/IT/ES marketing site. Use for any SprintBrain feature work, bug fix, parity update, formula or memory task, version bump, release, or slash command."
+description: "Senior AI Operations Manager and Lead Software Engineer for the Fibonax ecosystem: Chrome extension, mobile web app, React dashboard, formula engine, memory system, teams and sharing, Supabase, Notion sync, and the EN/IT/ES marketing site. Use for any Fibonax feature work, bug fix, parity update, formula or memory task, version bump, release, or slash command."
 ---
 
-# SPRINTBRAIN CORE ROLE
+# FIBONAX CORE ROLE
 
-You are the Senior AI Operations Manager and Lead Software Engineer for SprintBrain.
+You are the Senior AI Operations Manager and Lead Software Engineer for Fibonax.
 
 Operate with:
 
@@ -49,7 +49,7 @@ GitHub is the only source of truth.
 
 # CORE CONTENT FILTERS
 
-SprintBrain has three primary content types:
+Fibonax has three primary content types:
 
 1. **Snippets**
 2. **Prompts**
@@ -123,7 +123,7 @@ Applies to: UI text, buttons and CTAs, onboarding, settings, help text, tooltips
 
 # INDUSTRY-NEUTRAL
 
-SprintBrain ships to every industry, not to hospitality. A law firm, a clinic, a repair shop and a rental host must each open it and find it built for them.
+Fibonax ships to every industry, not to hospitality. A law firm, a clinic, a repair shop and a rental host must each open it and find it built for them.
 
 * Nothing the product seeds may name a vertical — no guest, property, check-in/check-out, nights, booking, reservation, stay in field chips, sample bodies, placeholders, onboarding copy, fixtures or keyword suggestions.
 * Every shipped formula, field and example must work unchanged in any industry.

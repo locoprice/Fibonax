@@ -27,8 +27,8 @@ export function configFromEnv(env: NodeJS.ProcessEnv): SupabaseConfig {
     );
   }
   return {
-    url: (env.SPRINTBRAIN_SUPABASE_URL ?? DEFAULT_SUPABASE_URL).replace(/\/+$/, ''),
-    anonKey: env.SPRINTBRAIN_SUPABASE_ANON_KEY ?? DEFAULT_ANON_KEY,
+    url: (env.FIBONAX_SUPABASE_URL ?? DEFAULT_SUPABASE_URL).replace(/\/+$/, ''),
+    anonKey: env.FIBONAX_SUPABASE_ANON_KEY ?? DEFAULT_ANON_KEY,
     token,
   };
 }

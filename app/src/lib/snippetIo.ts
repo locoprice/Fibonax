@@ -40,7 +40,7 @@ export function exportSnippets(snippets: SnippetRow[]): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `sprintbrain-snippets-${new Date().toISOString().slice(0, 10)}.json`;
+  anchor.download = `fibonax-snippets-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
@@ -63,7 +63,7 @@ function normalizeLang(v: unknown): SnippetFormValues['language'] {
   return VALID_LANGS.has(upper) ? (upper as SnippetFormValues['language']) : 'EN';
 }
 
-// Map a raw JSON object to SnippetFormValues, accepting both SprintBrain and
+// Map a raw JSON object to SnippetFormValues, accepting both Fibonax and
 // third-party field names (Text Blaze uses `shortcut` + `snippet`).
 function coerceItem(raw: Record<string, unknown>): SnippetFormValues | null {
   const name = String(raw['name'] ?? raw['label'] ?? raw['title'] ?? '')
@@ -116,7 +116,7 @@ export interface ParseResult {
 }
 
 // Parse a JSON file in any of the supported formats:
-//   • SprintBrain native: { version: 1, snippets: [...] }
+//   • Fibonax native: { version: 1, snippets: [...] }
 //   • Text Blaze grouped:  { groups: [{ snippets: [...] }] }
 //   • Flat array:          [{ name, shortcut/trigger, snippet/content, ... }]
 export async function parseImportFile(file: File): Promise<ParseResult> {
@@ -135,7 +135,7 @@ export async function parseImportFile(file: File): Promise<ParseResult> {
   } else if (typeof parsed === 'object' && parsed !== null) {
     const obj = parsed as Record<string, unknown>;
     if (Array.isArray(obj['snippets'])) {
-      // SprintBrain native or any { snippets: [] } wrapper
+      // Fibonax native or any { snippets: [] } wrapper
       rawItems.push(...(obj['snippets'] as unknown[]));
     } else if (Array.isArray(obj['groups'])) {
       // Text Blaze grouped export
@@ -152,7 +152,7 @@ export async function parseImportFile(file: File): Promise<ParseResult> {
 
   if (rawItems.length === 0) {
     throw new Error(
-      'No snippets found in the file. Expected a SprintBrain export, a Text Blaze export, or a flat JSON array.',
+      'No snippets found in the file. Expected a Fibonax export, a Text Blaze export, or a flat JSON array.',
     );
   }
 

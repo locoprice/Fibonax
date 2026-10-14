@@ -434,7 +434,7 @@ export function SnippetsTable() {
                   !row.is_active
                     ? 'Disabled — will not expand in the extension'
                     : row.review_status === 'archived'
-                      ? 'Archived — will not expand, and Ask SprintBrain ignores it'
+                      ? 'Archived — will not expand, and Ask Fibonax ignores it'
                       : undefined
                 }
               >

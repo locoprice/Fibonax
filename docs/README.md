@@ -1,4 +1,4 @@
-SprintBrain is a lightweight tool designed to:
+Fibonax is a lightweight tool designed to:
 - Expand dynamic snippets instantly
 - Inject variables in real-time (e.g. `{{name}}`, `{{date}}`)
 - Improve productivity with structured, repeatable text workflows
@@ -117,4 +117,4 @@ Core system working, UX and advanced features in progress
 
 ## 👤 Author
 
-Alessandro Verdicchio – SprintBrain Project // Valentina Pirrone Senior Project manager
+Alessandro Verdicchio – Fibonax Project // Valentina Pirrone Senior Project manager

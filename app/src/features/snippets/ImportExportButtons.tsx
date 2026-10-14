@@ -55,7 +55,7 @@ export function ImportExportButtons({ onResult }: ImportExportButtonsProps) {
         size="md"
         onClick={() => fileRef.current?.click()}
         disabled={importing}
-        title="Import snippets from a JSON file (SprintBrain or Text Blaze format)"
+        title="Import snippets from a JSON file (Fibonax or Text Blaze format)"
       >
         <Upload className="h-4 w-4" />
         {importing ? 'Importing…' : 'Import'}

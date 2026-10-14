@@ -1,4 +1,4 @@
-// ESLint v9 flat config for the SprintBrain dashboard.
+// ESLint v9 flat config for the Fibonax dashboard.
 // Minimal TS-aware setup to unblock the `npm run lint` commit gate.
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';

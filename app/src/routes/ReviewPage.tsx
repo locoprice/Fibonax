@@ -8,7 +8,7 @@ const TABS = ['waiting', 'feedback'] as const;
 
 /**
  * Review (AI-KNOWLEDGE P2): the one place for what needs a person. Content
- * waiting for approval, and what people said about Ask SprintBrain answers.
+ * waiting for approval, and what people said about Ask Fibonax answers.
  * ?tab=feedback opens straight on the feedback.
  */
 export function ReviewPage() {
@@ -20,7 +20,7 @@ export function ReviewPage() {
     <>
       <PageHeader
         title="Review"
-        description="Approve what your team wrote, and see what people said about Ask SprintBrain answers."
+        description="Approve what your team wrote, and see what people said about Ask Fibonax answers."
       />
       <Tabs defaultValue={initialTab} className="w-full">
         <TabsList>

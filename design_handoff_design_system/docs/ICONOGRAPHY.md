@@ -1,6 +1,6 @@
 # Iconography
 
-> SprintBrain uses inline SVG icons from a single source, at strict sizes and stroke weights. No emoji in UI chrome (user content excepted).
+> Fibonax uses inline SVG icons from a single source, at strict sizes and stroke weights. No emoji in UI chrome (user content excepted).
 
 ---
 
@@ -53,7 +53,7 @@ A chip like `<button class="hdr-btn primary">` sets `color:#fff` → the nested 
 
 Don't invent new mappings. If a concept isn't in this table, add it here first.
 
-| SprintBrain concept | Lucide | Size |
+| Fibonax concept | Lucide | Size |
 |---|---|---|
 | Snippet (generic) | `Type` | 16 |
 | Snippet with formula | `Calculator` | 16 |
@@ -104,7 +104,7 @@ Don't invent new mappings. If a concept isn't in this table, add it here first.
 
 ### 6.1 Logo mark (lightning bolt)
 
-SprintBrain's mark is a lightning bolt in a rounded-square well. The well uses an Iris→Iris-light gradient. This is the **only** place we gradient.
+Fibonax's mark is a lightning bolt in a rounded-square well. The well uses an Iris→Iris-light gradient. This is the **only** place we gradient.
 
 ```html
 <span class="sb-logo-mark">

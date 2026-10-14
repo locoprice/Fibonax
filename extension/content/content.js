@@ -1,4 +1,4 @@
-// ── SPRINTBRAIN CONTENT SCRIPT v2.62.12 ───────────────────────────
+// ── FIBONAX CONTENT SCRIPT v2.62.12 ───────────────────────────
 // Configurable dual triggers + expansion summary + analytics event log
 // v2.29.0: lang-modal expansion fix — defer trigger deletion until after
 //          language pick (modal focus was wiping the CE selection set by
@@ -280,7 +280,7 @@ try {
 
   SBInteractiveSteps.load(function(on) { interactiveStepsOn = on; });
 } catch(e) {
-  console.error('[Sprintbrain] Storage unavailable, using defaults');
+  console.error('[Fibonax] Storage unavailable, using defaults');
 }
 
 // ── KEYSTROKE BUFFER ───────────────────────────────────────────────
@@ -1323,7 +1323,7 @@ function _ceSendDelete(host, range) {
 // settle, put the selection back from its character offsets (a refocus resets
 // the DOM selection) and ask again, once.
 function _ceRetryDelete(host, startCO, endCO, gone, end) {
-  try { host.focus(); } catch(e) { console.error('[Sprintbrain] could not refocus the editor', e); }
+  try { host.focus(); } catch(e) { console.error('[Fibonax] could not refocus the editor', e); }
   setTimeout(function() {
     try {
       var sp = _ceCharOffsetToPoint(host, startCO, true);
@@ -1339,11 +1339,11 @@ function _ceRetryDelete(host, startCO, endCO, gone, end) {
       var before = host.textContent;
       _ceSendDelete(host, rr);
       _ceWaitFor(function() { return host.textContent !== before; }, LEXICAL_VERIFY_MS * 2, function(applied) {
-        if (!applied) console.error('[Sprintbrain] the editor ignored the delete twice; the trigger may still be in the field');
+        if (!applied) console.error('[Fibonax] the editor ignored the delete twice; the trigger may still be in the field');
         end();
       });
     } catch(e) {
-      console.error('[Sprintbrain] retrying the delete failed', e);
+      console.error('[Fibonax] retrying the delete failed', e);
       end();
     }
   }, LEXICAL_SETTLE_MS);
@@ -1372,7 +1372,7 @@ function _ceDeleteSelection(host, done) {
           return;
         }
       }
-    } catch(e) { console.error('[Sprintbrain] the editor delete failed, using the browser edit', e); }
+    } catch(e) { console.error('[Fibonax] the editor delete failed, using the browser edit', e); }
   }
   try { document.execCommand('insertText', false, ''); } catch(e) {}
   end();
@@ -1609,7 +1609,7 @@ function _sbReorder(root, edited) {
 // The operator pastes a link to a page (an order, a confirmation) and the form
 // fills itself from what the page says. Which piece of the page answers which
 // field, and every word the box shows, is decided in shared/fill-form.js. The
-// page itself is read by SprintBrain's server, asked through the background
+// page itself is read by Fibonax's server, asked through the background
 // worker: a content script runs in the page's world and never holds the
 // session. Only the markup and the writing into the inputs are local.
 //
@@ -1760,7 +1760,7 @@ function _sbBindLink(el, snip) {
         if (overlayEl !== el || mine !== seq) return;
         setBusy(false);
         if (lost || !res) {
-          console.error('[Sprintbrain] Fill from link got no answer from the extension', lost ? lost.message : '');
+          console.error('[Fibonax] Fill from link got no answer from the extension', lost ? lost.message : '');
           fail('failed');
           return;
         }
@@ -1775,7 +1775,7 @@ function _sbBindLink(el, snip) {
     } catch (e) {
       // The extension was reloaded under this page, so this script can no
       // longer reach it.
-      console.error('[Sprintbrain] Fill from link could not reach the extension', e);
+      console.error('[Fibonax] Fill from link could not reach the extension', e);
       setBusy(false);
       fail('failed');
     }
@@ -2636,7 +2636,7 @@ function showCelebration(text, onConfirm, onUndo, options) {
   var closeLabel = inserted ? 'Close summary' : 'Cancel insertion';
   card.innerHTML =
     '<div class="sb-cel-header">' +
-      '<span class="sb-cel-brand">SprintBrain<span class="sb-cel-brand-detail"> / Text expansion</span></span>' +
+      '<span class="sb-cel-brand">Fibonax<span class="sb-cel-brand-detail"> / Text expansion</span></span>' +
       '<button type="button" id="sb-cel-skip" class="sb-cel-close" aria-label="' + closeLabel + '">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>' +
       '</button>' +
@@ -2915,7 +2915,7 @@ function _renderPickerItems(query) {
     if (!allItems.length) {
       emptyMsg = hasSession
         ? 'No snippets yet. Create one in the dashboard.'
-        : 'Sign in from the SprintBrain toolbar icon to load your snippets.';
+        : 'Sign in from the Fibonax toolbar icon to load your snippets.';
     }
     h = '<div style="padding:16px 12px;font-size:13px;color:#A1A1AA;text-align:center;line-height:1.45">'
       + xesc(emptyMsg) + '</div>';
@@ -3541,7 +3541,7 @@ function handleSelSuggestKey(e) {
 // shows/hides the menu accordingly.
 function evaluateSelectionForSuggest() {
   if (!selectionSuggestEnabled) { closeSelSuggest(); return; }
-  // Don't compete with an in-progress expansion / open SprintBrain UI.
+  // Don't compete with an in-progress expansion / open Fibonax UI.
   if (processing || overlayEl || triggerPickerEl || triggerPending) return;
 
   var el = null, text = '';

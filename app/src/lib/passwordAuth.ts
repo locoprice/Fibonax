@@ -16,7 +16,7 @@ export interface AuthErrorLike {
 /**
  * Plain wording for a failed sign-up or password change. GoTrue's own message
  * is kept where it is already readable (weak_password names the rule that
- * failed); the codes below get SprintBrain wording instead.
+ * failed); the codes below get Fibonax wording instead.
  */
 export function passwordErrorMessage(err: AuthErrorLike): string {
   switch (err.code) {

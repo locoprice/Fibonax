@@ -26,7 +26,7 @@ interface CreatorInfo {
 }
 
 /**
- * Team hub — the home of SprintBrain's core feature. Shows your team roster,
+ * Team hub — the home of Fibonax's core feature. Shows your team roster,
  * everything shared (split by "by you" vs "with you"), who has access to each
  * folder, and a search across all shared snippets + prompts. Sharing itself
  * stays folder-level (Phase B org ACL) and is managed through FolderShareModal.

@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 
 // Machine translation for a snippet body (TRANSLATE-001).
 //
-// The edge function masks every SprintBrain token before the model sees the
+// The edge function masks every Fibonax token before the model sees the
 // text and refuses any reply that altered one, so what comes back here either
 // carries the original machinery intact or is an error. There is no partial
 // success to reconcile — which is why this wrapper is as thin as it is.

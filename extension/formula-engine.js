@@ -1,4 +1,4 @@
-// ── SPRINTBRAIN FORMULA ENGINE v2.62.12 ───────────────────────────
+// ── FIBONAX FORMULA ENGINE v2.62.12 ───────────────────────────
 // Standalone module — no Chrome API dependencies.
 // Shared by the Chrome extension (content script via the manifest, popup via
 // popup.html) and the dashboard's live preview, which loads it from /extension/.
@@ -767,7 +767,7 @@
   //
   // parseFloat cannot do this job: parseFloat("1.200,50") is 1.2 — not an
   // error, a plausible and completely wrong number — and that is exactly the
-  // shape SprintBrain's operators write.
+  // shape Fibonax's operators write.
   //
   //   absent, empty        0        "not answered" is not a wrong answer
   //   "1200.5"             1200.5
@@ -1285,7 +1285,7 @@
   //   {formmenu: 1980; 1985; name=year; default=1985}
   //   {formmenu: name=year; 1980; 1985}
   //
-  // SprintBrain's own writer emits them comma-separated in one segment
+  // Fibonax's own writer emits them comma-separated in one segment
   // ({formmenu: a,b,c; name=X}). Both are accepted: a ';' segment is a named
   // setting only when it opens with one of the keys below, otherwise it is
   // positional and its commas split further. That keeps every snippet already

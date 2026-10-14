@@ -1,12 +1,12 @@
-# SprintBrain Design System — Skill Guide
+# Fibonax Design System — Skill Guide
 
-> Read this before designing or coding anything for SprintBrain. It tells you which tokens to reach for, which surface you're on, and the conventions that are load-bearing vs. negotiable.
+> Read this before designing or coding anything for Fibonax. It tells you which tokens to reach for, which surface you're on, and the conventions that are load-bearing vs. negotiable.
 
 ---
 
 ## 1. Product in one paragraph
 
-SprintBrain is a text-expansion tool for **hospitality operators** (boutique tour companies, property managers, agencies). The user types a shortcut — `::quoteEN`, `::checkin`, `::firm` — into any web input, a Chrome extension catches it, and expands it into a multilingual, formula-driven template (with placeholder fields, `{=price*nights}` math, and `{if:cond}` branching). The **Web Dashboard** is where the library is managed, analytics are seen, and Notion sync is configured.
+Fibonax is a text-expansion tool for **hospitality operators** (boutique tour companies, property managers, agencies). The user types a shortcut — `::quoteEN`, `::checkin`, `::firm` — into any web input, a Chrome extension catches it, and expands it into a multilingual, formula-driven template (with placeholder fields, `{=price*nights}` math, and `{if:cond}` branching). The **Web Dashboard** is where the library is managed, analytics are seen, and Notion sync is configured.
 
 The primary user writes **quotes, check-in messages, refund explanations, and firm replies** — in EN, IT, ES, FR — dozens of times a day. Speed and predictability are the whole product.
 

@@ -65,7 +65,7 @@ export function TeamSharingGuide() {
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-subtle" />
         <p className="text-xs leading-relaxed text-ink-muted">
           <span className="font-semibold text-ink">Team sharing is separate from Notion sync.</span>{' '}
-          Sharing lives in SprintBrain and updates teammates instantly. The “Sync” buttons on
+          Sharing lives in Fibonax and updates teammates instantly. The “Sync” buttons on
           snippets and prompts mirror them to your external Notion database — they don’t change what
           your team can see.
         </p>

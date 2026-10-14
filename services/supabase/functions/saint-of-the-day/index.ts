@@ -49,7 +49,7 @@ const MAX_REDIRECTS = 2;
 /** How long a failed read is remembered, so a broken source is not hammered. */
 const RETRY_AFTER_MS = 5 * 60 * 1000;
 /** What the page is told is reading it. */
-const USER_AGENT = 'Mozilla/5.0 (compatible; SprintBrain-SaintReader/1.0; +https://sprintbrain.com)';
+const USER_AGENT = 'Mozilla/5.0 (compatible; Fibonax-SaintReader/1.0; +https://fibonax.com)';
 /** The day the Vatican keeps its calendar by. */
 const VATICAN_TIME_ZONE = 'Europe/Rome';
 

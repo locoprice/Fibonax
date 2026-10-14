@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { SPRINTBRAIN_EXTENSION_IDS } from '@/lib/extensionId';
 
 // AUTH-EXT-002: receives the user's dashboard session and pushes it to the
-// SprintBrain Chrome extension via chrome.runtime.sendMessage. The extension's
+// Fibonax Chrome extension via chrome.runtime.sendMessage. The extension's
 // manifest.json declares this origin in `externally_connectable.matches`.
 //
 // Failure modes we surface explicitly:
@@ -175,7 +175,7 @@ export function ExtensionLinkPage() {
 
         {status === 'linking' && (
           <>
-            <h1 className="text-lg font-semibold text-ink">Linking the SprintBrain extension…</h1>
+            <h1 className="text-lg font-semibold text-ink">Linking the Fibonax extension…</h1>
             <p className="mt-2 text-sm text-ink-muted">Hang on a moment.</p>
             <Loader2 className="mx-auto mt-6 h-6 w-6 animate-spin text-primary" />
           </>
@@ -186,7 +186,7 @@ export function ExtensionLinkPage() {
             <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-success" />
             <h1 className="text-lg font-semibold text-ink">Extension linked</h1>
             <p className="mt-2 text-sm text-ink-muted">
-              The SprintBrain Chrome extension is now signed in
+              The Fibonax Chrome extension is now signed in
               {linkedAs ? ` as ${linkedAs}` : ''}.
               <br />
               {closeBlocked
@@ -203,7 +203,7 @@ export function ExtensionLinkPage() {
             <AlertCircle className="mx-auto mb-3 h-10 w-10 text-warn" />
             <h1 className="text-lg font-semibold text-ink">Open this in Chrome</h1>
             <p className="mt-2 text-sm text-ink-muted">
-              Extension linking requires Chrome (or a Chromium browser) with the SprintBrain
+              Extension linking requires Chrome (or a Chromium browser) with the Fibonax
               extension installed.
             </p>
           </>
@@ -212,9 +212,9 @@ export function ExtensionLinkPage() {
         {status === 'not_installed' && (
           <>
             <AlertCircle className="mx-auto mb-3 h-10 w-10 text-warn" />
-            <h1 className="text-lg font-semibold text-ink">SprintBrain extension not detected</h1>
+            <h1 className="text-lg font-semibold text-ink">Fibonax extension not detected</h1>
             <p className="mt-2 text-sm text-ink-muted">
-              Install the SprintBrain Chrome extension first, then return here to link it.
+              Install the Fibonax Chrome extension first, then return here to link it.
             </p>
             <Button variant="ghost" className="mt-5" onClick={() => void runHandoff()}>
               Try again

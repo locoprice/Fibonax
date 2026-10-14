@@ -136,7 +136,7 @@ export function ReviewQueue() {
         <CardTitle>Waiting for approval</CardTitle>
         <CardDescription>
           Snippets, prompts and Brain items that are not approved yet. Team admins approve team
-          content; you approve your own personal content. Ask SprintBrain prefers approved items.
+          content; you approve your own personal content. Ask Fibonax prefers approved items.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-3">

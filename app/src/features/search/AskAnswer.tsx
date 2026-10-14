@@ -15,11 +15,11 @@ import { useUiStore } from '@/stores/uiStore';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
 import { cn } from '@/lib/utils';
 
-// Ask SprintBrain inside the search panel (AI-KNOWLEDGE P1).
+// Ask Fibonax inside the search panel (AI-KNOWLEDGE P1).
 //
 // The answer is built only from the reader's own snippets and Brains. Every
 // claim carries a numbered citation that opens its source, and when nothing in
-// SprintBrain covers the question the panel says so instead of answering.
+// Fibonax covers the question the panel says so instead of answering.
 
 type AskState =
   | { phase: 'loading' }
@@ -52,7 +52,7 @@ export function AskAnswer({ question, onBack, onOpenSource }: AskAnswerProps) {
       const result = await askApi.ask(question);
       setState({ phase: 'done', result });
     } catch (err) {
-      setState({ phase: 'error', message: err instanceof Error ? err.message : 'Could not reach Ask SprintBrain. Try again.' });
+      setState({ phase: 'error', message: err instanceof Error ? err.message : 'Could not reach Ask Fibonax. Try again.' });
     }
   }, [question]);
 
@@ -149,7 +149,7 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
   if (result.status === 'no_sources') {
     return (
       <div className="py-4">
-        <p className="text-sm font-medium text-ink">Nothing in SprintBrain covers this yet.</p>
+        <p className="text-sm font-medium text-ink">Nothing in Fibonax covers this yet.</p>
         <p className="mt-1 text-xs text-ink-subtle">
           Try other words, or save the answer as a snippet or a Brain item so the next person finds it.
         </p>
@@ -166,7 +166,7 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
         <>
           <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary-light px-2 py-0.5 text-[11px] font-semibold text-primary">
             <Check className="h-3 w-3" />
-            From your SprintBrain
+            From your Fibonax
           </span>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
             {splitCitations(result.answer, result.sources).map((part, i) => {
@@ -188,13 +188,13 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
         </>
       ) : (
         <p className="text-sm font-medium text-ink">
-          Your SprintBrain has related items, but none of them answers this.
+          Your Fibonax has related items, but none of them answers this.
         </p>
       )}
 
       {result.missing ? (
         <div className="rounded-[10px] border border-line bg-warning-bg px-3 py-2 text-xs text-ink">
-          <span className="font-semibold text-warning-deep">Not in SprintBrain: </span>
+          <span className="font-semibold text-warning-deep">Not in Fibonax: </span>
           {result.missing}
         </div>
       ) : null}

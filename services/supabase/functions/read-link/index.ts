@@ -51,7 +51,7 @@ const MAX_PAGE_BYTES = 3 * 1024 * 1024;
 /** Redirects followed before giving up. */
 const MAX_REDIRECTS = 3;
 /** What the page is told is reading it. */
-const USER_AGENT = 'Mozilla/5.0 (compatible; SprintBrain-LinkReader/1.0; +https://sprintbrain.com)';
+const USER_AGENT = 'Mozilla/5.0 (compatible; Fibonax-LinkReader/1.0; +https://fibonax.com)';
 
 const PAGE_TYPES = ['text/html', 'application/xhtml+xml'];
 

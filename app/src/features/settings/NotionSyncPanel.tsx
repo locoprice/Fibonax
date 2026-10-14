@@ -48,7 +48,7 @@ export function NotionSyncPanel() {
       <CardHeader>
         <CardTitle>Notion sync</CardTitle>
         <CardDescription>
-          Mirror your Notion snippet database into SprintBrain. Credentials entered here are shared with the extension automatically.
+          Mirror your Notion snippet database into Fibonax. Credentials entered here are shared with the extension automatically.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">

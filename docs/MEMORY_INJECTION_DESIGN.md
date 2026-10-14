@@ -106,7 +106,7 @@ this on knowing text leaves the machine, the same posture as embeddings.
 4. **Insert** writes a delimited block above the draft through the composer's own inserter:
 
    ```
-   ⟦ SprintBrain context · 3 items ⟧
+   ⟦ Fibonax context · 3 items ⟧
    ## pricing-rules
    Totals round to the nearest whole unit. Card payments carry 3%.
    ## house-style
@@ -174,7 +174,7 @@ the other extension preferences.
 - **Relevance floor**: candidates below an RRF score of `1/(60+15)` (rank 15 in a single
   arm, or worse) are dropped before budgeting. A deterministic threshold, not a heuristic,
   and the reason "irrelevant content" does not reach the panel.
-- **Already injected**: if the composer already contains a `⟦ SprintBrain context` block,
+- **Already injected**: if the composer already contains a `⟦ Fibonax context` block,
   its item ids are excluded from the new candidate set, so refresh appends rather than
   duplicates.
 
@@ -213,7 +213,7 @@ exists it is simply a better summary; the engine does not know or care where it 
 ### 3.7 The injected block
 
 ```
-⟦ SprintBrain context · N items ⟧
+⟦ Fibonax context · N items ⟧
 ## <name>
 <body or summary>
 ...

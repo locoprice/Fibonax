@@ -1,4 +1,4 @@
-# PROJECT_CONTEXT.md — SprintBrain
+# PROJECT_CONTEXT.md — Fibonax
 > **Version:** 2.14.1 | **Branch:** develop | **Last Updated:** 2026-04-18  
 > **Author:** Alessandro Verdicchio | **Maintainer:** Alessandro + Claude Chat  
 > ⚠️ This file is the primary context entry point for Claude Code and all AI agents. Read before executing any task.
@@ -7,7 +7,7 @@
 
 ## 1. CORE PURPOSE
 
-SprintBrain is a **Chrome Extension (Manifest V3)** that expands text shortcuts into structured, reusable content templates — directly inside any web input field (Airbnb, WhatsApp, CRMs, booking engines).
+Fibonax is a **Chrome Extension (Manifest V3)** that expands text shortcuts into structured, reusable content templates — directly inside any web input field (Airbnb, WhatsApp, CRMs, booking engines).
 
 **Primary Use Case:** Hospitality team at **LeibTour** (Ibiza vacation rentals) — multilingual communication templates triggered by shortcuts like `/quoteEN`, `/quoteES`, `/firm`.
 
@@ -129,7 +129,7 @@ Expanded snippet injected into DOM
 |---|---|
 | **Database ID** | `a06cac8d5e0282c28c4101e9e3ea3f88` |
 | **Data Source ID** | `c96cac8d-5e02-83b1-8361-072c52766763` |
-| **Integration** | "DATABASE SNIPPETS // sync SprintBrain" (internal `ntn_...` key stored as Supabase secret) |
+| **Integration** | "DATABASE SNIPPETS // sync Fibonax" (internal `ntn_...` key stored as Supabase secret) |
 
 ### Property Schema (VERIFIED 2026-03-29)
 

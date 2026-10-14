@@ -167,7 +167,7 @@
   // items, give it the words.
 
   // Words that say nothing about what a text is about, in the four languages
-  // SprintBrain writes in, folded (lower case, no accents). Words shorter than
+  // Fibonax writes in, folded (lower case, no accents). Words shorter than
   // WORD_MIN are dropped before this list is read.
   var STOPWORDS = (function () {
     var set = {};

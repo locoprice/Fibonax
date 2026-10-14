@@ -6,7 +6,7 @@ import { AuthProductDemo } from '@/components/auth/AuthProductDemo';
 export function AuthBrandPanel() {
   return (
     <aside
-      aria-label="Discover SprintBrain"
+      aria-label="Discover Fibonax"
       className="hidden lg:flex lg:w-[44%] flex-col justify-between gap-6 bg-gradient-to-b from-primary to-primary-dark p-8 xl:px-12"
     >
       <div className="my-auto">

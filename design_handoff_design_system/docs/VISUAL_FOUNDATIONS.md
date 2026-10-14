@@ -1,21 +1,21 @@
 # Visual Foundations
 
-> The atomic building blocks of SprintBrain. Colors, type, spacing, radii, shadows, motion, focus. Everything downstream composes from these.
+> The atomic building blocks of Fibonax. Colors, type, spacing, radii, shadows, motion, focus. Everything downstream composes from these.
 
 ---
 
 ## 1. Color philosophy
 
-SprintBrain runs two surfaces with one personality. We express that with **one accent swap** and total neutral + semantic + language-code reuse.
+Fibonax runs two surfaces with one personality. We express that with **one accent swap** and total neutral + semantic + language-code reuse.
 
 ### 1.1 The split
 
 | Surface | Accent name | Hex | Why |
 |---|---|---|---|
-| Chrome Extension (popup + overlay) | **Iris** | `#6C5CE7` | Warm purple. The extension lives inside other apps (Airbnb, WhatsApp, Gmail) — Iris distinguishes SprintBrain chrome from host UI without clashing with any common brand. |
+| Chrome Extension (popup + overlay) | **Iris** | `#6C5CE7` | Warm purple. The extension lives inside other apps (Airbnb, WhatsApp, Gmail) — Iris distinguishes Fibonax chrome from host UI without clashing with any common brand. |
 | Web Dashboard | **Azure** | `#1B4FD8` | Trustworthy blue. The dashboard is a workspace/admin surface; Azure reads "configuration & data" not "in-page helper". |
 
-These are **not two brand colors** — they are two contextual expressions of the same brand. A user sees Iris only when SprintBrain is *acting*; Azure only when they are *managing* SprintBrain.
+These are **not two brand colors** — they are two contextual expressions of the same brand. A user sees Iris only when Fibonax is *acting*; Azure only when they are *managing* Fibonax.
 
 ### 1.2 Neutrals (identical both surfaces)
 

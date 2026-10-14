@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cookie Policy — SprintBrain</title>
-<meta name="description" content="SprintBrain Cookie Policy — how we use storage in the Chrome Extension and cookies on sprintbrain.com.">
+<title>Cookie Policy — Fibonax</title>
+<meta name="description" content="Fibonax Cookie Policy — how we use storage in the Chrome Extension and cookies on fibonax.com.">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -108,7 +108,7 @@
 <body>
 
 <header class="site-header">
-  <a href="/" class="logo"><img src="../leib-tour-icon.png" alt="SprintBrain" draggable="false">SprintBrain</a>
+  <a href="/" class="logo"><img src="../leib-tour-icon.png" alt="Fibonax" draggable="false">Fibonax</a>
   <nav class="header-nav">
     <a href="privacy-policy.html">Privacy</a>
     <a href="terms-and-conditions.html">Terms</a>
@@ -144,43 +144,43 @@
     </div>
 
     <h1>Cookie Policy</h1>
-    <p class="subtitle">This policy explains how Alessandro Verdicchio, operating SprintBrain, uses cookies and similar storage technologies — and why the Chrome Extension uses none of them.</p>
+    <p class="subtitle">This policy explains how Alessandro Verdicchio, operating Fibonax, uses cookies and similar storage technologies — and why the Chrome Extension uses none of them.</p>
 
     <!-- 1 -->
     <div class="section" id="what-are-cookies">
       <h2>01 &nbsp;What Are Cookies</h2>
       <p>Cookies are small text files placed on your device by a website when you visit it. They are set and read via standard HTTP headers in a browser page context, and are used to remember preferences, maintain sessions, and collect analytics data.</p>
-      <p>Chrome Extensions operate in a sandboxed service worker environment (Manifest V3) that is architecturally separate from the web page context. This means they interact with storage differently — and in SprintBrain's case, more privately.</p>
+      <p>Chrome Extensions operate in a sandboxed service worker environment (Manifest V3) that is architecturally separate from the web page context. This means they interact with storage differently — and in Fibonax's case, more privately.</p>
     </div>
 
     <!-- 2 -->
     <div class="section" id="extension-context">
       <h2>02 &nbsp;Chrome Extension — No HTTP Cookies</h2>
       <div class="success-box">
-        <p><strong>The SprintBrain Chrome Extension does not set, read, or transmit HTTP cookies.</strong> The extension service worker and content scripts operate in a sandboxed runtime that does not access the browser's standard cookie jar.</p>
+        <p><strong>The Fibonax Chrome Extension does not set, read, or transmit HTTP cookies.</strong> The extension service worker and content scripts operate in a sandboxed runtime that does not access the browser's standard cookie jar.</p>
       </div>
-      <p>This is an architectural property of Manifest V3 Chrome Extensions, not just a policy choice. All state persistence within the SprintBrain extension is handled exclusively through Chrome's own storage APIs, which are scoped to the extension and inaccessible to websites or other extensions.</p>
+      <p>This is an architectural property of Manifest V3 Chrome Extensions, not just a policy choice. All state persistence within the Fibonax extension is handled exclusively through Chrome's own storage APIs, which are scoped to the extension and inaccessible to websites or other extensions.</p>
     </div>
 
     <!-- 3 -->
     <div class="section" id="extension-storage">
       <h2>03 &nbsp;Extension Storage (Not Cookies)</h2>
-      <p>SprintBrain uses Chrome's sandboxed key-value storage instead of cookies:</p>
+      <p>Fibonax uses Chrome's sandboxed key-value storage instead of cookies:</p>
 
       <div class="compare-grid">
         <div class="compare-card">
-          <div class="compare-label">Used by SprintBrain</div>
+          <div class="compare-label">Used by Fibonax</div>
           <div class="compare-title"><code>chrome.storage.local</code></div>
-          <p class="compare-body">Stores your snippets, settings, Notion token, and session data on your local device only. Never transmitted to Google's servers. Scoped exclusively to SprintBrain — no other extension or website can access it.</p>
+          <p class="compare-body">Stores your snippets, settings, Notion token, and session data on your local device only. Never transmitted to Google's servers. Scoped exclusively to Fibonax — no other extension or website can access it.</p>
         </div>
         <div class="compare-card">
           <div class="compare-label">Explicitly NOT used</div>
           <div class="compare-title"><code>chrome.storage.sync</code></div>
-          <p class="compare-body">Deliberately avoided. This API would sync data to Google's servers across your devices. SprintBrain stores all sensitive data locally only.</p>
+          <p class="compare-body">Deliberately avoided. This API would sync data to Google's servers across your devices. Fibonax stores all sensitive data locally only.</p>
         </div>
       </div>
 
-      <p>Data stored in <code>chrome.storage.local</code> by SprintBrain includes:</p>
+      <p>Data stored in <code>chrome.storage.local</code> by Fibonax includes:</p>
       <ul>
         <li>Your snippet library (shortcut triggers and expansion text).</li>
         <li>Notion integration configuration (database ID and encrypted integration token).</li>
@@ -197,7 +197,7 @@
     <!-- 4 -->
     <div class="section" id="web-app-cookies">
       <h2>04 &nbsp;Web Application — Cookie Usage</h2>
-      <p>The SprintBrain web application at <strong>sprintbrain.com</strong> (marketing site and account dashboard) does use standard HTTP cookies. These are categorized below:</p>
+      <p>The Fibonax web application at <strong>fibonax.com</strong> (marketing site and account dashboard) does use standard HTTP cookies. These are categorized below:</p>
 
       <h3>Essential cookies</h3>
       <p>Strictly necessary for the website to function. They enable authentication sessions and security features. These are set when you log in and cannot be disabled without breaking core functionality.</p>
@@ -206,10 +206,10 @@
       <p>Remember your interface preferences (e.g. whether you have dismissed notices). Optional, but improve your experience across visits.</p>
 
       <h3>Analytical cookies</h3>
-      <p>Collect anonymous, aggregated usage statistics to help Alessandro Verdicchio understand how sprintbrain.com is used and improve its content and performance. These are set <strong>only after you explicitly grant consent</strong> via the cookie banner.</p>
+      <p>Collect anonymous, aggregated usage statistics to help Alessandro Verdicchio understand how fibonax.com is used and improve its content and performance. These are set <strong>only after you explicitly grant consent</strong> via the cookie banner.</p>
 
       <h3>Marketing cookies</h3>
-      <p>SprintBrain does not currently use marketing or advertising cookies. If this changes, this policy will be updated and your prior consent will be requested.</p>
+      <p>Fibonax does not currently use marketing or advertising cookies. If this changes, this policy will be updated and your prior consent will be requested.</p>
     </div>
 
     <!-- 5 -->
@@ -223,7 +223,7 @@
           <tr>
             <td>sb-auth-token</td>
             <td><span class="category-badge cat-essential">Essential</span></td>
-            <td>Supabase authentication session. Keeps you logged into your SprintBrain account on sprintbrain.com.</td>
+            <td>Supabase authentication session. Keeps you logged into your Fibonax account on fibonax.com.</td>
             <td>Session / 7 days</td>
           </tr>
           <tr>
@@ -247,7 +247,7 @@
           <tr>
             <td>ui-prefs</td>
             <td><span class="category-badge cat-functional">Functional</span></td>
-            <td>Saves your interface preferences on the sprintbrain.com dashboard (e.g. sidebar state, theme).</td>
+            <td>Saves your interface preferences on the fibonax.com dashboard (e.g. sidebar state, theme).</td>
             <td>12 months</td>
           </tr>
           <tr>
@@ -263,19 +263,19 @@
     <!-- 6 -->
     <div class="section" id="consent">
       <h2>06 &nbsp;Cookie Consent</h2>
-      <p>On your first visit to sprintbrain.com, a cookie consent banner is displayed. Essential cookies are activated by default as they are strictly necessary. Functional and analytical cookies are only activated after you explicitly accept them.</p>
+      <p>On your first visit to fibonax.com, a cookie consent banner is displayed. Essential cookies are activated by default as they are strictly necessary. Functional and analytical cookies are only activated after you explicitly accept them.</p>
       <p><strong>Important:</strong> No analytical or functional cookies are executed on this Cookie Policy page, the Privacy Policy page, or the Terms and Conditions page before cookie consent is explicitly granted. This complies with the ePrivacy Directive and Google's Chrome Web Store requirements.</p>
-      <p>You can change your preferences at any time via the Cookie Preferences link in the footer of sprintbrain.com.</p>
+      <p>You can change your preferences at any time via the Cookie Preferences link in the footer of fibonax.com.</p>
     </div>
 
     <!-- 7 -->
     <div class="section" id="third-party-cookies">
       <h2>07 &nbsp;Third-Party Cookies</h2>
-      <p>The following third-party services loaded on sprintbrain.com may set their own cookies. Alessandro Verdicchio does not control these cookies — please review the relevant privacy policies:</p>
+      <p>The following third-party services loaded on fibonax.com may set their own cookies. Alessandro Verdicchio does not control these cookies — please review the relevant privacy policies:</p>
       <ul>
         <li><strong>Supabase</strong> — authentication session management. <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a></li>
       </ul>
-      <p>SprintBrain does not embed advertising scripts, social media tracking pixels, or retargeting cookies from any third party.</p>
+      <p>Fibonax does not embed advertising scripts, social media tracking pixels, or retargeting cookies from any third party.</p>
     </div>
 
     <!-- 8 -->
@@ -283,7 +283,7 @@
       <h2>08 &nbsp;Managing Your Preferences</h2>
 
       <h3>Browser cookie settings</h3>
-      <p>You can view, manage, and delete cookies set by sprintbrain.com using your browser's built-in settings:</p>
+      <p>You can view, manage, and delete cookies set by fibonax.com using your browser's built-in settings:</p>
       <ul>
         <li><a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener">Google Chrome</a></li>
         <li><a href="https://support.mozilla.org/en-US/kb/clear-cookies-and-site-data-firefox" target="_blank" rel="noopener">Mozilla Firefox</a></li>
@@ -292,10 +292,10 @@
       </ul>
 
       <h3>Clearing extension storage</h3>
-      <p>To remove data stored by the SprintBrain extension in <code>chrome.storage.local</code>:</p>
+      <p>To remove data stored by the Fibonax extension in <code>chrome.storage.local</code>:</p>
       <ol>
         <li>Open Chrome and go to <code>chrome://settings/siteData</code>.</li>
-        <li>Search for "SprintBrain" or filter by extension entries.</li>
+        <li>Search for "Fibonax" or filter by extension entries.</li>
         <li>Select and delete the extension's stored data.</li>
       </ol>
       <p>Note: this will remove your local snippet library and Notion configuration. Your Notion database remains untouched and can be re-synced at any time.</p>
@@ -311,7 +311,7 @@
     <div class="section" id="contact">
       <h2>10 &nbsp;Contact</h2>
       <div class="contact-block">
-        <p><strong>Alessandro Verdicchio</strong> — SprintBrain</p>
+        <p><strong>Alessandro Verdicchio</strong> — Fibonax</p>
         <p>Email: <a href="mailto:sprintbrainapp@gmail.com">sprintbrainapp@gmail.com</a></p>
         <p>Address: Via San Francesco d'Assisi, 154, Maddaloni (CE), 81024, Italy</p>
       </div>
@@ -321,7 +321,7 @@
 </div>
 
 <footer>
-  <span>© 2026 Alessandro Verdicchio — SprintBrain</span>
+  <span>© 2026 Alessandro Verdicchio — Fibonax</span>
   <a href="privacy-policy.html">Privacy Policy</a>
   <a href="terms-and-conditions.html">Terms &amp; Conditions</a>
   <a href="cookie-policy.html">Cookie Policy</a>

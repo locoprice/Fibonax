@@ -932,7 +932,7 @@ export function NewSnippetDialog() {
    * happens to be in the textarea.
    *
    * Placeholders are protected server-side — the model never sees a
-   * SprintBrain token, and a reply that altered one is refused before it
+   * Fibonax token, and a reply that altered one is refused before it
    * reaches this function. That is why the result can be written straight into
    * the slot with no further checking here.
    *

@@ -133,7 +133,7 @@
   // The markers are unusual characters on purpose. Remove finds the block by
   // them and strips exactly that range, so it can never eat the user's own
   // words, and a stray "##" in their draft is not mistaken for ours.
-  var BLOCK_OPEN = '⟦ SprintBrain context';
+  var BLOCK_OPEN = '⟦ Fibonax context';
   var BLOCK_CLOSE = '⟧ end ⟧';
 
   /** Render a ContextPackage as the text that goes above the draft. */

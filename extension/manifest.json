@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "SprintBrain",
-  "version": "3.67.2",
+  "name": "Fibonax",
+  "version": "3.68.0",
   "description": "AI prompt library and text expander. Free team sharing, dynamic snippets with live formulas, and two-way Notion sync.",
   "permissions": [
     "storage",
@@ -16,6 +16,7 @@
   ],
   "externally_connectable": {
     "matches": [
+      "https://app.fibonax.com/*",
       "https://app.sprintbrain.com/*"
     ]
   },
@@ -52,7 +53,7 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "SprintBrain",
+    "default_title": "Fibonax",
     "default_icon": {
       "16": "assets/icons/icon16.png",
       "48": "assets/icons/icon48.png",

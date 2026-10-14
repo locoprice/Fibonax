@@ -275,7 +275,7 @@
       // A page that breaks DOM building mid-card would otherwise leave its
       // backdrop covering the site with no way to dismiss it.
       close();
-      console.warn('[Sprintbrain] save selection:', e && e.message);
+      console.warn('[Fibonax] save selection:', e && e.message);
     }
   });
 

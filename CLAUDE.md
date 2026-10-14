@@ -1,4 +1,4 @@
-# SprintBrain — Root Engineering Standards
+# Fibonax — Root Engineering Standards
 
 **Scope**: Global floor for all packages in this monorepo. Nested `CLAUDE.md` files (`app/`, `docs/`) add stricter rules; they never weaken these.
 **Phase**: Pre-seed (Phase 2) — production-quality bar is non-negotiable. Production-first, zero-defect: stability over speed; every change leaves the codebase cleaner.
@@ -22,7 +22,7 @@
 ---
 
 ## 🧭 Simplicity Is the Core Rule — Non-Negotiable
-**Simplicity is the core rule of every SprintBrain project.** Our customers are normal people, not tech experts. The product must be very easy, very friendly and very accessible, on every surface (dashboard, extension, mobile, landing, user docs).
+**Simplicity is the core rule of every Fibonax project.** Our customers are normal people, not tech experts. The product must be very easy, very friendly and very accessible, on every surface (dashboard, extension, mobile, landing, user docs).
 
 - **Write for a first-time, non-technical user.** If someone needs to be "good with computers" to use it, redesign it.
 - **Plain words.** Everyday language in every label, message and error; no jargon, codes or internal names. Say what happened and what to do next.
@@ -120,7 +120,7 @@ Add a field kind, a token, an attribute, a control, a default, a validation, a p
 | **In-page overlay** | `extension/content/content.js` | The fill modal that opens when a trigger fires. **The primary surface.** Three entry points: trigger, picker, context menu |
 | **Popup detail modal** | `extension/popup/popup.js` | The popup's fill form |
 | **Editor live preview** | `app/src/features/snippets/SnippetPreview.tsx` | What the author sees while writing |
-| **Mobile** | `app/public/mobile/index.html` | `sprintbrain.com/mobile`. Its own renderer, kept aligned by hand. **A daily driver, not an afterthought** |
+| **Mobile** | `app/public/mobile/index.html` | `fibonax.com/mobile`. Its own renderer, kept aligned by hand. **A daily driver, not an afterthought** |
 
 "The request only mentioned the editor" is not a scope boundary. The editor is the entry point; the deliverable is the snippet working end to end.
 
@@ -144,7 +144,7 @@ Mobile is verified at phone width, not by trusting the desktop. It cannot be rea
 
 ---
 
-## 📱 Mobile (`sprintbrain.com/mobile`) — Non-Negotiable
+## 📱 Mobile (`fibonax.com/mobile`) — Non-Negotiable
 **Mobile is a surface the team lives in, and it must stay in step.** It is used daily and in the field. Anything a snippet is or does has to work there, in the same task, at the same version.
 
 ### Synchronised: everything a snippet is and does
@@ -170,12 +170,12 @@ Watch the file itself: it has no `.gitattributes`, so an edit can flip it to CRL
 ---
 
 ## 🌍 Industry-Neutral — Non-Negotiable
-**SprintBrain ships to every industry, not to hospitality.** A law firm, a clinic, a repair shop and a rental host must each open the product and find it built for them. Hospitality is where the product was born and where its first users are; it is not what the product may look like.
+**Fibonax ships to every industry, not to hospitality.** A law firm, a clinic, a repair shop and a rental host must each open the product and find it built for them. Hospitality is where the product was born and where its first users are; it is not what the product may look like.
 
 - **Nothing the product seeds may name a vertical.** Field chips, sample bodies, placeholder text, onboarding copy, mock fixtures and keyword suggestions stay generic — no guest, property, check-in / check-out, nights, booking, reservation, stay. What a user writes in their own snippets is theirs; the product must not put that vocabulary there first.
 - **Generic formulas only.** Every formula, field and example the product ships works unchanged in any industry. Vertical wording belongs in marketing copy, never in the editor.
 - **Quantities are numeric fields.** Price, total, count, duration, quantity — declared as a numeric field, never as a text field, and never as a text field a formula happens to add up.
-- **Never rewrite user data to satisfy this.** Snippets already written keep working exactly as written. The rule governs what SprintBrain ships, not what people typed into it.
+- **Never rewrite user data to satisfy this.** Snippets already written keep working exactly as written. The rule governs what Fibonax ships, not what people typed into it.
 
 > **How a quantity is declared:** `{formtext: name=X; type=number}` (with optional `format=plain|currency|percent`, `currency=`, `default=`, `label=`), built by the dashboard's Number builder and drawn as a number box on all four fill surfaces (overlay, popup, preview, mobile). It is an attribute rather than a `{formnumber:}` token on purpose (see the NUMBER FIELD note in `extension/formula-engine.js`). The gap this note used to describe closed in v3.9.0–v3.11.0. One limit remains: the popup and the preview ignore a *stored* `field_cfg`, so a number must be declared in the body, which is what every builder writes.
 
@@ -203,8 +203,8 @@ Marketing copy still carries the brand voice and is read by prospects and invest
 
 ---
 
-## 📘 User Docs: docs.sprintbrain.com (Non-Negotiable)
-**The user manual is published from this repository, and it moves with the product.** The pages live in `user-docs/`. Mintlify's GitHub app republishes docs.sprintbrain.com by itself on every push to `main`, so the manual goes live with the release it describes. The repository is the only source: never edit the docs in Mintlify's web editor.
+## 📘 User Docs: docs.fibonax.com (Non-Negotiable)
+**The user manual is published from this repository, and it moves with the product.** The pages live in `user-docs/`. Mintlify's GitHub app republishes docs.fibonax.com by itself on every push to `main`, so the manual goes live with the release it describes. The repository is the only source: never edit the docs in Mintlify's web editor.
 
 ### 1. Every user-visible change updates the manual in the same task
 A new feature; a changed control, wording, default or setting; a removed option: the page that describes it changes in the same commit. "The request did not mention the docs" is not a scope boundary. `docs/USER_DOCS.md` maps each part of the product to its page, and gets a new row whenever a page is added.

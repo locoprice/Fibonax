@@ -9,9 +9,9 @@ import {
 } from '@/features/onboarding/anim/timeline';
 
 /**
- * SprintBrain onboarding animation — Chrome install → mobile companion
+ * Fibonax onboarding animation — Chrome install → mobile companion
  * (5 steps) → trigger expansion → logo outro. Ported from the imported
- * design (claude.ai/design "SprintBrain Onboarding"); the brand accents were
+ * design (claude.ai/design "Fibonax Onboarding"); the brand accents were
  * recolored from the source's Iris purple to the shipped Azure primary
  * (design system v1.1). Self-contained illustrative surface: inline styles and
  * fixed 1280×720 coordinates are intrinsic to the piece and don't follow the
@@ -374,7 +374,7 @@ function Scene1(): ReactElement {
                 textOverflow: 'ellipsis',
               }}
             >
-              SprintBrain – Chrome Web Store
+              Fibonax – Chrome Web Store
             </span>
             <span style={{ color: '#80868b', fontSize: 15, marginLeft: 4 }}>×</span>
           </div>
@@ -507,9 +507,9 @@ function Scene1(): ReactElement {
             <Logo size={104} radius={24} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: FONT, fontSize: 30, fontWeight: 700, color: INK, letterSpacing: '-0.6px' }}>
-                SprintBrain
+                Fibonax
               </div>
-              <div style={{ fontFamily: FONT, fontSize: 14.5, color: '#1a73e8', marginTop: 6 }}>sprintbrain.com</div>
+              <div style={{ fontFamily: FONT, fontSize: 14.5, color: '#1a73e8', marginTop: 6 }}>fibonax.com</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 14 }}>
                 <span style={{ fontFamily: FONT, fontSize: 13.5, color: INK_MUT }}>Featured</span>
                 <span style={{ width: 4, height: 4, borderRadius: '50%', background: INK_SUB }} />
@@ -581,7 +581,7 @@ function Scene1(): ReactElement {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <Logo size={30} radius={8} />
                 <span style={{ fontFamily: FONT, fontSize: 15, fontWeight: 600, color: INK }}>
-                  Add “SprintBrain”?
+                  Add “Fibonax”?
                 </span>
               </div>
               <div style={{ fontFamily: FONT, fontSize: 12.5, color: INK_MUT, lineHeight: 1.5, marginBottom: 16 }}>
@@ -620,7 +620,7 @@ function Scene1(): ReactElement {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Logo size={34} radius={9} />
                 <div>
-                  <div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: INK }}>SprintBrain added</div>
+                  <div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: INK }}>Fibonax added</div>
                   <div style={{ fontFamily: FONT, fontSize: 12, color: INK_MUT, marginTop: 2 }}>Pinned to your toolbar ✓</div>
                 </div>
               </div>
@@ -805,7 +805,7 @@ function ChromeMobile({
 /* ── STEP 1: open + redirect ── */
 function RedirectScreen({ t }: { t: number }): ReactElement {
   const loaded = clamp(t / 0.9, 0, 1);
-  const url = t < 1.1 ? 'sprintbrain.com' : 'sprintbrain.com/mobile';
+  const url = t < 1.1 ? 'fibonax.com' : 'fibonax.com/mobile';
   const showRedirect = t >= 0.95;
   return (
     <ChromeMobile url={url} loadP={loaded < 1 ? loaded * 0.6 : 1}>
@@ -871,10 +871,10 @@ function LoginScreen({ t }: { t: number }): ReactElement {
   const filled = clamp(Math.floor((t - 1.2) / 0.16), 0, 6);
   const done = t >= 2.35;
   return (
-    <ChromeMobile url="sprintbrain.com/mobile">
+    <ChromeMobile url="fibonax.com/mobile">
       <div style={{ position: 'absolute', inset: 0, padding: '26px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#fff' }}>
         <Logo size={54} />
-        <div style={{ fontFamily: FONT, fontSize: 20, fontWeight: 800, color: INK, letterSpacing: '-.4px', marginTop: 18 }}>Sign in to SprintBrain</div>
+        <div style={{ fontFamily: FONT, fontSize: 20, fontWeight: 800, color: INK, letterSpacing: '-.4px', marginTop: 18 }}>Sign in to Fibonax</div>
         <div style={{ fontFamily: FONT, fontSize: 13, color: INK_MUT, marginTop: 6, textAlign: 'center' }}>One code signs you in everywhere.</div>
 
         {emailStage ? (
@@ -978,7 +978,7 @@ function AddHomeScreen({ t }: { t: number }): ReactElement {
   if (sheet) {
     const up = easeOut(clamp(t / 0.4, 0, 1));
     return (
-      <ChromeMobile url="sprintbrain.com/mobile">
+      <ChromeMobile url="fibonax.com/mobile">
         {/* faded companion behind */}
         <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg,${AZURE},${AZURE_DK})`, opacity: 0.5 }} />
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.28)' }} />
@@ -1033,12 +1033,12 @@ function AddHomeScreen({ t }: { t: number }): ReactElement {
             <div style={{ width: 50, height: 50, borderRadius: 13, background: c, boxShadow: '0 4px 10px rgba(0,0,0,.08)' }} />
           </div>
         ))}
-        {/* SprintBrain icon pops */}
+        {/* Fibonax icon pops */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
           <div style={{ transform: `scale(${back(iconPop)})`, filter: iconPop < 1 ? `drop-shadow(0 0 12px ${AZURE}aa)` : 'none' }}>
             <Logo size={50} radius={13} />
           </div>
-          <span style={{ fontFamily: FONT, fontSize: 10, color: INK, fontWeight: 600, opacity: iconPop }}>SprintBrain</span>
+          <span style={{ fontFamily: FONT, fontSize: 10, color: INK, fontWeight: 600, opacity: iconPop }}>Fibonax</span>
         </div>
         {tiles.slice(3).map((c, i) => (
           <div key={i}>
@@ -1356,7 +1356,7 @@ const STEPS: Array<{ tag: string; h: string; d: string }> = [
   {
     tag: 'OPEN & REDIRECT',
     h: 'Open it in Chrome',
-    d: 'Go to sprintbrain.com on your phone. Chrome sees the small screen and sends you straight to the mobile view — /mobile — never the desktop dashboard.',
+    d: 'Go to fibonax.com on your phone. Chrome sees the small screen and sends you straight to the mobile view — /mobile — never the desktop dashboard.',
   },
   {
     tag: 'SIGN IN ONCE',
@@ -1366,7 +1366,7 @@ const STEPS: Array<{ tag: string; h: string; d: string }> = [
   {
     tag: 'PIN A SHORTCUT',
     h: 'Add to Home Screen',
-    d: 'In Chrome’s ⋮ menu tap “Add to Home screen.” SprintBrain gets a real home-screen icon that opens full-screen — one tap, no address bar.',
+    d: 'In Chrome’s ⋮ menu tap “Add to Home screen.” Fibonax gets a real home-screen icon that opens full-screen — one tap, no address bar.',
   },
   {
     tag: 'THE HOME SCREEN',
@@ -1603,7 +1603,7 @@ function Outro(): ReactElement {
           <Logo size={104} radius={26} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: easeOut(wp), transform: `translateY(${lerp(14, 0, easeOut(wp))}px)` }}>
-          <div style={{ fontFamily: FONT, fontSize: 58, fontWeight: 700, color: INK, letterSpacing: '-1.6px' }}>SprintBrain</div>
+          <div style={{ fontFamily: FONT, fontSize: 58, fontWeight: 700, color: INK, letterSpacing: '-1.6px' }}>Fibonax</div>
           <div style={{ height: 4, background: AZURE, borderRadius: 2, marginTop: 12, width: lerp(0, 300, easeOut(uw)) }} />
         </div>
         <div style={{ fontFamily: FONT, fontSize: 22, color: INK_MUT, opacity: easeOut(tp), letterSpacing: '-.2px' }}>Text expansion for hospitality teams.</div>

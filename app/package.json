@@ -1,9 +1,9 @@
 {
   "name": "sprintbrain-dashboard",
   "private": true,
-  "version": "3.67.2",
+  "version": "3.68.0",
   "type": "module",
-  "description": "SprintBrain SaaS dashboard (desktop-only). React + Vite + Tailwind + shadcn.",
+  "description": "Fibonax SaaS dashboard (desktop-only). React + Vite + Tailwind + shadcn.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

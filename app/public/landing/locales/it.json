@@ -2,8 +2,8 @@
   "lang": "it",
   "entries": [
     {
-      "find": "<section id=\"sb-expansion\" aria-labelledby=\"sb-title\" data-demo=\"true\" data-paused=\"false\">\n    <div class=\"sb-grain\" aria-hidden=\"true\"></div>\n    <div class=\"sb-heading\">\n      <p class=\"sb-eyebrow\"><span class=\"sb-star\" aria-hidden=\"true\">✳</span> YOUR KNOWLEDGE, SET IN MOTION</p>\n      <h2 id=\"sb-title\">Small shortcuts.<br><span>Extraordinary momentum.</span></h2>\n\n    </div>\n\n    <div class=\"sb-engine\" aria-label=\"Expansion engine demonstration\">\n      <svg class=\"sb-connections\" viewBox=\"0 0 1160 390\" preserveAspectRatio=\"none\" aria-hidden=\"true\">\n        <defs>\n          <linearGradient id=\"sb-path-gradient\"><stop stop-color=\"#6284ef\" stop-opacity=\".05\"/><stop offset=\".48\" stop-color=\"#537df5\" stop-opacity=\".55\"/><stop offset=\"1\" stop-color=\"#8a6ded\" stop-opacity=\".12\"/></linearGradient>\n          <linearGradient id=\"sb-packet-gradient\"><stop stop-color=\"#507cf0\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#507cf0\"/></linearGradient>\n        </defs>\n        <path class=\"sb-track\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n        <path class=\"sb-packet sb-packet-a\" pathLength=\"100\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-b\" pathLength=\"100\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-c\" pathLength=\"100\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-out\" pathLength=\"100\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n      </svg>\n\n      <div class=\"sb-input-side\">\n\n        <span class=\"sb-sr-only\" id=\"sb-shortcut-readable\">Shortcut ::brief</span>\n        <div class=\"sb-shortcuts\" aria-hidden=\"true\">\n          <div class=\"sb-ghost-key sb-ghost-top\"><span class=\"sb-shortcut-sign\">::</span>intro<span class=\"sb-key-kind\">SNIPPET</span></div>\n          <div class=\"sb-active-key\"><span class=\"sb-shortcut-sign\">::</span><span id=\"sb-trigger\">brief</span><span class=\"sb-caret\"></span><span class=\"sb-enter-symbol\">↵</span></div>\n          <div class=\"sb-ghost-key sb-ghost-bottom\"><span class=\"sb-shortcut-sign\">::</span>followup<span class=\"sb-key-kind\">SNIPPET</span></div>\n        </div>\n        <p class=\"sb-side-note\">Start with what you already know.</p>\n      </div>\n\n      <div class=\"sb-core\">\n        <svg class=\"sb-orbit\" viewBox=\"0 0 460 410\" aria-hidden=\"true\">\n          <defs>\n            <radialGradient id=\"sb-core-glow\"><stop stop-color=\"#edf1ff\" stop-opacity=\".9\"/><stop offset=\".58\" stop-color=\"#eaf0ff\" stop-opacity=\".3\"/><stop offset=\"1\" stop-color=\"#fff\" stop-opacity=\"0\"/></radialGradient>\n            <linearGradient id=\"sb-orbit-color\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\"><stop stop-color=\"#bfd0ff\"/><stop offset=\".5\" stop-color=\"#4368e0\"/><stop offset=\"1\" stop-color=\"#b7a6f4\"/></linearGradient>\n          </defs>\n          <ellipse cx=\"230\" cy=\"205\" rx=\"219\" ry=\"194\" fill=\"url(#sb-core-glow)\"/>\n          <ellipse class=\"sb-orbit-outer\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\"/>\n          <ellipse class=\"sb-orbit-inner\" cx=\"230\" cy=\"207\" rx=\"192\" ry=\"161\"/>\n          <g id=\"sb-ticks\"></g>\n          <ellipse class=\"sb-orbit-sweep\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\" pathLength=\"100\"/>\n          <circle class=\"sb-orbit-dot\" cx=\"230\" cy=\"26\" r=\"3.5\"/>\n        </svg>\n        <div class=\"sb-metric-content\">\n          <div class=\"sb-data-badge\" id=\"sb-data-badge\"><span aria-hidden=\"true\"></span> DEMO DATA</div>\n          <div class=\"sb-number-line\" aria-live=\"off\">\n            <span class=\"sb-sr-only\" id=\"sb-rate-readable\">128 snippet and prompt expansions per second, simulated.</span>\n            <span class=\"sb-odometer\" id=\"sb-odometer\" aria-hidden=\"true\">128</span>\n            <span class=\"sb-rate-unit\" aria-hidden=\"true\">/sec</span>\n          </div>\n          <p class=\"sb-metric-label\">snippets &amp; prompts expanded</p>\n          <div class=\"sb-breakdown\" aria-live=\"off\">\n            <div><span class=\"sb-category-dot sb-snippet-dot\" aria-hidden=\"true\"></span><strong id=\"sb-snippet-rate\">86</strong><span>snippets/s</span></div>\n            <span class=\"sb-stat-divider\" aria-hidden=\"true\"></span>\n            <div><span class=\"sb-category-dot sb-prompt-dot\" aria-hidden=\"true\"></span><strong id=\"sb-prompt-rate\">42</strong><span>prompts/s</span></div>\n          </div>\n          <div class=\"sb-wave\" id=\"sb-wave\" aria-hidden=\"true\"></div>\n        </div>\n      </div>\n\n      <div class=\"sb-output-side\">\n\n        <div class=\"sb-output-card\" id=\"sb-output-card\">\n          <div class=\"sb-card-header\"><span class=\"sb-doc-icon\" aria-hidden=\"true\">≡</span><span id=\"sb-output-kind\">PROMPT</span><span class=\"sb-output-ready\"><span aria-hidden=\"true\">✓</span> Expanded</span></div>\n          <h3 id=\"sb-output-title\">A sharper project brief.</h3>\n          <p id=\"sb-output-copy\">Act as my strategy partner. Turn these notes into a clear brief: objective, audience, deliverables, and next steps.</p>\n          <div class=\"sb-card-footer\"><span class=\"sb-output-tag\" id=\"sb-output-tag\">Ready for your next AI</span><span class=\"sb-card-spark\" aria-hidden=\"true\">✳</span></div>\n        </div>\n        <p class=\"sb-side-note\">The right context. Without the repetition.</p>\n      </div>\n    </div>\n\n    <div class=\"sb-actions\">\n      <button class=\"sb-try\" id=\"sb-try\" type=\"button\"><span class=\"sb-button-spark\" aria-hidden=\"true\">✳</span><span>Try an expansion</span><span class=\"sb-button-arrow\" aria-hidden=\"true\">↗</span></button>\n      <a class=\"sb-cta\" href=\"https://app.sprintbrain.com/signup\">Try SprintBrain free <span aria-hidden=\"true\">→</span></a>\n    </div>\n    <div class=\"sb-footer\">\n      <p id=\"sb-data-note\">Simulated activity. Real possibilities.</p>\n      <button class=\"sb-pause\" id=\"sb-pause\" type=\"button\" aria-pressed=\"false\"><span class=\"sb-pause-icon\" aria-hidden=\"true\">Ⅱ</span><span>Pause motion</span></button>\n    </div>\n    <p class=\"sb-sr-only\" id=\"sb-expansion-announcement\" role=\"status\" aria-live=\"polite\"></p>\n  </section>",
-      "replace": "<section id=\"sb-expansion\" aria-labelledby=\"sb-title\" data-demo=\"true\" data-paused=\"false\">\n    <div class=\"sb-grain\" aria-hidden=\"true\"></div>\n    <div class=\"sb-heading\">\n      <p class=\"sb-eyebrow\"><span class=\"sb-star\" aria-hidden=\"true\">✳</span> IL TUO SAPERE, IN MOVIMENTO</p>\n      <h2 id=\"sb-title\">Piccole scorciatoie.<br><span>Una spinta straordinaria.</span></h2>\n\n    </div>\n\n    <div class=\"sb-engine\" aria-label=\"Dimostrazione delle espansioni\">\n      <svg class=\"sb-connections\" viewBox=\"0 0 1160 390\" preserveAspectRatio=\"none\" aria-hidden=\"true\">\n        <defs>\n          <linearGradient id=\"sb-path-gradient\"><stop stop-color=\"#6284ef\" stop-opacity=\".05\"/><stop offset=\".48\" stop-color=\"#537df5\" stop-opacity=\".55\"/><stop offset=\"1\" stop-color=\"#8a6ded\" stop-opacity=\".12\"/></linearGradient>\n          <linearGradient id=\"sb-packet-gradient\"><stop stop-color=\"#507cf0\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#507cf0\"/></linearGradient>\n        </defs>\n        <path class=\"sb-track\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n        <path class=\"sb-packet sb-packet-a\" pathLength=\"100\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-b\" pathLength=\"100\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-c\" pathLength=\"100\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-out\" pathLength=\"100\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n      </svg>\n\n      <div class=\"sb-input-side\">\n\n        <span class=\"sb-sr-only\" id=\"sb-shortcut-readable\">Scorciatoia ::brief</span>\n        <div class=\"sb-shortcuts\" aria-hidden=\"true\">\n          <div class=\"sb-ghost-key sb-ghost-top\"><span class=\"sb-shortcut-sign\">::</span>intro<span class=\"sb-key-kind\">SNIPPET</span></div>\n          <div class=\"sb-active-key\"><span class=\"sb-shortcut-sign\">::</span><span id=\"sb-trigger\">brief</span><span class=\"sb-caret\"></span><span class=\"sb-enter-symbol\">↵</span></div>\n          <div class=\"sb-ghost-key sb-ghost-bottom\"><span class=\"sb-shortcut-sign\">::</span>followup<span class=\"sb-key-kind\">SNIPPET</span></div>\n        </div>\n        <p class=\"sb-side-note\">Parti da ciò che sai già.</p>\n      </div>\n\n      <div class=\"sb-core\">\n        <svg class=\"sb-orbit\" viewBox=\"0 0 460 410\" aria-hidden=\"true\">\n          <defs>\n            <radialGradient id=\"sb-core-glow\"><stop stop-color=\"#edf1ff\" stop-opacity=\".9\"/><stop offset=\".58\" stop-color=\"#eaf0ff\" stop-opacity=\".3\"/><stop offset=\"1\" stop-color=\"#fff\" stop-opacity=\"0\"/></radialGradient>\n            <linearGradient id=\"sb-orbit-color\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\"><stop stop-color=\"#bfd0ff\"/><stop offset=\".5\" stop-color=\"#4368e0\"/><stop offset=\"1\" stop-color=\"#b7a6f4\"/></linearGradient>\n          </defs>\n          <ellipse cx=\"230\" cy=\"205\" rx=\"219\" ry=\"194\" fill=\"url(#sb-core-glow)\"/>\n          <ellipse class=\"sb-orbit-outer\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\"/>\n          <ellipse class=\"sb-orbit-inner\" cx=\"230\" cy=\"207\" rx=\"192\" ry=\"161\"/>\n          <g id=\"sb-ticks\"></g>\n          <ellipse class=\"sb-orbit-sweep\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\" pathLength=\"100\"/>\n          <circle class=\"sb-orbit-dot\" cx=\"230\" cy=\"26\" r=\"3.5\"/>\n        </svg>\n        <div class=\"sb-metric-content\">\n          <div class=\"sb-data-badge\" id=\"sb-data-badge\"><span aria-hidden=\"true\"></span> DATI DEMO</div>\n          <div class=\"sb-number-line\" aria-live=\"off\">\n            <span class=\"sb-sr-only\" id=\"sb-rate-readable\">128 espansioni di snippet e prompt al secondo, dati simulati.</span>\n            <span class=\"sb-odometer\" id=\"sb-odometer\" aria-hidden=\"true\">128</span>\n            <span class=\"sb-rate-unit\" aria-hidden=\"true\">/sec</span>\n          </div>\n          <p class=\"sb-metric-label\">snippet e prompt espansi</p>\n          <div class=\"sb-breakdown\" aria-live=\"off\">\n            <div><span class=\"sb-category-dot sb-snippet-dot\" aria-hidden=\"true\"></span><strong id=\"sb-snippet-rate\">86</strong><span>snippet/s</span></div>\n            <span class=\"sb-stat-divider\" aria-hidden=\"true\"></span>\n            <div><span class=\"sb-category-dot sb-prompt-dot\" aria-hidden=\"true\"></span><strong id=\"sb-prompt-rate\">42</strong><span>prompt/s</span></div>\n          </div>\n          <div class=\"sb-wave\" id=\"sb-wave\" aria-hidden=\"true\"></div>\n        </div>\n      </div>\n\n      <div class=\"sb-output-side\">\n\n        <div class=\"sb-output-card\" id=\"sb-output-card\">\n          <div class=\"sb-card-header\"><span class=\"sb-doc-icon\" aria-hidden=\"true\">≡</span><span id=\"sb-output-kind\">PROMPT</span><span class=\"sb-output-ready\"><span aria-hidden=\"true\">✓</span> Espanso</span></div>\n          <h3 id=\"sb-output-title\">Un brief di progetto più chiaro.</h3>\n          <p id=\"sb-output-copy\">Agisci come mio consulente strategico. Trasforma questi appunti in un brief chiaro: obiettivo, pubblico, risultati attesi e prossimi passi.</p>\n          <div class=\"sb-card-footer\"><span class=\"sb-output-tag\" id=\"sb-output-tag\">Pronto per la tua prossima AI</span><span class=\"sb-card-spark\" aria-hidden=\"true\">✳</span></div>\n        </div>\n        <p class=\"sb-side-note\">Il contesto giusto. Senza ripetizioni.</p>\n      </div>\n    </div>\n\n    <div class=\"sb-actions\">\n      <button class=\"sb-try\" id=\"sb-try\" type=\"button\"><span class=\"sb-button-spark\" aria-hidden=\"true\">✳</span><span>Prova un’espansione</span><span class=\"sb-button-arrow\" aria-hidden=\"true\">↗</span></button>\n      <a class=\"sb-cta\" href=\"https://app.sprintbrain.com/signup\">Prova SprintBrain gratis <span aria-hidden=\"true\">→</span></a>\n    </div>\n    <div class=\"sb-footer\">\n      <p id=\"sb-data-note\">Attività simulata. Possibilità reali.</p>\n      <button class=\"sb-pause\" id=\"sb-pause\" type=\"button\" aria-pressed=\"false\"><span class=\"sb-pause-icon\" aria-hidden=\"true\">Ⅱ</span><span>Pausa animazione</span></button>\n    </div>\n    <p class=\"sb-sr-only\" id=\"sb-expansion-announcement\" role=\"status\" aria-live=\"polite\"></p>\n  </section>",
+      "find": "<section id=\"sb-expansion\" aria-labelledby=\"sb-title\" data-demo=\"true\" data-paused=\"false\">\n    <div class=\"sb-grain\" aria-hidden=\"true\"></div>\n    <div class=\"sb-heading\">\n      <p class=\"sb-eyebrow\"><span class=\"sb-star\" aria-hidden=\"true\">✳</span> YOUR KNOWLEDGE, SET IN MOTION</p>\n      <h2 id=\"sb-title\">Small shortcuts.<br><span>Extraordinary momentum.</span></h2>\n\n    </div>\n\n    <div class=\"sb-engine\" aria-label=\"Expansion engine demonstration\">\n      <svg class=\"sb-connections\" viewBox=\"0 0 1160 390\" preserveAspectRatio=\"none\" aria-hidden=\"true\">\n        <defs>\n          <linearGradient id=\"sb-path-gradient\"><stop stop-color=\"#6284ef\" stop-opacity=\".05\"/><stop offset=\".48\" stop-color=\"#537df5\" stop-opacity=\".55\"/><stop offset=\"1\" stop-color=\"#8a6ded\" stop-opacity=\".12\"/></linearGradient>\n          <linearGradient id=\"sb-packet-gradient\"><stop stop-color=\"#507cf0\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#507cf0\"/></linearGradient>\n        </defs>\n        <path class=\"sb-track\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n        <path class=\"sb-packet sb-packet-a\" pathLength=\"100\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-b\" pathLength=\"100\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-c\" pathLength=\"100\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-out\" pathLength=\"100\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n      </svg>\n\n      <div class=\"sb-input-side\">\n\n        <span class=\"sb-sr-only\" id=\"sb-shortcut-readable\">Shortcut ::brief</span>\n        <div class=\"sb-shortcuts\" aria-hidden=\"true\">\n          <div class=\"sb-ghost-key sb-ghost-top\"><span class=\"sb-shortcut-sign\">::</span>intro<span class=\"sb-key-kind\">SNIPPET</span></div>\n          <div class=\"sb-active-key\"><span class=\"sb-shortcut-sign\">::</span><span id=\"sb-trigger\">brief</span><span class=\"sb-caret\"></span><span class=\"sb-enter-symbol\">↵</span></div>\n          <div class=\"sb-ghost-key sb-ghost-bottom\"><span class=\"sb-shortcut-sign\">::</span>followup<span class=\"sb-key-kind\">SNIPPET</span></div>\n        </div>\n        <p class=\"sb-side-note\">Start with what you already know.</p>\n      </div>\n\n      <div class=\"sb-core\">\n        <svg class=\"sb-orbit\" viewBox=\"0 0 460 410\" aria-hidden=\"true\">\n          <defs>\n            <radialGradient id=\"sb-core-glow\"><stop stop-color=\"#edf1ff\" stop-opacity=\".9\"/><stop offset=\".58\" stop-color=\"#eaf0ff\" stop-opacity=\".3\"/><stop offset=\"1\" stop-color=\"#fff\" stop-opacity=\"0\"/></radialGradient>\n            <linearGradient id=\"sb-orbit-color\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\"><stop stop-color=\"#bfd0ff\"/><stop offset=\".5\" stop-color=\"#4368e0\"/><stop offset=\"1\" stop-color=\"#b7a6f4\"/></linearGradient>\n          </defs>\n          <ellipse cx=\"230\" cy=\"205\" rx=\"219\" ry=\"194\" fill=\"url(#sb-core-glow)\"/>\n          <ellipse class=\"sb-orbit-outer\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\"/>\n          <ellipse class=\"sb-orbit-inner\" cx=\"230\" cy=\"207\" rx=\"192\" ry=\"161\"/>\n          <g id=\"sb-ticks\"></g>\n          <ellipse class=\"sb-orbit-sweep\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\" pathLength=\"100\"/>\n          <circle class=\"sb-orbit-dot\" cx=\"230\" cy=\"26\" r=\"3.5\"/>\n        </svg>\n        <div class=\"sb-metric-content\">\n          <div class=\"sb-data-badge\" id=\"sb-data-badge\"><span aria-hidden=\"true\"></span> DEMO DATA</div>\n          <div class=\"sb-number-line\" aria-live=\"off\">\n            <span class=\"sb-sr-only\" id=\"sb-rate-readable\">128 snippet and prompt expansions per second, simulated.</span>\n            <span class=\"sb-odometer\" id=\"sb-odometer\" aria-hidden=\"true\">128</span>\n            <span class=\"sb-rate-unit\" aria-hidden=\"true\">/sec</span>\n          </div>\n          <p class=\"sb-metric-label\">snippets &amp; prompts expanded</p>\n          <div class=\"sb-breakdown\" aria-live=\"off\">\n            <div><span class=\"sb-category-dot sb-snippet-dot\" aria-hidden=\"true\"></span><strong id=\"sb-snippet-rate\">86</strong><span>snippets/s</span></div>\n            <span class=\"sb-stat-divider\" aria-hidden=\"true\"></span>\n            <div><span class=\"sb-category-dot sb-prompt-dot\" aria-hidden=\"true\"></span><strong id=\"sb-prompt-rate\">42</strong><span>prompts/s</span></div>\n          </div>\n          <div class=\"sb-wave\" id=\"sb-wave\" aria-hidden=\"true\"></div>\n        </div>\n      </div>\n\n      <div class=\"sb-output-side\">\n\n        <div class=\"sb-output-card\" id=\"sb-output-card\">\n          <div class=\"sb-card-header\"><span class=\"sb-doc-icon\" aria-hidden=\"true\">≡</span><span id=\"sb-output-kind\">PROMPT</span><span class=\"sb-output-ready\"><span aria-hidden=\"true\">✓</span> Expanded</span></div>\n          <h3 id=\"sb-output-title\">A sharper project brief.</h3>\n          <p id=\"sb-output-copy\">Act as my strategy partner. Turn these notes into a clear brief: objective, audience, deliverables, and next steps.</p>\n          <div class=\"sb-card-footer\"><span class=\"sb-output-tag\" id=\"sb-output-tag\">Ready for your next AI</span><span class=\"sb-card-spark\" aria-hidden=\"true\">✳</span></div>\n        </div>\n        <p class=\"sb-side-note\">The right context. Without the repetition.</p>\n      </div>\n    </div>\n\n    <div class=\"sb-actions\">\n      <button class=\"sb-try\" id=\"sb-try\" type=\"button\"><span class=\"sb-button-spark\" aria-hidden=\"true\">✳</span><span>Try an expansion</span><span class=\"sb-button-arrow\" aria-hidden=\"true\">↗</span></button>\n      <a class=\"sb-cta\" href=\"https://app.fibonax.com/signup\">Try Fibonax free <span aria-hidden=\"true\">→</span></a>\n    </div>\n    <div class=\"sb-footer\">\n      <p id=\"sb-data-note\">Simulated activity. Real possibilities.</p>\n      <button class=\"sb-pause\" id=\"sb-pause\" type=\"button\" aria-pressed=\"false\"><span class=\"sb-pause-icon\" aria-hidden=\"true\">Ⅱ</span><span>Pause motion</span></button>\n    </div>\n    <p class=\"sb-sr-only\" id=\"sb-expansion-announcement\" role=\"status\" aria-live=\"polite\"></p>\n  </section>",
+      "replace": "<section id=\"sb-expansion\" aria-labelledby=\"sb-title\" data-demo=\"true\" data-paused=\"false\">\n    <div class=\"sb-grain\" aria-hidden=\"true\"></div>\n    <div class=\"sb-heading\">\n      <p class=\"sb-eyebrow\"><span class=\"sb-star\" aria-hidden=\"true\">✳</span> IL TUO SAPERE, IN MOVIMENTO</p>\n      <h2 id=\"sb-title\">Piccole scorciatoie.<br><span>Una spinta straordinaria.</span></h2>\n\n    </div>\n\n    <div class=\"sb-engine\" aria-label=\"Dimostrazione delle espansioni\">\n      <svg class=\"sb-connections\" viewBox=\"0 0 1160 390\" preserveAspectRatio=\"none\" aria-hidden=\"true\">\n        <defs>\n          <linearGradient id=\"sb-path-gradient\"><stop stop-color=\"#6284ef\" stop-opacity=\".05\"/><stop offset=\".48\" stop-color=\"#537df5\" stop-opacity=\".55\"/><stop offset=\"1\" stop-color=\"#8a6ded\" stop-opacity=\".12\"/></linearGradient>\n          <linearGradient id=\"sb-packet-gradient\"><stop stop-color=\"#507cf0\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#507cf0\"/></linearGradient>\n        </defs>\n        <path class=\"sb-track\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n        <path class=\"sb-packet sb-packet-a\" pathLength=\"100\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-b\" pathLength=\"100\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-c\" pathLength=\"100\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-out\" pathLength=\"100\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n      </svg>\n\n      <div class=\"sb-input-side\">\n\n        <span class=\"sb-sr-only\" id=\"sb-shortcut-readable\">Scorciatoia ::brief</span>\n        <div class=\"sb-shortcuts\" aria-hidden=\"true\">\n          <div class=\"sb-ghost-key sb-ghost-top\"><span class=\"sb-shortcut-sign\">::</span>intro<span class=\"sb-key-kind\">SNIPPET</span></div>\n          <div class=\"sb-active-key\"><span class=\"sb-shortcut-sign\">::</span><span id=\"sb-trigger\">brief</span><span class=\"sb-caret\"></span><span class=\"sb-enter-symbol\">↵</span></div>\n          <div class=\"sb-ghost-key sb-ghost-bottom\"><span class=\"sb-shortcut-sign\">::</span>followup<span class=\"sb-key-kind\">SNIPPET</span></div>\n        </div>\n        <p class=\"sb-side-note\">Parti da ciò che sai già.</p>\n      </div>\n\n      <div class=\"sb-core\">\n        <svg class=\"sb-orbit\" viewBox=\"0 0 460 410\" aria-hidden=\"true\">\n          <defs>\n            <radialGradient id=\"sb-core-glow\"><stop stop-color=\"#edf1ff\" stop-opacity=\".9\"/><stop offset=\".58\" stop-color=\"#eaf0ff\" stop-opacity=\".3\"/><stop offset=\"1\" stop-color=\"#fff\" stop-opacity=\"0\"/></radialGradient>\n            <linearGradient id=\"sb-orbit-color\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\"><stop stop-color=\"#bfd0ff\"/><stop offset=\".5\" stop-color=\"#4368e0\"/><stop offset=\"1\" stop-color=\"#b7a6f4\"/></linearGradient>\n          </defs>\n          <ellipse cx=\"230\" cy=\"205\" rx=\"219\" ry=\"194\" fill=\"url(#sb-core-glow)\"/>\n          <ellipse class=\"sb-orbit-outer\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\"/>\n          <ellipse class=\"sb-orbit-inner\" cx=\"230\" cy=\"207\" rx=\"192\" ry=\"161\"/>\n          <g id=\"sb-ticks\"></g>\n          <ellipse class=\"sb-orbit-sweep\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\" pathLength=\"100\"/>\n          <circle class=\"sb-orbit-dot\" cx=\"230\" cy=\"26\" r=\"3.5\"/>\n        </svg>\n        <div class=\"sb-metric-content\">\n          <div class=\"sb-data-badge\" id=\"sb-data-badge\"><span aria-hidden=\"true\"></span> DATI DEMO</div>\n          <div class=\"sb-number-line\" aria-live=\"off\">\n            <span class=\"sb-sr-only\" id=\"sb-rate-readable\">128 espansioni di snippet e prompt al secondo, dati simulati.</span>\n            <span class=\"sb-odometer\" id=\"sb-odometer\" aria-hidden=\"true\">128</span>\n            <span class=\"sb-rate-unit\" aria-hidden=\"true\">/sec</span>\n          </div>\n          <p class=\"sb-metric-label\">snippet e prompt espansi</p>\n          <div class=\"sb-breakdown\" aria-live=\"off\">\n            <div><span class=\"sb-category-dot sb-snippet-dot\" aria-hidden=\"true\"></span><strong id=\"sb-snippet-rate\">86</strong><span>snippet/s</span></div>\n            <span class=\"sb-stat-divider\" aria-hidden=\"true\"></span>\n            <div><span class=\"sb-category-dot sb-prompt-dot\" aria-hidden=\"true\"></span><strong id=\"sb-prompt-rate\">42</strong><span>prompt/s</span></div>\n          </div>\n          <div class=\"sb-wave\" id=\"sb-wave\" aria-hidden=\"true\"></div>\n        </div>\n      </div>\n\n      <div class=\"sb-output-side\">\n\n        <div class=\"sb-output-card\" id=\"sb-output-card\">\n          <div class=\"sb-card-header\"><span class=\"sb-doc-icon\" aria-hidden=\"true\">≡</span><span id=\"sb-output-kind\">PROMPT</span><span class=\"sb-output-ready\"><span aria-hidden=\"true\">✓</span> Espanso</span></div>\n          <h3 id=\"sb-output-title\">Un brief di progetto più chiaro.</h3>\n          <p id=\"sb-output-copy\">Agisci come mio consulente strategico. Trasforma questi appunti in un brief chiaro: obiettivo, pubblico, risultati attesi e prossimi passi.</p>\n          <div class=\"sb-card-footer\"><span class=\"sb-output-tag\" id=\"sb-output-tag\">Pronto per la tua prossima AI</span><span class=\"sb-card-spark\" aria-hidden=\"true\">✳</span></div>\n        </div>\n        <p class=\"sb-side-note\">Il contesto giusto. Senza ripetizioni.</p>\n      </div>\n    </div>\n\n    <div class=\"sb-actions\">\n      <button class=\"sb-try\" id=\"sb-try\" type=\"button\"><span class=\"sb-button-spark\" aria-hidden=\"true\">✳</span><span>Prova un’espansione</span><span class=\"sb-button-arrow\" aria-hidden=\"true\">↗</span></button>\n      <a class=\"sb-cta\" href=\"https://app.fibonax.com/signup\">Prova Fibonax gratis <span aria-hidden=\"true\">→</span></a>\n    </div>\n    <div class=\"sb-footer\">\n      <p id=\"sb-data-note\">Attività simulata. Possibilità reali.</p>\n      <button class=\"sb-pause\" id=\"sb-pause\" type=\"button\" aria-pressed=\"false\"><span class=\"sb-pause-icon\" aria-hidden=\"true\">Ⅱ</span><span>Pausa animazione</span></button>\n    </div>\n    <p class=\"sb-sr-only\" id=\"sb-expansion-announcement\" role=\"status\" aria-live=\"polite\"></p>\n  </section>",
       "count": 1
     },
     {
@@ -327,8 +327,8 @@
       "count": 1
     },
     {
-      "find": "<p>SprintBrain ships as a Chrome extension, a web dashboard, and a mobile website. Sign in once. Your snippets and formulas are everywhere, instantly.</p>",
-      "replace": "<p>SprintBrain arriva come estensione Chrome, dashboard web e sito mobile. Accedi una volta sola. I tuoi snippet e le tue formule sono ovunque, all'istante.</p>",
+      "find": "<p>Fibonax ships as a Chrome extension, a web dashboard, and a mobile website. Sign in once. Your snippets and formulas are everywhere, instantly.</p>",
+      "replace": "<p>Fibonax arriva come estensione Chrome, dashboard web e sito mobile. Accedi una volta sola. I tuoi snippet e le tue formule sono ovunque, all'istante.</p>",
       "count": 1
     },
     {
@@ -387,8 +387,8 @@
       "count": 1
     },
     {
-      "find": "<h2>Where SprintBrain runs every day.</h2>",
-      "replace": "<h2>Dove SprintBrain gira ogni giorno.</h2>",
+      "find": "<h2>Where Fibonax runs every day.</h2>",
+      "replace": "<h2>Dove Fibonax gira ogni giorno.</h2>",
       "count": 1
     },
     {
@@ -422,8 +422,8 @@
       "count": 1
     },
     {
-      "find": "<p class=\"ps-desc\">A professional B2B travel network giving agents access to exclusive, wholesale hotel rates unavailable on public OTAs. SprintBrain handles the high volume of quote requests and booking confirmations, consistently branded, every time.</p>",
-      "replace": "<p class=\"ps-desc\">Un network travel B2B professionale che dà agli agenti accesso a tariffe alberghiere wholesale non disponibili sulle OTA pubbliche. SprintBrain regge l'alto volume di richieste di preventivo e conferme di prenotazione, sempre con lo stesso brand.</p>",
+      "find": "<p class=\"ps-desc\">A professional B2B travel network giving agents access to exclusive, wholesale hotel rates unavailable on public OTAs. Fibonax handles the high volume of quote requests and booking confirmations, consistently branded, every time.</p>",
+      "replace": "<p class=\"ps-desc\">Un network travel B2B professionale che dà agli agenti accesso a tariffe alberghiere wholesale non disponibili sulle OTA pubbliche. Fibonax regge l'alto volume di richieste di preventivo e conferme di prenotazione, sempre con lo stesso brand.</p>",
       "count": 1
     },
     {
@@ -442,13 +442,13 @@
       "count": 1
     },
     {
-      "find": "<p>SprintBrain scales with your team without loosening what protects your data. Access is enforced by the database itself, not just the interface, whether you're a \"team\" of one or an org of hundreds.</p>",
-      "replace": "<p>SprintBrain cresce con il tuo team senza allentare quello che protegge i tuoi dati. Gli accessi sono applicati dal database stesso, non solo dall'interfaccia, che tu sia un \"team\" di una persona o un'organizzazione da centinaia.</p>",
+      "find": "<p>Fibonax scales with your team without loosening what protects your data. Access is enforced by the database itself, not just the interface, whether you're a \"team\" of one or an org of hundreds.</p>",
+      "replace": "<p>Fibonax cresce con il tuo team senza allentare quello che protegge i tuoi dati. Gli accessi sono applicati dal database stesso, non solo dall'interfaccia, che tu sia un \"team\" di una persona o un'organizzazione da centinaia.</p>",
       "count": 1
     },
     {
-      "find": "class=\"sb-primary\" href=\"https://app.sprintbrain.com/signup\">Get started · it's free</a>",
-      "replace": "class=\"sb-primary\" href=\"https://app.sprintbrain.com/signup\">Inizia ora · è gratis</a>",
+      "find": "class=\"sb-primary\" href=\"https://app.fibonax.com/signup\">Get started · it's free</a>",
+      "replace": "class=\"sb-primary\" href=\"https://app.fibonax.com/signup\">Inizia ora · è gratis</a>",
       "count": 1
     },
     {
@@ -552,8 +552,8 @@
       "count": 1
     },
     {
-      "find": "detail:'<strong>How it works</strong>Type <code>::quote</code> and press Space or Tab. SprintBrain replaces the tag with the full template in under 50&nbsp;ms. Field-level, no page reload, no extension overlay visible to anyone else.'",
-      "replace": "detail:'<strong>Come funziona</strong>Scrivi <code>::quote</code> e premi Spazio o Tab. SprintBrain sostituisce il tag con il template completo in meno di 50&nbsp;ms. A livello di campo, senza ricaricare la pagina e senza overlay dell\\'estensione visibile ad altri.'",
+      "find": "detail:'<strong>How it works</strong>Type <code>::quote</code> and press Space or Tab. Fibonax replaces the tag with the full template in under 50&nbsp;ms. Field-level, no page reload, no extension overlay visible to anyone else.'",
+      "replace": "detail:'<strong>Come funziona</strong>Scrivi <code>::quote</code> e premi Spazio o Tab. Fibonax sostituisce il tag con il template completo in meno di 50&nbsp;ms. A livello di campo, senza ricaricare la pagina e senza overlay dell\\'estensione visibile ad altri.'",
       "count": 1
     },
     {
@@ -587,18 +587,18 @@
       "count": 1
     },
     {
-      "find": "body:'Connect a <b>Notion database</b> as the source of truth for your library. Reviewers comment in Notion; SprintBrain pulls the updates into the extension within the minute, <b>one-way or two-way</b>.'",
-      "replace": "body:'Collega un <b>database Notion</b> come fonte di verità per la tua libreria. I revisori commentano su Notion e SprintBrain porta gli aggiornamenti nell\\'estensione entro un minuto, <b>in una o due direzioni</b>.'",
+      "find": "body:'Connect a <b>Notion database</b> as the source of truth for your library. Reviewers comment in Notion; Fibonax pulls the updates into the extension within the minute, <b>one-way or two-way</b>.'",
+      "replace": "body:'Collega un <b>database Notion</b> come fonte di verità per la tua libreria. I revisori commentano su Notion e Fibonax porta gli aggiornamenti nell\\'estensione entro un minuto, <b>in una o due direzioni</b>.'",
       "count": 1
     },
     {
-      "find": "detail:'<strong>Setup</strong>Paste your Notion integration token and database ID in Settings → Notion Sync. SprintBrain maps columns to snippet fields automatically and runs incremental pulls on a timer.'",
-      "replace": "detail:'<strong>Configurazione</strong>Incolla il token di integrazione Notion e l\\'ID del database in Settings → Notion Sync. SprintBrain mappa le colonne sui campi degli snippet in automatico ed esegue letture incrementali a intervalli.'",
+      "find": "detail:'<strong>Setup</strong>Paste your Notion integration token and database ID in Settings → Notion Sync. Fibonax maps columns to snippet fields automatically and runs incremental pulls on a timer.'",
+      "replace": "detail:'<strong>Configurazione</strong>Incolla il token di integrazione Notion e l\\'ID del database in Settings → Notion Sync. Fibonax mappa le colonne sui campi degli snippet in automatico ed esegue letture incrementali a intervalli.'",
       "count": 1
     },
     {
-      "find": "body:'Open <code>app.sprintbrain.com/mobile</code> in <b>Safari or Chrome</b> on any iOS or Android device. No download, no app store. Browse, search, and one-tap copy any snippet, prompt or Brain from the same library.'",
-      "replace": "body:'Apri <code>app.sprintbrain.com/mobile</code> in <b>Safari o Chrome</b> su qualsiasi dispositivo iOS o Android. Nessun download, nessun app store. Sfoglia, cerca e copia con un tap qualsiasi snippet, prompt o Brain dalla stessa libreria.'",
+      "find": "body:'Open <code>app.fibonax.com/mobile</code> in <b>Safari or Chrome</b> on any iOS or Android device. No download, no app store. Browse, search, and one-tap copy any snippet, prompt or Brain from the same library.'",
+      "replace": "body:'Apri <code>app.fibonax.com/mobile</code> in <b>Safari o Chrome</b> su qualsiasi dispositivo iOS o Android. Nessun download, nessun app store. Sfoglia, cerca e copia con un tap qualsiasi snippet, prompt o Brain dalla stessa libreria.'",
       "count": 1
     },
     {
@@ -662,8 +662,8 @@
       "count": 1
     },
     {
-      "find": "<title>SprintBrain: Your context. Every AI. One direction.</title>",
-      "replace": "<title>SprintBrain: Il tuo contesto. Ogni AI. Una direzione.</title>",
+      "find": "<title>Fibonax: Your context. Every AI. One direction.</title>",
+      "replace": "<title>Fibonax: Il tuo contesto. Ogni AI. Una direzione.</title>",
       "count": 1
     },
     {
@@ -682,8 +682,8 @@
       "count": 1
     },
     {
-      "find": ">Try SprintBrain Free →<",
-      "replace": ">Prova SprintBrain gratis →<",
+      "find": ">Try Fibonax Free →<",
+      "replace": ">Prova Fibonax gratis →<",
       "count": 1
     },
     {
@@ -732,8 +732,8 @@
       "count": 1
     },
     {
-      "find": ">SprintBrain is designed to sit above the individual AI tools, helping you keep your own context organized and portable.<",
-      "replace": ">SprintBrain è pensato come uno spazio comune ai diversi strumenti AI, per aiutarti a mantenere il tuo contesto organizzato e portabile.<",
+      "find": ">Fibonax is designed to sit above the individual AI tools, helping you keep your own context organized and portable.<",
+      "replace": ">Fibonax è pensato come uno spazio comune ai diversi strumenti AI, per aiutarti a mantenere il tuo contesto organizzato e portabile.<",
       "count": 1
     },
     {
@@ -747,8 +747,8 @@
       "count": 1
     },
     {
-      "find": ">SprintBrain isn't just a place to store things.<",
-      "replace": ">SprintBrain è molto più di un archivio.<",
+      "find": ">Fibonax isn't just a place to store things.<",
+      "replace": ">Fibonax è molto più di un archivio.<",
       "count": 1
     },
     {
@@ -797,8 +797,8 @@
       "count": 1
     },
     {
-      "find": ">This execution-first philosophy is at the core of SprintBrain.<",
-      "replace": ">Questa filosofia orientata all’azione è al centro di SprintBrain.<",
+      "find": ">This execution-first philosophy is at the core of Fibonax.<",
+      "replace": ">Questa filosofia orientata all’azione è al centro di Fibonax.<",
       "count": 1
     },
     {
@@ -807,8 +807,8 @@
       "count": 1
     },
     {
-      "find": ">Whether someone is building a business, writing, coding, managing a team, creating content or developing AI workflows, SprintBrain gives them a centralized place for the context behind their work.<",
-      "replace": ">Che tu stia creando un’impresa, scrivendo, programmando, gestendo un team, producendo contenuti o sviluppando flussi di lavoro con l’AI, SprintBrain ti offre uno spazio centrale per il contesto alla base del tuo lavoro.<",
+      "find": ">Whether someone is building a business, writing, coding, managing a team, creating content or developing AI workflows, Fibonax gives them a centralized place for the context behind their work.<",
+      "replace": ">Che tu stia creando un’impresa, scrivendo, programmando, gestendo un team, producendo contenuti o sviluppando flussi di lavoro con l’AI, Fibonax ti offre uno spazio centrale per il contesto alla base del tuo lavoro.<",
       "count": 1
     },
     {
@@ -867,8 +867,8 @@
       "count": 1
     },
     {
-      "find": "Explore SprintBrain",
-      "replace": "Esplora SprintBrain",
+      "find": "Explore Fibonax",
+      "replace": "Esplora Fibonax",
       "count": 1
     },
     {
@@ -892,23 +892,23 @@
       "count": 1
     },
     {
-      "find": "sprintbrain.com · Security",
-      "replace": "sprintbrain.com · Sicurezza",
+      "find": "fibonax.com · Security",
+      "replace": "fibonax.com · Sicurezza",
       "count": 1
     },
     {
-      "find": "SprintBrain extension and snippet picker, cropped from the official Chrome Web Store screenshot",
-      "replace": "Estensione SprintBrain e selettore di snippet, ritagliati dalla schermata ufficiale del Chrome Web Store",
+      "find": "Fibonax extension and snippet picker, cropped from the official Chrome Web Store screenshot",
+      "replace": "Estensione Fibonax e selettore di snippet, ritagliati dalla schermata ufficiale del Chrome Web Store",
       "count": 1
     },
     {
-      "find": "SprintBrain web dashboard prompt library, cropped from the official Chrome Web Store screenshot",
-      "replace": "Libreria di prompt della dashboard web SprintBrain, ritagliata dalla schermata ufficiale del Chrome Web Store",
+      "find": "Fibonax web dashboard prompt library, cropped from the official Chrome Web Store screenshot",
+      "replace": "Libreria di prompt della dashboard web Fibonax, ritagliata dalla schermata ufficiale del Chrome Web Store",
       "count": 1
     },
     {
-      "find": "The four security features captured directly from the live SprintBrain website",
-      "replace": "Le quattro funzionalità di sicurezza acquisite direttamente dal sito SprintBrain",
+      "find": "The four security features captured directly from the live Fibonax website",
+      "replace": "Le quattro funzionalità di sicurezza acquisite direttamente dal sito Fibonax",
       "count": 1
     },
     {
@@ -917,13 +917,13 @@
       "count": 1
     },
     {
-      "find": "SprintBrain mobile snippet form with language selection and copy preview",
-      "replace": "Modulo snippet mobile di SprintBrain con selezione della lingua e anteprima da copiare",
+      "find": "Fibonax mobile snippet form with language selection and copy preview",
+      "replace": "Modulo snippet mobile di Fibonax con selezione della lingua e anteprima da copiare",
       "count": 2
     },
     {
-      "find": "data-source-label=\"SprintBrain · Mobile Website\"",
-      "replace": "data-source-label=\"SprintBrain · Sito mobile\"",
+      "find": "data-source-label=\"Fibonax · Mobile Website\"",
+      "replace": "data-source-label=\"Fibonax · Sito mobile\"",
       "count": 1
     },
     {
@@ -942,23 +942,23 @@
       "count": 1
     },
     {
-      "find": "SprintBrain, free for life.",
-      "replace": "SprintBrain, gratis a vita.",
+      "find": "Fibonax, free for life.",
+      "replace": "Fibonax, gratis a vita.",
       "count": 1
     },
     {
-      "find": "Users who signed up or downloaded SprintBrain by December 31, 2026 keep the app free for life. New users receive a free usage allowance, with pay-per-use pricing beyond it.",
-      "replace": "Chi si è iscritto o ha scaricato SprintBrain entro il 31 dicembre 2026 mantiene l’app gratuita a vita. Per i nuovi utenti è prevista una soglia di utilizzo gratuita, poi una tariffazione a consumo.",
+      "find": "Users who signed up or downloaded Fibonax by December 31, 2026 keep the app free for life. New users receive a free usage allowance, with pay-per-use pricing beyond it.",
+      "replace": "Chi si è iscritto o ha scaricato Fibonax entro il 31 dicembre 2026 mantiene l’app gratuita a vita. Per i nuovi utenti è prevista una soglia di utilizzo gratuita, poi una tariffazione a consumo.",
       "count": 1
     },
     {
-      "find": "Advanced prompt engineering, with lifetime free access. All existing users and anyone who signs up or downloads SprintBrain by December 31, 2026 will keep the app free for life.",
-      "replace": "Prompt engineering avanzato, con accesso gratuito a vita. Tutti gli utenti già iscritti e chi si iscrive o scarica SprintBrain entro il 31 dicembre 2026 avranno l’app gratuita per sempre.",
+      "find": "Advanced prompt engineering, with lifetime free access. All existing users and anyone who signs up or downloads Fibonax by December 31, 2026 will keep the app free for life.",
+      "replace": "Prompt engineering avanzato, con accesso gratuito a vita. Tutti gli utenti già iscritti e chi si iscrive o scarica Fibonax entro il 31 dicembre 2026 avranno l’app gratuita per sempre.",
       "count": 1
     },
     {
-      "find": "Get started with SprintBrain →",
-      "replace": "Inizia con SprintBrain →",
+      "find": "Get started with Fibonax →",
+      "replace": "Inizia con Fibonax →",
       "count": 1
     },
     {
@@ -1017,8 +1017,8 @@
       "count": 1
     },
     {
-      "find": "Lifetime free access remains unchanged for users who joined or downloaded SprintBrain by the end of 2026. Pay-per-use pricing beyond the free allowance applies only to new users joining from January 1, 2027.",
-      "replace": "L’accesso gratuito a vita resta invariato per chi si è iscritto o ha scaricato SprintBrain entro fine 2026. La tariffazione a consumo oltre la soglia gratuita riguarda solo i nuovi utenti dal 1° gennaio 2027.",
+      "find": "Lifetime free access remains unchanged for users who joined or downloaded Fibonax by the end of 2026. Pay-per-use pricing beyond the free allowance applies only to new users joining from January 1, 2027.",
+      "replace": "L’accesso gratuito a vita resta invariato per chi si è iscritto o ha scaricato Fibonax entro fine 2026. La tariffazione a consumo oltre la soglia gratuita riguarda solo i nuovi utenti dal 1° gennaio 2027.",
       "count": 1
     },
     {
@@ -1052,13 +1052,13 @@
       "count": 1
     },
     {
-      "find": "Save your knowledge, instructions and workflows once. Organize them in SprintBrain. Bring the right context to every AI, without starting over.",
-      "replace": "Salva conoscenze, istruzioni e flussi di lavoro una volta sola. Organizzali in SprintBrain. Porta il contesto giusto in ogni AI, senza ricominciare.",
+      "find": "Save your knowledge, instructions and workflows once. Organize them in Fibonax. Bring the right context to every AI, without starting over.",
+      "replace": "Salva conoscenze, istruzioni e flussi di lavoro una volta sola. Organizzali in Fibonax. Porta il contesto giusto in ogni AI, senza ricominciare.",
       "count": 1
     },
     {
-      "find": "Try SprintBrain Free <span aria-hidden=\"true\">↗</span>",
-      "replace": "Prova SprintBrain gratis <span aria-hidden=\"true\">↗</span>",
+      "find": "Try Fibonax Free <span aria-hidden=\"true\">↗</span>",
+      "replace": "Prova Fibonax gratis <span aria-hidden=\"true\">↗</span>",
       "count": 1
     },
     {
@@ -1144,13 +1144,13 @@
   ],
   "pricingEntries": [
     {
-      "find": "Pricing · Coming soon — SprintBrain",
-      "replace": "Prezzo · Coming soon — SprintBrain",
+      "find": "Pricing · Coming soon — Fibonax",
+      "replace": "Prezzo · Coming soon — Fibonax",
       "count": 1
     },
     {
-      "find": "SprintBrain pricing is coming soon. No subscription. Genuine pay per use. Lifetime credit.",
-      "replace": "Il prezzo di SprintBrain sarà disponibile a breve. Nessun abbonamento. Solo pagamento a consumo. Credito senza scadenza.",
+      "find": "Fibonax pricing is coming soon. No subscription. Genuine pay per use. Lifetime credit.",
+      "replace": "Il prezzo di Fibonax sarà disponibile a breve. Nessun abbonamento. Solo pagamento a consumo. Credito senza scadenza.",
       "count": 1
     },
     {

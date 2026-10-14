@@ -1,4 +1,4 @@
-# Sprintbrain — Development Workflow
+# Fibonax — Development Workflow
 
 **Version:** 2.8  
 **Last updated:** 2026-03-23  
@@ -51,7 +51,7 @@ No code is valid unless it is committed and pushed to `origin`.
 
 After any file change:
 - Go to `chrome://extensions`
-- Find Sprintbrain → click **Reload**
+- Find Fibonax → click **Reload**
 - Test a snippet trigger (e.g. `/firm`, `/quoteEN`)
 
 ---

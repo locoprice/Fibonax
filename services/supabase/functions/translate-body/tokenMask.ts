@@ -1,6 +1,6 @@
 // Placeholder masking for machine translation (TRANSLATE-001).
 //
-// A SprintBrain body is prose with machinery embedded in it: {first_name},
+// A Fibonax body is prose with machinery embedded in it: {first_name},
 // {formmenu: a,b; name=PLAN}, {if:TOTAL > 0}…{endif}, {{= SUBTOTAL * 1.22 }}.
 // The prose must be translated. The machinery must come back byte for byte —
 // a model that helpfully renders {start_date} as {fecha_inicio} has broken the
@@ -50,7 +50,7 @@ function isButtonHead(inner: string): boolean {
 }
 
 /**
- * Replace every SprintBrain token in `text` with an opaque sentinel.
+ * Replace every Fibonax token in `text` with an opaque sentinel.
  *
  * What counts as a token, and why:
  *   {{ … }}                  double-brace formula

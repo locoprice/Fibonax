@@ -1,7 +1,7 @@
 # AI Knowledge Layer — Gap Analysis and Phased Plan
 
 **Status:** owner decisions taken 2026-10-04 (P1 first; Anthropic is acceptable; team admins approve). **P1 built in v3.58.0; P2 (review status) built in v3.59.0; P3 (Draft with AI) built in v3.60.0.** **Since v3.61.0 every feature that calls the AI service is locked for Pro (section 8).** Backend live since 2026-10-04: `knowledge_feedback` applied, `ask-sprintbrain` deployed, `ANTHROPIC_API_KEY` set. The dashboard and phone screens reach users with the next release of `main`.
-**Principle:** retrieve before generating. SprintBrain stays the authoritative store; AI reads it, cites it, and never invents a company rule it cannot find.
+**Principle:** retrieve before generating. Fibonax stays the authoritative store; AI reads it, cites it, and never invents a company rule it cannot find.
 
 ---
 
@@ -26,7 +26,7 @@
 
 | # | Phase | What users get | Size |
 |---|---|---|---|
-| **P1** | **Ask SprintBrain** + feedback | Ask a question in plain words; get an answer built only from your own snippets and Brains, each claim linked to its source, plus a clear "Nothing in SprintBrain covers this" when nothing does. Thumbs up / "wrong" / "outdated" sends the source to a review list, never edits it. | Medium |
+| **P1** | **Ask Fibonax** + feedback | Ask a question in plain words; get an answer built only from your own snippets and Brains, each claim linked to its source, plus a clear "Nothing in Fibonax covers this" when nothing does. Thumbs up / "wrong" / "outdated" sends the source to a review list, never edits it. | Medium |
 | P2 | Status lifecycle + review queue | Every snippet, prompt and Brain item shows Draft / AI generated / Under review / Approved / Deprecated / Archived. Approved ranks first in search and answers. Admins approve. | Large (schema + all 3 sections + all surfaces) |
 | P3 | AI-assisted snippet creation | Paste a conversation or document → proposed title, trigger, body, folder, labels; warns "a similar snippet exists" and offers to update it instead. Lands as AI generated, never Approved. | Medium |
 | P4 | Library health | A report of likely duplicates, conflicting wording, unused and stale items, each with a suggested action that waits for a person. | Medium |
@@ -38,7 +38,7 @@ Recommended order: P1 → P2 → P3 → P4 → P5, with P7 before any team beyon
 
 ## 3. Rules every phase keeps
 
-- Answers cite their sources and separate "From SprintBrain" from "AI interpretation". No source, no company claim.
+- Answers cite their sources and separate "From Fibonax" from "AI interpretation". No source, no company claim.
 - AI never writes over existing content. It proposes; a person accepts.
 - Search runs as the signed-in user (`security_invoker`); no definer-rights shortcut around folder permissions.
 - Parity: snippets, prompts and Brains get the same treatment on every surface where they exist; mobile in the same release.
@@ -63,7 +63,7 @@ Still open: the embedding provider for P6 (not needed for P1 to P5).
 |---|---|
 | Answer function: search as the caller, read sources as the caller, Claude answers from them only, citations checked, no sources means no model call | `services/supabase/functions/ask-sprintbrain/index.ts` |
 | Feedback table: verdict, question, answer, source snapshot, review status; author and team admins see it; only the status can change | `services/supabase/migrations/20261004120000_knowledge_feedback.sql` |
-| Dashboard: "Ask SprintBrain" row in the search panel (⌘↵), answer view, feedback buttons | `app/src/features/search/{GlobalSearch,AskAnswer}.tsx`, `app/src/lib/askKnowledge.ts`, `app/src/lib/api/askApi.ts` |
+| Dashboard: "Ask Fibonax" row in the search panel (⌘↵), answer view, feedback buttons | `app/src/features/search/{GlobalSearch,AskAnswer}.tsx`, `app/src/lib/askKnowledge.ts`, `app/src/lib/api/askApi.ts` |
 | Dashboard review list | Review > Answer feedback (moved from Settings in v3.59.0), `app/src/features/review/AnswerFeedbackPanel.tsx` |
 | Phone: Ask row under the Snippets, Prompts and Brains search fields, answer sheet, feedback | `app/public/mobile/index.html` |
 | Gate | `scripts/check-ask-knowledge.js` (CI) |

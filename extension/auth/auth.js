@@ -1,4 +1,4 @@
-// ── SPRINTBRAIN AUTH v2.93.0 — Email-OTP + dashboard SSO handoff (AUTH-EXT-002/003)
+// ── FIBONAX AUTH v2.93.0 — Email-OTP + dashboard SSO handoff (AUTH-EXT-002/003)
 //    + server-side session liveness (sbCheckSessionAlive) and login-activity
 //    logging for the Settings → Security dashboard feature.
 //    v2.93.0: SSO handoff redeems a one-time token_hash (sbVerifyTokenHash) so
@@ -57,7 +57,7 @@ function sbRequestOtp(email, cb) {
       var status = r.status;
       var msg = 'Could not send code';
       try { var j = JSON.parse(t); msg = j.msg || j.error_description || j.error || msg; } catch(e) {}
-      console.error('[SprintBrain] OTP request failed — HTTP ' + status + ':', msg);
+      console.error('[Fibonax] OTP request failed — HTTP ' + status + ':', msg);
       cb(status === 429 ? 'Too many requests — wait a few minutes and try again.' : msg);
     });
   }).catch(function(e) { cb(e.message || 'Network error'); });

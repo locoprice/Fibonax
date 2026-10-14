@@ -1,6 +1,6 @@
 import type { ReviewStatus } from '@/lib/reviewStatus';
 
-// SprintBrain Supabase schema mirrors.
+// Fibonax Supabase schema mirrors.
 // Shapes match PROJECT_CONTEXT.md §4 and CLAUDE.md §3 so the follow-up ticket
 // (auth + live reads) only needs to swap the mock implementation.
 
@@ -415,7 +415,7 @@ export interface PendingInvitation {
 /** Outcome of the `invite-member` edge function. */
 export interface InviteResult {
   status: 'sent';
-  /** Whether the invitee already had a SprintBrain account. */
+  /** Whether the invitee already had a Fibonax account. */
   account: 'new' | 'existing';
   /** False when the invitation was stored but the email did not go out. */
   emailed: boolean;

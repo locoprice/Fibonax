@@ -6,7 +6,7 @@
 // It takes draft TEXT, not a snippet_id: translation happens in the editor,
 // before anything is saved, and nothing here writes to the database.
 //
-// The model never sees SprintBrain syntax. Every token is masked before the
+// The model never sees Fibonax syntax. Every token is masked before the
 // request and restored after it (tokenMask.ts), and a reply that lost, doubled
 // or invented a placeholder is rejected rather than returned. That check is the
 // feature's whole safety story: a corrupted body would still look valid to

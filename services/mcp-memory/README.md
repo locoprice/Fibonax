@@ -1,4 +1,4 @@
-# SprintBrain working memory (MCP)
+# Fibonax working memory (MCP)
 
 An MCP server that gives an AI assistant a working memory it can swap as the
 work moves between steps. Facts are stored as individually addressable shards.
@@ -59,7 +59,7 @@ project root, for Claude Desktop it is `claude_desktop_config.json`.
   "mcpServers": {
     "sprintbrain-memory": {
       "command": "node",
-      "args": ["C:/Users/averd/Desktop/Claude Projects/SprintBrain/services/mcp-memory/src/index.ts"],
+      "args": ["C:/Users/averd/Desktop/Claude Projects/Fibonax/services/mcp-memory/src/index.ts"],
       "env": {
         "SPRINTBRAIN_MEMORY_TOKEN": "sbmw_..."
       }
@@ -68,7 +68,7 @@ project root, for Claude Desktop it is `claude_desktop_config.json`.
 }
 ```
 
-`SPRINTBRAIN_SUPABASE_URL` and `SPRINTBRAIN_SUPABASE_ANON_KEY` default to the
+`FIBONAX_SUPABASE_URL` and `FIBONAX_SUPABASE_ANON_KEY` default to the
 production project and only need setting to point at a branch database.
 
 ## Set up steps and shards

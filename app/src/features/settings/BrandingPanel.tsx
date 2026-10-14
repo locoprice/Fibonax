@@ -9,7 +9,7 @@ import { useUiStore } from '@/stores/uiStore';
 
 /**
  * "Company branding" card (BRANDING-001). The uploaded logo (or the company
- * name as a text wordmark) co-brands the topbar next to the SprintBrain brand
+ * name as a text wordmark) co-brands the topbar next to the Fibonax brand
  * and replaces the sidebar watermark. Logo changes apply immediately on pick /
  * remove; the name uses the same explicit Save flow as the Account card.
  */
@@ -107,7 +107,7 @@ export function BrandingPanel() {
         <CardTitle>Company branding</CardTitle>
         <CardDescription>
           Make the dashboard yours — your logo and company name appear next to the
-          SprintBrain brand.
+          Fibonax brand.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -116,7 +116,7 @@ export function BrandingPanel() {
           <div className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-primary text-xs font-extrabold text-white">
             S
           </div>
-          <span className="text-sm font-bold tracking-tight text-ink">SprintBrain</span>
+          <span className="text-sm font-bold tracking-tight text-ink">Fibonax</span>
           {logoUrl || trimmed ? (
             <>
               <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-ink-subtle" aria-hidden="true" />

@@ -1,4 +1,4 @@
-// SPRINTBRAIN POPUP v2.87.0 — read-only launcher + shared data core (management lives in the dashboard)
+// FIBONAX POPUP v2.87.0 — read-only launcher + shared data core (management lives in the dashboard)
 
 // SUPA_URL comes from auth.js (SB_SUPA_URL); legacy var kept for any downstream reference.
 var SUPA_URL = SB_SUPA_URL;
@@ -38,7 +38,7 @@ function _supaFire(table, method, body, qs, headers, retried, resolve, reject) {
     }
     if (!r.ok) {
       r.clone().text().then(function(t) {
-        console.error('[SprintBrain] supaFetch ' + method + ' ' + table + ' HTTP ' + r.status + ':', t);
+        console.error('[Fibonax] supaFetch ' + method + ' ' + table + ' HTTP ' + r.status + ':', t);
         resolve(r);
       });
       return;
@@ -125,7 +125,7 @@ var DB = {
           };
         })
       };
-    }).catch(function(e) { console.error('[Sprintbrain] loadAll:', e); return null; });
+    }).catch(function(e) { console.error('[Fibonax] loadAll:', e); return null; });
   },
   upsertSnippet: function(s) {
     supaFetch('snippets', 'POST', {
@@ -441,11 +441,11 @@ var CHANGELOG = [
     ]},
   { version:'v2.118.0', date:'2026-07-23', label:'fix: brand icon on the dashboard + marketing site',
     changes:[
-      {type:'fix', text:'The SprintBrain mark now shows as the browser-tab icon on the dashboard and the marketing site, matching the extension. They were still showing the old placeholder.'}
+      {type:'fix', text:'The Fibonax mark now shows as the browser-tab icon on the dashboard and the marketing site, matching the extension. They were still showing the old placeholder.'}
     ]},
   { version:'v2.117.0', date:'2026-07-23', label:'feat: your company logo as the app icon',
     changes:[
-      {type:'new', text:'Set a company logo in Branding and it becomes the SprintBrain icon — the browser-tab favicon on the dashboard, and the toolbar button for the extension. With no logo set, the SprintBrain mark shows.'}
+      {type:'new', text:'Set a company logo in Branding and it becomes the Fibonax icon — the browser-tab favicon on the dashboard, and the toolbar button for the extension. With no logo set, the Fibonax mark shows.'}
     ]},
   { version:'v2.110.0', date:'2026-07-18', label:'feat: wider popup',
     changes:[
@@ -488,7 +488,7 @@ var CHANGELOG = [
     changes:[
       {type:'fix', text:'"Sign in via dashboard" now gives the extension a session of its own instead of borrowing the dashboard’s — the two no longer sign each other out'},
       {type:'fix', text:'A network blip or server hiccup during token refresh no longer signs you out — the extension keeps your session and retries'},
-      {type:'new', text:'"Keep me signed in" now renews while you use SprintBrain, so an active account stays signed in until you sign out'}
+      {type:'new', text:'"Keep me signed in" now renews while you use Fibonax, so an active account stays signed in until you sign out'}
     ]},
   { version:'v2.87.0', date:'2026-07-03', label:'refactor: read-only popup — manage everything in the dashboard',
     changes:[
@@ -510,7 +510,7 @@ var CHANGELOG = [
   { version:'v2.57.0', date:'2026-06-03', label:'feat: roomier popup + one-click Dashboard link + dashboard prompts in the """ picker',
     changes:[
       {type:'new', text:'Popup window is now larger — wider columns and a taller list so snippet titles, folder names and language badges have more breathing room and more rows show at a glance'},
-      {type:'new', text:'New "Dashboard" button in the popup header opens app.sprintbrain.com in a browser tab, and focuses the existing tab if the dashboard is already open'},
+      {type:'new', text:'New "Dashboard" button in the popup header opens app.fibonax.com in a browser tab, and focuses the existing tab if the dashboard is already open'},
       {type:'new', text:'The """ prompt picker now lists your saved dashboard prompts ("Prompt List") alongside the built-in Base Prompts — add a prompt in the dashboard and it shows up in any text field; the picker also works now even before you have any snippets'}
     ]},
   { version:'v2.40.0', date:'2026-05-19', label:'fix: snippet expansion — trigger no longer survives celebration on contenteditable fields',
@@ -623,7 +623,7 @@ var CHANGELOG = [
     ]},
   { version:'v2.22.0', date:'2026-05-07', label:'Design System Redesign',
     changes:[
-      {type:'new', text:'Popup redesigned to match SprintBrain design system — iris accent, new typography tokens, refined spacing'},
+      {type:'new', text:'Popup redesigned to match Fibonax design system — iris accent, new typography tokens, refined spacing'},
       {type:'new', text:'shared/tokens/colors_and_type.css imported into the popup bundle (--sb-* design tokens)'},
       {type:'new', text:'Sync bar uses CheckCircle icon in --sb-ok green; header count rendered as muted pill chip'},
       {type:'new', text:'Edit and New Snippet buttons restyled with --sb-line border and --sb-r-xl radius'},
@@ -684,7 +684,7 @@ var CHANGELOG = [
       {type:'new', text:'Supabase cloud sync — snippets shared across all team devices in real time'},
       {type:'new', text:'Right-click any text field on any website to insert a snippet (TextBlaze style)'},
       {type:'new', text:'Context menu groups snippets by folder with submenus'},
-      {type:'new', text:'Sprint Brain rebrand — clean logo, version footer'},
+      {type:'new', text:'Fibonax rebrand — clean logo, version footer'},
       {type:'fix', text:'Full popup.js clean rewrite — no more patching bugs'}
     ]
   },
@@ -840,7 +840,7 @@ var NotionPush = {
       var propName = langPropMap[v.lang] || ('Body ' + v.lang);
       var bodyText = (v.body || '').slice(0, 2000);
       if ((v.body || '').length > 2000) {
-        console.error('[SprintBrain] Body truncated to 2000 chars for Notion:', v.title, v.lang);
+        console.error('[Fibonax] Body truncated to 2000 chars for Notion:', v.title, v.lang);
       }
       props[propName] = { rich_text: [{ text: { content: bodyText } }] };
     });
@@ -896,11 +896,11 @@ var NotionPush = {
           DB.upsertSnippet(v);
         });
       } else {
-        console.error('[SprintBrain] Notion create returned no id:', data);
+        console.error('[Fibonax] Notion create returned no id:', data);
       }
     })
     .catch(function(err) {
-      console.error('[SprintBrain] Notion push failed:', err.message);
+      console.error('[Fibonax] Notion push failed:', err.message);
     });
   },
 
@@ -919,7 +919,7 @@ var NotionPush = {
       if (!r.ok) throw new Error('HTTP ' + r.status);
     })
     .catch(function(err) {
-      console.error('[SprintBrain] Notion update failed:', err.message);
+      console.error('[Fibonax] Notion update failed:', err.message);
     });
   },
 
@@ -940,7 +940,7 @@ var NotionPush = {
       if (!r.ok) throw new Error('HTTP ' + r.status);
     })
     .catch(function(err) {
-      console.error('[SprintBrain] Notion archive failed:', err.message);
+      console.error('[Fibonax] Notion archive failed:', err.message);
     });
   }
 
@@ -1226,7 +1226,7 @@ function _runNotionSync(cb, force) {
           },
 
           onError: function(err) {
-                  console.error('[SprintBrain] Notion sync failed:', err.message);
+                  console.error('[Fibonax] Notion sync failed:', err.message);
 
                   chrome.storage.local.set({
                             sb_notion_sync_error: {
@@ -2233,7 +2233,7 @@ function detailControlValue(box, inp){
 // The operator pastes a link to a page (an order, a confirmation) and the form
 // fills itself from what the page says. Which piece of the page answers which
 // field, and every word the box shows, is decided in
-// extension/shared/fill-form.js; the page is read by SprintBrain's server,
+// extension/shared/fill-form.js; the page is read by Fibonax's server,
 // asked through the background worker, the same path the in-page overlay
 // takes. Only the markup and the writing into the inputs are local.
 //
@@ -2336,7 +2336,7 @@ function fillDetailFromLink(id){
       // read started. Its answer belongs to a form that is no longer there.
       if(mine!==detailLinkSeq || expandedId!==id) return;
       if(lost||!res){
-        console.error('[SprintBrain] Fill from link got no answer from the background worker', lost?lost.message:'');
+        console.error('[Fibonax] Fill from link got no answer from the background worker', lost?lost.message:'');
         fail('failed');
         return;
       }
@@ -2351,7 +2351,7 @@ function fillDetailFromLink(id){
       applyDetailLink(id, res.pieces);
     });
   }catch(e){
-    console.error('[SprintBrain] Fill from link could not reach the background worker', e);
+    console.error('[Fibonax] Fill from link could not reach the background worker', e);
     fail('failed');
   }
 }
@@ -2637,10 +2637,10 @@ function openCfg(){
   show('pane-cfg');
 }
 
-// Dashboard link — opens the SprintBrain web app in a browser tab.
+// Dashboard link — opens the Fibonax web app in a browser tab.
 // Reuses an already-open dashboard tab (focuses it) instead of stacking duplicates,
 // mirroring the context-menu behaviour in background.js.
-var SB_DASHBOARD_HOME_URL = 'https://app.sprintbrain.com/';
+var SB_DASHBOARD_HOME_URL = 'https://app.fibonax.com/';
 function openDashboard(){
   try {
     chrome.tabs.query({ url: SB_DASHBOARD_HOME_URL + '*' }, function(tabs){
@@ -2917,7 +2917,7 @@ if (syncNowBtn) {
 // Pending state expires after OTP_TTL_MS to avoid showing a stale code screen.
 var OTP_TTL_MS = 55 * 60 * 1000; // Supabase OTPs are valid for 60 min; bail at 55.
 
-var SB_DASHBOARD_LINK_URL = 'https://app.sprintbrain.com/extension-link';
+var SB_DASHBOARD_LINK_URL = 'https://app.fibonax.com/extension-link';
 
 (function initAuthGate() {
   var gate    = document.getElementById('sb-auth');

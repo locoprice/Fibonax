@@ -1,4 +1,4 @@
-// ── SPRINTBRAIN BACKGROUND v2.32.0 — Fix: Notion sync no longer overwrites manually-edited snippets ──
+// ── FIBONAX BACKGROUND v2.32.0 — Fix: Notion sync no longer overwrites manually-edited snippets ──
 importScripts('../auth/auth.js');
 importScripts('../services/notion-sync/notion-sync.js');
 
@@ -302,7 +302,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
     ]).then(function(res) {
       try { sendResponse({ ok: true, rows: res[0], items: res[1] }); } catch(e) {}
     }, function(err) {
-      console.error('[SprintBrain] Could not load the Brains to save into:', err && err.message);
+      console.error('[Fibonax] Could not load the Brains to save into:', err && err.message);
       try { sendResponse({ ok: false }); } catch(e) {}
     });
     return true;
@@ -330,7 +330,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
 // through one path.
 //
 // Answers { ok: true, pieces } or { ok: false, error } with a code that
-// SBFillForm.linkText words: the server's own, 'offline' when SprintBrain could
+// SBFillForm.linkText words: the server's own, 'offline' when Fibonax could
 // not be reached, 'failed' when its reply could not be read, 'unauthorized'
 // when there is no session or it cannot be refreshed.
 //
@@ -382,7 +382,7 @@ function _readLinkWithHeaders(url, lang, headers, retried, resolve) {
       if (r.status === 401) { resolve({ ok: false, error: 'unauthorized' }); return; }
       // No code of ours: the platform answered instead of the function, for
       // instance a 404 while it is not deployed.
-      console.error('[SprintBrain] read-link answered HTTP ' + r.status +
+      console.error('[Fibonax] read-link answered HTTP ' + r.status +
         (data ? ' without an error code' : ' with a body that is not JSON'));
       resolve({ ok: false, error: 'failed' });
     });
@@ -409,8 +409,9 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
 // dashboard's raw tokens (the original AUTH-EXT-002 shape, kept as fallback)
 // shared one rotating refresh-token family between the two surfaces — whichever
 // refreshed second got the family revoked, signing the extension out.
+var SB_DASHBOARD_ORIGINS = ['https://app.fibonax.com/', 'https://app.sprintbrain.com/'];
 chrome.runtime.onMessageExternal.addListener(function(msg, sender, sendResponse) {
-  if (!sender || !sender.url || sender.url.indexOf('https://app.sprintbrain.com/') !== 0) {
+  if (!sender || !sender.url || !SB_DASHBOARD_ORIGINS.some(function(o) { return sender.url.indexOf(o) === 0; })) {
     sendResponse({ ok: false, error: 'unauthorized_origin' });
     return false;
   }
@@ -625,14 +626,14 @@ function buildContextMenus(data) {
     // session exists.
     chrome.contextMenus.create({
       id: 'sb-save-selection',
-      title: 'Save selection to SprintBrain',
+      title: 'Save selection to Fibonax',
       contexts: ['selection']
     });
 
     // Root — only in editable fields
     chrome.contextMenus.create({
       id: 'sb-root',
-      title: 'Insert SprintBrain snippet',
+      title: 'Insert Fibonax snippet',
       contexts: ['editable']
     });
 
@@ -657,7 +658,7 @@ function buildContextMenus(data) {
       chrome.contextMenus.create({
         id: 'sb-open-dashboard',
         parentId: 'sb-root',
-        title: '\uD83C\uDF10  Open SprintBrain Dashboard',
+        title: '\uD83C\uDF10  Open Fibonax Dashboard',
         contexts: ['editable']
       });
       return;
@@ -817,7 +818,7 @@ function buildContextMenus(data) {
     chrome.contextMenus.create({
       id: 'sb-open-dashboard',
       parentId: 'sb-root',
-      title: '\uD83C\uDF10  Open SprintBrain Dashboard',  // 🌐
+      title: '\uD83C\uDF10  Open Fibonax Dashboard',  // 🌐
       contexts: ['editable']
     });
 
@@ -825,7 +826,7 @@ function buildContextMenus(data) {
 }
 
 // ── DASHBOARD URL ─────────────────────────────────────────────────
-var SB_DASHBOARD_URL = 'https://app.sprintbrain.com/';
+var SB_DASHBOARD_URL = 'https://app.fibonax.com/';
 
 // ── CONTEXT MENU CLICK HANDLER ────────────────────────────────────
 chrome.contextMenus.onClicked.addListener(function(info, tab) {
@@ -904,7 +905,7 @@ function initMenus() {
       chrome.contextMenus.removeAll(function() {
         chrome.contextMenus.create({
           id: 'sb-signin-required',
-          title: 'Sign in to SprintBrain',
+          title: 'Sign in to Fibonax',
           contexts: ['editable'],
           enabled: false
         });
@@ -961,11 +962,11 @@ function writeExpansionCache(rows) {
       })
     }, function() {
       if (chrome.runtime.lastError) {
-        console.warn('[Sprintbrain] expansion cache write:', chrome.runtime.lastError.message);
+        console.warn('[Fibonax] expansion cache write:', chrome.runtime.lastError.message);
       }
     });
   } catch (e) {
-    console.warn('[Sprintbrain] expansion cache:', e);
+    console.warn('[Fibonax] expansion cache:', e);
   }
 }
 
@@ -973,7 +974,7 @@ function writeExpansionCache(rows) {
 // MV3 service workers have no DOM, so a remote company logo is fetched and drawn
 // onto an OffscreenCanvas (white rounded square — matching the committed brand
 // icons and the dashboard's white logo card) and pushed via chrome.action.setIcon
-// as ImageData. The committed assets/icons/icon*.png (the SprintBrain mark) are
+// as ImageData. The committed assets/icons/icon*.png (the Fibonax mark) are
 // the signed-out / no-logo default. The last-applied URL is cached so repeated
 // menu refreshes don't refetch or redraw.
 function sbRoundRect(ctx, x, y, w, h, r) {
@@ -1096,7 +1097,7 @@ function sbPurgeLegacyLocalData() {
       });
     });
   } catch (e) {
-    console.error('[SprintBrain BG] Legacy purge failed:', e.message);
+    console.error('[Fibonax BG] Legacy purge failed:', e.message);
   }
 }
 
@@ -1132,7 +1133,7 @@ function sbMigrateRoamingPrefs() {
       });
     });
   } catch (e) {
-    console.error('[SprintBrain BG] Roaming pref migration failed:', e.message);
+    console.error('[Fibonax BG] Roaming pref migration failed:', e.message);
   }
 }
 
@@ -1248,7 +1249,7 @@ function bgNotionSync() {
       _bgRunSync(cfg);
     });
   } catch (e) {
-    console.error('[SprintBrain BG] Notion cfg read failed:', e.message);
+    console.error('[Fibonax BG] Notion cfg read failed:', e.message);
   }
 }
 
@@ -1257,7 +1258,7 @@ function _bgRunSync(cfg) {
   NotionSync.run(cfg, {
     onComplete: function () {},
     onError: function (err) {
-      console.error('[SprintBrain BG] Notion bg-sync failed:', err.message);
+      console.error('[Fibonax BG] Notion bg-sync failed:', err.message);
     }
   });
 }
@@ -1295,7 +1296,7 @@ function _alarmSync() {
           }
         },
         onError: function(err) {
-          console.error('[SprintBrain Alarm] Sync failed:', err.message);
+          console.error('[Fibonax Alarm] Sync failed:', err.message);
         }
       });
     });

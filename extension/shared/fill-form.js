@@ -588,7 +588,7 @@
   // ── FILL FROM LINK ──────────────────────────────────────────────
   // The person pastes a link to a web page (an order, a ticket, a confirmation)
   // and the form fills itself from what the page says. The page is fetched by
-  // SprintBrain's server (services/supabase/functions/read-link), because a
+  // Fibonax's server (services/supabase/functions/read-link), because a
   // phone browser may not read another site's page; what comes back is the
   // page's visible text as an ordered list of pieces, one per run of text
   // between two tags. Everything after that is decided here, once, so the four
@@ -649,7 +649,7 @@
     'link_not_page': 'That link isn’t a web page.',
     'link_too_large': 'That page is too large to read.',
     'unauthorized': 'Your session has ended. Sign in again, then retry.',
-    'offline': 'Can’t reach SprintBrain. Check your connection and try again.',
+    'offline': 'Can’t reach Fibonax. Check your connection and try again.',
     'failed': 'Couldn’t read that page. Try again.'
   };
 

@@ -1,15 +1,15 @@
-# CLAUDE.md — SprintBrain AI Development Reference
+# CLAUDE.md — Fibonax AI Development Reference
 
 **Document Version**: 3.3  
 **Last Updated**: 2026-06-25  
-**Project**: SprintBrain Chrome Extension (`extension/`)  
+**Project**: Fibonax Chrome Extension (`extension/`)  
 **Purpose**: Single source of truth for AI assistants (Claude, GPT, Grok, etc.) during development. Read this before generating, modifying, or reviewing any code.
 
 ---
 
 ## ⚠️ PHASE 2 — PRE-SEED: ZERO DEFECT STANDARD
 
-**SprintBrain is in active pre-seed fundraising. This is a top-class SaaS product. Every line of code shipped must be production-ready, stable, and polished. There is zero tolerance for bugs, regressions, or rough edges.**
+**Fibonax is in active pre-seed fundraising. This is a top-class SaaS product. Every line of code shipped must be production-ready, stable, and polished. There is zero tolerance for bugs, regressions, or rough edges.**
 
 ### Non-negotiable quality rules for this phase:
 - **No bug ships.** If something breaks, stop everything and fix it before moving on.
@@ -29,7 +29,7 @@
 
 ## 1. Project Identity
 
-**SprintBrain** is a **Chrome Extension (Manifest V3)** for productivity and text snippet management.
+**Fibonax** is a **Chrome Extension (Manifest V3)** for productivity and text snippet management.
 
 **Core Functionality**:
 - Create, manage, and trigger **intelligent text snippets** (e.g. `;;quoteEN`, `;;checkin`)
@@ -179,7 +179,7 @@ auth/auth.js  ────  importScripts'd by background.js  ────  Supa
 **`services/notion-sync/notion-sync.js`** — Notion integration (17K)
 - `_queryDatabase()` — Incremental query filtered by `last_edited_time`
 - Race-condition lock (30s cooldown), 8s timeout, session guard
-- Maps Notion pages → SprintBrain snippets via `notion_page_id`
+- Maps Notion pages → Fibonax snippets via `notion_page_id`
 
 ---
 
@@ -277,7 +277,7 @@ Snippets are triggered by typing a configured prefix + shortcut in any editable 
 - **Files**: lowercase with extension (`background.js`, `popup.html`, `overlay.css`)
 - **Variables/Functions**: `camelCase`; functions start with a verb (`addKey`, `checkBuf`, `handleMatch`)
 - **Constants**: `UPPER_SNAKE_CASE` (`SUPA_URL`, `SUPA_KEY`, `MAX_BUF`, `DEFAULT_SNIPPETS`)
-- **CSS classes/IDs**: kebab-case with `sb-` prefix for SprintBrain elements (`sb-overlay`, `sb-snip-`, `sb-urg-`)
+- **CSS classes/IDs**: kebab-case with `sb-` prefix for Fibonax elements (`sb-overlay`, `sb-snip-`, `sb-urg-`)
 
 ### Code Style
 - **ES5+ compatible** — use `var` for backward compatibility where already established; `function` declarations preferred
@@ -346,7 +346,7 @@ var SUPA_KEY = 'sb_publishable_...';
 2. Review: `git diff`
 3. Stage and commit: `git add <files> && git commit -m "type: description"`
 4. Push: `git push -u origin <branch-name>`
-5. Reload extension: `chrome://extensions` → Find Sprintbrain → click **Reload**
+5. Reload extension: `chrome://extensions` → Find Fibonax → click **Reload**
 6. Test manually in Chrome
 7. Push to `develop`; open PR to `main` when stable.
 
@@ -355,7 +355,7 @@ var SUPA_KEY = 'sb_publishable_...';
 - Type the trigger prefix + shortcut (e.g. `;;quoteEN`)
 - Verify overlay appears with correct fields
 - Verify formula calculations are correct
-- Test context menu: right-click any text field → Sprintbrain submenu
+- Test context menu: right-click any text field → Fibonax submenu
 - Confirm service worker has no errors (`chrome://extensions` → inspect service worker)
 
 ### Preview Server (for popup UI development)
@@ -422,7 +422,7 @@ chore: bump manifest version to 2.38.0
 ## 14. Planned / Future Work
 
 - Pro tier with Stripe payments
-- ~~Web dashboard~~ ✅ shipped: React + Vite (`app/`, app.sprintbrain.com). A second, vanilla dashboard, `Sprintbrain.html` (repo root), ran the same `popup.js` / `auth.js` / `notion-sync.js` / `formula-engine.js` behind `chrome-shim.js` from v2.79.0. It was retired in v3.36.0: everything it did lives in the React dashboard, and nothing linked to it. Supabase is the single source of truth.
+- ~~Web dashboard~~ ✅ shipped: React + Vite (`app/`, app.fibonax.com). A second, vanilla dashboard, `Sprintbrain.html` (repo root), ran the same `popup.js` / `auth.js` / `notion-sync.js` / `formula-engine.js` behind `chrome-shim.js` from v2.79.0. It was retired in v3.36.0: everything it did lives in the React dashboard, and nothing linked to it. Supabase is the single source of truth.
   - **Composer removed in v3.5.0.** It was a template tester on its own page in `Sprintbrain.html`, reached by a sidebar link out of the React app. It could not open a saved snippet — testing one meant copying the body across and pasting it back — and the React editor had no preview at all, so a formula was written blind and verified only after a customer received it. Both problems close in one move: the same three panes are now a **live preview panel beside the body field** in the dashboard editor (`app/src/features/snippets/SnippetPreview.tsx`), loading the shared `formula-engine.js` + `shared/fill-form.js` from `/extension/*` via `app/src/lib/fillFormEngine.ts`. No second engine, no fork; `scripts/check-fill-form.js` and `scripts/check-snippets.js` cover the new surface exactly as they covered the composer.
 - Semantic search across snippets
 - ~~Per-user authentication via Supabase Auth~~ ✅ shipped (per-user JWT)
@@ -461,5 +461,5 @@ chore: bump manifest version to 2.38.0
 
 ---
 
-**This file is the permanent reference for any AI assisting SprintBrain development.**  
+**This file is the permanent reference for any AI assisting Fibonax development.**  
 Update this file when the codebase architecture changes significantly.

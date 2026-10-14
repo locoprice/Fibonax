@@ -23,8 +23,8 @@ const LANDING = path.join(ROOT, 'app', 'public', 'landing');
 const SOURCE = path.join(LANDING, 'index.html');
 const LOCALES = path.join(LANDING, 'locales');
 
-// Assets are referenced relatively so the page works both at sprintbrain.com
-// (Netlify site rooted at this folder) and at app.sprintbrain.com/landing/.
+// Assets are referenced relatively so the page works both at fibonax.com
+// (Netlify site rooted at this folder) and at app.fibonax.com/landing/.
 // A page one level down needs those same refs prefixed, which keeps both
 // deployments working.
 const RELATIVE_ASSETS = [
@@ -40,7 +40,7 @@ const RELATIVE_ASSETS = [
   'assets/platforms/security-b15d62fdd2.webp',
 ];
 
-const CANONICAL = 'https://sprintbrain.com/';
+const CANONICAL = 'https://fibonax.com/';
 
 function rel(p) {
   return path.relative(ROOT, p).split(path.sep).join('/');

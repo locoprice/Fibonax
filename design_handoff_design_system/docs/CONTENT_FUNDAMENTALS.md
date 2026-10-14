@@ -1,12 +1,12 @@
 # Content Fundamentals
 
-> How SprintBrain talks, labels, and names things. Voice is unified across the Chrome Extension and the Web Dashboard.
+> How Fibonax talks, labels, and names things. Voice is unified across the Chrome Extension and the Web Dashboard.
 
 ---
 
 ## 1. Voice & tone
 
-SprintBrain is used dozens of times per hour by hospitality operators who need to move fast. Copy respects their time.
+Fibonax is used dozens of times per hour by hospitality operators who need to move fast. Copy respects their time.
 
 | Attribute | Do | Don't |
 |---|---|---|
@@ -20,7 +20,7 @@ SprintBrain is used dozens of times per hour by hospitality operators who need t
 
 ## 2. Writing rules
 
-**Sentence case everywhere.** Titles, buttons, labels — all sentence case. The only Title Case exceptions are proper nouns (Notion, Supabase, Chrome, Ibiza) and the product name (SprintBrain, one word, camelCase S and B).
+**Sentence case everywhere.** Titles, buttons, labels — all sentence case. The only Title Case exceptions are proper nouns (Notion, Supabase, Chrome, Ibiza) and the product name (Fibonax, one word, camelCase S and B).
 
 **No trailing punctuation** in buttons, labels, or short lines.
 - ✅ `Save` · `New snippet` · `Trigger character`
@@ -37,7 +37,7 @@ SprintBrain is used dozens of times per hour by hospitality operators who need t
 
 ## 3. Shortcut naming (the trigger grammar)
 
-Shortcuts are SprintBrain's keyboard vocabulary. Consistency here matters more than anywhere else.
+Shortcuts are Fibonax's keyboard vocabulary. Consistency here matters more than anywhere else.
 
 ```
 ::verb + Qualifier

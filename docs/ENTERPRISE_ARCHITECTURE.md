@@ -1,4 +1,4 @@
-# SprintBrain — Enterprise Organizations, Teams & Permissions
+# Fibonax — Enterprise Organizations, Teams & Permissions
 
 **Status:** Architecture proposal (design only — nothing in here is applied to the DB or shipped).
 **Author:** Senior-architect review pass, 2026-06-06.
@@ -34,7 +34,7 @@ recommend a path that differs from the most literal reading of the spec:
    Definer functions break the loop and centralize the access logic. JWT claims are a later
    optimization (§4.4), not the starting point.
 
-**Scope honesty (challenge to the spec):** SprintBrain today is one org (LeibTour, 3 users) and
+**Scope honesty (challenge to the spec):** Fibonax today is one org (LeibTour, 3 users) and
 the product's stated #1 principle is simplicity. The *foundation* (tenancy columns + RLS) should
 be built correctly now because retrofitting tenancy later is brutal — but the *surface area*
 (team admins, default-folder auto-assignment, member properties, analytics, billing) should be

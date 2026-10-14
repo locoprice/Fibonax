@@ -1,8 +1,8 @@
-# Handoff: SprintBrain Design System
+# Handoff: Fibonax Design System
 
 ## Overview
 
-This package is the **SprintBrain Design System v1.0** — the single source of truth for visual design across both SprintBrain surfaces:
+This package is the **Fibonax Design System v1.0** — the single source of truth for visual design across both Fibonax surfaces:
 
 - **Chrome Extension** (popup + inline overlay) — `manifest.json` v2.14.5, vanilla HTML/CSS/JS, no bundler.
 - **Web Dashboard** — `app.sprintbrain.io`, Next.js + Tailwind, desktop-only.
@@ -20,7 +20,7 @@ The HTML files in this bundle are **design references** — prototypes showing i
 Your task is to **recreate these designs in the target codebase**:
 
 - For the **Chrome Extension**, the existing surface is `popup.html` + `overlay.css` (vanilla HTML/CSS, no framework, no bundler). Patterns from the kit should be ported as inline styles or appended CSS classes that match the existing structure.
-- For the **Web Dashboard** (`web/` directory in the SprintBrain repo), the existing stack is **Next.js + React + TypeScript + Tailwind v3 + shadcn/ui (Radix) + Lucide icons**. Existing primitives live in `web/src/components/ui/` (button, card, badge, input). Reuse and extend those — don't introduce a parallel CSS layer.
+- For the **Web Dashboard** (`web/` directory in the Fibonax repo), the existing stack is **Next.js + React + TypeScript + Tailwind v3 + shadcn/ui (Radix) + Lucide icons**. Existing primitives live in `web/src/components/ui/` (button, card, badge, input). Reuse and extend those — don't introduce a parallel CSS layer.
 
 The single shared artifact that **should ship verbatim** is `tokens/colors_and_type.css` — the canonical token file. The Tailwind theme in `web/tailwind.config.ts` should be updated to mirror these tokens (color names, type ramp, radii, shadows). The Extension can `<link>` the file directly.
 
@@ -192,7 +192,7 @@ Always set `font-feature-settings: 'cv02','cv03','cv04','cv11'` and `-webkit-fon
 **Layout regions** (from `kits/extension.html`):
 
 1. **Sync bar** (top, 32px) — `--sb-bg-alt` background, `--sb-line` bottom border. Contains a 12px CheckCircle icon (`--sb-ok`), the sync status text, and a "Sync Now" pill button.
-2. **Header** (12px padding, `--sb-bg`, bottom border) — logo lockup left (lightning mark + "SprintBrain" 16/700/-.3px), snippet count chip middle, Settings + New buttons right.
+2. **Header** (12px padding, `--sb-bg`, bottom border) — logo lockup left (lightning mark + "Fibonax" 16/700/-.3px), snippet count chip middle, Settings + New buttons right.
 3. **Search row** (8px padding, bottom border) — full-width input with leading Lucide Search icon (14px) and trailing trigger pill (e.g., `::` in `--sb-iris` on `--sb-iris-bg`).
 4. **Body** (420px tall, flex split):
    - **Sidebar** (170px, `--sb-bg-alt`, right border) — folder list. Each folder row is `padding: 8 12`, 13px text, 16px folder icon. Active folder gets `background: var(--sb-iris-bg)`, `border-left: 2px solid var(--sb-iris)`, `color: var(--sb-iris)`, `font-weight: 600`. Counts in pill `--sb-bg-muted`.
@@ -305,7 +305,7 @@ Full doc in `docs/CONTENT_FUNDAMENTALS.md`.
 
 ## Assets
 
-- `assets/logo-mark.svg` — lightning bolt in a 14px-radius square well, Iris→Iris-light gradient. Use this anywhere the SprintBrain mark appears, **including on the Azure dashboard** (the mark stays Iris).
+- `assets/logo-mark.svg` — lightning bolt in a 14px-radius square well, Iris→Iris-light gradient. Use this anywhere the Fibonax mark appears, **including on the Azure dashboard** (the mark stays Iris).
 - **Icons** — install `lucide-react` (already in `web/package.json`). Names referenced in this kit: `Type`, `Calculator`, `MessageSquareText`, `Folder`, `Folders`, `Plus`, `Search`, `Settings`, `BarChart3`, `RefreshCw`, `CheckCircle2`, `AlertTriangle`, `Clock`, `GitBranch`, `Lock`, `Copy`, `Pencil`, `Pin`, `Share2`, `Trash2`, `HelpCircle`, `LifeBuoy`, `Bell`, `Globe`, `MoreHorizontal`. Full mapping in `docs/ICONOGRAPHY.md` §4.
 - **Fonts** — system stack only (Inter / SF / Segoe UI fallback chain). No webfont download required.
 

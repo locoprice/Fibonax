@@ -42,7 +42,7 @@ export function ChangelogModal({ open, onClose }: Props) {
         {/* Header */}
         <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-5 py-4">
           <Zap className="h-4 w-4 shrink-0 text-primary" />
-          <span className="flex-1 text-[15px] font-bold text-ink">SprintBrain — Changelog</span>
+          <span className="flex-1 text-[15px] font-bold text-ink">Fibonax — Changelog</span>
           <button
             type="button"
             onClick={onClose}

@@ -1,5 +1,5 @@
 // ask-sprintbrain — Supabase Edge Function (Deno)
-// Answers a question from the caller's own SprintBrain content, and only from
+// Answers a question from the caller's own Fibonax content, and only from
 // it (AI-KNOWLEDGE P1, docs/AI_KNOWLEDGE_PLAN.md).
 //
 // Retrieve before generating:
@@ -58,14 +58,14 @@ const MAX_SOURCE_CHARS = 4000;
 /** Mirrors the knowledge_feedback answer length check. */
 const MAX_ANSWER_CHARS = 8000;
 
-const SYSTEM_PROMPT = `You answer questions for a team at work using only their own company knowledge base, called SprintBrain. The team could work in any field; take the subject from the sources and assume no industry.
+const SYSTEM_PROMPT = `You answer questions for a team at work using only their own company knowledge base, called Fibonax. The team could work in any field; take the subject from the sources and assume no industry.
 
 You receive a question and a numbered list of sources (S1, S2, ...). Each source is a snippet (a reusable approved text) or a Brain item (a stored note, fact or document) that the team wrote.
 
 Rules:
 - Answer only from the sources. Never add a company policy, rule, price, deadline, procedure or position that is not written in a source, even if it seems likely. General knowledge may only be used to phrase things clearly, never to fill a gap.
 - After every sentence that relies on a source, cite it as [S1], or [S1][S3] for several.
-- If the sources fully answer the question, coverage is "full". If they answer part of it, coverage is "partial" and "missing" says plainly what the sources do not cover. If none of them answers it, coverage is "none", the answer is empty, and "missing" says what was asked that SprintBrain does not contain.
+- If the sources fully answer the question, coverage is "full". If they answer part of it, coverage is "partial" and "missing" says plainly what the sources do not cover. If none of them answers it, coverage is "none", the answer is empty, and "missing" says what was asked that Fibonax does not contain.
 - If two sources disagree, say so in "conflicts", naming both by their titles (not their S numbers), and do not pick one silently. Write "missing" in plain words too, without S numbers.
 - When a source is a ready-to-send reply, prefer quoting or adapting its wording over writing your own. Template placeholders like {client_name} or {=TOTAL * 1.03} are fill-in fields: keep them as they are rather than inventing values.
 - Answer in the language of the question. Keep it short and practical.
@@ -356,7 +356,7 @@ Deno.serve(async (req: Request) => {
   const answer = text(parsed.answer).slice(0, MAX_ANSWER_CHARS);
   const coverage = text(parsed.coverage);
 
-  // Guarantee 3: an answer that cites nothing is not an answer from SprintBrain.
+  // Guarantee 3: an answer that cites nothing is not an answer from Fibonax.
   const answered = coverage !== 'none' && answer !== '' && used.size > 0;
 
   return json({

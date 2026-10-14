@@ -10,7 +10,7 @@ import {
   type FeedbackSource,
 } from '@/lib/askKnowledge';
 
-// Ask SprintBrain (AI-KNOWLEDGE P1).
+// Ask Fibonax (AI-KNOWLEDGE P1).
 //
 // `ask` calls the ask-sprintbrain edge function, which searches and reads as the
 // signed-in user and answers only from what it found. Feedback is a row in
@@ -19,17 +19,17 @@ import {
 const EDGE_FN_ASK = 'ask-sprintbrain';
 
 const ASK_ERRORS: Record<string, string> = {
-  anthropic_not_configured: 'Ask SprintBrain is not set up yet.',
+  anthropic_not_configured: 'Ask Fibonax is not set up yet.',
   anthropic_request_failed: 'The answer service did not respond. Try again.',
   anthropic_bad_output: 'The answer came back unreadable. Try again.',
   question_too_short: 'Write a few more words.',
   question_too_long: 'Shorten the question to 1,000 characters or fewer.',
-  search_failed: 'Could not search your SprintBrain. Try again.',
+  search_failed: 'Could not search your Fibonax. Try again.',
   sources_read_failed: 'Could not read the matching items. Try again.',
   unauthorized: 'Your session has expired. Sign in again.',
 };
 
-const ASK_FALLBACK = 'Could not reach Ask SprintBrain. Try again.';
+const ASK_FALLBACK = 'Could not reach Ask Fibonax. Try again.';
 
 export interface FeedbackInput {
   question: string;

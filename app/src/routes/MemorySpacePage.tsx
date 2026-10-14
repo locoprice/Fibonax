@@ -163,7 +163,7 @@ function ItemCard({
       )}
       title={
         item.review_status === 'archived'
-          ? 'Archived — never added to an AI chat, and Ask SprintBrain ignores it'
+          ? 'Archived — never added to an AI chat, and Ask Fibonax ignores it'
           : undefined
       }
     >

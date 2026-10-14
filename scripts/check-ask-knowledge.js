@@ -1,6 +1,6 @@
-// Ask SprintBrain gate (AI-KNOWLEDGE P1, docs/AI_KNOWLEDGE_PLAN.md).
+// Ask Fibonax gate (AI-KNOWLEDGE P1, docs/AI_KNOWLEDGE_PLAN.md).
 //
-// Ask SprintBrain lives on two surfaces that cannot share code: the dashboard
+// Ask Fibonax lives on two surfaces that cannot share code: the dashboard
 // (app/src/features/search/AskAnswer.tsx over app/src/lib/askKnowledge.ts) and
 // the phone page (app/public/mobile/index.html, a single file that cannot load
 // either). The database decides which feedback verdicts exist. This pins the
@@ -89,7 +89,7 @@ check(
 );
 
 if (failed > 0) {
-  console.error('\n' + failed + ' Ask SprintBrain check(s) failed.');
+  console.error('\n' + failed + ' Ask Fibonax check(s) failed.');
   process.exit(1);
 }
-console.log('\nAsk SprintBrain checks passed.');
+console.log('\nAsk Fibonax checks passed.');

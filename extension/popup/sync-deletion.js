@@ -1,4 +1,4 @@
-/* SprintBrain — snippet deletion sync helpers (pop-up).
+/* Fibonax — snippet deletion sync helpers (pop-up).
  *
  * Pure, DOM-free, network-light delete logic shared between the live pop-up
  * (loaded as a plain <script> before popup.js — exposes `SBPopupSync`) and the
