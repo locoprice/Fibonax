@@ -148,7 +148,7 @@ PRIVACY AND SECURITY
 • Notion sync uses only the API key you provide. It is used to reach the Notion API and is never sold, shared, or used for anything else.
 • Your snippet content is never sold or shared with third parties, and is not used for advertising.
 • Review every signed-in device, check recent login activity, and sign out everywhere in one click.
-• Live service status is published at sprintbrain.instatus.com.
+• Live service status is published at fibonax.instatus.com.
 
 
 GET STARTED
@@ -210,7 +210,7 @@ Rules applied:
 | Multi-language variants, custom triggers | `resolveBody()`, `lang_group_id`, trigger config | ✅ |
 | Fill fields and copy from the popup | v2.98.0 | ✅ |
 | More than 200 releases since March 2026, automated test suite | Audit: 202 version-tagged releases, 489 commits, 248 tests green across 21 spec files | ✅ Stated as "more than 200" so it stays true without re-editing |
-| Service status page | `sprintbrain.instatus.com`, wired v2.55.1 | ✅ |
+| Service status page | `fibonax.instatus.com`, wired v2.55.1 | ✅ |
 | Notion sync every 5 minutes, both directions, one row per snippet | `chrome.alarms` 5 min (`background.js`), `NotionPush` (`popup.js`), per-language Body properties (v2.36.0) | ✅ |
 | Notion credentials shared between dashboard and extension | v2.37.0 | ✅ |
 | Mobile browser access | `app/public/mobile/` (read-only browse, search, copy) | ✅ |

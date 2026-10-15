@@ -14,7 +14,7 @@ export const RESOURCE_LINKS: Record<
   bugs: 'https://form.jotform.com/locoprice/accuracy',
   discussions: 'https://github.com/locoprice/SprintBrain/discussions',
   github: 'https://github.com/locoprice/SprintBrain/issues',
-  status: 'https://sprintbrain.instatus.com/',
+  status: 'https://fibonax.instatus.com/',
 };
 
 /**
