@@ -23,6 +23,14 @@
   status = 301
   force  = true
 
+# Former docs address → docs.fibonax.com (needs docs.sprintbrain.com as a
+# domain alias on this project; the manual itself is hosted by Mintlify)
+[[redirects]]
+  from   = "https://docs.sprintbrain.com/*"
+  to     = "https://docs.fibonax.com/:splat"
+  status = 301
+  force  = true
+
 # Cache static assets aggressively
 [[headers]]
   for = "/*.html"
