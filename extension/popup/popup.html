@@ -24,11 +24,12 @@ html,body{
   height:60px;flex-shrink:0;display:flex;align-items:center;gap:10px;
   padding:0 16px;background:var(--sb-bg);border-bottom:1px solid var(--sb-line);
 }
+/* The brand mark: the Fibonax T, the same picture as the toolbar icon. */
 .logo-mark{
-  width:28px;height:28px;background:var(--sb-azure);border-radius:var(--sb-r-md);
+  width:28px;height:28px;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
 }
-.logo-mark svg{width:15px;height:15px;stroke:#fff;fill:#fff;stroke-width:1;stroke-linejoin:round}
+.logo-mark img,.sb-auth-logo img{display:block;width:100%;height:100%}
 .logo-txt{display:flex;flex-direction:column;min-width:0;margin-right:auto}
 .pop-greet{font-size:var(--sb-fs-11);color:var(--sb-ink-muted);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pop-name{font-size:var(--sb-fs-15);font-weight:700;letter-spacing:-.2px;line-height:1.2;color:var(--sb-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -523,8 +524,7 @@ html,body{
 /* ── AUTH GATE ── */
 .sb-auth{position:fixed;inset:0;background:var(--sb-bg);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:var(--sb-z-context-menu);padding:32px 28px}
 .sb-auth.on{display:flex}
-.sb-auth-logo{width:48px;height:48px;border-radius:var(--sb-r-xl);background:var(--sb-azure);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-.sb-auth-logo svg{width:26px;height:26px;stroke:#fff;fill:#fff;stroke-width:1;stroke-linejoin:round}
+.sb-auth-logo{width:48px;height:48px;margin-bottom:16px}
 .sb-auth-title{font-size:18px;font-weight:700;color:var(--sb-ink);margin-bottom:6px}
 .sb-auth-sub{font-size:var(--sb-fs-13);color:var(--sb-ink-muted);text-align:center;margin-bottom:24px;max-width:340px;line-height:1.5}
 .sb-auth-input{width:100%;max-width:320px;padding:11px 14px;border:1px solid var(--sb-line);border-radius:var(--sb-r-lg);font-size:14px;font-family:inherit;color:var(--sb-ink);background:var(--sb-bg);outline:none;margin-bottom:10px;transition:border-color var(--sb-dur-base),box-shadow var(--sb-dur-base)}
@@ -560,7 +560,7 @@ html,body{
 
 <!-- ═══ AUTH GATE (dashboard SSO + email-OTP fallback) ═══ -->
 <div class="sb-auth on" id="sb-auth">
-  <div class="sb-auth-logo"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+  <div class="sb-auth-logo"><img src="../assets/icons/icon128.png" alt=""></div>
   <div class="sb-auth-title">Sign in to Fibonax</div>
 
   <div id="sb-auth-sso" style="display:flex;flex-direction:column;align-items:center;width:100%">
@@ -589,7 +589,7 @@ html,body{
 <div id="pane-list" class="pane on">
   <!-- HEADER -->
   <div class="hdr">
-    <span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+    <span class="logo-mark"><img src="../assets/icons/icon128.png" alt=""></span>
     <span class="logo-txt">
       <span class="pop-greet" id="pop-greet">Welcome</span>
       <span class="pop-name" id="pop-name">Fibonax</span>
@@ -808,7 +808,7 @@ html,body{
   <div class="cl-box">
     <div class="cl-hdr2">
       <span class="cl-ttl">
-        <span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+        <span class="logo-mark"><img src="../assets/icons/icon128.png" alt=""></span>
         Fibonax &mdash; Changelog
       </span>
       <button class="cl-x" id="cl-x" aria-label="Close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
