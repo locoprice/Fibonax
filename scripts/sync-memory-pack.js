@@ -15,7 +15,9 @@
 //   formatInjectedBlock  the text "Copy whole Brain" hands out, the same block
 //                        the extension's Context button puts into an AI chat.
 //
-// --check also fails if the phone stops reaching them through the module.
+// --check also fails if the phone stops reaching them through the module, or
+// if the popup's Brains tab, which loads the module itself, builds its "Copy
+// whole Brain" text any other way.
 
 const fs = require('fs');
 const path = require('path');
@@ -23,6 +25,8 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const SOURCE = path.join(ROOT, 'extension', 'shared', 'memory-pack.js');
 const MOBILE = path.join(ROOT, 'app', 'public', 'mobile', 'index.html');
+const POPUP_HTML = path.join(ROOT, 'extension', 'popup', 'popup.html');
+const POPUP_JS = path.join(ROOT, 'extension', 'popup', 'popup.js');
 const BEGIN = '<!-- SB_MEMORY_PACK:BEGIN (generated from extension/shared/memory-pack.js by scripts/sync-memory-pack.js, do not edit) -->';
 const END = '<!-- SB_MEMORY_PACK:END -->';
 // Anchor on another block's END marker, never on the first <script> in the
@@ -101,6 +105,21 @@ function structure() {
   return problems;
 }
 
+// The popup loads the module as a script, so there is no copy to keep in step:
+// only the load order and the one call that builds the Brain's text.
+function popup() {
+  const problems = [];
+  const html = readText(POPUP_HTML);
+  const mod = html.indexOf('<script src="../shared/memory-pack.js"></script>');
+  const app = html.indexOf('<script src="popup.js"></script>');
+  if (mod === -1 || app === -1 || mod > app) problems.push('popup.html must load ../shared/memory-pack.js before popup.js');
+  const call = 'SBMemoryPack.formatInjectedBlock(';
+  if (fnSource(readText(POPUP_JS), 'function brainBlock(').indexOf(call) === -1) {
+    problems.push('Copy whole Brain builds its text through the module (function brainBlock(... must call ' + call + '...)');
+  }
+  return problems;
+}
+
 function main() {
   const check = process.argv.includes('--check');
   const result = apply(readText(SOURCE), check);
@@ -120,6 +139,13 @@ function main() {
     failed = true;
     console.error('X    ' + rel(MOBILE) + ': ' + problem);
   });
+
+  const popupProblems = popup();
+  popupProblems.forEach((problem) => {
+    failed = true;
+    console.error('X    ' + rel(POPUP_JS) + ': ' + problem);
+  });
+  if (!popupProblems.length) console.log('OK   ' + rel(POPUP_JS) + ' copies a whole Brain through memory-pack');
 
   if (failed) process.exit(1);
 }

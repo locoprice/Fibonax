@@ -14,6 +14,27 @@ function supaFetch(table, method, body, qs) {
   });
 }
 
+// Every row a read can return, a page at a time. `qs` must order the rows to
+// the end (a unique column last), or a page boundary could repeat or skip one.
+// Rejects when any page fails: half a list would pass for the whole of it.
+var SUPA_PAGE_ROWS = 1000;
+function supaFetchAll(table, qs) {
+  var rows = [];
+  function page(offset) {
+    return supaFetch(table, 'GET', null, qs + '&limit=' + SUPA_PAGE_ROWS + '&offset=' + offset)
+      .then(function(r) {
+        if (!r.ok) throw new Error(table + ' answered HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        if (!Array.isArray(data)) throw new Error(table + ' did not answer with a list');
+        rows = rows.concat(data);
+        return data.length === SUPA_PAGE_ROWS ? page(offset + SUPA_PAGE_ROWS) : rows;
+      });
+  }
+  return page(0);
+}
+
 function _supaFire(table, method, body, qs, headers, retried, resolve, reject) {
   var url  = SUPA_URL + '/rest/v1/' + table + (qs ? '?' + qs : '');
   var opts = {
@@ -171,6 +192,19 @@ var DB = {
       '&review_status=neq.archived&order=updated_at.desc'
     ).then(function(r) { return r.ok ? r.json() : []; })
       .catch(function() { return []; });
+  },
+  // The Brains tab reads what the phone's Brains page reads, through the same
+  // RLS (app/public/mobile/index.html, loadMemory). Trashed Brains and items
+  // stay out, and so do archived items: they are kept to be restored on the
+  // dashboard, not to be pasted into a chat.
+  loadBrainSpaces: function() {
+    return supaFetchAll('memory_spaces',
+      'select=id,name,description,is_default&deleted_at=is.null&order=is_default.desc,name.asc,id.asc');
+  },
+  loadBrainItems: function() {
+    return supaFetchAll('memory_shards',
+      'select=id,space_id,name,summary,body,kind,token_estimate,pinned,review_status' +
+      '&deleted_at=is.null&review_status=neq.archived&order=pinned.desc,updated_at.desc,id.asc');
   }
 };
 
@@ -223,6 +257,7 @@ var detailLinkSeq   = 0;      // bumped by every read and every reset, so a late
 var selIdx          = -1;     // keyboard selection index in the snippet list
 var pSelIdx         = -1;     // keyboard selection index in the prompt list
 var loaded          = false;  // true once the authoritative Supabase load resolves
+var bSelIdx         = -1;     // keyboard selection index in the Brain list
 var listAnimated    = false;  // entrance animation runs once, on first data render
 var searchAllFolders= false;  // "search all folders" escape from a folder-scoped miss
 
@@ -422,6 +457,13 @@ function sbApplyCompanyFavicon(meta) {
 
 // ── CHANGELOG ─────────────────────────────────────────────────────
 var CHANGELOG = [
+  { version:'v3.69.0', date:'2026-10-16', label:'SprintBrain is now Fibonax',
+    changes:[
+      {type:'new', text:'SprintBrain has a new name: Fibonax. Your account, snippets and prompts stay exactly as they were.'},
+      {type:'new', text:'Your Brains are in the popup. Open the Brains tab to see each Brain and what is in it, copy one item, or copy a whole Brain to paste into an AI chat.'},
+      {type:'fix', text:'On WhatsApp Web, the card that appears after a snippet no longer freezes the page. The cursor stays after the text and the card closes on its own.'},
+      {type:'fix', text:'On Gmail, a snippet that asks you to fill in fields removes its shortcut completely, and Undo puts back the text around an emoji.'}
+    ]},
   { version:'v2.135.0', date:'2026-07-31', label:'fix: snippets expand the text you just saved',
     changes:[
       {type:'fix', text:'Edit a snippet on the dashboard and typing its shortcut expands the new text straight away. Before, the extension could keep using the version it last saw when you opened the popup — so a dropdown you had just added did not appear.'},
@@ -1069,6 +1111,19 @@ function boot() {
       refreshUI();
     });
 
+    // The Brains alone, for the count on their tab. What is in them loads when
+    // the tab opens (loadBrains), so a popup opened for a snippet never reads
+    // every Brain's text.
+    DB.loadBrainSpaces().then(function(rows) {
+      if (brainsLoaded) return;
+      brains = rows;
+      refreshUI();
+    }, function(e) {
+      console.error('[Fibonax] Could not count your Brains:', e);
+    });
+
+    showWelcome();
+
     // Check if alarm fetched fresh snippets while popup was closed
     chrome.storage.local.get('sb_alarm_sync_result', function(d) {
       if (d && d.sb_alarm_sync_result && d.sb_alarm_sync_result.snippets) {
@@ -1254,6 +1309,7 @@ function promptStats(){ return SBSnippetStats.rowStats(prompts, SB_CURRENT_USER_
 // The breakdown under the tabs describes whichever library is on screen.
 function renderLibStats(){
   var ls=gi('lib-stats'); if(!ls) return;
+  if(activeMode==='brains'){ ls.textContent=brainStatsLine(brains.length, brainsLoaded ? brainItems.length : null); return; }
   ls.textContent=SBSnippetStats.statsLine(activeMode==='prompts' ? promptStats() : libraryStats());
 }
 // ── UNUSED-ASSET NOTICE (INACTIVE-001) ────────────────────────────
@@ -1395,7 +1451,8 @@ function renderInactive() {
   var SBI = window.SBInactivity;
   // Hidden until the library AND the local state have both resolved: a notice
   // built on half the data would accuse a snippet that simply had not loaded.
-  if (!SBI || !inaState || !loaded) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  // Brains keep no record of use, so the notice has nothing to say about them.
+  if (!SBI || !inaState || !loaded || activeMode === 'brains') { el.style.display = 'none'; el.innerHTML = ''; return; }
 
   var stale = inaStale();
   if (!stale.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
@@ -1452,10 +1509,12 @@ function refreshUI(){
   var st=libraryStats();
   var mcs=gi('mct-snip'); if(mcs) mcs.textContent=st.total;
   var mcp=gi('mct-prmpt'); if(mcp) mcp.textContent=prompts.length;
+  var mcb=gi('mct-brain'); if(mcb) mcb.textContent=brains.length;
   renderLibStats();
   renderFolders();
   renderInactive();
   if(activeMode==='prompts') renderPrompts(gi('sq')?gi('sq').value:'');
+  else if(activeMode==='brains') renderBrains(gi('sq')?gi('sq').value:'');
   else renderList(gi('sq')?gi('sq').value:'');
 }
 
@@ -2584,6 +2643,233 @@ function copyPrompt(pid){
   showToast(text !== (p.content||'') ? 'Prompt copied with Interactive Steps' : 'Prompt copied');
 }
 
+// ── BRAINS TAB ─────────────────────────────────────────────────────
+// The phone's Brains page in the popup's frame (app/public/mobile/index.html):
+// list the Brains, open one, copy one item or the whole Brain. Read and copy
+// only; Brains are created and changed in the dashboard. The Brains load with
+// the popup for the count on their tab, what is in them the first time the tab
+// opens, the way the phone loads its Brains page.
+var brains        = [];
+var brainItems    = [];
+var brainsLoaded  = false;   // the items have arrived
+var brainsLoading = false;
+var brainsFailed  = false;
+var openBrainId   = null;    // the Brain on screen; null lists the Brains
+
+var BRAIN_KIND_LABEL = { fact:'Fact', note:'Note', document:'Document', conversation:'Conversation' };
+// Past this, a pasted Brain is longer than anything Fibonax itself puts into a
+// chat. The phone's MEM_LONG_TOKENS, for the same reason.
+var BRAIN_LONG_TOKENS = 4000;
+var BRAIN_COPY_SVG = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+// The dashboard's words for a Brain's size: "Empty", "1 item", "12 items".
+function brainSize(n){ return n === 0 ? 'Empty' : n + ' ' + (n === 1 ? 'item' : 'items'); }
+// The line under the tabs. The items are counted once they have arrived.
+function brainStatsLine(nBrains, nItems){
+  var line = nBrains + ' ' + (nBrains === 1 ? 'Brain' : 'Brains');
+  return nItems === null ? line : line + ' · ' + nItems + ' ' + (nItems === 1 ? 'item' : 'items');
+}
+// Search reads what the phone's reads: an item's name, summary, body and the
+// name of its Brain; a Brain's name and description. `q` is lower case.
+function brainMatchesItem(it, q, brainName){
+  if (!q) return true;
+  return [it.name, it.summary, it.body, brainName].some(function(f){ return String(f || '').toLowerCase().indexOf(q) > -1; });
+}
+function brainMatchesBrain(b, q){
+  if (!q) return true;
+  return [b.name, b.description].some(function(f){ return String(f || '').toLowerCase().indexOf(q) > -1; });
+}
+function findBrain(id){ for (var i = 0; i < brains.length; i++) { if (brains[i].id === id) return brains[i]; } return null; }
+function findBrainItem(id){ for (var i = 0; i < brainItems.length; i++) { if (brainItems[i].id === id) return brainItems[i]; } return null; }
+function brainItemsOf(bid){ return brainItems.filter(function(it){ return it.space_id === bid; }); }
+function brainTokens(items){ return items.reduce(function(t, it){ return t + (Number(it.token_estimate) || 0); }, 0); }
+// What an AI chat receives: the block the Context button inserts, built by the
+// shared module, as the phone's Copy whole Brain builds it.
+function brainBlock(items){
+  return SBMemoryPack.formatInjectedBlock({ items: items.map(function(it){ return { name: it.name, text: it.body || '' }; }) });
+}
+
+function loadBrains(){
+  if (brainsLoading) return;
+  brainsLoading = true; brainsFailed = false;
+  Promise.all([DB.loadBrainSpaces(), DB.loadBrainItems()]).then(function(res){
+    brains = res[0];
+    var live = {};
+    brains.forEach(function(b){ live[b.id] = true; });
+    // Items of a Brain in the trash are in the trash with it.
+    brainItems = res[1].filter(function(it){ return live[it.space_id]; });
+    if (openBrainId && !live[openBrainId]) openBrainId = null;
+    brainsLoaded = true;
+  }).catch(function(e){
+    brainsFailed = true;
+    console.error('[Fibonax] Could not load your Brains:', e);
+    // A refresh that fails keeps what is on screen, and says so.
+    if (brainsLoaded) showToast('Could not refresh your Brains');
+  }).then(function(){
+    brainsLoading = false;
+    refreshUI();
+  });
+}
+
+function brainRowHtml(b){
+  var n = brainItemsOf(b.id).length;
+  return '<div class="p-item brain" data-bid="'+esc(b.id)+'" tabindex="-1" role="button" aria-label="Open '+esc(b.name || 'Brain')+'">'
+    + '<div class="p-body">'
+    + '<div class="p-name" id="bname-'+esc(b.id)+'">'+esc(b.name || 'Brain')+'</div>'
+    + '<div class="p-meta"><span class="b-info">'+esc(brainSize(n))+'</span></div>'
+    + '</div>'
+    + '<button class="p-copy" type="button" data-copy-brain="'+esc(b.id)+'" title="Copy whole Brain" aria-label="Copy whole Brain">'+BRAIN_COPY_SVG+'</button>'
+    + '<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>'
+    + '</div>';
+}
+
+// `brain` names the item's Brain on the row: only where items from several
+// Brains share one list.
+function brainItemRowHtml(it, brain){
+  var info = BRAIN_KIND_LABEL[it.kind] || it.kind || '';
+  if (brain) info += (info ? ' · ' : '') + (brain.name || '');
+  return '<div class="p-item brain" data-mid="'+esc(it.id)+'" tabindex="-1" role="button" aria-label="Copy '+esc(it.name || 'item')+'">'
+    + '<div class="p-body">'
+    + '<div class="p-name" id="bname-'+esc(it.id)+'">'+esc(it.name || 'Untitled')+reviewChipHtml(it.review_status)+'</div>'
+    + '<div class="p-meta"><span class="b-info">'+esc(info)+'</span></div>'
+    + '</div>'
+    + '<button class="p-copy" type="button" title="Copy text" aria-label="Copy text">'+BRAIN_COPY_SVG+'</button>'
+    + '</div>';
+}
+
+// The open Brain, above its items: the way back, its name and size, and Copy
+// whole Brain. Hidden on the list of Brains.
+function renderBrainHead(brain){
+  var head = gi('brain-head'); if (!head) return;
+  if (!brain) { head.hidden = true; head.innerHTML = ''; return; }
+  var items = brainItemsOf(brain.id);
+  head.innerHTML = '<div class="b-row">'
+    + '<button class="ic-btn" id="b-back" type="button" title="All Brains" aria-label="Back to all Brains"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>'
+    + '<div class="b-txt"><div class="b-name">'+esc(brain.name || 'Brain')+'</div><div class="b-info">'+esc(brainSize(items.length))+'</div></div>'
+    + '<button class="d-btn pri" id="b-copyall" type="button">'+BRAIN_COPY_SVG+'Copy whole Brain</button>'
+    + '</div>'
+    + (brainTokens(items) > BRAIN_LONG_TOKENS
+      ? '<div class="d-warn" role="note">Long Brain. Some AI apps cut a paste this size, so check what arrives.</div>'
+      : '');
+  head.hidden = false;
+  gi('b-back').addEventListener('click', closeBrain);
+  gi('b-copyall').addEventListener('click', function(){ copyBrain(brain.id); });
+}
+
+function renderBrains(q){
+  var el = gi('blist'); if (!el) return;
+  bSelIdx = -1;
+  var brain = openBrainId ? findBrain(openBrainId) : null;
+  renderBrainHead(brainsLoaded ? brain : null);
+  if (!brainsLoaded) {
+    if (brainsFailed) {
+      el.setAttribute('aria-busy', 'false');
+      el.innerHTML = '<div class="p-empty">Could not load your Brains.<br>Click the refresh button at the top to try again.</div>';
+      return;
+    }
+    el.setAttribute('aria-busy', 'true'); renderSkeleton(el); return;
+  }
+  el.setAttribute('aria-busy', 'false');
+  if (!brains.length) {
+    el.innerHTML = '<div class="p-empty">No Brains yet.<br>Create one in the <strong>dashboard</strong>.</div>';
+    return;
+  }
+  var lq = String(q || '').trim().toLowerCase();
+  var h;
+  if (brain) {
+    var all = brainItemsOf(brain.id);
+    var items = all.filter(function(it){ return brainMatchesItem(it, lq, brain.name); });
+    h = !all.length
+      ? '<div class="p-empty">Nothing in this Brain yet.<br>Add items in the <strong>dashboard</strong>.</div>'
+      : !items.length
+        ? '<div class="p-empty">No items match &ldquo;'+esc(q)+'&rdquo;</div>'
+        : items.map(function(it){ return brainItemRowHtml(it, null); }).join('');
+  } else if (!lq) {
+    h = brains.map(brainRowHtml).join('');
+  } else {
+    // Searching the list of Brains reaches into every Brain, as on the phone.
+    var hitBrains = brains.filter(function(b){ return brainMatchesBrain(b, lq); });
+    var hitItems = brainItems.filter(function(it){
+      var b = findBrain(it.space_id);
+      return brainMatchesItem(it, lq, b ? b.name : '');
+    });
+    h = (!hitBrains.length && !hitItems.length)
+      ? '<div class="p-empty">Nothing matches &ldquo;'+esc(q)+'&rdquo;</div>'
+      : hitBrains.map(brainRowHtml).join('') + hitItems.map(function(it){ return brainItemRowHtml(it, findBrain(it.space_id)); }).join('');
+  }
+  el.innerHTML = h;
+  el.querySelectorAll('.p-item').forEach(function(row){
+    row.addEventListener('click', function(e){
+      if (e.target.closest('[data-copy-brain]')) { copyBrain(row.dataset.bid); return; }
+      activateBrainRow(row);
+    });
+  });
+}
+
+// A Brain opens; an item is copied, as a prompt row is.
+function activateBrainRow(row){
+  if (row.dataset.bid) openBrain(row.dataset.bid);
+  else if (row.dataset.mid) copyBrainItem(row.dataset.mid);
+}
+
+// Opening a Brain shows all of it, so a search that led there is cleared.
+function openBrain(id){
+  if (!findBrain(id)) return;
+  openBrainId = id;
+  var sq = gi('sq'); if (sq) sq.value = '';
+  renderBrains('');
+}
+function closeBrain(){
+  openBrainId = null;
+  renderBrains(gi('sq') ? gi('sq').value : '');
+}
+
+// Clipboard, then the row's name says so and a toast confirms. A failed copy
+// says so too: a paste that quietly brings back old text is worse.
+function copyBrainText(text, nameId, message){
+  navigator.clipboard.writeText(text).then(function(){
+    var nm = gi(nameId);
+    if (nm) {
+      var orig = nm.innerHTML;
+      nm.textContent = '✓ Copied!';
+      setTimeout(function(){ nm.innerHTML = orig; }, 1500);
+    }
+    showToast(message);
+  }, function(e){
+    console.error('[Fibonax] Could not copy:', e);
+    showToast('Could not copy. Try again');
+  });
+}
+function copyBrain(id){
+  var b = findBrain(id); if (!b) return;
+  var items = brainItemsOf(b.id);
+  if (!items.length) { showToast('This Brain is empty'); return; }
+  copyBrainText(brainBlock(items), 'bname-'+id,
+    brainTokens(items) > BRAIN_LONG_TOKENS ? 'Brain copied. Long Brain: check the paste' : 'Brain copied');
+}
+function copyBrainItem(id){
+  var it = findBrainItem(id); if (!it) return;
+  copyBrainText(it.body || '', 'bname-'+id,
+    it.review_status === 'deprecated' ? 'Copied. Deprecated: check it is still right' : 'Text copied');
+}
+
+// ── NEW NAME, SAID ONCE ────────────────────────────────────────────
+// background.js raises the flag when Chrome updates the extension from a
+// version before 3.69.0, the first with Brains in the popup. A new install
+// never raises it: someone who never knew SprintBrain has nothing to be told.
+var WELCOME_KEY = 'sb_welcome_fibonax';
+function showWelcome(){
+  chrome.storage.local.get(WELCOME_KEY, function(d){
+    var card = gi('wel-card');
+    if (card && d && d[WELCOME_KEY] === 'show') card.style.display = '';
+  });
+}
+function dismissWelcome(){
+  var card = gi('wel-card'); if (card) card.style.display = 'none';
+  var next = {}; next[WELCOME_KEY] = 'seen';
+  chrome.storage.local.set(next);
+}
+
 // ── MODE SWITCHER ──────────────────────────────────────────────────
 function setMode(m) {
   activeMode = m;
@@ -2591,12 +2877,13 @@ function setMode(m) {
   var snipChips  = gi('snip-chips');
   var snipMain   = gi('snip-main');
   var pMain      = gi('prompt-main');
+  var bMain      = gi('brain-main');
   var seg        = gi('mode-seg');
   var sq         = gi('sq');
   var tp         = gi('tp');
   var ptTrig     = triggerCfg.promptTrigger || '"""';
 
-  expandedId = null; selIdx = -1; pSelIdx = -1;
+  expandedId = null; selIdx = -1; pSelIdx = -1; bSelIdx = -1;
   // The notice is per section, so switching tabs starts its list from the top
   // rather than landing on "4 of 2" from the section just left.
   inaIndex = 0;
@@ -2607,8 +2894,13 @@ function setMode(m) {
     t.setAttribute('aria-selected', on ? 'true' : 'false');
   });
   if (seg) { if (m === 'prompts') seg.classList.add('on-prompts'); else seg.classList.remove('on-prompts'); }
+  if (seg) { if (m === 'brains') seg.classList.add('on-brains'); else seg.classList.remove('on-brains'); }
 
   renderLibStats();
+  renderInactive();
+  // Brains have no trigger, so the trigger example beside the search goes.
+  if (tp) tp.style.display = m === 'brains' ? 'none' : '';
+  if (bMain) bMain.className = 'p-main' + (m === 'brains' ? ' on' : '');
 
   if (m === 'prompts') {
     if (srow) srow.classList.add('pmode');
@@ -2618,6 +2910,14 @@ function setMode(m) {
     if (sq) sq.placeholder = 'Search prompts…';
     if (tp) tp.innerHTML = '<span class="isc-pfx">'+esc(ptTrig)+'</span>name';
     renderPrompts(sq ? sq.value : '');
+  } else if (m === 'brains') {
+    if (srow) srow.classList.remove('pmode');
+    if (snipChips) snipChips.style.display = 'none';
+    if (snipMain) snipMain.style.display = 'none';
+    if (pMain) pMain.className = 'p-main';
+    if (sq) sq.placeholder = 'Search Brains…';
+    if (!brainsLoaded) loadBrains();
+    renderBrains(sq ? sq.value : '');
   } else {
     if (srow) srow.classList.remove('pmode');
     if (snipChips) snipChips.style.display = '';
@@ -2663,6 +2963,7 @@ on('bdash','click',   openDashboard);
 on('bmanage','click', openDashboard);
 on('bbcfg','click',   function(){ show('pane-list'); refreshUI(); });
 on('brel','click', function(){
+  if(brainsLoaded || activeMode==='brains') loadBrains();
   Promise.all([DB.loadAll(), DB.loadPrompts()]).then(function(results){
     loaded=true;
     var data=results[0]; var prmData=Array.isArray(results[1])?results[1]:[];
@@ -2677,8 +2978,10 @@ on('sq','input', function(e){
   expandedId=null;
   if(!e.target.value) searchAllFolders=false;
   if(activeMode==='prompts'){ pSelIdx=-1; renderPrompts(e.target.value); }
+  else if(activeMode==='brains') renderBrains(e.target.value);
   else { selIdx=-1; renderList(e.target.value); }
 });
+on('wel-ok','click', dismissWelcome);
 on('cfg-default-lang','change', function(e){ userPrefs.defaultLang = e.target.value; saveUserPrefs(); });
 on('tcfg-saint','change', function(e){ saintOn = e.target.checked; SBSaintOfDay.saveEnabled(saintOn); showSaint(); });
 // Interactive Steps switch in the Prompts tab.
@@ -2708,6 +3011,13 @@ function setPSel(i){
   rows.forEach(function(r,idx){ if(idx===pSelIdx) r.classList.add('sel'); else r.classList.remove('sel'); });
   try{ rows[pSelIdx].scrollIntoView({block:'nearest'}); }catch(e){}
 }
+function bRows(){ var el=gi('blist'); return el?Array.prototype.slice.call(el.querySelectorAll('.p-item')):[]; }
+function setBSel(i){
+  var rows=bRows(); if(!rows.length){ bSelIdx=-1; return; }
+  if(i<0)i=0; if(i>=rows.length)i=rows.length-1; bSelIdx=i;
+  rows.forEach(function(r,idx){ if(idx===bSelIdx) r.classList.add('sel'); else r.classList.remove('sel'); });
+  try{ rows[bSelIdx].scrollIntoView({block:'nearest'}); }catch(e){}
+}
 document.addEventListener('keydown', function(e){
   var pane=gi('pane-list'); if(!pane || pane.className.indexOf('on')<0) return;
   var gate=gi('sb-auth'); if(gate && gate.classList.contains('on')) return;
@@ -2726,6 +3036,19 @@ document.addEventListener('keydown', function(e){
     else if(k==='ArrowUp'){ e.preventDefault(); setPSel(pSelIdx-1); }
     else if(k==='Enter'){ if(pSelIdx<0 && pRows().length) setPSel(0); var pr=pRows()[pSelIdx]; if(pr){ e.preventDefault(); copyPrompt(pr.dataset.pid); } }
     else if(k==='Escape' && sq && sq.value){ e.preventDefault(); sq.value=''; pSelIdx=-1; renderPrompts(''); }
+    return;
+  }
+
+  // Brains: Enter opens a Brain or copies an item; Escape clears the search,
+  // then steps back to the list of Brains. A focused button keeps its own Enter.
+  if(activeMode==='brains'){
+    if(k==='ArrowDown'){ e.preventDefault(); setBSel(bSelIdx+1); }
+    else if(k==='ArrowUp'){ e.preventDefault(); setBSel(bSelIdx-1); }
+    else if(k==='Enter' && !(ae && ae.tagName==='BUTTON')){ if(bSelIdx<0 && bRows().length) setBSel(0); var br=bRows()[bSelIdx]; if(br){ e.preventDefault(); activateBrainRow(br); } }
+    else if(k==='Escape'){
+      if(sq && sq.value){ e.preventDefault(); sq.value=''; renderBrains(''); }
+      else if(openBrainId){ e.preventDefault(); closeBrain(); }
+    }
     return;
   }
 
@@ -2891,7 +3214,7 @@ function showToast(msg){
 on('sq','paste', function(){ setTimeout(function(){
   var v=gi('sq')?gi('sq').value:'';
   expandedId=null; if(!v) searchAllFolders=false;
-  if(activeMode==='prompts') renderPrompts(v); else renderList(v);
+  if(activeMode==='prompts') renderPrompts(v); else if(activeMode==='brains') renderBrains(v); else renderList(v);
 },0); });
 
 // ── SYNC NOW BUTTON ──────────────────────────────────────

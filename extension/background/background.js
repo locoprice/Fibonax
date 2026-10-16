@@ -1137,6 +1137,19 @@ function sbMigrateRoamingPrefs() {
   }
 }
 
+// True when dotted version `a` is lower than `b`, part by part, so 3.9.0 sits
+// below 3.10.0.
+function sbVersionBelow(a, b) {
+  var x = String(a || '').split('.');
+  var y = String(b || '').split('.');
+  for (var i = 0; i < Math.max(x.length, y.length); i++) {
+    var p = parseInt(x[i], 10) || 0;
+    var q = parseInt(y[i], 10) || 0;
+    if (p !== q) return p < q;
+  }
+  return false;
+}
+
 // Build on install + create sync alarm
 chrome.runtime.onInstalled.addListener(function(details) {
   chrome.alarms.create('sb_sync_alarm', {
@@ -1147,6 +1160,12 @@ chrome.runtime.onInstalled.addListener(function(details) {
   sbMigrateRoamingPrefs();
   initMenus();
   sbRefreshActionIcon();
+  // Someone updating from before 3.69.0 knew the extension as SprintBrain and
+  // without Brains in the popup: the popup says so once (popup.js,
+  // showWelcome). A new install has nothing to be told.
+  if (details && details.reason === 'update' && sbVersionBelow(details.previousVersion, '3.69.0')) {
+    chrome.storage.local.set({ sb_welcome_fibonax: 'show' });
+  }
 });
 
 // Rebuild when popup saves changes (snippets updated)

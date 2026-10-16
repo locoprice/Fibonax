@@ -61,10 +61,11 @@ html,body{
 .seg-wrap{height:52px;flex-shrink:0;padding:4px 16px;background:var(--sb-bg)}
 .seg{height:44px;background:var(--sb-bg-muted);border-radius:var(--sb-r-xl);padding:3px;display:flex;position:relative}
 .seg-thumb{
-  position:absolute;top:3px;left:3px;width:calc(50% - 3px);bottom:3px;background:var(--sb-bg);
+  position:absolute;top:3px;left:3px;width:calc((100% - 6px) / 3);bottom:3px;background:var(--sb-bg);
   border-radius:var(--sb-r-md);box-shadow:var(--sb-shadow-sm);transition:transform var(--sb-dur-base) var(--sb-ease);
 }
 .seg.on-prompts .seg-thumb{transform:translateX(100%)}
+.seg.on-brains .seg-thumb{transform:translateX(200%)}
 .mode-tab{
   flex:1;display:flex;align-items:center;justify-content:center;gap:7px;font-size:var(--sb-fs-13);font-weight:600;
   color:var(--sb-ink-muted);background:transparent;border:none;font-family:inherit;cursor:pointer;
@@ -74,6 +75,9 @@ html,body{
 .mode-tab:focus-visible{outline:2px solid var(--sb-azure);outline-offset:-2px;border-radius:var(--sb-r-md)}
 .mode-ico{font-family:var(--sb-mono);font-size:var(--sb-fs-10);font-weight:700;opacity:.55;letter-spacing:-1px}
 .mode-tab.on .mode-ico{opacity:1}
+/* Brains have no trigger to show, so their tab carries the Brain glyph the
+   dashboard and the phone use, drawn at the size of the trigger glyphs. */
+.mode-ico svg{display:block;width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .mc{font-size:var(--sb-fs-10);font-weight:700;padding:1px 7px;border-radius:var(--sb-r-pill);background:var(--sb-line);color:var(--sb-ink-muted);font-variant-numeric:tabular-nums}
 .mode-tab.on .mc{background:var(--sb-azure-bg);color:var(--sb-azure)}
 
@@ -362,16 +366,29 @@ html,body{
 .p-copy svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .p-empty{padding:36px 20px;text-align:center;color:var(--sb-ink-subtle);font-size:var(--sb-fs-13);line-height:1.7}
 
+/* ── BRAIN ROW ──
+   The prompt row, in the brand azure: Brains carry no violet trigger pill. */
+.p-item.brain.sel{box-shadow:inset 2px 0 0 var(--sb-azure)}
+.p-item.brain:focus-visible{outline-color:var(--sb-azure)}
+.p-item.brain .p-copy:hover{border-color:var(--sb-azure);color:var(--sb-azure);background:var(--sb-azure-bg)}
+.b-info{font-size:var(--sb-fs-12);color:var(--sb-ink-muted);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* The open Brain: the way back, its name and size, and Copy whole Brain. */
+.b-head{flex-shrink:0;padding:8px 16px 10px 8px;border-bottom:1px solid var(--sb-line)}
+.b-row{display:flex;align-items:center;gap:8px}
+.b-txt{flex:1;min-width:0}
+.b-name{font-size:var(--sb-fs-14);font-weight:700;color:var(--sb-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.b-head .d-warn{margin:8px 0 0 8px}
+
 /* ── FOOTER ── */
 .lfoot{height:56px;flex-shrink:0;border-top:1px solid var(--sb-line);display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 16px;background:var(--sb-bg)}
-.ver-btn{font-family:var(--sb-mono);font-size:var(--sb-fs-10);font-weight:600;color:var(--sb-ink-muted);background:none;border:none;cursor:pointer;flex-shrink:0;transition:color var(--sb-dur-fast)}
+.ver-btn{font-family:inherit;font-size:var(--sb-fs-10);font-weight:600;color:var(--sb-ink-muted);background:none;border:none;cursor:pointer;flex-shrink:0;transition:color var(--sb-dur-fast)}
 .ver-btn:hover{color:var(--sb-azure)}
 .ver-btn:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px;border-radius:var(--sb-r-sm)}
 /* Between the version and Open Dashboard. The saint gives way first on a tight
    footer; the Christmas line never shrinks. Neither neighbour can be pushed,
    both are flex-shrink:0. */
 .lmid{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:14px}
-.saint,.xmas{font-family:var(--sb-mono);font-size:var(--sb-fs-10);color:var(--sb-ink-muted)}
+.saint,.xmas{font-size:var(--sb-fs-10);color:var(--sb-ink-muted)}
 .saint{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .xmas{flex-shrink:0;white-space:nowrap}
 .sep{flex-shrink:0;width:1px;height:12px;background:var(--sb-line)}
@@ -437,7 +454,7 @@ html,body{
   font-size:var(--sb-fs-10);color:var(--sb-ink-muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.ina-msg{font-size:var(--sb-fs-11);color:var(--sb-ink);line-height:1.5;margin-bottom:8px}
+.ina-msg,.wel-msg{font-size:var(--sb-fs-11);color:var(--sb-ink);line-height:1.5;margin-bottom:8px}
 .ina-row{display:flex;align-items:center;gap:8px}
 .ina-btn{
   height:30px;padding:0 12px;flex-shrink:0;font-family:inherit;
@@ -589,6 +606,14 @@ html,body{
     </button>
   </div>
 
+  <!-- NEW NAME: shown once, after an update from a version before 3.69.0
+       (background.js sets the flag). Drawn as the Save this chat card. -->
+  <div class="cap-card" id="wel-card" role="status" style="display:none">
+    <div class="cap-head"><span class="cap-title">SprintBrain is now Fibonax</span></div>
+    <div class="wel-msg">Same account, same snippets and prompts. New: your Brains are here too, in the third tab.</div>
+    <button class="cap-btn" id="wel-ok" type="button">Got it</button>
+  </div>
+
   <!-- SAVE THIS CHAT — only rendered when the active tab is a supported AI chat
        thread. Hidden on every other page, so the popup gains nothing to ignore. -->
   <div class="cap-card" id="cap-card" style="display:none">
@@ -605,13 +630,16 @@ html,body{
 
   <!-- SEGMENTED CONTROL -->
   <div class="seg-wrap">
-    <div class="seg" id="mode-seg" role="tablist" aria-label="Snippets or Prompts">
+    <div class="seg" id="mode-seg" role="tablist" aria-label="Snippets, Prompts or Brains">
       <span class="seg-thumb" aria-hidden="true"></span>
       <button class="mode-tab on" data-mode="snippets" id="mtab-snip" role="tab" aria-selected="true">
         <span class="mode-ico" id="mglyph-snip">::</span>Snippets<span class="mc" id="mct-snip">0</span>
       </button>
       <button class="mode-tab" data-mode="prompts" id="mtab-prmpt" role="tab" aria-selected="false">
         <span class="mode-ico" id="mglyph-prmpt">"""</span>Prompts<span class="mc" id="mct-prmpt">0</span>
+      </button>
+      <button class="mode-tab" data-mode="brains" id="mtab-brain" role="tab" aria-selected="false">
+        <span class="mode-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/></svg></span>Brains<span class="mc" id="mct-brain">0</span>
       </button>
     </div>
   </div>
@@ -660,6 +688,14 @@ html,body{
       <div class="set-note">Copied and inserted prompts start with step-by-step instructions. The AI does one step, then waits for you.</div>
     </div>
     <div class="p-list" id="plist"></div>
+  </div>
+
+  <!-- BRAIN LIST: the Brains, or the items of the one open. Read and copy
+       only, like the phone's Brains page; Brains are managed in the dashboard.
+       renderBrains() in popup.js writes both parts. -->
+  <div class="p-main" id="brain-main">
+    <div class="b-head" id="brain-head" hidden></div>
+    <div class="p-list" id="blist" aria-busy="false"></div>
   </div>
 
   <!-- FOOTER -->
@@ -756,6 +792,7 @@ html,body{
 <script src="../shared/tooltip.js"></script>
 <script src="../shared/snippet-stats.js"></script>
 <script src="../shared/memory-chunk.js"></script>
+<script src="../shared/memory-pack.js"></script>
 <script src="../auth/auth.js"></script>
 <script src="../services/notion-sync/notion-sync.js"></script>
 <script src="sync-deletion.js"></script>

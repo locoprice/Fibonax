@@ -32,7 +32,7 @@ CI runs all three on every push to `develop`.
 | Part of the product | Where it lives in the code | Page |
 |---|---|---|
 | Sign-up, sign-in, first snippet | `app/src/routes/{SignupPage,LoginPage}.tsx`, `app/src/components/auth/` | `quickstart` |
-| Extension install, sign-in, popup, popup settings, popup footer (saint of the day, days to Christmas) | `extension/popup/`, `extension/shared/saint-of-day.js`, `extension/manifest.json` | `install-extension` |
+| Extension install, sign-in, popup, popup settings, popup footer (saint of the day, days to Christmas), the one-time note after the update from SprintBrain | `extension/popup/`, `extension/shared/saint-of-day.js`, `extension/manifest.json`, `extension/background/background.js` (onInstalled) | `install-extension` |
 | Typing triggers, the menu, fill form, right-click, selection suggestions, Undo, capitalization | `extension/content/content.js`, `extension/background/background.js`, `extension/shared/fill-form.js` | `text-snippets/insert` |
 | Snippet editor, folders, labels, list, bulk actions, unused notice | `app/src/features/snippets/`, `app/src/features/org/`, `app/src/features/labels/` | `text-snippets/create-and-organize` |
 | Field builders: Text, Number, Date/Time, Automatic, Range, Choice, Button | `app/src/features/snippets/Form*Dialog.tsx`, `app/src/lib/form*Token.ts`, `extension/formula-engine.js` | `text-snippets/dynamic-fields` |
@@ -44,7 +44,7 @@ CI runs all three on every push to `develop`.
 | Prompt editor, blocks, Ask User Questions, Interactive Steps, details, history | `app/src/features/prompts/PromptBlockEditor.tsx`, `app/src/lib/promptUtils.ts`, `app/src/lib/interactiveSteps.ts`, `extension/shared/interactive-steps.js` | `prompts/create-prompts` |
 | Prompt score | `app/src/lib/usePromptEvaluator.ts`, `PromptEfficiencyWidget.tsx` | `prompts/quality-score` |
 | Prompt list, filters, cards, the `"""` menu | `app/src/routes/PromptsPage.tsx`, `PromptFilters.tsx`, `PromptCard.tsx`, `content.js` prompt picker | `prompts/overview`, `prompts/filters-and-shortcuts` |
-| Brains: items, uploads, trash, history, Context button, save selection, save chat, phone (Save to Brain) | `app/src/routes/Memory*.tsx`, `app/src/features/memory/`, `extension/content/{memory-picker,save-selection,chat-capture}.js`, `extension/shared/memory-chunk.js`, `app/public/mobile/index.html` | `brains/overview` |
+| Brains: items, uploads, trash, history, Context button, save selection, save chat, popup Brains tab, phone (Save to Brain) | `app/src/routes/Memory*.tsx`, `app/src/features/memory/`, `extension/content/{memory-picker,save-selection,chat-capture}.js`, `extension/shared/memory-chunk.js`, `extension/popup/popup.js` (Brains tab), `app/public/mobile/index.html` | `brains/overview`, `install-extension` |
 | Review status, who approves, the Review page, what Deprecated and Archived do on each surface | `app/src/lib/reviewStatus.ts`, `app/src/components/shared/ReviewStatus{Badge,Menu}.tsx`, `app/src/features/review/ReviewQueue.tsx`, `app/src/routes/ReviewPage.tsx`, `services/supabase/migrations/20261005120000_review_status.sql`, `extension/content/content.js` (reviewWarning), `extension/popup/popup.js`, `app/public/mobile/index.html` | `review/overview`, `text-snippets/insert`, `brains/overview`, `apps/mobile` |
 | Folder sharing | `app/src/features/org/FolderShareModal.tsx` | `team/sharing-and-permissions` |
 | Team page, invitations, roles | `app/src/routes/{TeamPage,InvitePage}.tsx`, `app/src/features/org/` | `team/workspace` |
