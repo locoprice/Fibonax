@@ -2680,14 +2680,23 @@ function showCelebration(text, onConfirm, onUndo, options) {
   var cdEl = card.querySelector('#sb-cel-cd');
   var reducedMotion = _prefersReducedMotion();
 
-  function restoreFocus() {
+  // Focus goes back only if the card still holds it. If the page took it back
+  // while the card was open, or the person clicked somewhere else, focus and
+  // caret are already where they belong.
+  function restoreFocus(cardHadFocus) {
+    if (!cardHadFocus) return;
     if (!returnFocus || !returnFocus.isConnected || typeof returnFocus.focus !== 'function') return;
     returnFocus.focus({ preventScroll: true });
     if (savedStart !== null && typeof returnFocus.setSelectionRange === 'function') {
       returnFocus.setSelectionRange(savedStart, savedEnd, savedDirection || 'none');
     } else if (savedRange && savedRange.startContainer.isConnected && savedRange.endContainer.isConnected) {
       var sel = window.getSelection();
-      if (sel) { sel.removeAllRanges(); sel.addRange(savedRange); }
+      // An editor that writes the text after this card opened (WhatsApp's)
+      // has already put its caret after it. The range saved at open still
+      // covers the shortcut, and restoring it sent the caret back to the start
+      // of the message. Fall back on it only when the caret left the field.
+      var caretInField = sel && sel.rangeCount > 0 && returnFocus.contains(sel.getRangeAt(0).endContainer);
+      if (sel && !caretInField) { sel.removeAllRanges(); sel.addRange(savedRange); }
     }
   }
 
@@ -2697,11 +2706,13 @@ function showCelebration(text, onConfirm, onUndo, options) {
     clearTimeout(autoCloseTimer);
     clearInterval(countdownIv);
     document.removeEventListener('keydown', onKey, true);
-    document.removeEventListener('focusin', containFocus, true);
+    document.removeEventListener('focusin', pauseOnFocus, true);
+    // Read before the card goes: removing it moves the browser's focus away.
+    var cardHadFocus = card.contains(document.activeElement);
     card.remove();
     bd.remove();
     if (activeCelebrationClose === close) activeCelebrationClose = null;
-    restoreFocus();
+    restoreFocus(cardHadFocus);
     if (typeof callback === 'function') callback();
   }
 
@@ -2716,24 +2727,45 @@ function showCelebration(text, onConfirm, onUndo, options) {
     clearTimeout(autoCloseTimer);
     clearInterval(countdownIv);
     cdEl.textContent = inserted ? 'Auto-close paused' : 'Auto-insert paused';
-    // Freeze the remaining time in place so the progress bar never disappears
-    // just because the pointer is already over the newly opened card.
+    // Freeze the remaining time in place so the progress bar stays visible
+    // while the countdown is paused.
   }
 
-  function containFocus(event) {
-    if (!card.contains(event.target)) card.focus({ preventScroll: true });
-    else if (event.target !== card) pause();
+  // Only a pointer that moves over the card pauses it. The card opens right
+  // where the person just clicked (a language, Insert message), so the pointer
+  // is usually already resting on it: that used to pause the countdown at
+  // once, and the card never closed on its own. A few pixels of hand tremor do
+  // not count as moving.
+  var pointerFrom = null;
+  function pauseOnPointerMove(event) {
+    if (!pointerFrom) { pointerFrom = { x: event.clientX, y: event.clientY }; return; }
+    var dx = event.clientX - pointerFrom.x, dy = event.clientY - pointerFrom.y;
+    if (dx * dx + dy * dy > 100) pause();
+  }
+
+  // The card takes focus once, when it opens, and never pulls it back. WhatsApp
+  // moves focus to its editor the moment it finishes placing the text, and the
+  // card used to grab it straight back: the two took it from each other about
+  // once a millisecond and the tab froze. Focus moving onto one of the card's
+  // own buttons still pauses the countdown.
+  function pauseOnFocus(event) {
+    if (card.contains(event.target) && event.target !== card) pause();
   }
 
   function onKey(event) {
     if (settled) return;
-    // Host editors must not act on a key intended for this dialog.
-    event.stopPropagation();
     if (event.key === 'Escape') {
+      // Esc closes the card wherever focus is, and the page does not get it too.
+      event.stopPropagation();
       event.preventDefault();
       close();
       return;
     }
+    // Keys typed while the page holds focus belong to the page: the person can
+    // keep writing, or press Enter to send, while the card counts down.
+    if (!card.contains(document.activeElement)) return;
+    // Host editors must not act on a key intended for this dialog.
+    event.stopPropagation();
     pause();
     if (event.key === 'Tab') {
       var buttons = card.querySelectorAll('button');
@@ -2750,9 +2782,9 @@ function showCelebration(text, onConfirm, onUndo, options) {
   card.querySelector('#sb-cel-skip').addEventListener('click', close);
   if (canUndo) card.querySelector('#sb-cel-undo').addEventListener('click', undo);
   bd.addEventListener('click', close);
-  card.addEventListener('pointerenter', pause);
+  card.addEventListener('pointermove', pauseOnPointerMove);
   document.addEventListener('keydown', onKey, true);
-  document.addEventListener('focusin', containFocus, true);
+  document.addEventListener('focusin', pauseOnFocus, true);
   card.focus({ preventScroll: true });
 
   var started = Date.now();

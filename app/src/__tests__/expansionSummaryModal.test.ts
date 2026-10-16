@@ -106,9 +106,30 @@ class RecordingDocument extends RecordingEventTarget {
   getElementById(id: string) { return this.body.querySelector('#' + id); }
 }
 
-function harness() {
+// A contenteditable's caret, as window.getSelection() reports it.
+interface RecordingRange {
+  startContainer: RecordingElement;
+  endContainer: RecordingElement;
+  cloneRange(): RecordingRange;
+}
+function caretIn(node: RecordingElement): RecordingRange {
+  return { startContainer: node, endContainer: node, cloneRange: () => caretIn(node) };
+}
+class RecordingSelection {
+  private ranges: RecordingRange[] = [];
+  get rangeCount() { return this.ranges.length; }
+  getRangeAt(index: number) {
+    const range = this.ranges[index];
+    if (!range) throw new Error('No range at ' + index);
+    return range;
+  }
+  removeAllRanges() { this.ranges = []; }
+  addRange(range: RecordingRange) { this.ranges = [range]; }
+}
+
+function harness(options: { tag?: string; selection?: RecordingSelection } = {}) {
   const document = new RecordingDocument();
-  const target = document.createElement('textarea');
+  const target = document.createElement(options.tag ?? 'textarea');
   document.body.appendChild(target);
   target.focus();
   const section = source.slice(source.indexOf('var activeCelebrationClose'), source.indexOf('// ── INLINE TRIGGER PICKER'));
@@ -117,7 +138,7 @@ function harness() {
       showCelebration: ShowModal;
       _expansionSummary: (text: string) => { words: number; characters: number; seconds: number; timeLabel: string };
     };
-  const api = create(document, { getSelection: () => null });
+  const api = create(document, { getSelection: () => options.selection ?? null });
   function control(id: string) {
     const found = document.getElementById(id);
     if (!found) throw new Error(`Missing modal control: ${id}`);
@@ -232,7 +253,12 @@ describe('expansion confirmation: keyboard and countdown', () => {
       const confirm = vi.fn();
       h.showCelebration('Response.', confirm, vi.fn(), { inserted: true, target: h.target });
       vi.advanceTimersByTime(1_000);
-      if (interaction === 'hover') h.control('sb-celebrate').emit('pointerenter');
+      if (interaction === 'hover') {
+        const card = h.control('sb-celebrate');
+        card.emit('pointerenter');
+        card.emit('pointermove', { clientX: 300, clientY: 200 });
+        card.emit('pointermove', { clientX: 330, clientY: 210 });
+      }
       if (interaction === 'keyboard') h.key('Tab');
       if (interaction === 'focus') h.control('sb-cel-undo').focus();
       vi.advanceTimersByTime(10_000);
@@ -242,6 +268,22 @@ describe('expansion confirmation: keyboard and countdown', () => {
       expect(confirm).toHaveBeenCalledOnce();
     });
   }
+
+  // The card opens where the person just clicked (a language, Insert message),
+  // so the pointer is usually already on it. That alone paused the countdown
+  // and the card never closed on its own (v3.68.4).
+  it('still closes on its own when the pointer is only resting where the card opened', () => {
+    const h = harness();
+    const confirm = vi.fn();
+    h.showCelebration('Response.', confirm, vi.fn(), { inserted: true, target: h.target });
+    const card = h.control('sb-celebrate');
+    card.emit('pointerenter');
+    card.emit('pointermove', { clientX: 400, clientY: 300 });
+    card.emit('pointermove', { clientX: 402, clientY: 301 }); // hand tremor, not a move
+    vi.advanceTimersByTime(5_000);
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(h.document.getElementById('sb-celebrate')).toBeNull();
+  });
 
   it('keeps keyboard focus inside the dialog in both directions', () => {
     const h = harness();
@@ -255,6 +297,96 @@ describe('expansion confirmation: keyboard and countdown', () => {
     expect(h.document.activeElement).toBe(last);
     expect(h.key('Tab').defaultPrevented).toBe(true);
     expect(h.document.activeElement).toBe(first);
+  });
+});
+
+// WhatsApp moves focus back to its editor the moment it finishes placing the
+// text. The card used to pull it straight back, the two took focus from each
+// other about once a millisecond, and the tab froze. Then, once that was out of
+// the way, closing the card sent the caret back to where the shortcut had been.
+describe('expansion confirmation: a page that takes focus back', () => {
+  // Stands in for the page: whenever the card gets focus, the page's own field
+  // takes it back. Capped, so the old fight ends here instead of hanging.
+  function pageTakesFocusBack(h: ReturnType<typeof harness>) {
+    let takes = 0;
+    h.document.addEventListener('focusin', (event) => {
+      const card = h.document.getElementById('sb-celebrate');
+      if (card && event.target === card && takes < 50) {
+        takes++;
+        h.target.focus();
+      }
+    }, true);
+    return () => takes;
+  }
+
+  it('lets the page keep focus instead of taking it back', () => {
+    const h = harness();
+    const takes = pageTakesFocusBack(h);
+    h.showCelebration('Response.', vi.fn(), vi.fn(), { inserted: true, target: h.target });
+    expect(takes()).toBe(1);
+    expect(h.document.activeElement).toBe(h.target);
+  });
+
+  it('leaves keys typed in the page to the page, and keeps counting down', () => {
+    const h = harness();
+    pageTakesFocusBack(h);
+    const confirm = vi.fn();
+    h.showCelebration('Response.', confirm, vi.fn(), { inserted: true, target: h.target });
+    const enter = h.key('Enter');
+    expect(enter.cancelBubble).toBe(false);
+    expect(enter.defaultPrevented).toBe(false);
+    vi.advanceTimersByTime(5_000);
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(h.document.activeElement).toBe(h.target);
+  });
+
+  it('still closes on Esc while the page holds focus', () => {
+    const h = harness();
+    pageTakesFocusBack(h);
+    const confirm = vi.fn();
+    h.showCelebration('Response.', confirm, vi.fn(), { inserted: true, target: h.target });
+    expect(h.key('Escape').defaultPrevented).toBe(true);
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+
+  it('leaves the caret where the page put it when the card closes', () => {
+    const selection = new RecordingSelection();
+    const h = harness({ tag: 'div', selection });
+    const shortcut = h.target.appendChild(h.document.createElement('span'));
+    const afterText = h.target.appendChild(h.document.createElement('span'));
+    selection.addRange(caretIn(shortcut));
+    pageTakesFocusBack(h);
+    h.showCelebration('Response.', vi.fn(), vi.fn(), { inserted: true, target: h.target });
+    // The editor writes the text after the card opened and moves its caret past it.
+    selection.addRange(caretIn(afterText));
+    vi.advanceTimersByTime(5_000);
+    expect(selection.getRangeAt(0).endContainer).toBe(afterText);
+  });
+
+  it('keeps the caret after the text when Done is chosen', () => {
+    const selection = new RecordingSelection();
+    const h = harness({ tag: 'div', selection });
+    const shortcut = h.target.appendChild(h.document.createElement('span'));
+    const afterText = h.target.appendChild(h.document.createElement('span'));
+    selection.addRange(caretIn(shortcut));
+    h.showCelebration('Response.', vi.fn(), vi.fn(), { inserted: true, target: h.target });
+    selection.addRange(caretIn(afterText));
+    h.control('sb-cel-ok').emit('click');
+    expect(h.document.activeElement).toBe(h.target);
+    expect(selection.getRangeAt(0).endContainer).toBe(afterText);
+  });
+
+  it('puts the caret back in the field if it left while the card was open', () => {
+    const selection = new RecordingSelection();
+    const h = harness({ tag: 'div', selection });
+    const inField = h.target.appendChild(h.document.createElement('span'));
+    const elsewhere = h.document.body.appendChild(h.document.createElement('span'));
+    selection.addRange(caretIn(inField));
+    h.showCelebration('Response.', vi.fn(), vi.fn(), { inserted: true, target: h.target });
+    selection.addRange(caretIn(elsewhere));
+    h.control('sb-cel-ok').emit('click');
+    expect(h.document.activeElement).toBe(h.target);
+    expect(selection.getRangeAt(0).endContainer).toBe(inField);
   });
 });
 
