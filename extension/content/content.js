@@ -1027,9 +1027,9 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
       // atomically replaces the trigger with the snippet. The celebration is then
       // purely informational; onConfirm only logs. onUndo deletes the inserted
       // region (see restoreFieldState) so the field returns to its pre-trigger state.
-      var startCO = _ceCaretCharOffset(_ceHost(el), true);
+      var before = _ceMeasureBefore(el);
       insertText(el, text);
-      _markSyncInserted(fieldSnapshot, el, startCO, text);
+      _markSyncInserted(fieldSnapshot, el, before, text);
       showCelebration(
         text,
         function onConfirm() {           // timer expired or user clicked OK
@@ -2258,10 +2258,10 @@ function doInsert(targetEl, snip) {
   // region so the Undo button can delete it: same mechanism as the no-field CE
   // path in _proceedInsert (see restoreFieldState).
   function insertSyncCE() {
-    var startCO = _ceCaretCharOffset(_ceHost(targetEl), true);
+    var before = _ceMeasureBefore(targetEl);
     insertText(targetEl, text);
     var snapshot = captureFieldState(targetEl, overlayTriggerLen);
-    _markSyncInserted(snapshot, targetEl, startCO, text);
+    _markSyncInserted(snapshot, targetEl, before, text);
     showCelebration(
       text,
       function onConfirm() { logEvent(snip, fillCount); },
@@ -2315,11 +2315,62 @@ function closeOverlay() {
 function removeOverlay() { closeOverlay(); }
 
 // ── FIELD STATE SNAPSHOT (for Undo) ───────────────────────────────
-// Character offset of the current caret within `host`, counting only text-node
-// characters: block boundaries and <br> contribute nothing, a line break that
-// landed as a "\n" character (white-space: pre-wrap) counts as one. `fromStart`
-// reads where a selection starts instead of where it ends. Returns -1 if the
-// caret isn't inside the host.
+// Positions in a field are counted in characters. Gmail shows every emoji it is
+// given as a picture (<img alt="☺️">) with no text behind it, so counted as
+// nothing, a snippet holding one measured shorter in the field than it is: Undo
+// then started that many characters early, taking the end of what was typed
+// before the snippet ("Hola " came back as "Hol"), and stopped in front of the
+// picture, leaving the emoji behind. A picture standing for an emoji counts as
+// the characters it shows, everywhere a position is measured.
+var EMOJI_IN_ALT_RE = /\p{Extended_Pictographic}/u;
+
+// The emoji an <img> stands for, or '' for any other node. A picture whose alt
+// holds letters or digits (":smile:", a logo) is not an emoji and counts as
+// nothing, as before.
+function _ceEmojiPictureText(node) {
+  if (!node || node.nodeType !== 1 || node.tagName !== 'IMG') return '';
+  var alt = node.getAttribute('alt') || '';
+  return (EMOJI_IN_ALT_RE.test(alt) && !/[A-Za-z0-9]/.test(alt)) ? alt : '';
+}
+
+// The characters a node contributes to a position: a text node's text, an emoji
+// picture's emoji.
+function _ceUnitText(node) {
+  return typeof node.nodeValue === 'string' ? node.nodeValue : _ceEmojiPictureText(node);
+}
+
+// Visits, in order, every text node and emoji picture inside `host`.
+function _ceUnitWalker(host) {
+  return document.createTreeWalker(host, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+    acceptNode: function(n) {
+      return (n.nodeType === 3 || _ceEmojiPictureText(n)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+    }
+  });
+}
+
+// The field's text as positions count it: emoji pictures read as their emoji.
+function _ceVisibleText(host) {
+  var tw = _ceUnitWalker(host), node, out = '';
+  while ((node = tw.nextNode())) out += _ceUnitText(node);
+  return out;
+}
+
+// Characters inside `range`, counting each emoji picture it holds.
+function _ceRangeLength(range, host) {
+  var n = range.toString().length;
+  var pictures = host.querySelectorAll ? host.querySelectorAll('img') : [];
+  for (var i = 0; i < pictures.length; i++) {
+    var shown = _ceEmojiPictureText(pictures[i]);
+    if (shown && range.intersectsNode(pictures[i])) n += shown.length;
+  }
+  return n;
+}
+
+// Character offset of the current caret within `host`: block boundaries and
+// <br> contribute nothing, a line break that landed as a "\n" character
+// (white-space: pre-wrap) counts as one, an emoji picture as its emoji.
+// `fromStart` reads where a selection starts instead of where it ends.
+// Returns -1 if the caret isn't inside the host.
 function _ceCaretCharOffset(host, fromStart) {
   try {
     var sel = window.getSelection();
@@ -2331,28 +2382,39 @@ function _ceCaretCharOffset(host, fromStart) {
     var pre = document.createRange();
     pre.selectNodeContents(host);
     pre.setEnd(node, offset);
-    return pre.toString().length;
+    return _ceRangeLength(pre, host);
   } catch(_) { return -1; }
 }
 
-// Inverse of _ceCaretCharOffset: resolve a text-character offset within `host`
-// to a concrete {node, offset} DOM position. An offset that falls between two
-// text nodes resolves to the end of the first. `atStart` asks for the start of
-// the second instead, for the start of a range: otherwise the range also takes
+// The DOM position just before or just after `node`, in its parent.
+function _cePointBeside(node, after) {
+  var i = 0, c = node.parentNode.firstChild;
+  while (c && c !== node) { i++; c = c.nextSibling; }
+  return { node: node.parentNode, offset: after ? i + 1 : i };
+}
+
+// Inverse of _ceCaretCharOffset: resolve a character offset within `host` to a
+// concrete {node, offset} DOM position. An offset that falls between two text
+// nodes resolves to the end of the first. `atStart` asks for the start of the
+// second instead, for the start of a range: otherwise the range also takes
 // whatever sits between them, and a snippet typed at the start of a new line
-// replaced, or on Undo removed, the line break in front of it.
+// replaced, or on Undo removed, the line break in front of it. An emoji picture
+// is one piece: an offset that lands inside it resolves to just before it.
 function _ceCharOffsetToPoint(host, target, atStart) {
-  var tw = document.createTreeWalker(host, NodeFilter.SHOW_TEXT, null);
+  var tw = _ceUnitWalker(host);
   var acc = 0, node, last = null;
   while ((node = tw.nextNode())) {
-    var len = node.nodeValue.length;
+    var len = _ceUnitText(node).length;
     if (acc + len > target || (acc + len === target && !atStart)) {
-      return { node: node, offset: Math.max(0, target - acc) };
+      if (typeof node.nodeValue === 'string') return { node: node, offset: Math.max(0, target - acc) };
+      return _cePointBeside(node, acc + len === target);
     }
     acc += len;
     last = node;
   }
-  if (last && acc === target) return { node: last, offset: last.nodeValue.length };
+  if (last && acc === target) {
+    return typeof last.nodeValue === 'string' ? { node: last, offset: last.nodeValue.length } : _cePointBeside(last, true);
+  }
   return { node: host, offset: host.childNodes ? host.childNodes.length : 0 };
 }
 
@@ -2361,13 +2423,27 @@ function _ceCharOffsetToPoint(host, target, atStart) {
 // live selection can no longer be trusted because a modal held focus in between
 // (the field overlay, the {{name}} fill-in box). Returns false when the offset
 // is unusable, leaving the caller its live-selection path.
+// True when focus is already inside the editable field that holds `el`. Asking
+// whether the focused element contains `el` instead also says yes when focus
+// sits on the page itself (document.body contains everything), which is where
+// it falls the moment one of our windows closes.
+function _ceFocusInHost(el) {
+  var host = _ceHost(el);
+  var active = document.activeElement;
+  return !!(host && active && (active === host || host.contains(active)));
+}
+
 function _ceRestoreTriggerRange(el, caretCO, n) {
   try {
     if (typeof caretCO !== 'number' || n < 0 || caretCO < n) return false;
     var host = _ceHost(el);
     if (!host) return false;
-    if (document.activeElement !== el && !document.activeElement.contains(el)) {
-      try { el.focus(); } catch(_) {}
+    // Focus the field BEFORE selecting the trigger. Gmail moves its caret back
+    // to where it last was when the field regains focus; with focus left on the
+    // page, that happened after the selection was set, so the trigger stayed
+    // and the snippet landed after it ("::timeBuenos días…", or "::ti…").
+    if (!_ceFocusInHost(el)) {
+      try { host.focus(); } catch(e) { console.error('[Fibonax] could not focus the field', e); }
     }
     var sp = _ceCharOffsetToPoint(host, caretCO - n, n > 0);
     var ep = _ceCharOffsetToPoint(host, caretCO);
@@ -2388,19 +2464,36 @@ function captureFieldState(el, triggerLen) {
   return { type: 'value', el: el, triggerLen: triggerLen || 0 };
 }
 
+// What a field holds just before an insertion, in _ceCaretCharOffset's units:
+// where the selection the snippet replaces starts and ends, and the field's
+// whole length. _markSyncInserted measures the snippet against it.
+function _ceMeasureBefore(el) {
+  var host = _ceHost(el);
+  return {
+    start: _ceCaretCharOffset(host, true),
+    end: _ceCaretCharOffset(host),
+    total: host ? _ceVisibleText(host).length : -1
+  };
+}
+
 // Records the region a contenteditable insertion just wrote, for Undo: its
 // length and the character offset where it ends, both in _ceCaretCharOffset's
-// unit. `startCO` is where the insertion began, read before insertText. Lexical
-// writes a pasted body a moment after insertText returns, so there the live
-// caret still sits in front of the snippet and Undo would delete the text
+// unit. `before` is _ceMeasureBefore's reading, taken before insertText.
+// Lexical writes a pasted body a moment after insertText returns, so there the
+// live caret still sits in front of the snippet and Undo would delete the text
 // before it; the end is counted from the start instead. Every other editor has
-// written it already, and its live caret stays the truth. A line break counts
-// in the length only where it landed as a "\n" character (a field styled
-// white-space: pre-wrap): counting none left the start of a multi-line snippet
-// behind there, and counting all would take text in front of the snippet
-// wherever a break landed as a <br>, as Lexical's do.
-function _markSyncInserted(snapshot, el, startCO, text) {
+// written it already, and its live caret stays the truth.
+//
+// The length is measured, not counted: the field grew by the snippet less what
+// it replaced. Counting the snippet's own text was wrong wherever the editor
+// tidies text as it lands. Gmail drops a space at the end of a line and shows
+// an emoji as a picture, so Undo was a character or two out: it took the end of
+// what was typed before the snippet ("Hola " came back as "Hol"), or left the
+// snippet's first letter behind. The count stays as the fallback for an editor
+// that has not written the text yet when this runs.
+function _markSyncInserted(snapshot, el, before, text) {
   var host = _ceHost(el);
+  var startCO = before ? before.start : -1;
   snapshot.syncInserted = true;
   snapshot.visibleLen = String(text).replace(/[\r\n]/g, '').length;
   if (_isLexicalHost(host) && startCO >= 0) {
@@ -2408,13 +2501,18 @@ function _markSyncInserted(snapshot, el, startCO, text) {
     return;
   }
   snapshot.endCharOffset = _ceCaretCharOffset(host);
-  // Walk back from the caret over the snippet, last line first, and count each
-  // line break that landed as a character.
-  var before = snapshot.endCharOffset > 0 ? host.textContent.slice(0, snapshot.endCharOffset) : '';
+  if (before && before.total >= 0 && startCO >= 0 && before.end >= startCO) {
+    var grew = _ceVisibleText(host).length - before.total + (before.end - startCO);
+    if (grew > 0) { snapshot.visibleLen = grew; return; }
+  }
+  // Fallback count: walk back from the caret over the snippet, last line
+  // first, and count each line break that landed as a "\n" character (a field
+  // styled white-space: pre-wrap). A break that landed as a <br> counts nothing.
+  var upToCaret = snapshot.endCharOffset > 0 ? _ceVisibleText(host).slice(0, snapshot.endCharOffset) : '';
   var lines = String(text).replace(/\r\n?/g, '\n').split('\n');
-  var at = before.length - lines[lines.length - 1].length;
+  var at = upToCaret.length - lines[lines.length - 1].length;
   for (var i = lines.length - 2; i >= 0; i--) {
-    if (before.charAt(at - 1) === '\n') { snapshot.visibleLen++; at--; }
+    if (upToCaret.charAt(at - 1) === '\n') { snapshot.visibleLen++; at--; }
     at -= lines[i].length;
   }
 }
@@ -3053,9 +3151,9 @@ function selectTriggerItem(idx) {
           (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
         if (_isCE2) {
           // Same sync-insert fix as _proceedInsert: insert while selection is live.
-          var startCO = _ceCaretCharOffset(_ceHost(el), true);
+          var before = _ceMeasureBefore(el);
           insertText(el, text);
-          _markSyncInserted(fieldSnapshot, el, startCO, text);
+          _markSyncInserted(fieldSnapshot, el, before, text);
           showCelebration(
             text,
             function onConfirm() {     // timer expired or user clicked OK
@@ -4027,9 +4125,9 @@ function _proceedContextInsert(el, snip) {
       // the trigger paths' CE sync-insert (see _proceedInsert): capture the inserted
       // region so restoreFieldState can Range-delete it. onUndo skips logEvent.
       var snapCE = captureFieldState(el, 0);
-      var startCO = _ceCaretCharOffset(_ceHost(el), true);
+      var before = _ceMeasureBefore(el);
       insertText(el, text);
-      _markSyncInserted(snapCE, el, startCO, text);
+      _markSyncInserted(snapCE, el, before, text);
       showCelebration(
         text,
         function onConfirm() { logEvent(snip, 0); processing = false; },

@@ -95,6 +95,21 @@ const source = readFileSync(
   resolve(process.cwd(), '..', 'extension', 'content', 'content.js'),
   'utf8',
 );
+// How a position in a field is counted: text, plus emoji pictures read as the
+// emoji they show (Gmail). Every slice that measures or resolves a position
+// needs these alongside it.
+const positionHelpers = [
+  (source.match(/^var EMOJI_IN_ALT_RE = .*;$/m) ?? [''])[0],
+  ...[
+    'function _ceEmojiPictureText(node) {',
+    'function _ceUnitText(node) {',
+    'function _ceUnitWalker(host) {',
+    'function _ceVisibleText(host) {',
+    'function _ceRangeLength(range, host) {',
+    'function _cePointBeside(node, after) {',
+  ].map((sig) => sliceFunction(source, sig)),
+].join('\n');
+
 const fnSource = [
   'function _ceHost(el) {',
   'function _isLexicalHost(host) {',
@@ -238,7 +253,7 @@ function run(text: string, opts: Options = {}): Recorded {
     'window',
     'InputEvent',
     'StaticRange',
-    `${lexicalTimings}\n${fnSource}\nreturn insertText;`,
+    `${lexicalTimings}\n${positionHelpers}\n${fnSource}\nreturn insertText;`,
   ) as (
     d: unknown,
     dt: unknown,
@@ -411,7 +426,7 @@ describe('snippet expansion: a trigger at the start of a new line', () => {
   const toPoint = new Function(
     'document',
     'NodeFilter',
-    `${sliceFunction(source, 'function _ceCharOffsetToPoint(')}\nreturn _ceCharOffsetToPoint;`,
+    `${positionHelpers}\n${sliceFunction(source, 'function _ceCharOffsetToPoint(')}\nreturn _ceCharOffsetToPoint;`,
   )(
     {
       createTreeWalker: (root: { childNodes: unknown[] }) => {
@@ -443,6 +458,183 @@ describe('snippet expansion: a trigger at the start of a new line', () => {
   });
 });
 
+describe('positions in a field that shows emoji as pictures (Gmail)', () => {
+  // Gmail shows each emoji as <img alt="☺️"> with no text behind it. Counted as
+  // nothing, a snippet ending in one measured 2 characters short: Undo started
+  // 2 characters early ("Hola " came back as "Hol") and stopped before the
+  // picture, leaving the emoji. v3.68.5.
+  interface MiniNode {
+    nodeType: number;
+    nodeValue: string | null;
+    tagName?: string;
+    alt?: string;
+    parentNode: MiniNode | null;
+    childNodes: MiniNode[];
+    firstChild: MiniNode | null;
+    nextSibling: MiniNode | null;
+    getAttribute: (name: string) => string | null;
+    querySelectorAll: (sel: string) => MiniNode[];
+  }
+  const text = (value: string): MiniNode => ({
+    nodeType: 3, nodeValue: value, parentNode: null, childNodes: [], firstChild: null, nextSibling: null,
+    getAttribute: () => null, querySelectorAll: () => [],
+  });
+  const picture = (alt: string): MiniNode => ({
+    nodeType: 1, nodeValue: null, tagName: 'IMG', alt, parentNode: null, childNodes: [], firstChild: null,
+    nextSibling: null, getAttribute: (name) => (name === 'alt' ? alt : null), querySelectorAll: () => [],
+  });
+  function field(...children: MiniNode[]): MiniNode {
+    const host: MiniNode = {
+      nodeType: 1, nodeValue: null, tagName: 'DIV', parentNode: null, childNodes: children,
+      firstChild: children[0] ?? null, nextSibling: null, getAttribute: () => null,
+      querySelectorAll: (sel) => (sel === 'img' ? children.filter((c) => c.tagName === 'IMG') : []),
+    };
+    children.forEach((c, i) => { c.parentNode = host; c.nextSibling = children[i + 1] ?? null; });
+    return host;
+  }
+  const NF = { SHOW_TEXT: 4, SHOW_ELEMENT: 1, FILTER_ACCEPT: 1, FILTER_SKIP: 3 };
+  const doc = {
+    createTreeWalker: (root: MiniNode, _what: number, filter: { acceptNode: (n: MiniNode) => number }) => {
+      const order: MiniNode[] = [];
+      (function visit(n: MiniNode) { n.childNodes.forEach((c) => { order.push(c); visit(c); }); })(root);
+      const shown = order.filter((n) => filter.acceptNode(n) === NF.FILTER_ACCEPT);
+      let i = -1;
+      return { nextNode: () => shown[++i] ?? null };
+    },
+  };
+  const api = new Function(
+    'document',
+    'NodeFilter',
+    positionHelpers + '\n' + sliceFunction(source, 'function _ceCharOffsetToPoint(') +
+      '\nreturn { toPoint: _ceCharOffsetToPoint, visibleText: _ceVisibleText, rangeLength: _ceRangeLength };',
+  )(doc, NF) as {
+    toPoint: (host: MiniNode, target: number, atStart?: boolean) => { node: MiniNode; offset: number };
+    visibleText: (host: MiniNode) => string;
+    rangeLength: (range: { toString(): string; intersectsNode(n: MiniNode): boolean }, host: MiniNode) => number;
+  };
+
+  // "Hola " typed, then a snippet "Hi Pedro ☺️" whose emoji Gmail showed as a picture.
+  const typed = text('Hola Hi Pedro ');
+  const emoji = picture('☺️');
+  const host = field(typed, emoji);
+  const SNIPPET = 'Hi Pedro ☺️';
+
+  it('reads the picture as the emoji it shows', () => {
+    expect(api.visibleText(host)).toBe('Hola ' + SNIPPET);
+  });
+
+  it('counts the picture when measuring up to a caret after it', () => {
+    // Everything up to the caret: the text, plus the picture inside the range.
+    const upToCaret = { toString: () => typed.nodeValue ?? '', intersectsNode: (n: MiniNode) => n === emoji };
+    expect(api.rangeLength(upToCaret, host)).toBe(('Hola ' + SNIPPET).length);
+  });
+
+  it('gives Undo a region that keeps what was typed and takes the picture', () => {
+    const end = ('Hola ' + SNIPPET).length;
+    const start = end - SNIPPET.length;
+    expect(api.toPoint(host, start, true)).toEqual({ node: typed, offset: 5 });
+    expect(api.toPoint(host, end)).toEqual({ node: host, offset: 2 }); // just after the picture
+  });
+
+  it('starts a region before a picture that opens it', () => {
+    const opening = picture('🙂');
+    const after = text(' hi');
+    const h = field(text('Hola '), opening, after);
+    expect(api.toPoint(h, 5, true)).toEqual({ node: h, offset: 1 }); // just before the picture
+  });
+
+  it('leaves pictures that are not an emoji out of the count, as before', () => {
+    const h = field(text('Hi '), picture(':smile:'), text('there'));
+    expect(api.visibleText(h)).toBe('Hi there');
+  });
+});
+
+describe('snippet expansion: re-selecting the trigger after the fill window closes', () => {
+  // When the fill window closes, focus falls on the page itself. Gmail moves
+  // its caret back to where it last was when its field regains focus, so the
+  // field must be focused before the trigger is selected. The old check asked
+  // whether the focused element contains the field, which document.body always
+  // does: the field was never focused, Gmail put its caret back after the
+  // selection was made, and the snippet landed after the trigger
+  // ("::timeBuenos días Pedro…"). v3.68.5.
+  type Node = { nodeValue: string };
+  interface Field {
+    childNodes: Node[];
+    parentElement: null;
+    getAttribute: (name: string) => string | null;
+    contains: (other: unknown) => boolean;
+    focus: () => void;
+  }
+
+  function setup(focusOnField: boolean) {
+    const text: Node = { nodeValue: '::time' };
+    const order: string[] = [];
+    let selected: { start: number; end: number } | null = null;
+    const page = { contains: () => true };
+    const field: Field = {
+      childNodes: [text],
+      parentElement: null,
+      getAttribute: (name) => (name === 'contenteditable' ? 'true' : null),
+      contains: (other) => other === field || other === text,
+      focus: () => {
+        order.push('focus');
+        doc.activeElement = field;
+        // Gmail: its caret comes back after the trigger, dropping any selection.
+        selected = { start: 6, end: 6 };
+      },
+    };
+    const doc: { activeElement: unknown; createTreeWalker: unknown; createRange: unknown } = {
+      activeElement: focusOnField ? field : page,
+      createTreeWalker: (root: Field) => {
+        let i = -1;
+        return { nextNode: () => root.childNodes[++i] ?? null };
+      },
+      createRange: () => {
+        const r = { start: 0, end: 0, collapsed: true, toString: () => text.nodeValue.slice(r.start, r.end) };
+        return Object.assign(r, {
+          setStart: (_n: unknown, o: number) => { r.start = o; r.collapsed = r.start === r.end; },
+          setEnd: (_n: unknown, o: number) => { r.end = o; r.collapsed = r.start === r.end; },
+        });
+      },
+    };
+    const win = {
+      getSelection: () => ({
+        removeAllRanges: () => { selected = null; },
+        addRange: (r: { start: number; end: number }) => {
+          order.push('select');
+          selected = { start: r.start, end: r.end };
+        },
+      }),
+    };
+    const restore = new Function(
+      'document',
+      'window',
+      'NodeFilter',
+      [
+        'function _ceHost(el) {',
+        'function _ceFocusInHost(el) {',
+        'function _ceCharOffsetToPoint(host, target, atStart) {',
+        'function _ceRestoreTriggerRange(el, caretCO, n) {',
+      ].map((sig) => sliceFunction(source, sig)).join('\n') + '\n' + positionHelpers + '\nreturn _ceRestoreTriggerRange;',
+    )(doc, win, { SHOW_TEXT: 4 }) as (el: unknown, caretCO: number, n: number) => boolean;
+    return { restore, field, order, selection: () => selected };
+  }
+
+  it('focuses the field first when focus fell on the page, so the trigger stays selected', () => {
+    const t = setup(false);
+    expect(t.restore(t.field, 6, 6)).toBe(true);
+    expect(t.order).toEqual(['focus', 'select']);
+    expect(t.selection()).toEqual({ start: 0, end: 6 });
+  });
+
+  it('leaves focus alone when it is already in the field', () => {
+    const t = setup(true);
+    expect(t.restore(t.field, 6, 6)).toBe(true);
+    expect(t.order).toEqual(['select']);
+    expect(t.selection()).toEqual({ start: 0, end: 6 });
+  });
+});
+
 describe('Undo after a contenteditable insert', () => {
   // Undo deletes [endCharOffset - visibleLen, endCharOffset), counted in text
   // characters from the start of the field. A field styled white-space:
@@ -454,21 +646,25 @@ describe('Undo after a contenteditable insert', () => {
     visibleLen?: number;
     endCharOffset?: number;
   }
-  type Mark = (snapshot: Marked, el: unknown, startCO: number, text: string) => void;
+  // _ceMeasureBefore's reading: the replaced selection and the field's length.
+  type Before = { start: number; end: number; total: number };
+  type Mark = (snapshot: Marked, el: unknown, before: Before, text: string) => void;
+  // The field here is plain text, so its counted text is its text.
   const markWith = new Function(
     '_ceCaretCharOffset',
+    '_ceVisibleText',
     [
       sliceFunction(source, 'function _ceHost(el) {'),
       sliceFunction(source, 'function _isLexicalHost(host) {'),
       sliceFunction(source, 'function _markSyncInserted('),
       'return _markSyncInserted;',
     ].join('\n'),
-  ) as (caretCharOffset: () => number) => Mark;
+  ) as (caretCharOffset: () => number, visibleText: (host: { textContent: string }) => string) => Mark;
 
   // field: the field's text once insertText has returned. caret: where its live
   // caret stands then. startCO: where the insert began.
   function mark(
-    opts: { field: string; caret: number; startCO?: number; lexical?: boolean },
+    opts: { field: string; caret: number; startCO?: number; lexical?: boolean; before?: Before },
     text: string,
   ): Marked {
     const el = {
@@ -481,7 +677,10 @@ describe('Undo after a contenteditable insert', () => {
       textContent: opts.field,
     };
     const snapshot: Marked = {};
-    markWith(() => opts.caret)(snapshot, el, opts.startCO ?? 3, text);
+    // No reading of the field from before the insert (total -1): the length is
+    // counted from the snippet's text, the fallback these first cases pin.
+    const before = opts.before ?? { start: opts.startCO ?? 3, end: opts.startCO ?? 3, total: -1 };
+    markWith(() => opts.caret, (host) => host.textContent)(snapshot, el, before, text);
     return snapshot;
   }
   const region = (s: Marked) => [(s.endCharOffset ?? 0) - (s.visibleLen ?? 0), s.endCharOffset];
@@ -512,6 +711,26 @@ describe('Undo after a contenteditable insert', () => {
 
   it('counts from the start on Lexical, whose paste has not landed yet', () => {
     expect(region(mark({ field: 'Hi ', caret: 3, lexical: true }, BODY))).toEqual([3, 19]);
+  });
+
+  // Gmail tidies the text as it lands: it drops the space at the end of the
+  // first line and shows the emoji as a picture (counted as the emoji). The
+  // snippet's own text is then one character longer than what landed, and a
+  // length counted from it took the space typed before the snippet. The field
+  // grew by exactly what landed, so measuring the growth is right. v3.68.5.
+  it('measures what landed when the editor tidies the text (Gmail)', () => {
+    const line1 = 'x'.repeat(102); // landed without its trailing space
+    const line2 = 'y'.repeat(120) + '☺️';
+    const snippet = line1 + ' \n' + line2 + '\n\n';
+    const field = 'Hola ' + line1 + line2 + '\n'; // the stray line break was there before
+    const before = { start: 5, end: 11, total: 'Hola ::time\n'.length };
+    expect(region(mark({ field, caret: 5 + line1.length + line2.length, before }, snippet))).toEqual([5, 229]);
+  });
+
+  it('keeps the counted length when the editor has not written the text yet', () => {
+    // The trigger is gone and the paste is still on its way: the field has not grown.
+    const s = mark({ field: 'Hi ', caret: 3, before: { start: 3, end: 9, total: 9 } }, BODY);
+    expect(s.visibleLen).toBe(16);
   });
 
   it('falls back to the text when the caret is not in the field', () => {
