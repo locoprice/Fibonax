@@ -247,6 +247,15 @@ const BUTTON_FIELDS: { label: string; hint: string }[] = [
     hint: 'Whether the button trims the space around it. On a line of its own it leaves a blank line behind unless it does.' },
 ];
 
+const LINK_FIELDS: { label: string; hint: string }[] = [
+  { label: 'Where',
+    hint: 'Tick Fill from a pasted link in the Text, Number, Date/Time or Choice window of each field.' },
+  { label: 'What to read',
+    hint: 'Say where the value sits on the page: after a label, or a number before a word.' },
+  { label: 'At fill time',
+    hint: 'A Link box appears in the form. Paste, and the fields fill. Check them, then insert.' },
+];
+
 const MENU_FIELDS: { label: string; hint: string }[] = [
   { label: 'Values',
     hint: 'The options the menu offers. Tick one to preselect it.' },
@@ -1533,6 +1542,22 @@ export function NewSnippetDialog() {
                 </p>
                 <dl className="mt-2 flex flex-col gap-1.5">
                   {BUTTON_FIELDS.map((f) => (
+                    <div key={f.label}>
+                      <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
+                      <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </Toggle>
+
+              <Toggle label="Fill from a pasted link" className="mb-2.5">
+                <p className="text-[11px] text-ink-subtle leading-tight">
+                  The person filling the form pastes a page's link, and the fields fill
+                  themselves from what the page says. They check the answers before
+                  inserting.
+                </p>
+                <dl className="mt-2 flex flex-col gap-1.5">
+                  {LINK_FIELDS.map((f) => (
                     <div key={f.label}>
                       <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
                       <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
