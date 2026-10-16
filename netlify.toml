@@ -6,6 +6,15 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Former app address -> app.fibonax.com, permanently, keeping path and query.
+# Must stay FIRST and forced: Netlify takes the first matching rule, and
+# without force it skips paths that exist as files (/, /mobile/, /assets/*).
+[[redirects]]
+  from   = "https://app.sprintbrain.com/*"
+  to     = "https://app.fibonax.com/:splat"
+  status = 301
+  force  = true
+
 # Mobile app at /mobile/
 [[redirects]]
   from   = "/mobile"
