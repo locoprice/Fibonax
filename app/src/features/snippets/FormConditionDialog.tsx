@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
+import { Switch } from '@/components/ui/switch';
 import { fillFormApi, loadFillFormEngine } from '@/lib/fillFormEngine';
+import { menuTokensIn, parseFormMenuToken, setMenuPrint } from '@/lib/formMenuToken';
 import { insideCondition } from '@/lib/formulaToken';
 import {
   buildRuleToken,
   defaultOperator,
+  eachOptionError,
   getRuleOperator,
   isValidRule,
+  mergeEdits,
   operatorsFor,
   relocateRule,
   ruleFieldKind,
@@ -17,8 +21,10 @@ import {
   summarizeEntry,
   summarizeRule,
   summaryText,
+  type BodyEdit,
   type ConditionRule,
   type RuleAction,
+  type RuleCase,
   type RuleFieldKind,
   type RuleInBody,
   type RuleOperator,
@@ -53,6 +59,10 @@ interface RuleDraft {
   action: RuleAction;
   content: string;
   otherwise: string;
+  /** Each option: the text typed for each option so far. */
+  cases: RuleCase[];
+  /** Whether the Choice field prints its pick. Null means the window's default. */
+  printPick: boolean | null;
 }
 
 const EMPTY_DRAFT: RuleDraft = {
@@ -62,10 +72,12 @@ const EMPTY_DRAFT: RuleDraft = {
   action: 'show',
   content: '',
   otherwise: '',
+  cases: [],
+  printPick: null,
 };
 
 function draftOf(rule: ConditionRule | null): RuleDraft {
-  return rule ? { ...rule } : EMPTY_DRAFT;
+  return rule ? { ...rule, cases: rule.cases ?? [], printPick: null } : EMPTY_DRAFT;
 }
 
 const ACTION_OPTIONS: readonly { value: RuleAction; label: string }[] = [
@@ -219,12 +231,39 @@ export function FormConditionDialog({
   // A rule being edited can name a field the body no longer has.
   const fieldMissing = fieldSel !== '' && fieldInfo === null;
   const kind: RuleFieldKind = fieldInfo?.kind ?? 'text';
-  const allowed = operatorsFor(kind);
+  const multiple = fieldInfo?.multiple ?? false;
+  const offered = operatorsFor(kind, multiple);
+  // A chain read back from the body keeps its check, whatever its field is now,
+  // so opening it never turns several texts into one.
+  const allowed =
+    draft.operator === 'eachOption' && !offered.some((op) => op.id === 'eachOption')
+      ? [getRuleOperator('eachOption'), ...offered]
+      : offered;
   const operator =
     draft.operator && allowed.some((op) => op.id === draft.operator)
       ? draft.operator
-      : defaultOperator(kind, fieldInfo?.multiple ?? false);
+      : defaultOperator(kind, multiple);
   const spec = getRuleOperator(operator);
+  const eachOption = operator === 'eachOption';
+
+  // Each option: a box per option of the field, then any option a rule read
+  // back from the body still names, so opening it never drops a text.
+  const caseRows = useMemo(() => {
+    if (!eachOption) return [];
+    const opts = fieldInfo?.options ?? [];
+    const gone = draft.cases.map((c) => c.value).filter((v) => !opts.includes(v));
+    return [...opts, ...gone];
+  }, [eachOption, fieldInfo, draft.cases]);
+  const caseText = (option: string) => draft.cases.find((c) => c.value === option)?.content ?? '';
+
+  function updateCase(option: string, content: string) {
+    setDraft((prev) => ({
+      ...prev,
+      cases: prev.cases.some((c) => c.value === option)
+        ? prev.cases.map((c) => (c.value === option ? { ...c, content } : c))
+        : [...prev.cases, { value: option, content }],
+    }));
+  }
 
   // A choice compares against one of its own options, picked rather than typed.
   // A stored value no longer among them stays listed, so opening a rule never
@@ -239,14 +278,48 @@ export function FormConditionDialog({
     ? (choiceValues.includes(draft.value) ? draft.value : (choiceValues[0] ?? ''))
     : draft.value;
 
-  const rule: ConditionRule = {
-    field: fieldSel,
-    operator,
-    value,
-    action: draft.action,
-    content: draft.content,
-    otherwise: draft.action === 'show' ? draft.otherwise : '',
-  };
+  const rule: ConditionRule = eachOption
+    ? {
+        field: fieldSel,
+        operator,
+        value: '',
+        action: 'show',
+        content: '',
+        otherwise: '',
+        cases: caseRows.map((option) => ({ value: option, content: caseText(option) })),
+      }
+    : {
+        field: fieldSel,
+        operator,
+        value,
+        action: draft.action,
+        content: draft.content,
+        otherwise: draft.action === 'show' ? draft.otherwise : '',
+      };
+
+  // The rule being changed, where it sits now: removing another rule while the
+  // window is open moves it.
+  const target = editing ? relocateRule(body, editing) : null;
+
+  // The Choice field's own tokens, so the window can switch whether it prints.
+  // One sitting inside the rule being changed is part of that rule's text.
+  const menuTokens = useMemo(() => {
+    const api = fillFormApi();
+    if (!open || !engineReady || !api || kind !== 'choice' || fieldSel === '') return [];
+    return menuTokensIn(body).filter(
+      (t) =>
+        api.fillForm(t.raw, {}, {}).fields[0]?.key === fieldSel &&
+        !(target && t.start >= target.start && t.end <= target.end),
+    );
+  }, [open, engineReady, kind, fieldSel, body, target]);
+  const tokenPrints = (raw: string) => parseFormMenuToken(raw)?.print !== false;
+  const fieldPrints = menuTokens.some((t) => tokenPrints(t.raw));
+  // A new Each option rule starts with the picked option switched off: its texts
+  // already say what was picked. Anything else starts as the field is.
+  const printPick = draft.printPick ?? (editing === null && eachOption ? false : fieldPrints);
+  const printEdits: BodyEdit[] = menuTokens
+    .filter((t) => tokenPrints(t.raw) !== printPick)
+    .map((t) => ({ start: t.start, end: t.end, text: setMenuPrint(t.raw, printPick) }));
 
   const valueError = spec.needsValue && value.trim() !== '' ? ruleValueError(operator, value, kind) : '';
   const contentError = ruleTextError(draft.content, false);
@@ -275,6 +348,8 @@ export function FormConditionDialog({
             ? `${fieldSel} is no longer in this snippet. Pick another field.`
             : insideOther
               ? 'The cursor is inside another condition. Move it outside, then build the rule.'
+              : eachOption
+                ? eachOptionError(rule)
               : spec.needsValue && value.trim() === ''
                 ? 'Type the value to compare with.'
                 : valueError !== ''
@@ -285,13 +360,19 @@ export function FormConditionDialog({
 
   // The plain-words line, readable before the rule is finished: a blank shows
   // as an ellipsis rather than hiding the sentence until the end.
-  const preview = fieldSel !== ''
-    ? summarizeRule({
-        ...rule,
-        value: rule.value.trim() === '' ? '…' : rule.value,
-        content: rule.content.trim() === '' ? '…' : rule.content,
-      })
-    : null;
+  const firstCase: RuleCase = { value: caseRows[0] ?? '…', content: '…' };
+  const preview = fieldSel === ''
+    ? null
+    : eachOption
+      ? summarizeRule({
+          ...rule,
+          cases: rule.cases?.some((c) => c.content.trim() !== '') ? rule.cases : [firstCase],
+        })
+      : summarizeRule({
+          ...rule,
+          value: rule.value.trim() === '' ? '…' : rule.value,
+          content: rule.content.trim() === '' ? '…' : rule.content,
+        });
 
   // ── The rules already there ──
   const entries = useMemo(() => rulesInBody(body), [body]);
@@ -327,11 +408,26 @@ export function FormConditionDialog({
 
   function handleSubmit() {
     if (!valid) return;
-    // Removing another rule while the window is open moves this one; find it
-    // again by its text. Gone altogether, the edit goes in as a new rule.
-    const target = editing ? relocateRule(body, editing) : null;
-    if (target) onReplace(target.start, target.end, token);
-    else onInsert(token);
+    // An edited rule goes back where it sits now. Gone altogether, the edit goes
+    // in as a new rule.
+    if (printEdits.length === 0) {
+      if (target) onReplace(target.start, target.end, token);
+      else onInsert(token);
+      onOpenChange(false);
+      return;
+    }
+    // The rule and the field's print switch as one change. A new rule never
+    // lands inside the field's own token.
+    const inside = menuTokens.find((t) => caret > t.start && caret < t.end);
+    const at = inside ? inside.end : caret;
+    const ruleEdit: BodyEdit = target
+      ? { start: target.start, end: target.end, text: token }
+      : { start: at, end: at, text: token };
+    const merged = mergeEdits(body, [ruleEdit, ...printEdits]);
+    // Never null here: a token inside the rule is left out of menuTokens, and
+    // a new rule is moved out of the token it would have split.
+    if (!merged) return;
+    onReplace(merged.start, merged.end, merged.text);
     onOpenChange(false);
   }
 
@@ -399,7 +495,9 @@ export function FormConditionDialog({
               <select
                 id="rule-field"
                 value={fieldSel}
-                onChange={(e) => update({ field: e.target.value, operator: null, value: '' })}
+                onChange={(e) =>
+                  update({ field: e.target.value, operator: null, value: '', cases: [], printPick: null })
+                }
                 className={cn(SELECT, fieldMissing && INVALID)}
               >
                 {fieldMissing && <option value={fieldSel}>{fieldSel} (not in the snippet)</option>}
@@ -464,6 +562,8 @@ export function FormConditionDialog({
               </div>
               {valueError !== '' ? (
                 <p className={ERROR}>{valueError}</p>
+              ) : eachOption ? (
+                <p className={HINT}>Write a text for each option below. Only the picked one prints.</p>
               ) : spec.needsValue && !spec.numeric && kind !== 'number' ? (
                 <p className={HINT}>Capitals do not matter: annual matches Annual.</p>
               ) : !spec.needsValue ? (
@@ -471,37 +571,91 @@ export function FormConditionDialog({
               ) : (
                 <p className={HINT}>An empty box counts as 0.</p>
               )}
-            </RuleStep>
 
-            <RuleStep keyword="THEN" caption="What happens when it is true.">
-              <Segmented
-                options={ACTION_OPTIONS}
-                value={draft.action}
-                onChange={(next) => update({ action: next })}
-                ariaLabel="Show or hide the text"
-                className="mb-2 w-full [&>button]:flex-1"
-              />
-              <label htmlFor="rule-content" className="sr-only">
-                The text to {draft.action}
-              </label>
-              <textarea
-                id="rule-content"
-                rows={3}
-                value={draft.content}
-                onChange={(e) => update({ content: e.target.value })}
-                placeholder={`The text to ${draft.action}. Fields work here too, like {NAME}.`}
-                aria-invalid={contentError !== ''}
-                className={cn(TEXTAREA, contentError !== '' && INVALID)}
-              />
-              {contentError !== '' ? (
-                <p className={ERROR}>{contentError}</p>
-              ) : (
-                <p className={HINT}>Prints exactly as typed, spaces and line breaks included.</p>
+              {menuTokens.length > 0 && (
+                <div className="mt-3 border-t border-line pt-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <label htmlFor="rule-print" className="text-xs font-medium text-ink-muted">
+                      Print the picked option
+                    </label>
+                    <Switch
+                      id="rule-print"
+                      checked={printPick}
+                      onChange={(next) => update({ printPick: next })}
+                    />
+                  </div>
+                  <p className={HINT}>
+                    {printPick
+                      ? `The option picked prints where ${fieldSel} sits, as well as the rule's text.`
+                      : `${fieldSel} only decides what prints. The option picked does not print.`}
+                    {printEdits.length > 0 && ` ${editing ? 'Save rule' : 'Insert'} changes the field too.`}
+                  </p>
+                </div>
               )}
             </RuleStep>
 
+            {eachOption ? (
+              <RuleStep keyword="THEN" caption="What prints for each option.">
+                <div className="flex flex-col gap-2.5">
+                  {caseRows.map((option, i) => {
+                    const text = caseText(option);
+                    const error = ruleTextError(text, false);
+                    const gone = !(fieldInfo?.options ?? []).includes(option);
+                    return (
+                      <div key={option}>
+                        <label htmlFor={`rule-case-${i}`} className={SECTION_LABEL}>
+                          {option}
+                          {gone && <span className="font-normal text-ink-subtle"> (no longer an option)</span>}
+                        </label>
+                        <textarea
+                          id={`rule-case-${i}`}
+                          rows={2}
+                          value={text}
+                          onChange={(e) => updateCase(option, e.target.value)}
+                          placeholder={`The text to show for ${option}. Fields work here too, like {NAME}.`}
+                          aria-invalid={error !== ''}
+                          className={cn(TEXTAREA, error !== '' && INVALID)}
+                        />
+                        {error !== '' && <p className={ERROR}>{error}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className={HINT}>Prints exactly as typed, spaces and line breaks included.</p>
+              </RuleStep>
+            ) : (
+              <RuleStep keyword="THEN" caption="What happens when it is true.">
+                <Segmented
+                  options={ACTION_OPTIONS}
+                  value={draft.action}
+                  onChange={(next) => update({ action: next })}
+                  ariaLabel="Show or hide the text"
+                  className="mb-2 w-full [&>button]:flex-1"
+                />
+                <label htmlFor="rule-content" className="sr-only">
+                  The text to {draft.action}
+                </label>
+                <textarea
+                  id="rule-content"
+                  rows={3}
+                  value={draft.content}
+                  onChange={(e) => update({ content: e.target.value })}
+                  placeholder={`The text to ${draft.action}. Fields work here too, like {NAME}.`}
+                  aria-invalid={contentError !== ''}
+                  className={cn(TEXTAREA, contentError !== '' && INVALID)}
+                />
+                {contentError !== '' ? (
+                  <p className={ERROR}>{contentError}</p>
+                ) : (
+                  <p className={HINT}>Prints exactly as typed, spaces and line breaks included.</p>
+                )}
+              </RuleStep>
+            )}
+
             <RuleStep keyword="ELSE" caption="What happens when it is not.">
-              {draft.action === 'hide' ? (
+              {eachOption ? (
+                <p className="text-xs text-ink">An option left empty prints nothing.</p>
+              ) : draft.action === 'hide' ? (
                 <p className="text-xs text-ink">The text shows.</p>
               ) : (
                 <>

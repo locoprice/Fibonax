@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
+import { Switch } from '@/components/ui/switch';
 import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { cn } from '@/lib/utils';
 import {
@@ -79,6 +80,8 @@ export function FormMenuDialog({
   // rather than losing it the first time someone reopens the builder.
   const [cols, setCols] = useState('');
   const [link, setLink] = useState<LinkRuleDraft>(emptyLinkDraft('after'));
+  // Off when the pick only decides what Show or hide rules print.
+  const [print, setPrint] = useState(true);
 
   const firstOptionRef = useRef<HTMLInputElement | null>(null);
 
@@ -97,6 +100,7 @@ export function FormMenuDialog({
       setMultiple(initial.multiple);
       setCols(initial.cols === null ? '' : String(initial.cols));
       setLink(linkDraftFrom(initial.link, 'after'));
+      setPrint(initial.print !== false);
       return;
     }
     nextId.current = STARTING_ROWS;
@@ -112,6 +116,7 @@ export function FormMenuDialog({
     setMultiple(false);
     setCols('');
     setLink(emptyLinkDraft('after'));
+    setPrint(true);
   }, [open, suggestedName, initial]);
 
   function updateRow(id: number, label: string) {
@@ -177,8 +182,9 @@ export function FormMenuDialog({
         multiple,
         cols: cols.trim() === '' ? null : Number(cols),
         link: linkFromDraft(link),
+        print,
       }),
-    [rows, selectedIds, name, multiple, cols, link],
+    [rows, selectedIds, name, multiple, cols, link, print],
   );
 
   const canInsert = filledRows.length > 0 && nameValid;
@@ -338,6 +344,21 @@ export function FormMenuDialog({
             />
             <p className={HINT}>
               Single Choice fills as radio buttons, Multiple Choice as checkboxes.
+            </p>
+          </div>
+
+          {/* ── Printed, or only asked ── */}
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="form-menu-print" className="text-xs font-medium text-ink-muted">
+                Print the picked option
+              </label>
+              <Switch id="form-menu-print" checked={print} onChange={setPrint} />
+            </div>
+            <p className={HINT}>
+              {print
+                ? 'The option picked prints where the field sits in the message.'
+                : 'The field is still asked, but nothing prints where it sits. Its answer only decides what Show or hide rules print.'}
             </p>
           </div>
 

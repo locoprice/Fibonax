@@ -11,7 +11,8 @@
 //   {time: FORMAT[; shift=+3D|next monday][; at=09:00][; from=FIELD]}  — automatic date
 //   {formtext: name=VAR; default=X}   — text input field
 //   {formdate: name=VAR[; type=time][; format=DD/MM/YYYY]}  — date or time field
-//   {formmenu: opt1,opt2; name=VAR[; default=opt1][; multiple=yes][; cols=N]}  — dropdown field
+//   {formmenu: opt1,opt2; name=VAR[; default=opt1][; multiple=yes][; cols=N][; print=no]}  (dropdown field)
+//     (print=no: the menu is asked and decides rules, but prints nothing itself)
 //   {if: COND}...{elseif: COND}...{else}...{endif}  — conditional blocks
 //   {gender: FIELD; m=Querido; f=Querida[; u=Hola][; lang=IT]}  — gendered word
 //   {greeting[: lang=ES][; morning=…][; night=…]}  (greeting for the local time of day)
@@ -1221,6 +1222,21 @@
         }
         if (tok === '/case') { i = cl + 1; continue; }
         if (tokLow.slice(0,9) === 'formtext:' || tokLow.slice(0,9) === 'formdate:' || tokLow.slice(0,9) === 'formmenu:') {
+          if (tokLow.slice(0,9) === 'formmenu:' && !_parseMenuSettings(tok.slice(9)).print) {
+            // A menu set to print=no prints nothing. Standing alone on its
+            // line, it takes the line with it, so no empty line is left where
+            // the question sat.
+            i = cl + 1;
+            var qBefore = /(^|\n)[ \t]*$/.exec(out);
+            var qAfter = /^[ \t]*(\r?\n|$)/.exec(body.slice(i));
+            if (qBefore && qAfter) {
+              out = out.slice(0, out.length - (qBefore[0].length - qBefore[1].length));
+              i += qAfter[0].length;
+              // Last line of the text: the break before it goes instead.
+              if (qAfter[1] === '' && qBefore[1] === '\n') out = out.slice(0, -1);
+            }
+            continue;
+          }
           var fKey = _formFieldName(tokLow, tok.slice(9));
           var fRaw = fKey && vals[fKey] !== undefined ? vals[fKey] : '';
           out = sbEmitValue(out, _emitField(fKey, fRaw, fmtMap), gLock);
@@ -1294,19 +1310,31 @@
   // and silently discarded.
   // `link` joined in v3.65.0 (Fill from link). Without it here, a menu's
   // reading rule became one more option to pick.
-  var MENU_KEYS = /^\s*(name|default|multiple|cols|link)\s*=/i;
+  //
+  // `print=no` joined in v3.70.0: the menu is still asked, and its pick still
+  // decides Show or hide rules, formulas and {NAME}, but the token itself prints
+  // nothing. It is how a choice that only decides what shows stays out of the
+  // message.
+  var MENU_KEYS = /^\s*(name|default|multiple|cols|link|print)\s*=/i;
+  var MENU_PRINT = /^\s*print\s*=/i;
+  var MENU_QUIET = /^\s*print\s*=\s*(?:no|false|0)\s*$/i;
 
   function _parseMenuSettings(rest) {
     var segs = String(rest === null || rest === undefined ? '' : rest).split(';');
-    var options = [], attrs = '', name = '';
+    var options = [], attrs = '', name = '', prints = true, keySegs = [];
     for (var i = 0; i < segs.length; i++) {
       var seg = segs[i];
       if (MENU_KEYS.test(seg)) {
         attrs += ';' + seg;
         var nm = /^\s*name\s*=\s*([A-Za-z_][A-Za-z0-9_]*)/i.exec(seg);
         if (nm && !name) name = nm[1];
+        if (MENU_QUIET.test(seg)) prints = false;
+        // Switching print on or off must not rename an unnamed menu: a rule
+        // that checks it would stop matching. So the key never reads it.
+        if (!MENU_PRINT.test(seg)) keySegs.push(seg);
         continue;
       }
+      keySegs.push(seg);
       var parts = seg.split(',');
       for (var j = 0; j < parts.length; j++) {
         var opt = _sTrim(parts[j]);
@@ -1316,8 +1344,8 @@
     // An unnamed menu is legal in Text Blaze, so give it a key derived from the
     // token itself: stable wherever it is read from (extractFields, the config
     // builder, resolveBody's {if:} recursion) without depending on walk order.
-    if (!name) name = options.length ? 'MENU_' + _menuKeyHash(rest) : '';
-    return { options: options, attrs: attrs, name: name };
+    if (!name) name = options.length ? 'MENU_' + _menuKeyHash(keySegs.join(';')) : '';
+    return { options: options, attrs: attrs, name: name, print: prints };
   }
 
   function _menuKeyHash(src) {
@@ -2461,6 +2489,7 @@
     if (cols > 0) out += '; cols=' + cols;
     var link = _linkValue(c.link);
     if (link !== '') out += '; link=' + link;
+    if (c.print === false) out += '; print=no';
     return out + '}';
   }
 

@@ -350,7 +350,7 @@ const MATH_FORMULAS: readonly {
 // builder's own (RULE_OPERATORS in @/lib/conditionRule).
 const RULE_FIELDS: { label: string; hint: string }[] = [
   { label: 'If',
-    hint: 'A field, a check and a value: Equals, Does not equal, Is greater than, Is less than, Contains or Is filled.' },
+    hint: 'A field and a check. On a choice, Each option gives every option its own text. The other checks compare with a value: Equals, Does not equal, Is greater than, Is less than, Contains or Is filled.' },
   { label: 'Then',
     hint: 'Show or hide the text you type. It can hold fields and formulas too.' },
   { label: 'Else',

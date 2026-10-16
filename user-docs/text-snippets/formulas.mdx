@@ -66,7 +66,7 @@ A **Show or hide** rule prints a piece of text only when an answer calls for it,
 
 | Step | What you choose |
 |---|---|
-| **IF** | A field, a check and a value. |
+| **IF** | A field and a check. Most checks also need a value. |
 | **THEN** | **Show** or **Hide**, and the text. The text can hold fields and formulas too. |
 | **ELSE** | The opposite happens. A shown text can print something else in its place: type it in **Print instead**. |
 
@@ -74,6 +74,7 @@ The checks:
 
 | Check | True when | Fields |
 |---|---|---|
+| Each option has its own text | the option picked is the one the text belongs to | Single Choice |
 | Equals | the answer is the value | Text, Number, Choice |
 | Does not equal | the answer is anything else | Text, Number, Choice |
 | Is greater than | the answer is a bigger number | Text, Number |
@@ -87,6 +88,26 @@ The checks:
 - Date and time fields can't be checked.
 - **In plain words** shows the rule as one sentence before you insert it, like `IF SCORE is greater than 10 THEN hide "Section B" ELSE show it`.
 
+### A text for each option
+
+On a Single Choice field the window opens on **Each option has its own text**. **THEN** lists the field's options, each with its own box. Fill them in, for example on a `PLAN` field:
+
+| Option | Text |
+|---|---|
+| Basic | Email support on weekdays. |
+| Pro | Phone and email support every day. |
+
+Only the text of the option picked prints. An option left empty prints nothing. One rule covers every option, and it reads back as one rule when you edit it.
+
+### Print the picked option
+
+On a Choice field the **IF** step also shows **Print the picked option**:
+
+- **On**: the option picked prints where the field sits, as well as the rule's text.
+- **Off**: the field only decides what prints. The form still asks, and the option stays out of the message.
+
+A new **Each option has its own text** rule starts with it off, since each text already says what was picked. Inserting or saving the rule changes the field too. The same switch is in the **Choice** window.
+
 Every rule in the snippet is listed in plain words at the top of the window, each with **Edit** and **Remove**, and under the **Show or hide** toggle in the panel. Click a rule there, or put the cursor inside one and click **Edit this rule**, to change it.
 
 <Note>
@@ -95,6 +116,8 @@ Every rule in the snippet is listed in plain words at the top of the window, eac
 
 <Warning>
   **Contains** needs extension version 3.62.0 or later. An older extension treats it as false. The other checks work on every version.
+
+  Switching off **Print the picked option** needs extension version 3.70.0 or later. An older extension still prints the option picked, and offers `print=no` as one more option.
 </Warning>
 
 ## Conditions

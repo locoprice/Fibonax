@@ -4826,11 +4826,15 @@ function sbGenderTokenField(rest){
    must not claim the field). Mirrors _formFieldName in the extension engine. */
 /* A {formmenu:} option list may be ';'-separated (Text Blaze) or comma-separated
    in one segment (Fibonax's writer), and `name=` can sit in any position. A
-   segment counts as a named setting only when it opens with one of the four
-   keys. Unnamed menus are legal and get a key hashed from the token, matching
+   segment counts as a named setting only when it opens with one of the keys
+   below. Unnamed menus are legal and get a key hashed from the token, matching
    _parseMenuSettings in extension/formula-engine.js — keep the two in step or
    mobile will fill a different field than the desktop surfaces. */
-var SB_MENU_KEYS=/^\s*(name|default|multiple|cols|link)\s*=/i;
+var SB_MENU_KEYS=/^\s*(name|default|multiple|cols|link|print)\s*=/i;
+/* print=no (v3.70.0): the menu is asked and decides rules, but prints nothing.
+   The unnamed-menu key never reads it, so switching it renames nothing. */
+var SB_MENU_PRINT=/^\s*print\s*=/i;
+var SB_MENU_QUIET=/^\s*print\s*=\s*(?:no|false|0)\s*$/i;
 function sbMenuKeyHash(src){
   var h=5381,s=String(src);
   for(var i=0;i<s.length;i++)h=((h*33)^s.charCodeAt(i))>>>0;
@@ -4842,23 +4846,26 @@ function sbMenuKeyHash(src){
    disagree with each other. */
 function sbMenuSpec(rest){
   var segs=String(rest==null?'':rest).split(';');
-  var options=[],attrs='',name='';
+  var options=[],attrs='',name='',prints=true,keySegs=[];
   for(var i=0;i<segs.length;i++){
     var seg=segs[i];
     if(SB_MENU_KEYS.test(seg)){
       attrs+=';'+seg;
       var nm=/^\s*name\s*=\s*([A-Za-z_][A-Za-z0-9_]*)/i.exec(seg);
       if(nm&&!name)name=nm[1];
+      if(SB_MENU_QUIET.test(seg))prints=false;
+      if(!SB_MENU_PRINT.test(seg))keySegs.push(seg);
       continue;
     }
+    keySegs.push(seg);
     var parts=seg.split(',');
     for(var j=0;j<parts.length;j++){
       var opt=parts[j].trim();
       if(opt!==''&&options.indexOf(opt)===-1)options.push(opt);
     }
   }
-  if(!name)name=options.length?'MENU_'+sbMenuKeyHash(rest):'';
-  return {options:options,attrs:attrs,name:name};
+  if(!name)name=options.length?'MENU_'+sbMenuKeyHash(keySegs.join(';')):'';
+  return {options:options,attrs:attrs,name:name,print:prints};
 }
 function sbFormTokenName(tokLow,rest){
   if(tokLow.slice(0,9)==='formmenu:')return sbMenuSpec(rest).name;
@@ -5899,6 +5906,18 @@ function resolveBody(body,vals,opts){
 
       /* {formtext/formdate/formmenu: …} — emits the value of the field it declares */
       if(sbIsFormToken(tokLow)){
+        /* A menu set to print=no prints nothing, and alone on its line takes
+           the line with it. Mirrors resolveBody in the engine. */
+        if(tokLow.slice(0,9)==='formmenu:'&&!sbMenuSpec(tok.slice(9)).print){
+          i=cl+1;
+          var qB=/(^|\n)[ \t]*$/.exec(out),qA=/^[ \t]*(\r?\n|$)/.exec(body.slice(i));
+          if(qB&&qA){
+            out=out.slice(0,out.length-(qB[0].length-qB[1].length));
+            i+=qA[0].length;
+            if(qA[1]===''&&qB[1]==='\n')out=out.slice(0,-1);
+          }
+          continue;
+        }
         var fk=sbFormTokenName(tokLow,tok.slice(9));
         var fkv=fk?vals[fk]:undefined;
         out=sbEmitValue(out,sbEmitField(fk,(fkv!==undefined&&fkv!==null)?fkv:'',fmtMap),gLock);

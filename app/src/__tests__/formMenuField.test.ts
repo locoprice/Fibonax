@@ -6,10 +6,12 @@ import {
   findMenuTokenAt,
   formMenuPicks,
   isValidMenuName,
+  menuTokensIn,
   nextMenuName,
   parseFormMenuToken,
   sanitizeMenuName,
   sanitizeMenuOption,
+  setMenuPrint,
   type FormMenuConfig,
   type MenuTokenRange,
 } from '@/lib/formMenuToken';
@@ -44,6 +46,7 @@ interface FormulaEngine {
     name: string;
     multiple?: boolean;
     cols?: number | null;
+    print?: boolean;
   }) => string;
   formMenuPicks: (value: string | null | undefined) => string[];
   fieldContext: (body: string) => Record<string, { before: string; after: string }>;
@@ -99,6 +102,48 @@ describe('formMenuToken — writer', () => {
         cols: null,
       }),
     ).toBe('{formmenu: A,B; name=PICK}');
+  });
+
+  it('writes print=no last, the same as the engine, and reads it back', () => {
+    const cfg: FormMenuConfig = {
+      options: ['REFUNDABLE', 'NOT REFUNDABLE'],
+      selected: ['REFUNDABLE'],
+      name: 'RATE',
+      multiple: false,
+      cols: null,
+      print: false,
+    };
+    const token = buildFormMenuToken(cfg);
+    expect(token).toBe('{formmenu: REFUNDABLE,NOT REFUNDABLE; name=RATE; default=REFUNDABLE; print=no}');
+    expect(engine.buildFormMenuToken(cfg)).toBe(token);
+    expect(parseFormMenuToken(token)).toEqual(cfg);
+    // A menu that prints carries no print setting at all.
+    expect(buildFormMenuToken({ ...cfg, print: true })).not.toContain('print');
+    expect(parseFormMenuToken('{formmenu: A,B; name=M}')).not.toHaveProperty('print');
+    // Still a setting, never one more option, on both sides.
+    expect(engine.buildFormFieldCfg(token).RATE?.opts).toBe('REFUNDABLE\nNOT REFUNDABLE');
+  });
+
+  it('switches print on a token without touching anything else', () => {
+    const raw = '{formmenu: name=YEAR; 1980; 1985; default=1985}';
+    const quiet = setMenuPrint(raw, false);
+    expect(quiet).toBe('{formmenu: name=YEAR; 1980; 1985; default=1985; print=no}');
+    expect(setMenuPrint(quiet, true)).toBe(raw);
+    expect(setMenuPrint(quiet, false)).toBe(quiet);
+    expect(setMenuPrint('{formmenu: print=no; A; B}', true)).toBe('{formmenu: A; B}');
+    expect(setMenuPrint('not a menu', false)).toBe('not a menu');
+    // An unnamed menu keeps the key a rule may already check.
+    expect(engine.extractFields(setMenuPrint('{formmenu: A,B}', false))).toEqual(
+      engine.extractFields('{formmenu: A,B}'),
+    );
+  });
+
+  it('lists every menu in a body', () => {
+    const body = 'a {formmenu: A,B; name=M} {if: M = "A"}x{endif} {formmenu: C; name=N}';
+    expect(menuTokensIn(body).map((t) => t.raw)).toEqual([
+      '{formmenu: A,B; name=M}',
+      '{formmenu: C; name=N}',
+    ]);
   });
 
   it('collapses the token delimiters inside an option label', () => {

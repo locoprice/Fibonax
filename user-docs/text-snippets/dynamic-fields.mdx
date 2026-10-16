@@ -74,6 +74,7 @@ The end date can't be set before the start date. You can add a time to both date
 
 - **Values**: the options. Tick one to have it selected from the start. Drag the handles to reorder them.
 - **Selection**: **Single Choice** shows round buttons, **Multiple Choice** shows tick boxes.
+- **Print the picked option**: on by default, so the option picked prints where the field sits. Switch it off when the choice only decides what a [Show or hide](/text-snippets/formulas#show-or-hide) rule prints. The form still asks, and the option stays out of the message.
 - **Name** (optional): only needed if the body repeats the choice somewhere else.
 
 To change a list later, put the cursor inside it and click **Edit this menu**.
@@ -108,6 +109,7 @@ You can also type fields straight into the body:
 | Time | `{formdate: name=TIME_1; type=time; format=hh:mm A}` |
 | Choice | `{formmenu: Basic,Plus,Pro; name=PLAN; default=Plus}` |
 | Choice, several answers | `{formmenu: Email,Phone,Chat; name=CHANNEL; multiple=yes}` |
+| Choice that only decides what shows | `{formmenu: Basic,Pro; name=PLAN; print=no}` |
 | Button | `{button label="10% off"}PRICE = PRICE * 0.9{/button}` |
 
 To repeat a field's answer elsewhere in the body, write its name in braces, like `{CLIENT}`.

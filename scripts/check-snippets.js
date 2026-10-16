@@ -35,6 +35,14 @@ const cases = [
   { name: 'hide rule',          body: 'A{if: N > 10}{else}B{endif}C',       vals: { N: 12 },              expect: 'AC' },
   { name: 'hide rule shown',    body: 'A{if: N > 10}{else}B{endif}C',       vals: { N: 3 },               expect: 'ABC' },
   { name: 'graceful undefined', body: 'A{= BROKEN + 2}B',                   vals: {},                     expect: 'A2B' },
+  // A choice set to print=no decides the rule and prints nothing itself; alone
+  // on its line it takes the line with it.
+  { name: 'menu prints pick',   body: 'Rate: {formmenu: A,B; name=R}.',     vals: { R: 'B' },             expect: 'Rate: B.' },
+  { name: 'menu print=no',      body: 'Rate: {formmenu: A,B; name=R; print=no}.', vals: { R: 'B' },       expect: 'Rate: .' },
+  { name: 'quiet menu own line', body: 'Hi\n{formmenu: A,B; name=R; print=no}\n{if: R = "A"}a{elseif: R = "B"}b{endif}\nBye',
+    vals: { R: 'B' }, expect: 'Hi\nb\nBye' },
+  { name: 'quiet menu last line', body: 'Hi\n{formmenu: A,B; name=R; print=no}', vals: { R: 'A' }, expect: 'Hi' },
+  { name: 'quiet menu still read', body: '{formmenu: A,B; name=R; print=no}You picked {R}', vals: { R: 'A' }, expect: 'You picked A' },
 ];
 
 let ok = 0;
@@ -348,6 +356,9 @@ const MENU_WRITE_CASES = [
   // Duplicates and blanks dropped, a name that cannot open an identifier repaired.
   [{ options: ['A', 'A', 'B', ' '], selected: ['B'], name: '9bad', multiple: false, cols: 0 },
     '{formmenu: A,B; name=MENU_9bad; default=B}', 'A\nB'],
+  // A choice that only decides what shows: print=no is a setting, not an option.
+  [{ options: ['REFUNDABLE', 'NOT REFUNDABLE'], selected: ['REFUNDABLE'], name: 'RATE', multiple: false, cols: null, print: false },
+    '{formmenu: REFUNDABLE,NOT REFUNDABLE; name=RATE; default=REFUNDABLE; print=no}', 'REFUNDABLE\nNOT REFUNDABLE'],
 ];
 
 if (typeof engine.buildFormMenuToken !== 'function') {
@@ -533,6 +544,58 @@ for (const [cond, inner, vals, want] of branchCases) {
 }
 console.log('OK Condition parity (engine = mobile) passed all ' + condOk + ' cases');
 
+// ── EXPANSION PARITY ────────────────────────────────────────────────
+// The phone builds the whole message with its own resolveBody, which sits just
+// below the helper slice above. It runs in the same context, so it calls the
+// helpers the phone itself ships. Each body must copy out on the phone exactly
+// as it inserts from the extension.
+const RESOLVE_START = 'function extractFields(';
+const RESOLVE_END = '/* ── FILL-FORM ENGINE ADAPTER';
+const resolveFrom = MOBILE_SRC.indexOf(RESOLVE_START);
+const resolveTo = MOBILE_SRC.indexOf(RESOLVE_END);
+if (resolveFrom === -1 || resolveTo === -1 || resolveTo <= resolveFrom) {
+  fail('mobile/index.html: cannot slice resolveBody: the markers ' +
+    JSON.stringify(RESOLVE_START) + ' .. ' + JSON.stringify(RESOLVE_END) + ' moved');
+}
+try {
+  vm.runInContext(MOBILE_SRC.slice(resolveFrom, resolveTo), mobile);
+} catch (e) {
+  fail('mobile resolveBody failed to evaluate: ' + e.message);
+}
+if (typeof mobile.resolveBody !== 'function') fail('mobile/index.html no longer defines resolveBody');
+const RATE_RULE = '{if: R = "REFUNDABLE"}Full refund.{elseif: R = "NOT REFUNDABLE"}No refund.{endif}';
+const expansionCases = [
+  ['Rate: {formmenu: A,B; name=R}.', { R: 'B' }],
+  ['Rate: {formmenu: A,B; name=R; print=no}.', { R: 'B' }],
+  ['Hi\n{formmenu: REFUNDABLE,NOT REFUNDABLE; name=R; print=no}\n' + RATE_RULE + '\nBye', { R: 'REFUNDABLE' }],
+  ['Hi\n{formmenu: REFUNDABLE,NOT REFUNDABLE; name=R; print=no}\n' + RATE_RULE + '\nBye', { R: 'NOT REFUNDABLE' }],
+  ['Hi\n  {formmenu: A,B; name=R; print=no}  \r\nBye', { R: 'A' }],
+  ['Hi\n{formmenu: A,B; name=R; print=no}', { R: 'A' }],
+  ['{formmenu: A,B; name=R; print=no} and {R}', { R: 'B' }],
+  ['{formmenu: A,B; name=R; print=yes}', { R: 'B' }],
+  ['{formmenu: A,B; name=R}\n' + RATE_RULE, { R: 'A' }],
+];
+let expOk = 0;
+for (const [body, vals] of expansionCases) {
+  const gotE = engine.resolveBody(body, Object.assign({}, vals));
+  const gotM = mobile.resolveBody(body, Object.assign({}, vals));
+  if (gotM !== gotE) {
+    fail('expansion drift for ' + JSON.stringify(body) + ' ' + JSON.stringify(vals) +
+      '\n  engine: ' + JSON.stringify(gotE) + '\n  mobile: ' + JSON.stringify(gotM));
+  }
+  expOk++;
+}
+// Switching print never renames an unnamed menu: a rule checking it would stop
+// matching the moment the author ticked the box.
+for (const [plain, quiet] of [['{formmenu: A,B}', '{formmenu: A,B; print=no}'],
+                              ['{formmenu: A; B}', '{formmenu: print=no; A; B}']]) {
+  const kp = engine.extractFields(plain)[0];
+  if (engine.extractFields(quiet)[0] !== kp || mobile.sbMenuSpec(quiet.slice(10, -1)).name !== kp) {
+    fail('print=no renamed the unnamed menu ' + plain);
+  }
+}
+console.log('OK Expansion parity (engine = mobile) passed all ' + expOk + ' cases');
+
 // Key order is walk order on both sides, but canonicalise anyway so a parity
 // failure always means a real difference in what the two surfaces would render.
 function canon(cfg) {
@@ -562,6 +625,11 @@ const fieldCfgCases = [
   // it must stay a setting rather than become one more option to pick.
   '{formmenu: A,B; name=M; link=after:Plan}',
   '{formmenu: A; B; link=Plan; name=M}',
+  // print=no is a setting, never one more option, and an unnamed menu keeps
+  // the key it had without it.
+  '{formmenu: A,B; name=M; print=no}',
+  '{formmenu: A,B; print=no}',
+  '{formmenu: print=no; A; B}',
   '{formtext: name=T; link=after:Customer}',
   '{formtext: name=N; type=number; default=0; link=before:Boxes|Box}',
   '{formtext: name=N; type=number; link=BEFORE: Boxes | Box | Boxes}',

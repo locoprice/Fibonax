@@ -31,6 +31,12 @@ export interface FormMenuConfig {
    * back without one compares equal to the config it was written from.
    */
   link?: string;
+  /**
+   * False when the pick only decides what Show or hide rules print, so the
+   * field prints nothing where it sits (`print=no`). Left out for a menu that
+   * prints its pick, for the same reason as `link`.
+   */
+  print?: boolean;
 }
 
 /**
@@ -86,6 +92,7 @@ export function buildFormMenuToken(cfg: FormMenuConfig): string {
   if (cfg.cols !== null && cfg.cols > 0) out += `; cols=${Math.floor(cfg.cols)}`;
   const link = linkValue(cfg.link);
   if (link !== '') out += `; link=${link}`;
+  if (cfg.print === false) out += '; print=no';
   return `${out}}`;
 }
 
@@ -93,9 +100,12 @@ export function buildFormMenuToken(cfg: FormMenuConfig): string {
  * Named settings a menu token carries; every other segment is an option.
  * `link` is one since Fill from link: without it here, a menu's reading rule
  * would come back as one more option to pick, and saving the menu would ship it.
+ * `print` is one since v3.70.0, for the same reason.
  */
-const MENU_KEYS = /^\s*(name|default|multiple|cols|link)\s*=/i;
+const MENU_KEYS = /^\s*(name|default|multiple|cols|link|print)\s*=/i;
 const MENU_HEAD = /^\{\s*formmenu\s*:/i;
+const PRINT_SETTING = /^\s*print\s*=/i;
+const QUIET = /(?:^|;)\s*print\s*=\s*(?:no|false|0)\s*(?:;|$)/i;
 
 /**
  * Splits a token's settings into its options and its named settings. Options
@@ -157,7 +167,23 @@ export function parseFormMenuToken(raw: string): FormMenuConfig | null {
     multiple,
     cols: cols > 0 ? cols : null,
     ...(link !== '' ? { link } : {}),
+    ...(QUIET.test(attrs) ? { print: false } : {}),
   };
+}
+
+/**
+ * The same token with its print setting switched, every other character kept
+ * as it was. Rewriting through the builder instead would reflow a menu typed
+ * by hand. An unnamed menu keeps its key: the engine never reads `print` into it.
+ */
+export function setMenuPrint(raw: string, print: boolean): string {
+  const head = MENU_HEAD.exec(raw);
+  if (!head || !raw.endsWith('}')) return raw;
+  const kept = raw
+    .slice(head[0].length, -1)
+    .split(';')
+    .filter((segment) => !PRINT_SETTING.test(segment));
+  return `${head[0]}${kept.join(';')}${print ? '' : '; print=no'}}`;
 }
 
 /** Where a `{formmenu:}` token sits in a body. `end` is exclusive. */
@@ -175,6 +201,12 @@ export interface MenuTokenRange {
  */
 export function findMenuTokenAt(body: string, caret: number): MenuTokenRange | null {
   const pos = Math.min(Math.max(Number.isFinite(caret) ? caret : 0, 0), body.length);
+  return menuTokensIn(body).find((t) => pos >= t.start && pos <= t.end) ?? null;
+}
+
+/** Every `{formmenu:}` token in a body, in order. */
+export function menuTokensIn(body: string): MenuTokenRange[] {
+  const out: MenuTokenRange[] = [];
   let i = 0;
   while (i < body.length) {
     const open = body.indexOf('{', i);
@@ -186,10 +218,10 @@ export function findMenuTokenAt(body: string, caret: number): MenuTokenRange | n
       i = open + 1;
       continue;
     }
-    if (pos >= open && pos <= close + 1) return { start: open, end: close + 1, raw };
+    out.push({ start: open, end: close + 1, raw });
     i = close + 1;
   }
-  return null;
+  return out;
 }
 
 /**

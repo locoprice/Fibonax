@@ -14,7 +14,15 @@
  *
  * IF NOTE is filled THEN show "Note: {NOTE}" ELSE show "No note."
  * {if: NOTE != ""}Note: {NOTE}{else}No note.{endif}
+ *
+ * IF RATE is "Refundable" THEN show "Full refund." ELSE IF RATE is "Fixed" THEN show "No refund."
+ * {if: RATE = "Refundable"}Full refund.{elseif: RATE = "Fixed"}No refund.{endif}
  * ```
+ *
+ * The last shape is the Each option check (v3.70.0): one text per option of a
+ * single choice, the way a form ties an answer to what follows it. Only the
+ * options given a text are written, and a chain of two or more reads back as
+ * one rule. One text alone is an Equals rule, and reads back as one.
  *
  * **Why hiding writes `{else}` instead of turning the check round.** Every
  * check has an opposite except `contains`, and `{if: X}{else}text{endif}` hides
@@ -37,6 +45,7 @@
 import { isValidFieldName } from '@/lib/formNumberToken';
 
 export type RuleOperator =
+  | 'eachOption'
   | 'equals'
   | 'notEquals'
   | 'greaterThan'
@@ -67,6 +76,8 @@ export interface RuleOperatorSpec {
 }
 
 export const RULE_OPERATORS: readonly RuleOperatorSpec[] = [
+  { id: 'eachOption', label: 'Each option has its own text', phrase: 'is', needsValue: false, numeric: false,
+    kinds: ['choice'] },
   { id: 'equals', label: 'Equals', phrase: 'equals', needsValue: true, numeric: false,
     kinds: ['text', 'number', 'choice'] },
   { id: 'notEquals', label: 'Does not equal', phrase: 'does not equal', needsValue: true, numeric: false,
@@ -87,17 +98,25 @@ export function getRuleOperator(id: RuleOperator): RuleOperatorSpec {
   return spec;
 }
 
-/** The checks a field of this kind offers, in the dropdown's order. */
-export function operatorsFor(kind: RuleFieldKind): RuleOperatorSpec[] {
-  return RULE_OPERATORS.filter((op) => op.kinds.includes(kind));
+/**
+ * The checks a field of this kind offers, in the dropdown's order. Each option
+ * needs one answer at a time, so a menu that takes several picks goes without.
+ */
+export function operatorsFor(kind: RuleFieldKind, multiple = false): RuleOperatorSpec[] {
+  return RULE_OPERATORS.filter(
+    (op) => op.kinds.includes(kind) && !(op.id === 'eachOption' && multiple),
+  );
 }
 
 /**
- * The check a field opens on. A menu that takes several picks holds them as one
- * line, so asking whether it contains an option is what "was this ticked" means.
+ * The check a field opens on. A single choice opens on Each option, the
+ * question a choice usually answers. A menu that takes several picks holds them
+ * as one line, so asking whether it contains an option is what "was this
+ * ticked" means.
  */
 export function defaultOperator(kind: RuleFieldKind, multiple = false): RuleOperator {
-  return kind === 'choice' && multiple ? 'contains' : 'equals';
+  if (kind !== 'choice') return 'equals';
+  return multiple ? 'contains' : 'eachOption';
 }
 
 /** A fill-form field type as a rule sees it, or null when rules cannot compare it. */
@@ -118,6 +137,17 @@ export interface ConditionRule {
   content: string;
   /** Show rules only: what prints instead when the check fails. '' prints nothing. */
   otherwise: string;
+  /**
+   * Each option only: the text each option prints, in the order written. The
+   * fields above go unused for it. Left out of every other rule.
+   */
+  cases?: RuleCase[];
+}
+
+/** One option of an Each option rule and the text it prints. '' prints nothing. */
+export interface RuleCase {
+  value: string;
+  content: string;
 }
 
 /** A typed number in the engine's spelling: `2,5` becomes `2.5`. Null when it is not one. */
@@ -158,9 +188,31 @@ export function ruleTextError(text: string, required: boolean): string {
     : '';
 }
 
+/** The options of an Each option rule that print something, so get written. */
+function writtenCases(rule: ConditionRule): RuleCase[] {
+  return (rule.cases ?? []).filter((c) => c.content.trim() !== '');
+}
+
+/** Why an Each option rule cannot be written, or '' when it can. */
+export function eachOptionError(rule: ConditionRule): string {
+  const cases = writtenCases(rule);
+  if (cases.length === 0) return 'Type the text for at least one option.';
+  for (const c of cases) {
+    if (c.value.trim() === '' || UNSAFE_VALUE.test(c.value)) {
+      return `The option ${c.value} has a quote or a curly bracket, so a rule cannot check it. Rename it in the Choice field.`;
+    }
+    const textError = ruleTextError(c.content, false);
+    if (textError !== '') return textError;
+  }
+  return '';
+}
+
 /** Whether the rule can be written. Whether the field still exists is the dialog's to check. */
 export function isValidRule(rule: ConditionRule, kind: RuleFieldKind): boolean {
   if (!isValidFieldName(rule.field)) return false;
+  // Checked whatever the field: a chain read back from the body stays editable
+  // even when its field is not a single choice.
+  if (rule.operator === 'eachOption') return eachOptionError(rule) === '';
   if (!getRuleOperator(rule.operator).kinds.includes(kind)) return false;
   if (ruleValueError(rule.operator, rule.value, kind) !== '') return false;
   if (ruleTextError(rule.content, true) !== '') return false;
@@ -174,6 +226,8 @@ export function buildRuleCondition(rule: ConditionRule, kind: RuleFieldKind): st
   const number = parseRuleNumber(value) ?? value;
   const numeric = comparesNumbers(operator, kind);
   switch (operator) {
+    case 'eachOption':
+      return `${field} = "${(writtenCases(rule)[0]?.value ?? '').trim()}"`;
     case 'equals':
       return numeric ? `${field} == ${number}` : `${field} = "${value}"`;
     case 'notEquals':
@@ -191,6 +245,12 @@ export function buildRuleCondition(rule: ConditionRule, kind: RuleFieldKind): st
 
 /** Writes the whole block. */
 export function buildRuleToken(rule: ConditionRule, kind: RuleFieldKind): string {
+  if (rule.operator === 'eachOption') {
+    const branches = writtenCases(rule).map(
+      (c, i) => `{${i === 0 ? 'if' : 'elseif'}: ${rule.field} = "${c.value.trim()}"}${c.content}`,
+    );
+    return `${branches.join('')}{endif}`;
+  }
   const head = `{if: ${buildRuleCondition(rule, kind)}}`;
   if (rule.action === 'hide') return `${head}{else}${rule.content}{endif}`;
   return rule.otherwise !== ''
@@ -241,10 +301,36 @@ export function parseRuleCondition(
 // The engine's own branch tags (_splitIfBranches in extension/formula-engine.js).
 const BRANCH_TAG = /\{(else(?:if:[^}]*)?)\}/g;
 
+/**
+ * An Each option chain: every branch asks whether the same field equals a
+ * quoted option, and there is no {else}. Anything else is left to the body.
+ */
+function parseEachOption(condition: string, inner: string, tags: RegExpMatchArray[]): ConditionRule | null {
+  const heads = [condition, ...tags.map((t) => (t[1] ?? '').slice('elseif:'.length))];
+  const cases: RuleCase[] = [];
+  let field = '';
+  let from = 0;
+  for (let i = 0; i < heads.length; i++) {
+    const head = (heads[i] ?? '').trim();
+    const check = TEXT_RE.test(head) ? parseRuleCondition(head) : null;
+    if (!check || check.operator !== 'equals') return null;
+    if (i === 0) field = check.field;
+    else if (check.field !== field) return null;
+    const tag = tags[i];
+    const to = tag ? (tag.index ?? 0) : inner.length;
+    cases.push({ value: check.value, content: inner.slice(from, to) });
+    if (tag) from = to + tag[0].length;
+  }
+  return { field, operator: 'eachOption', value: '', action: 'show', content: '', otherwise: '', cases };
+}
+
 function parseRuleBlock(condition: string, inner: string): ConditionRule | null {
+  const tags = [...inner.matchAll(BRANCH_TAG)];
+  if (tags.length > 0 && tags.every((t) => (t[1] ?? '').startsWith('elseif:'))) {
+    return parseEachOption(condition, inner, tags);
+  }
   const check = parseRuleCondition(condition);
   if (!check) return null;
-  const tags = [...inner.matchAll(BRANCH_TAG)];
   if (tags.some((t) => (t[1] ?? '') !== 'else') || tags.length > 1) return null;
   const tag = tags[0];
   if (!tag) {
@@ -335,6 +421,32 @@ export function relocateRule(body: string, rule: RuleInBody): RuleInBody | null 
   );
 }
 
+/** One change to the body: `text` in place of what runs from `start` to `end`. */
+export interface BodyEdit {
+  start: number;
+  end: number;
+  text: string;
+}
+
+/**
+ * Several changes as one: the stretch from the first to the last, rewritten.
+ * A rule and the print switch on its field land together this way, and neither
+ * shifts the other's place. Null when two overlap.
+ */
+export function mergeEdits(body: string, edits: readonly BodyEdit[]): BodyEdit | null {
+  const sorted = [...edits].sort((a, b) => a.start - b.start || a.end - b.end);
+  const first = sorted[0];
+  if (!first) return null;
+  let text = '';
+  let at = first.start;
+  for (const edit of sorted) {
+    if (edit.start < at) return null;
+    text += body.slice(at, edit.start) + edit.text;
+    at = edit.end;
+  }
+  return { start: first.start, end: at, text };
+}
+
 // ── Plain words ─────────────────────────────────────────────────────
 
 /**
@@ -377,6 +489,7 @@ function summaryValue(rule: ConditionRule): string {
  * text is otherwise hidden.
  */
 export function summarizeRule(rule: ConditionRule): RuleSummaryPart[] {
+  if (rule.operator === 'eachOption') return summarizeEachOption(rule);
   const spec = getRuleOperator(rule.operator);
   const parts: RuleSummaryPart[] = [
     { kind: 'keyword', text: 'IF' },
@@ -393,6 +506,28 @@ export function summarizeRule(rule: ConditionRule): RuleSummaryPart[] {
   if (rule.action === 'hide') parts.push({ kind: 'text', text: 'show it' });
   else if (rule.otherwise.trim() === '') parts.push({ kind: 'text', text: 'hide it' });
   else parts.push({ kind: 'text', text: 'show' }, { kind: 'value', text: quoted(ruleExcerpt(rule.otherwise)) });
+  return parts;
+}
+
+/**
+ * `IF RATE is "Refundable" THEN show "Full refund." ELSE IF RATE is "Fixed" THEN
+ * show "No refund." ELSE print nothing`, as parts. Options left empty are not
+ * written, so they are not read out either.
+ */
+function summarizeEachOption(rule: ConditionRule): RuleSummaryPart[] {
+  const parts: RuleSummaryPart[] = [];
+  writtenCases(rule).forEach((c, i) => {
+    parts.push(
+      { kind: 'keyword', text: i === 0 ? 'IF' : 'ELSE IF' },
+      { kind: 'field', text: rule.field },
+      { kind: 'text', text: 'is' },
+      { kind: 'value', text: quoted(c.value.trim()) },
+      { kind: 'keyword', text: 'THEN' },
+      { kind: 'text', text: 'show' },
+      { kind: 'value', text: quoted(ruleExcerpt(c.content)) },
+    );
+  });
+  parts.push({ kind: 'keyword', text: 'ELSE' }, { kind: 'text', text: 'print nothing' });
   return parts;
 }
 

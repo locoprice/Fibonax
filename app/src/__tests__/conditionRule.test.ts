@@ -5,8 +5,10 @@ import {
   buildRuleCondition,
   buildRuleToken,
   defaultOperator,
+  eachOptionError,
   findRuleAt,
   isValidRule,
+  mergeEdits,
   operatorsFor,
   parseRuleCondition,
   parseRuleNumber,
@@ -23,15 +25,23 @@ import {
   type RuleFieldKind,
 } from '@/lib/conditionRule';
 import { buildFormulaToken, buildInterestToken, buildPriceAdjustToken } from '@/lib/formulaToken';
+import { buildFormMenuToken, menuTokensIn, setMenuPrint } from '@/lib/formMenuToken';
+import type { SbFillFormViewModel } from '@/lib/fillFormEngine';
 
 // The dashboard writes the rule and the shipping engine resolves it, so the
 // round trip runs against the REAL engine: a rule that reads right in the window
 // and prints the wrong branch in the message is the defect this guards.
-function loadHelper<T>(path: string): T {
+type Requirer = (id: string) => unknown;
+
+function loadHelper<T>(path: string, req?: Requirer): T {
   const src = readFileSync(path, 'utf8');
   const mod = { exports: {} as unknown };
-  const run = new Function('module', 'exports', src) as (m: typeof mod, e: unknown) => void;
-  run(mod, mod.exports);
+  const run = new Function('module', 'exports', 'require', src) as (
+    m: typeof mod,
+    e: unknown,
+    r: Requirer,
+  ) => void;
+  run(mod, mod.exports, req ?? (() => ({})));
   return mod.exports as T;
 }
 
@@ -43,6 +53,15 @@ interface FormulaEngine {
 const engine = loadHelper<FormulaEngine>(
   resolve(process.cwd(), '..', 'extension', 'formula-engine.js'),
 );
+
+// The fill form every surface draws, whose preview is what the operator reads
+// before inserting. It reaches for the engine by a path relative to itself.
+const fillForm = loadHelper<{
+  fillForm: (text: string, values: Record<string, string>, opts: Record<string, unknown>) => SbFillFormViewModel;
+}>(resolve(process.cwd(), '..', 'extension', 'shared', 'fill-form.js'), (id) => {
+  if (id === '../formula-engine.js') return engine;
+  throw new Error(`fill-form.js asked for an unexpected module: ${id}`);
+});
 
 function rule(patch: Partial<ConditionRule>): ConditionRule {
   return {
@@ -62,19 +81,24 @@ function expand(r: ConditionRule, kind: RuleFieldKind, vals: Record<string, stri
 }
 
 describe('conditionRule — the checks', () => {
-  it('offers the six checks, each only where it means something', () => {
+  it('offers the seven checks, each only where it means something', () => {
     expect(RULE_OPERATORS.map((op) => op.id)).toEqual([
-      'equals', 'notEquals', 'greaterThan', 'lessThan', 'contains', 'isFilled',
+      'eachOption', 'equals', 'notEquals', 'greaterThan', 'lessThan', 'contains', 'isFilled',
     ]);
     expect(operatorsFor('number').map((op) => op.id)).not.toContain('contains');
     expect(operatorsFor('choice').map((op) => op.id)).not.toContain('greaterThan');
     expect(operatorsFor('text')).toHaveLength(6);
+    // Each option needs one answer at a time: a single choice only.
+    expect(operatorsFor('choice').map((op) => op.id)[0]).toBe('eachOption');
+    expect(operatorsFor('choice', true).map((op) => op.id)).not.toContain('eachOption');
+    expect(operatorsFor('text').map((op) => op.id)).not.toContain('eachOption');
   });
 
-  it('opens a multiple choice on Contains and everything else on Equals', () => {
+  it('opens a single choice on Each option, a multiple one on Contains, the rest on Equals', () => {
     expect(defaultOperator('choice', true)).toBe('contains');
-    expect(defaultOperator('choice', false)).toBe('equals');
+    expect(defaultOperator('choice', false)).toBe('eachOption');
     expect(defaultOperator('number')).toBe('equals');
+    expect(defaultOperator('text')).toBe('equals');
   });
 
   it('reads the fill form types it can compare, and no dates', () => {
@@ -303,5 +327,139 @@ describe('conditionRule — plain words', () => {
     const long = 'word '.repeat(20);
     expect(ruleExcerpt(long).endsWith('…')).toBe(true);
     expect(ruleExcerpt(long).length).toBeLessThanOrEqual(41);
+  });
+});
+
+describe('conditionRule: Each option', () => {
+  const RATE_OPTIONS = ['REFUNDABLE', 'NOT REFUNDABLE'];
+  const field = buildFormMenuToken({
+    options: RATE_OPTIONS,
+    selected: ['REFUNDABLE'],
+    name: 'RATE',
+    multiple: false,
+    cols: null,
+    print: false,
+  });
+
+  function each(cases: [string, string][]): ConditionRule {
+    return rule({
+      field: 'RATE',
+      operator: 'eachOption',
+      value: '',
+      content: '',
+      cases: cases.map(([value, content]) => ({ value, content })),
+    });
+  }
+
+  const both = each([
+    ['REFUNDABLE', 'Full refund.'],
+    ['NOT REFUNDABLE', 'After booking, no refund.'],
+  ]);
+  const body = `Hello.\n${field}\n${buildRuleToken(both, 'choice')}\nThanks.`;
+
+  it('writes one branch per option given a text, and skips the empty ones', () => {
+    expect(buildRuleToken(both, 'choice')).toBe(
+      '{if: RATE = "REFUNDABLE"}Full refund.{elseif: RATE = "NOT REFUNDABLE"}After booking, no refund.{endif}',
+    );
+    const one = each([['REFUNDABLE', ''], ['NOT REFUNDABLE', 'No refund.']]);
+    expect(buildRuleToken(one, 'choice')).toBe('{if: RATE = "NOT REFUNDABLE"}No refund.{endif}');
+    expect(engine.validateTemplate(buildRuleToken(both, 'choice')).ok).toBe(true);
+  });
+
+  it('prints only the picked option text, never the option itself', () => {
+    expect(engine.resolveBody(body, { RATE: 'REFUNDABLE' })).toBe('Hello.\nFull refund.\nThanks.');
+    expect(engine.resolveBody(body, { RATE: 'NOT REFUNDABLE' })).toBe(
+      'Hello.\nAfter booking, no refund.\nThanks.',
+    );
+  });
+
+  it('switching back and forth never leaves an old text behind', () => {
+    for (const pick of ['REFUNDABLE', 'NOT REFUNDABLE', 'REFUNDABLE', 'NOT REFUNDABLE']) {
+      const out = engine.resolveBody(body, { RATE: pick });
+      expect(out.includes('Full refund.')).toBe(pick === 'REFUNDABLE');
+      expect(out.includes('no refund')).toBe(pick === 'NOT REFUNDABLE');
+      expect(out).not.toContain('REFUNDABLE');
+    }
+  });
+
+  it('the fill form preview reads exactly what is inserted', () => {
+    for (const pick of RATE_OPTIONS) {
+      const vm = fillForm.fillForm(body, { RATE: pick }, {});
+      expect(vm.fields.map((f) => f.key)).toEqual(['RATE']);
+      expect(vm.fields[0]?.options).toEqual(RATE_OPTIONS);
+      expect(vm.preview).toBe(engine.resolveBody(body, { RATE: pick }));
+    }
+    // Untouched, a single choice answers with its default.
+    expect(fillForm.fillForm(body, {}, {}).preview).toBe('Hello.\nFull refund.\nThanks.');
+  });
+
+  it('keeps a second choice and the plain text around it working on their own', () => {
+    const extra = buildFormMenuToken({
+      options: ['Card', 'Transfer'], selected: ['Card'], name: 'PAY', multiple: false, cols: null,
+    });
+    const pay = buildRuleToken(
+      rule({ field: 'PAY', operator: 'eachOption', value: '', content: '',
+        cases: [{ value: 'Card', content: 'Pay by card.' }, { value: 'Transfer', content: 'Pay by transfer.' }] }),
+      'choice',
+    );
+    const twoFields = `${body}\nMethod: ${extra}\n${pay}`;
+    expect(engine.resolveBody(twoFields, { RATE: 'NOT REFUNDABLE', PAY: 'Card' })).toBe(
+      'Hello.\nAfter booking, no refund.\nThanks.\nMethod: Card\nPay by card.',
+    );
+  });
+
+  it('reads the chain back as one rule, and round-trips it', () => {
+    const [entry] = rulesInBody(buildRuleToken(both, 'choice'));
+    expect(entry?.rule).toEqual(both);
+    expect(summaryText(summarizeRule(both))).toBe(
+      'IF RATE is "REFUNDABLE" THEN show "Full refund." ELSE IF RATE is "NOT REFUNDABLE" THEN show "After booking, no refund." ELSE print nothing',
+    );
+  });
+
+  it('leaves chains it does not write to the body', () => {
+    for (const raw of [
+      '{if: A = "x"}a{elseif: B = "y"}b{endif}',
+      '{if: A = "x"}a{elseif: A != "y"}b{endif}',
+      '{if: A = "x"}a{elseif: A = "y"}b{else}c{endif}',
+      '{if: N == 1}a{elseif: N == 2}b{endif}',
+    ]) {
+      expect(rulesInBody(raw)[0]?.rule).toBeNull();
+    }
+  });
+
+  it('needs one text, and an option a rule can check', () => {
+    expect(eachOptionError(each([['REFUNDABLE', ''], ['NOT REFUNDABLE', ' ']]))).not.toBe('');
+    expect(eachOptionError(each([['Owner\'s rate', 'x']]))).not.toBe('');
+    expect(eachOptionError(each([['A', 'a {endif}']]))).not.toBe('');
+    expect(eachOptionError(both)).toBe('');
+    expect(isValidRule(both, 'choice')).toBe(true);
+    // A chain typed by hand on a text field stays editable.
+    expect(isValidRule(both, 'text')).toBe(true);
+  });
+});
+
+describe('conditionRule: the rule and the print switch land together', () => {
+  it('rewrites the stretch from the first change to the last', () => {
+    const body = 'A{formmenu: x,y; name=M}B C';
+    const [menu] = menuTokensIn(body);
+    expect(menu).toBeDefined();
+    if (!menu) return;
+    const merged = mergeEdits(body, [
+      { start: body.length, end: body.length, text: '{if: M = "x"}X{endif}' },
+      { start: menu.start, end: menu.end, text: setMenuPrint(menu.raw, false) },
+    ]);
+    expect(merged).toEqual({
+      start: 1,
+      end: body.length,
+      text: '{formmenu: x,y; name=M; print=no}B C{if: M = "x"}X{endif}',
+    });
+    if (!merged) return;
+    const next = body.slice(0, merged.start) + merged.text + body.slice(merged.end);
+    expect(engine.resolveBody(next, { M: 'x' })).toBe('AB CX');
+  });
+
+  it('refuses two changes that overlap', () => {
+    expect(mergeEdits('abcdef', [{ start: 1, end: 4, text: '' }, { start: 2, end: 3, text: '' }])).toBeNull();
+    expect(mergeEdits('abc', [])).toBeNull();
   });
 });
