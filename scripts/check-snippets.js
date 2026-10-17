@@ -438,13 +438,19 @@ const formulaCases = [
   ['(NUM_2 - NUM_1) / NUM_1 * 100', { NUM_1: '100', NUM_2: '80' }, -20],
   ['(NUM_2 - NUM_1) / NUM_1 * 100', { NUM_1: '0', NUM_2: '80' }, null],
   ['round(NUM_1)', { NUM_1: '2.4' }, 2],
-  ['round(NUM_1, 1)', { NUM_1: '2.456' }, 2.5],
+  // Not '2.456': one mark followed by exactly three digits reads as thousands.
+  ['round(NUM_1, 1)', { NUM_1: '2.4567' }, 2.5],
   ['round(NUM_1, 0)', { NUM_1: '2.5' }, 3],
   ['round(NUM_1, -2)', { NUM_1: '1234' }, 1200],
   ['round(avg(NUM_1, NUM_2), 1)', { NUM_1: '1', NUM_2: '2.26' }, 1.6],
   // A negative value inside a subtraction, typed without brackets.
   ['NUM_1-NUM_2', { NUM_1: '10', NUM_2: '-5' }, 15],
   ['NUM_1 + NUM_2', { NUM_1: '1.200,50', NUM_2: '1' }, 1201.5],
+  // One mark followed by exactly three digits is thousands. The quote that
+  // showed the defect: 1.500 read as 1.5 made "save" negative.
+  ['ORIG - PRICE', { ORIG: '1.500', PRICE: '1.234,57' }, 265.43],
+  ['round((ORIG - PRICE) / ORIG * 100)', { ORIG: '2.400', PRICE: '1.500' }, 38],
+  ['NUM_1 + NUM_2', { NUM_1: '2,400', NUM_2: '0,5' }, 2400.5],
   ['NUM_1 + NUM_2', { NUM_1: '', NUM_2: '3' }, 3],
   ['NUM_1 + NUM_2', { NUM_1: 'abc', NUM_2: '3' }, null],
   // What "Adjust a price" writes.
@@ -501,6 +507,7 @@ const conditionCases = [
   ['NOTE contains "x > y"', { NOTE: 'if x > y then' }, 1],
   ['SCORE > 10', { SCORE: '12' }, 1],
   ['SCORE > 10', { SCORE: '1.200,50' }, 1],
+  ['SCORE > 1000', { SCORE: '1.500' }, 1],
   ['SCORE < 10', { SCORE: '12' }, 0],
   ['SCORE < 10', { SCORE: 'abc' }, 0],
   ['SCORE == 2.5', { SCORE: '2,5' }, 1],
@@ -670,10 +677,11 @@ const fieldCfgCases = [
   // An unknown type is not a field type the product has: it stays text.
   '{formtext: name=N; type=numbr}',
   '{formtext: name=N; type=text}',
-  // A declared default has to reach an <input type="number"> intact, whichever
+  // A declared default has to reach every fill box intact, whichever
   // way round the operator wrote the separators.
   '{formtext: name=N; type=number; default=1.200,50}',
   '{formtext: name=N; type=number; default=1,200.50}',
+  '{formtext: name=N; type=number; default=1.500}',
   '{formtext: name=N; type=number; default=1200.5}',
   '{formtext: name=N; type=number; default=-40}',
   // Zero is an answer; a default that is not a number is not one.
@@ -757,7 +765,7 @@ for (const fn of ['sbFormatNumber', 'sbToNumber', 'sbFieldFormatMap']) {
 
 const FMT_CASES = [];
 for (const cur of Object.keys(engine.CURRENCIES)) {
-  for (const raw of ['1200.5', '1.200,50', '1,200.50', '0', '-40', '1000000', '', 'about 300']) {
+  for (const raw of ['1200.5', '1.200,50', '1,200.50', '1.500', '1,500', '12,5', '0', '-40', '1000000', '', 'about 300']) {
     FMT_CASES.push([raw, 'currency', cur]);
   }
 }
@@ -786,6 +794,28 @@ if (engine.sbFormatNumber('about 300', 'currency', 'EUR') !== 'about 300') {
   fail('unreadable input is being formatted instead of printed back');
 }
 console.log('OK Number formatting parity passed all ' + fok + ' cases');
+
+// ── NUMBER READING ──────────────────────────────────────────────────
+// How a typed answer becomes a number, on both sides. One mark followed by
+// exactly three digits is thousands ("1.500" in Madrid, "1,500" in London);
+// any other single mark is a decimal point. Before v3.70.5 "1.500" read as 1.5,
+// which turned a quote's "save 900€" into a negative number.
+const READ_CASES = [
+  ['1.500', 1500], ['1,500', 1500], ['2.400', 2400], ['999.999', 999999], ['-12.500', -12500],
+  ['1.234,57', 1234.57], ['1,234.57', 1234.57], ['1.200.000', 1200000], ['1 500', 1500],
+  ['1,5', 1.5], ['1.5', 1.5], ['12,50', 12.5], ['1.2345', 1.2345], ['1.1250', 1.125],
+  ['0.125', 0.125], ['0,500', 0.5], ['1234.567', 1234.567], ['.500', 0.5],
+  ['', 0], ['€1.500', null], ['abc', null],
+];
+let rok = 0;
+for (const [raw, want] of READ_CASES) {
+  const gotE = engine.sbToNumber(raw);
+  const gotM = mobile.sbToNumber(raw);
+  if (gotE !== want) fail('reading ' + JSON.stringify(raw) + ' -> engine ' + gotE + ', expected ' + want);
+  if (gotM !== gotE) fail('number reading drift for ' + JSON.stringify(raw) + '\n  engine: ' + gotE + '\n  mobile: ' + gotM);
+  rok++;
+}
+console.log('OK Number reading (engine = mobile) passed all ' + rok + ' cases');
 
 // ── DATE / TIME FORMATTING PARITY ───────────────────────────────────
 // Same stake as the number formatting above: the phone and the engine printing

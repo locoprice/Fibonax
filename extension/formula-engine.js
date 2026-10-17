@@ -775,12 +775,17 @@
   //   "1.200,50"           1200.5   both separators present: the LAST is decimal
   //   "1,200.50"           1200.5
   //   "1.200.000"          1200000  a separator used twice is grouping
-  //   "1,5"                1.5      ',' reads as a decimal point, exactly like '.'
+  //   "1.500", "1,500"     1500     one mark, then exactly three digits: thousands
+  //   "1,5", "12.50"       1.5 12.5 one mark, then one, two or four+ digits: decimal
+  //   "0.125", "1234.567"  decimal  a leading 0, or four digits before the mark
   //   "€1.200", "abc"      null     present, but not a number
   //
-  // A single '.' keeps meaning a decimal point, so nothing that resolves
-  // correctly today changes. A single ',' now does too: "1,200" reads as 1.2
-  // where parseFloat read 1, which was wrong under either reading.
+  // One mark followed by exactly three digits is how people on either side of
+  // the Atlantic write a round amount: "2.400" in Madrid, "2,400" in London.
+  // Reading it as 2.4 turned a quote's "save 900€" into a negative number. The
+  // cost falls on a number with exactly three decimals and a 1 to 3 digit
+  // whole part: "1.125" now reads 1125, while "1.1250" and "0.125" stay
+  // decimals. One rule for both marks, so it never depends on the locale.
   //
   // null is the point of the function: it lets a caller tell "no answer" (0)
   // from "an answer that is not a number", which the engine used to collapse.
@@ -796,9 +801,10 @@
     var dots = s.split('.').length - 1;
     var commas = s.split(',').length - 1;
     var dec = -1;
+    var thousands = /^[1-9][0-9]{0,2}[.,][0-9]{3}$/.test(s);
     if (dots && commas) dec = Math.max(s.lastIndexOf('.'), s.lastIndexOf(','));
-    else if (dots === 1) dec = s.lastIndexOf('.');
-    else if (commas === 1) dec = s.lastIndexOf(',');
+    else if (dots === 1 && !thousands) dec = s.lastIndexOf('.');
+    else if (commas === 1 && !thousands) dec = s.lastIndexOf(',');
     var whole = (dec === -1 ? s : s.slice(0, dec)).replace(/[.,]/g, '');
     var frac = dec === -1 ? '' : s.slice(dec + 1);
     // Grouping marks are gone by now, so anything left in the fraction is a
@@ -2119,10 +2125,9 @@
   // implementation detail nobody authoring a snippet has to know.
   var NUMBER_FORMATS = ['plain', 'currency', 'percent'];
 
-  // A declared default has to survive into an <input type="number">, which
-  // rejects the very thing an operator is most likely to have typed: a
-  // default of "1.200,50" would arrive as a blank box. Normalising it here
-  // means every renderer gets a value it can actually show.
+  // A declared default reaches every renderer in one plain spelling: "1.200,50"
+  // arrives as "1200.5", which every box shows and sbToNumber reads back as the
+  // same number. A default that is not a number at all opens the box empty.
   //
   // Empty stays empty. sbToNumber reads '' as 0 because an unanswered field
   // contributes nothing to a sum, but "no default" and "a default of zero"

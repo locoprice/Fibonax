@@ -1999,14 +1999,18 @@ function renderDetailHtml(s){
             return '<label class="d-opt"><input type="'+oType+'"'+oName+' data-fkey="'+esc(k)+'" value="'+esc(o)+'"'+(f.picks.indexOf(o)>=0?' checked':'')+'><span>'+esc(o)+'</span></label>';
           }).join('')+'</div>';
         } else {
+          // A number is a text box with the number keypad. type="number" lets
+          // the browser drop a comma or a second dot as it is typed ("1,5"
+          // became 15), so the engine never saw what was written.
           var itype=(f.type==='date'||f.type==='time')?f.type
-                   :(f.type==='datetime'?'datetime-local':(f.type==='number'?'number':'text'));
+                   :(f.type==='datetime'?'datetime-local':'text');
+          var keypad=f.type==='number'?' inputmode="decimal"':'';
           var ordAttr='';
           /* A closing date may not open before its opening one. The value comes
              from the shared fill-form module; only the markup is local. */
           if(f.notBefore) ordAttr+=' data-after="'+esc(f.notBefore)+'"';
           if(f.min) ordAttr+=' min="'+esc(f.min)+'"';
-          inp='<input type="'+itype+'" data-fkey="'+esc(k)+'"'+ordAttr+' placeholder="'+esc(label)+'" value="'+esc(val)+'">';
+          inp='<input type="'+itype+'"'+keypad+' data-fkey="'+esc(k)+'"'+ordAttr+' placeholder="'+esc(label)+'" value="'+esc(val)+'">';
         }
         // Reads like the snippet — "Rate Plan: [ Refundable ] per night". The
         // key label survives only for a field with no prose around it, which

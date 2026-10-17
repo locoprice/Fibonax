@@ -608,7 +608,7 @@ body{
    reads like writing into the gaps of the message. The placeholder stays light
    and regular, so an empty box never looks filled. Same on all four fill
    surfaces. */
-.field-in[type=text],.field-in[type=number]{font-weight:700}
+.field-in[type=text]{font-weight:700}
 .field-in::placeholder{color:#C7C7CC;font-weight:400}
 .field-in[type=date],.field-in[type=time],.field-in[type=datetime-local]{
   color:#C2410C;font-weight:600}
@@ -5008,8 +5008,11 @@ var SB_NUMBER_FORMATS=['plain','currency','percent'];
 
 /* Reads a typed value the way an operator wrote it. parseFloat cannot:
    parseFloat("1.200,50") is 1.2, which is not an error but a plausible and
-   completely wrong number. null means "present, but not a number", which is
-   what lets a caller tell it apart from an unanswered field. */
+   completely wrong number. One mark followed by exactly three digits is
+   thousands ("1.500" and "1,500" are 1500); otherwise one mark is a decimal
+   point. null means "present, but not a number", which is what lets a caller
+   tell it apart from an unanswered field. Mirrors sbToNumber in
+   extension/formula-engine.js; scripts/check-snippets.js holds them equal. */
 function sbToNumber(raw){
   if(raw===null||raw===undefined)return 0;
   if(typeof raw==='number')return isFinite(raw)?raw:null;
@@ -5020,9 +5023,10 @@ function sbToNumber(raw){
   else if(s.charAt(0)==='-'){neg=true;s=s.slice(1);}
   if(!/^[0-9.,]+$/.test(s))return null;
   var dots=s.split('.').length-1,commas=s.split(',').length-1,dec=-1;
+  var thousands=/^[1-9][0-9]{0,2}[.,][0-9]{3}$/.test(s);
   if(dots&&commas)dec=Math.max(s.lastIndexOf('.'),s.lastIndexOf(','));
-  else if(dots===1)dec=s.lastIndexOf('.');
-  else if(commas===1)dec=s.lastIndexOf(',');
+  else if(dots===1&&!thousands)dec=s.lastIndexOf('.');
+  else if(commas===1&&!thousands)dec=s.lastIndexOf(',');
   var whole=(dec===-1?s:s.slice(0,dec)).replace(/[.,]/g,'');
   var frac=dec===-1?'':s.slice(dec+1);
   /* Grouping marks are gone by now, so anything left in the fraction is a
@@ -8413,9 +8417,11 @@ function renderDetail(snip,keepVals){
       }else if(t==='datetime'||t==='datetime-local'){
         inp='<input class="field-in" data-f="'+esc(f)+'"'+sbOrderAttrs(fld)+' type="datetime-local" value="'+esc(def)+'">';
       }else{
-        var itype=t==='number'?'number':'text';
-        inp='<input class="field-in" data-f="'+esc(f)+'" type="'+itype+'" '
-          +'inputmode="'+(itype==='number'?'decimal':'text')+'" '
+        /* A number is a text box with the number keypad. type="number" lets
+           the browser drop a comma or a second dot as it is typed ("1,5" became
+           15), so the engine never saw what was written. */
+        inp='<input class="field-in" data-f="'+esc(f)+'" type="text" '
+          +'inputmode="'+(t==='number'?'decimal':'text')+'" '
           +'placeholder="'+esc(def||lbl)+'" value="'+esc(def)+'" '
           +'autocomplete="off" autocorrect="off" spellcheck="false">';
       }
@@ -8592,13 +8598,13 @@ function bindAdjust(form){
 }
 
 /* Reads the fill form. A multiple-choice {formmenu:} is a checkbox group
-   sharing one data-f — every box contributes, checked or not, so the value is
+   sharing one data-f: every box contributes, checked or not, so the value is
    the picks in the order the menu declares them. Mirrors getVals in content.js.
 
-   `coerce` turns a numeric text entry into a number for the formula evaluator.
-   Menus and date fields are never coerced: "1980, 1985" would otherwise
-   parseFloat to 1980 and silently drop the second pick. */
-function readFields(coerce){
+   Every value goes to the engine exactly as typed, as it does on the desktop.
+   The engine reads a number itself (sbToNumber); turning it into one here with
+   parseFloat read "1.234,57" as 1.234 and the answer "12 Main St" as 12. */
+function readFields(){
   var v={},groups={};
   document.querySelectorAll('#fform .field-in').forEach(function(i){
     var f=i.getAttribute('data-f');
@@ -8609,26 +8615,22 @@ function readFields(coerce){
     }
     /* A single-choice menu is a radio group sharing one data-f. Seed the key
        before looking at checked, so a group with nothing ticked reads '' rather
-       than dropping out of the values. Never coerced: an option is a label. */
+       than dropping out of the values. */
     if(i.type==='radio'){
       if(v[f]===undefined)v[f]='';
       if(i.checked)v[f]=i.value;
       return;
     }
-    var val=i.value;
-    if(!coerce||i.tagName==='SELECT'){v[f]=val;return;}
-    var type=i.getAttribute('type');
-    if(type==='date'||type==='time'||type==='datetime-local'){v[f]=val;return;}
-    var n=parseFloat(val);
-    v[f]=(!isNaN(n)&&val.trim()!=='')?n:val;
+    v[f]=i.value;
   });
   for(var g in groups)v[g]=groups[g].join(', ');
   return v;
 }
 
-/* Raw string field values — used to carry input across a language switch. */
+/* The field values as typed: what the message is built from, and what carries
+   over a language switch. */
 function getRawVals(){
-  return readFields(false);
+  return readFields();
 }
 /* Switch the active language variant inside the detail view. Preserves any
    field values whose names also exist in the newly selected language. */
@@ -8640,10 +8642,6 @@ function switchVariant(vid){
   curSnip=v;
   rememberLang(groupKey(v),v.lang);
   renderDetail(v,keep);
-}
-
-function getVals(){
-  return readFields(true);
 }
 
 /* How each date and time field prints, when the operator has chosen for itself
@@ -8661,7 +8659,7 @@ function getFmts(){
 /* The finished text on the snippet page: what the preview shows, and what
    Copy and Share hand over. */
 function detailText(){
-  return resolveBody(curSnip.body||'',Object.assign({},getVals()),
+  return resolveBody(curSnip.body||'',getRawVals(),
     {lang:curSnip.lang,fmtOverride:getFmts()});
 }
 function detailFilled(){

@@ -24,7 +24,12 @@ A quantity: a price, a count, a duration. A number field always holds a number, 
 - **Currency**: EUR (€), USD ($), GBP (£), CHF, CAD (CA$), AUD (A$) or JPY (¥, no decimals).
 - **Default** (optional). A blank default opens empty, which is not the same as 0.
 
-People can type `1.200,50` or `1,200.50`. Both read as the same number.
+People can write a number their own way:
+
+- `1.200,50` and `1,200.50` are the same number.
+- A dot or comma followed by exactly three digits marks thousands: `1.500` and `1,500` both mean fifteen hundred.
+- Any other dot or comma marks decimals: `1,5`, `12.50`, `0.125`.
+- For three decimals, start with 0 or add a 0 at the end: `0.125`, `1.1250`.
 
 <Warning>
   Phone numbers, order references and postcodes are not numbers. They lose a leading zero and can't hold `+` or spaces. Use a Text field for them.

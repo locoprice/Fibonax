@@ -150,10 +150,16 @@ export interface RuleCase {
   content: string;
 }
 
-/** A typed number in the engine's spelling: `2,5` becomes `2.5`. Null when it is not one. */
+/**
+ * A typed number in the engine's spelling: `2,5` becomes `2.5`, and `1.500`
+ * becomes `1500`, because one mark followed by exactly three digits is
+ * thousands, as sbToNumber reads the answer the rule is checked against
+ * (`extension/formula-engine.js`). Null when it is not one.
+ */
 export function parseRuleNumber(raw: string): string | null {
   const s = raw.trim();
   if (!/^-?\d+(?:[.,]\d+)?$/.test(s)) return null;
+  if (/^-?[1-9]\d{0,2}[.,]\d{3}$/.test(s)) return String(Number(s.replace(/[.,]/, '')));
   return String(Number(s.replace(',', '.')));
 }
 

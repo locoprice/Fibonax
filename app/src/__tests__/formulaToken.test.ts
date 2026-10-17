@@ -721,7 +721,8 @@ describe('hand-typed spreadsheet-style formulas', () => {
   });
 
   it('keeps the decimals round() is given, and averages with avg()', () => {
-    expect(engine.resolveBody('{=round(X, 1)}', { X: '2.456' })).toBe('2.5');
+    // Not '2.456': one mark followed by exactly three digits reads as thousands.
+    expect(engine.resolveBody('{=round(X, 1)}', { X: '2.4567' })).toBe('2.5');
     expect(engine.resolveBody('{=round(X, -2)}', { X: '1234' })).toBe('1200');
     expect(engine.resolveBody('{=avg(A, B, C)}', { A: '1', B: '2', C: '4' })).toBe('2.33');
   });

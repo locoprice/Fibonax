@@ -386,6 +386,9 @@ const DATE_READS = [
   ['time', 'at 9:30 pm', '21:30'],
   ['time', '14h30', '14:30'],
   ['number', '€ 1.200,50', '1200.5'],
+  ['number', 'Total 1.500 €', '1500'],             // one mark, three digits: thousands
+  ['number', '$2,400', '2400'],
+  ['number', '12,50 €', '12.5'],
   ['number', 'none', 'unclear'],
 ];
 for (const [type, text, want] of DATE_READS) {

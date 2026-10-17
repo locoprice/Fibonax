@@ -1849,7 +1849,10 @@ function showOverlay(targetEl, snip, scLen, done) {
     } else if (cfg.type === 'datetime' || cfg.type === 'datetime-local') {
       inp = '<input type="datetime-local" class="sb-inp" data-key="'+key+'"'+_sbOrderAttrs(cfg)+' value="'+xesc(cfg.value)+'">';
     } else {
-      inp = '<input type="'+(cfg.type==='number'?'number':'text')+'" class="sb-inp" data-key="'+key+'" placeholder="'+key.replace(/_/g,' ')+'" value="'+xesc(cfg.value)+'">';
+      // A number is a text box with the number keypad. type="number" lets the
+      // browser drop a comma or a second dot as it is typed ("1,5" became 15),
+      // so the engine never saw what was written.
+      inp = '<input type="text"'+(cfg.type==='number'?' inputmode="decimal"':'')+' class="sb-inp" data-key="'+key+'" placeholder="'+key.replace(/_/g,' ')+'" value="'+xesc(cfg.value)+'">';
     }
     // Presentation-only naming: answer keys, defaults and handlers stay intact.
     var fieldId = 'sb-fill-' + i;
@@ -3981,7 +3984,7 @@ document.addEventListener('input', function(e) {
     "#sb-overlay .sb-inp{display:block;margin:0;width:100%;min-width:0;min-height:calc(var(--sb-s-10) + var(--sb-s-1));padding:var(--sb-s-2) var(--sb-s-3);background:var(--sb-bg);border:1px solid var(--sb-line-2);border-radius:var(--sb-r-lg);font-family:inherit;font-size:var(--sb-fs-16);line-height:1.4;color:var(--sb-ink);outline:none;touch-action:manipulation;transition:border-color var(--sb-dur-base),box-shadow var(--sb-dur-base);}" +
     "#sb-overlay .sb-inp:hover{border-color:var(--sb-ink-muted);}" +
     "#sb-overlay .sb-inp:focus{border-color:var(--sb-azure);box-shadow:0 0 0 3px var(--sb-azure-glow);}" +
-    "#sb-overlay .sb-inp[type=text],#sb-overlay .sb-inp[type=number]{font-weight:700;}" +
+    "#sb-overlay .sb-inp[type=text]{font-weight:700;}" +
     "#sb-overlay .sb-inp::placeholder{font-weight:400;color:var(--sb-ink-muted);opacity:1;}" +
     "#sb-overlay .sb-inp[type=date],#sb-overlay .sb-inp[type=time],#sb-overlay .sb-inp[type=datetime-local]{color:var(--sb-azure);}" +
     "#sb-overlay .sb-adj{align-self:flex-start;padding:var(--sb-s-1) var(--sb-s-2);margin:calc(-1 * var(--sb-s-1)) 0;font-size:var(--sb-fs-12);font-weight:500;color:var(--sb-ink-muted);}" +

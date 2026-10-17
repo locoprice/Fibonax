@@ -41,7 +41,11 @@ function optionInputType(field: SbFillField): 'checkbox' | 'radio' {
   return field.multiple ? 'checkbox' : 'radio';
 }
 
-/** The HTML input type for a non-menu field. */
+/**
+ * The HTML input type for a non-menu field. A number is a text box with the
+ * number keypad: type="number" lets the browser drop a comma or a second dot
+ * as it is typed ("1,5" became 15), so the engine never saw what was written.
+ */
 function inputType(field: SbFillField): string {
   switch (field.type) {
     case 'date':
@@ -50,8 +54,6 @@ function inputType(field: SbFillField): string {
       return 'time';
     case 'datetime':
       return 'datetime-local';
-    case 'number':
-      return 'number';
     default:
       return 'text';
   }
@@ -679,6 +681,7 @@ function PreviewField({ field, note, onChange, onFormat, onToggleOption }: Previ
         {before}
         <input
           type={type}
+          {...(field.type === 'number' ? { inputMode: 'decimal' as const } : {})}
           {...(field.min ? { min: field.min } : {})}
           value={field.value}
           placeholder={label}
@@ -692,7 +695,7 @@ function PreviewField({ field, note, onChange, onFormat, onToggleOption }: Previ
             // regular. The hint stays regular, so an empty box never looks
             // filled. Same on all four fill surfaces; picked values (dates)
             // keep their own look.
-            type === 'text' || type === 'number' ? 'font-bold placeholder:font-normal' : '',
+            type === 'text' ? 'font-bold placeholder:font-normal' : '',
             // A floor, not a width: long surrounding prose would otherwise
             // squeeze a flex-1 input down to a few characters. The row wraps,
             // so the prose gives way and takes the line above instead.

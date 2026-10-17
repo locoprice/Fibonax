@@ -84,6 +84,7 @@ The checks:
 
 - Capitals don't matter: `annual` matches `Annual`.
 - A Number field compares as a number, so `1.200,50` is greater than 1000. An empty Number counts as 0.
+- The value you compare with reads the same way: `1.500` means fifteen hundred.
 - On a Choice field you pick the value from its options. On a multiple choice, **Contains** checks whether that option was ticked.
 - Date and time fields can't be checked.
 - **In plain words** shows the rule as one sentence before you insert it, like `IF SCORE is greater than 10 THEN hide "Section B" ELSE show it`.
