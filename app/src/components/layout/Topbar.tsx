@@ -2,7 +2,6 @@ import { CheckCircle2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { UserDropdown } from '@/components/layout/UserDropdown';
 import { MasterSearch } from '@/features/search/MasterSearch';
 
 /**
@@ -66,8 +65,6 @@ export function Topbar() {
         </div>
 
         <ThemeToggle />
-
-        <UserDropdown />
       </div>
     </header>
   );
