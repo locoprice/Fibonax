@@ -22,8 +22,8 @@
       "count": 2
     },
     {
-      "find": "<a href=\"mailto:sprintbrainapp@gmail.com\" class=\"nav-link\" id=\"nav-contact-open\">Contact us</a>",
-      "replace": "<a href=\"mailto:sprintbrainapp@gmail.com\" class=\"nav-link\" id=\"nav-contact-open\">Contacto</a>",
+      "find": "<a href=\"mailto:fibonaxai@gmail.com\" class=\"nav-link\" id=\"nav-contact-open\">Contact us</a>",
+      "replace": "<a href=\"mailto:fibonaxai@gmail.com\" class=\"nav-link\" id=\"nav-contact-open\">Contacto</a>",
       "count": 1
     },
     {
@@ -502,8 +502,8 @@
       "count": 1
     },
     {
-      "find": "<a href=\"mailto:sprintbrainapp@gmail.com\" id=\"contact-open\">Support</a>",
-      "replace": "<a href=\"mailto:sprintbrainapp@gmail.com\" id=\"contact-open\">Soporte</a>",
+      "find": "<a href=\"mailto:fibonaxai@gmail.com\" id=\"contact-open\">Support</a>",
+      "replace": "<a href=\"mailto:fibonaxai@gmail.com\" id=\"contact-open\">Soporte</a>",
       "count": 1
     },
     {
