@@ -1707,6 +1707,7 @@ function _sbBindLink(el, snip) {
     for (var key in read.values) {
       if (Object.prototype.hasOwnProperty.call(read.values, key)) write(key, read.values[key]);
     }
+    _sbSyncOther(el);
     // The same two steps a hand edit runs: the date ordering, then the preview.
     _sbReorder(el);
     updatePrev(snip);
@@ -1841,7 +1842,7 @@ function showOverlay(targetEl, snip, scLen, done) {
       inp = '<div class="sb-multi"'+wide+'>' + opts.map(function(o){
         return '<label class="sb-opt"><input type="'+oType+'" class="sb-inp"'+oName+' data-key="'+key+'" value="'+xesc(o)+'"'+
                (picked.indexOf(o) >= 0 ? ' checked' : '')+'><span>'+xesc(o)+'</span></label>';
-      }).join('') + '</div>';
+      }).join('') + _sbOtherHtml(cfg, oType, oName) + '</div>';
     } else if (cfg.type === 'date') {
       inp = '<input type="date" class="sb-inp" data-key="'+key+'"'+_sbOrderAttrs(cfg)+' value="'+xesc(cfg.value)+'">';
     } else if (cfg.type === 'time') {
@@ -1949,7 +1950,13 @@ function showOverlay(targetEl, snip, scLen, done) {
       inp.addEventListener('input',  function(){ _sbReorder(el, inp); updatePrev(snip); });
       inp.addEventListener('change', function(){
         _sbReorder(el, inp);
+        _sbSyncOther(el);
         updatePrev(snip);
+        // Ticking Other opens its box, and the answer is typed there next.
+        if (inp.hasAttribute('data-other')) {
+          if (inp.checked) _sbFocus(el.querySelector('.sb-othertxt[data-otherkey="' + inp.getAttribute('data-key') + '"]'));
+          return;
+        }
         // A radio is a finished answer the moment it is ticked, so the caret
         // moves to whatever is still empty. Checkboxes are excluded: a multiple
         // choice menu is not finished by one tick. No key is involved, so this
@@ -2071,12 +2078,13 @@ function showOverlay(targetEl, snip, scLen, done) {
           // value, silently changing one of the choices on offer.
           if (target.type === 'radio') {
             var want = String(res.values[name]);
-            var group = el.querySelectorAll('.sb-inp[type="radio"][data-key="' + name + '"]');
+            var group = el.querySelectorAll('.sb-inp[type="radio"][data-key="' + name + '"]:not([data-other])');
             var matched = false;
             for (var r = 0; r < group.length; r++) {
               if (group[r].value === want) { group[r].checked = true; matched = true; }
             }
             if (!matched) errs.push(name + ' has no option "' + want + '"');
+            _sbSyncOther(el);
             continue;
           }
           target.value = String(res.values[name]);
@@ -2201,28 +2209,60 @@ function _sbNextEmptyAfter(root, key) {
 
 function getVals() {
   if (!overlayEl) return {};
-  var v = {}, groups = {};
+  var v = {}, menus = {};
   var inps = overlayEl.querySelectorAll('.sb-inp[data-key]');
   for (var i = 0; i < inps.length; i++) {
     var el = inps[i], k = el.dataset.key;
-    // A multiple-choice {formmenu:} is a checkbox group sharing one data-key —
-    // every box contributes, checked or not, so the value is the picks in the
-    // order the menu declares them.
-    if (el.type === 'checkbox') {
-      if (!groups[k]) groups[k] = [];
-      if (el.checked) groups[k].push(el.value);
-    } else if (el.type === 'radio') {
-      // A single-choice menu is a radio group sharing one data-key. Seed the key
-      // before looking at checked, so a group with nothing ticked reads '' and
-      // does not drop out of the values entirely.
-      if (v[k] === undefined) v[k] = '';
-      if (el.checked) v[k] = el.value;
+    // A {formmenu:} is a group of radios (single choice) or checkboxes
+    // (multiple) sharing one data-key. Every control contributes, checked or
+    // not, so a group with nothing ticked still reads '' rather than dropping
+    // out, and the picks keep the order the menu declares them in.
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      var m = menus[k] || (menus[k] = { multiple: el.type === 'checkbox', picks: [], other: null });
+      if (!el.checked) continue;
+      // The Other choice: what its box holds is the answer.
+      if (el.hasAttribute('data-other')) {
+        var box = overlayEl.querySelector('.sb-othertxt[data-otherkey="' + k + '"]');
+        m.other = box ? box.value : '';
+      } else {
+        m.picks.push(el.value);
+      }
     } else {
       v[k] = el.value;
     }
   }
-  for (var g in groups) v[g] = groups[g].join(', ');
+  // How picks and a typed answer combine is decided once, in fill-form.js.
+  for (var g in menus) {
+    var mm = menus[g];
+    v[g] = _SBFF ? _SBFF.menuValue(mm.multiple, mm.picks, mm.other)
+                 : (mm.multiple ? mm.picks.join(', ') : (mm.picks[0] || ''));
+  }
   return v;
+}
+
+// The Other choice on a menu: one more radio or checkbox, then the box its
+// answer is typed in, shown only while Other is ticked. The box carries
+// data-otherkey rather than data-key, so nothing reads it as a field of its
+// own; getVals reads it through the Other control.
+function _sbOtherHtml(cfg, oType, oName) {
+  if (!cfg.other) return '';
+  var key = xesc(cfg.key);
+  return '<label class="sb-opt"><input type="'+oType+'" class="sb-inp"'+oName+' data-key="'+key+'" data-other="1" value=""'+
+           (cfg.otherOn ? ' checked' : '')+'><span>'+xesc(cfg.other)+'</span></label>' +
+         '<input type="text" class="sb-inp sb-othertxt" data-otherkey="'+key+'" aria-label="'+xesc(cfg.other)+'"'+
+           ' placeholder="'+xesc(_SBFF ? _SBFF.OTHER_PLACEHOLDER : '')+'" value="'+xesc(cfg.otherText)+'"'+
+           (cfg.otherOn ? '' : ' hidden')+'>';
+}
+
+// Shows each Other box while its choice is ticked and hides it otherwise. On a
+// single-choice menu, picking an option unticks Other without an event of its
+// own, so this runs after every change rather than on the Other control alone.
+function _sbSyncOther(root) {
+  var ctrls = root.querySelectorAll('.sb-inp[data-other]');
+  for (var i = 0; i < ctrls.length; i++) {
+    var box = root.querySelector('.sb-othertxt[data-otherkey="' + ctrls[i].getAttribute('data-key') + '"]');
+    if (box) box.hidden = !ctrls[i].checked;
+  }
 }
 
 // How each date and time field prints, when the operator has chosen for
@@ -3985,6 +4025,7 @@ document.addEventListener('input', function(e) {
     "#sb-overlay .sb-inp:hover{border-color:var(--sb-ink-muted);}" +
     "#sb-overlay .sb-inp:focus{border-color:var(--sb-azure);box-shadow:0 0 0 3px var(--sb-azure-glow);}" +
     "#sb-overlay .sb-inp[type=text]{font-weight:700;}" +
+    "#sb-overlay .sb-inp[hidden]{display:none;}" +
     "#sb-overlay .sb-inp::placeholder{font-weight:400;color:var(--sb-ink-muted);opacity:1;}" +
     "#sb-overlay .sb-inp[type=date],#sb-overlay .sb-inp[type=time],#sb-overlay .sb-inp[type=datetime-local]{color:var(--sb-azure);}" +
     "#sb-overlay .sb-adj{align-self:flex-start;padding:var(--sb-s-1) var(--sb-s-2);margin:calc(-1 * var(--sb-s-1)) 0;font-size:var(--sb-fs-12);font-weight:500;color:var(--sb-ink-muted);}" +

@@ -14,6 +14,7 @@ import {
   linkText,
   linkUrl,
   loadFillFormEngine,
+  otherPlaceholder,
   readFromPage,
   runFormButton,
   type SbDayMode,
@@ -114,6 +115,9 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
   // Formats picked in a field's Adjust panel. Beside `values` rather than in
   // it: the same kind of answer, given while the form is open and never saved.
   const [fmts, setFmts] = useState<Record<string, string>>({});
+  // Menus whose Other choice is ticked, with what its box holds. Apart from
+  // `values` so Other stays ticked while its box is still empty.
+  const [others, setOthers] = useState<Record<string, string>>({});
   const [buttonErrors, setButtonErrors] = useState<string[]>([]);
   const [copied, setCopied] = useState<'idle' | 'done' | 'failed'>('idle');
   // The body lags the textarea by one debounce, so typing does not re-parse on
@@ -181,8 +185,8 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
 
   const view: SbFillFormViewModel | null = useMemo(() => {
     if (!engineReady) return null;
-    return fillForm(debouncedBody, values, { lang, fieldFmt: fmts, linked });
-  }, [engineReady, debouncedBody, values, fmts, lang, linked]);
+    return fillForm(debouncedBody, values, { lang, fieldFmt: fmts, linked, other: others });
+  }, [engineReady, debouncedBody, values, fmts, lang, linked, others]);
 
   // A page arrives after the Fill that asked for it, and is read against the
   // form on screen THEN: the body may have changed while it loaded.
@@ -231,6 +235,8 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
   const toggleOption = useCallback(
     (field: SbFillField, option: string, checked: boolean) => {
       if (!field.multiple) {
+        // One answer: picking an option unticks Other.
+        setOthers((prev) => withoutKeys(prev, [field.key]));
         setValue(field.key, option);
         return;
       }
@@ -242,6 +248,26 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
       setValue(field.key, next.join(', '));
     },
     [setValue],
+  );
+
+  // The Other choice: ticking it opens its box, and what is typed there is the
+  // answer. On a single-choice menu it stands in for the options.
+  const toggleOther = useCallback(
+    (field: SbFillField, checked: boolean) => {
+      setOthers((prev) =>
+        checked ? { ...prev, [field.key]: field.otherText } : withoutKeys(prev, [field.key]),
+      );
+      unlink([field.key]);
+    },
+    [unlink],
+  );
+
+  const setOtherText = useCallback(
+    (field: SbFillField, text: string) => {
+      setOthers((prev) => ({ ...prev, [field.key]: text }));
+      unlink([field.key]);
+    },
+    [unlink],
   );
 
   const handleButton = useCallback(
@@ -276,6 +302,8 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
       }
 
       const emptied = commitValues(view.fields, applied);
+      // A menu set to one of its options no longer holds a typed answer.
+      setOthers((prev) => withoutKeys(prev, Object.keys(applied)));
       unlink([...Object.keys(applied), ...emptied]);
       setButtonErrors([...errors, ...unknown]);
     },
@@ -320,6 +348,8 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
     // Written the way a hand edit is, ordering included: a closing date the
     // page's opening one now falls after is emptied, as on every surface.
     const emptied = commitValues(fields, read.values);
+    // A menu the page settles holds one of its options, not a typed answer.
+    setOthers((prev) => withoutKeys(prev, Object.keys(read.values)));
     // Each read starts the marks over: a field this page did not settle keeps
     // its value, but nothing on it says this page put it there. An emptied
     // date holds nothing from the page either; its note stays.
@@ -416,6 +446,8 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
                   onToggleOption={(option, checked) =>
                     toggleOption(field, option, checked)
                   }
+                  onToggleOther={(checked) => toggleOther(field, checked)}
+                  onOtherText={(text) => setOtherText(field, text)}
                 />
               ))}
 
@@ -590,6 +622,8 @@ interface PreviewFieldProps {
   onChange: (value: string) => void;
   onFormat: (format: string) => void;
   onToggleOption: (option: string, checked: boolean) => void;
+  onToggleOther: (checked: boolean) => void;
+  onOtherText: (text: string) => void;
 }
 
 /** A field's title, with "From link" beside it while it holds the page's answer. */
@@ -623,7 +657,15 @@ function FieldNoteLine({ note }: { note: FieldNote | null }) {
  * field, so a row reads the way the body does; a choice list is block level and
  * takes its context above and below instead of beside it.
  */
-function PreviewField({ field, note, onChange, onFormat, onToggleOption }: PreviewFieldProps) {
+function PreviewField({
+  field,
+  note,
+  onChange,
+  onFormat,
+  onToggleOption,
+  onToggleOther,
+  onOtherText,
+}: PreviewFieldProps) {
   // A stored display name wins; otherwise the key, humanised.
   const label = field.label || fieldLabel(field.key);
   const showBefore = field.before !== '' && !isEchoOfLabel(field.before, label);
@@ -666,6 +708,40 @@ function PreviewField({ field, note, onChange, onFormat, onToggleOption }: Previ
               </label>
             );
           })}
+          {/* The Other choice: last, like the overlay, the popup and the
+              phone. Ticked, it opens a box whose text is the answer. */}
+          {field.other && (
+            <label
+              className={cn(
+                'flex cursor-pointer items-center gap-2 rounded-lg px-1.5 py-1 text-xs transition-colors hover:bg-bg-alt',
+                field.otherOn ? 'font-semibold text-primary' : 'text-ink',
+              )}
+            >
+              <input
+                type={type}
+                name={type === 'radio' ? `sb-preview-${field.key}` : undefined}
+                checked={field.otherOn}
+                onChange={(e) => onToggleOther(e.target.checked)}
+                className="h-3.5 w-3.5 shrink-0 accent-primary"
+              />
+              <span className="min-w-0 break-words">{field.other}</span>
+            </label>
+          )}
+          {field.other && field.otherOn && (
+            <input
+              type="text"
+              // Opened by ticking Other, so the caret goes straight in.
+              autoFocus
+              aria-label={field.other}
+              value={field.otherText}
+              placeholder={otherPlaceholder()}
+              onChange={(e) => onOtherText(e.target.value)}
+              className={cn(
+                'ml-6 min-w-0 rounded-lg border border-line bg-card px-2.5 py-1.5 text-xs font-bold text-ink transition-colors',
+                'placeholder:font-normal placeholder:text-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
+              )}
+            />
+          )}
         </div>
         {after}
         <FieldNoteLine note={note} />

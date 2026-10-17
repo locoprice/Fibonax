@@ -37,7 +37,16 @@ export interface FormMenuConfig {
    * prints its pick, for the same reason as `link`.
    */
   print?: boolean;
+  /**
+   * The Other choice's label (`other=`): one more choice whose typed text is
+   * the field's value. Left out for a menu without one, for the same reason
+   * as `link`.
+   */
+  other?: string;
 }
+
+/** The Other choice's label when the author leaves it empty. */
+export const MENU_OTHER_LABEL = 'Other';
 
 /**
  * `,` `;` `{` `}` are the token grammar's own delimiters, so they collapse to a
@@ -93,6 +102,10 @@ export function buildFormMenuToken(cfg: FormMenuConfig): string {
   const link = linkValue(cfg.link);
   if (link !== '') out += `; link=${link}`;
   if (cfg.print === false) out += '; print=no';
+  // A label emptied by sanitising is still a wish for the choice.
+  if (typeof cfg.other === 'string') {
+    out += `; other=${sanitizeMenuOption(cfg.other) || MENU_OTHER_LABEL}`;
+  }
   return `${out}}`;
 }
 
@@ -100,9 +113,9 @@ export function buildFormMenuToken(cfg: FormMenuConfig): string {
  * Named settings a menu token carries; every other segment is an option.
  * `link` is one since Fill from link: without it here, a menu's reading rule
  * would come back as one more option to pick, and saving the menu would ship it.
- * `print` is one since v3.70.0, for the same reason.
+ * `print` is one since v3.70.0, and `other` since v3.71.0, for the same reason.
  */
-const MENU_KEYS = /^\s*(name|default|multiple|cols|link|print)\s*=/i;
+const MENU_KEYS = /^\s*(name|default|multiple|cols|link|print|other)\s*=/i;
 const MENU_HEAD = /^\{\s*formmenu\s*:/i;
 const PRINT_SETTING = /^\s*print\s*=/i;
 const QUIET = /(?:^|;)\s*print\s*=\s*(?:no|false|0)\s*(?:;|$)/i;
@@ -148,6 +161,7 @@ export function parseFormMenuToken(raw: string): FormMenuConfig | null {
   const nameMatch = /(?:^|;)\s*name\s*=\s*([A-Za-z_][A-Za-z0-9_]*)/i.exec(attrs);
   const colsMatch = /(?:^|;)\s*cols\s*=\s*(\d+)/i.exec(attrs);
   const defaultMatch = /(?:^|;)\s*default\s*=\s*([^;]+)/i.exec(attrs);
+  const otherMatch = /(?:^|;)\s*other\s*=\s*([^;]*)/i.exec(attrs);
 
   // Only declared options can be preselected, and a single-choice menu holds
   // one — the same rules the fill form applies, so the dialog opens on exactly
@@ -168,6 +182,7 @@ export function parseFormMenuToken(raw: string): FormMenuConfig | null {
     cols: cols > 0 ? cols : null,
     ...(link !== '' ? { link } : {}),
     ...(QUIET.test(attrs) ? { print: false } : {}),
+    ...(otherMatch ? { other: (otherMatch[1] ?? '').trim() || MENU_OTHER_LABEL } : {}),
   };
 }
 

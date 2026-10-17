@@ -11,8 +11,9 @@
 //   {time: FORMAT[; shift=+3D|next monday][; at=09:00][; from=FIELD]}  — automatic date
 //   {formtext: name=VAR; default=X}   — text input field
 //   {formdate: name=VAR[; type=time][; format=DD/MM/YYYY]}  — date or time field
-//   {formmenu: opt1,opt2; name=VAR[; default=opt1][; multiple=yes][; cols=N][; print=no]}  (dropdown field)
+//   {formmenu: opt1,opt2; name=VAR[; default=opt1][; multiple=yes][; cols=N][; print=no][; other=Other]}  (dropdown field)
 //     (print=no: the menu is asked and decides rules, but prints nothing itself)
+//     (other=LABEL: one more choice, LABEL, whose typed text is the value)
 //   {if: COND}...{elseif: COND}...{else}...{endif}  — conditional blocks
 //   {gender: FIELD; m=Querido; f=Querida[; u=Hola][; lang=IT]}  — gendered word
 //   {greeting[: lang=ES][; morning=…][; night=…]}  (greeting for the local time of day)
@@ -1321,13 +1322,19 @@
   // decides Show or hide rules, formulas and {NAME}, but the token itself prints
   // nothing. It is how a choice that only decides what shows stays out of the
   // message.
-  var MENU_KEYS = /^\s*(name|default|multiple|cols|link|print)\s*=/i;
+  //
+  // `other=LABEL` joined in v3.71.0: the menu offers one more choice, LABEL,
+  // and picking it opens a box whose typed text is the field's value. The
+  // label is the attribute's own text, "Other" when it is left empty.
+  var MENU_KEYS = /^\s*(name|default|multiple|cols|link|print|other)\s*=/i;
   var MENU_PRINT = /^\s*print\s*=/i;
   var MENU_QUIET = /^\s*print\s*=\s*(?:no|false|0)\s*$/i;
+  var MENU_OTHER = /^\s*other\s*=\s*(.*)$/i;
+  var MENU_OTHER_LABEL = 'Other';
 
   function _parseMenuSettings(rest) {
     var segs = String(rest === null || rest === undefined ? '' : rest).split(';');
-    var options = [], attrs = '', name = '', prints = true, keySegs = [];
+    var options = [], attrs = '', name = '', prints = true, other = '', keySegs = [];
     for (var i = 0; i < segs.length; i++) {
       var seg = segs[i];
       if (MENU_KEYS.test(seg)) {
@@ -1335,9 +1342,11 @@
         var nm = /^\s*name\s*=\s*([A-Za-z_][A-Za-z0-9_]*)/i.exec(seg);
         if (nm && !name) name = nm[1];
         if (MENU_QUIET.test(seg)) prints = false;
-        // Switching print on or off must not rename an unnamed menu: a rule
-        // that checks it would stop matching. So the key never reads it.
-        if (!MENU_PRINT.test(seg)) keySegs.push(seg);
+        var ot = MENU_OTHER.exec(seg);
+        if (ot && !other) other = _sTrim(ot[1]) || MENU_OTHER_LABEL;
+        // Switching print or Other on or off must not rename an unnamed menu:
+        // a rule that checks it would stop matching. So the key reads neither.
+        if (!MENU_PRINT.test(seg) && !ot) keySegs.push(seg);
         continue;
       }
       keySegs.push(seg);
@@ -1351,7 +1360,7 @@
     // token itself: stable wherever it is read from (extractFields, the config
     // builder, resolveBody's {if:} recursion) without depending on walk order.
     if (!name) name = options.length ? 'MENU_' + _menuKeyHash(keySegs.join(';')) : '';
-    return { options: options, attrs: attrs, name: name, print: prints };
+    return { options: options, attrs: attrs, name: name, print: prints, other: other };
   }
 
   function _menuKeyHash(src) {
@@ -2055,6 +2064,7 @@
   //   default=X[,Y]  — preselected option(s); silently dropped when not declared
   //   multiple=yes   — the field accepts several picks, joined with ", " on output
   //   cols=N         — field width in characters (presentation only)
+  //   other=LABEL    : an Other choice whose typed text is the value (cfg.other)
   function buildFormFieldCfg(body) {
     var cfg = {}, re = /\{([^}]+)\}/g, m;
     while ((m = re.exec(body)) !== null) {
@@ -2101,6 +2111,7 @@
         }
         var menuLink = _linkAttr(attrs);
         if (menuLink) menu.link = menuLink;
+        if (menuSet.other) menu.other = menuSet.other;
         cfg[key] = menu;
       } else {
         cfg[key] = _numberOrTextCfg(_formAttrSrc(tokLow, rest), defVal);
@@ -2495,6 +2506,10 @@
     var link = _linkValue(c.link);
     if (link !== '') out += '; link=' + link;
     if (c.print === false) out += '; print=no';
+    // `other` is the Other choice's label, or absent for a menu without one.
+    // A label emptied by sanitising is still a wish for the choice, so it
+    // falls back to the default word rather than dropping it.
+    if (typeof c.other === 'string') out += '; other=' + (_menuSafe(c.other) || MENU_OTHER_LABEL);
     return out + '}';
   }
 

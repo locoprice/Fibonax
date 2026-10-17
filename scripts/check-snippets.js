@@ -43,6 +43,11 @@ const cases = [
     vals: { R: 'B' }, expect: 'Hi\nb\nBye' },
   { name: 'quiet menu last line', body: 'Hi\n{formmenu: A,B; name=R; print=no}', vals: { R: 'A' }, expect: 'Hi' },
   { name: 'quiet menu still read', body: '{formmenu: A,B; name=R; print=no}You picked {R}', vals: { R: 'A' }, expect: 'You picked A' },
+  // other=: the Other choice's typed answer is the value. It prints, {R}
+  // repeats it, and a rule compares against it; the label never prints.
+  { name: 'other prints typed', body: 'Via {formmenu: Email,Phone; name=R; other=Other}.', vals: { R: 'Fax' }, expect: 'Via Fax.' },
+  { name: 'other in a rule',    body: '{formmenu: Email,Phone; name=R; other=Other}{if: R = "Fax"} by fax{endif}', vals: { R: 'Fax' }, expect: 'Fax by fax' },
+  { name: 'other picks option', body: '{formmenu: Email,Phone; name=R; other=Other} {R}', vals: { R: 'Phone' }, expect: 'Phone Phone' },
 ];
 
 let ok = 0;
@@ -359,6 +364,12 @@ const MENU_WRITE_CASES = [
   // A choice that only decides what shows: print=no is a setting, not an option.
   [{ options: ['REFUNDABLE', 'NOT REFUNDABLE'], selected: ['REFUNDABLE'], name: 'RATE', multiple: false, cols: null, print: false },
     '{formmenu: REFUNDABLE,NOT REFUNDABLE; name=RATE; default=REFUNDABLE; print=no}', 'REFUNDABLE\nNOT REFUNDABLE'],
+  // Display Other option: other= is a setting, not an option. An emptied label
+  // still asks for the choice, under the default word.
+  [{ options: ['Email', 'Phone'], selected: ['Phone'], name: 'CH', multiple: false, cols: null, other: 'Other...' },
+    '{formmenu: Email,Phone; name=CH; default=Phone; other=Other...}', 'Email\nPhone'],
+  [{ options: ['A', 'B'], selected: [], name: 'M', multiple: true, cols: null, other: ' ; ' },
+    '{formmenu: A,B; name=M; multiple=yes; other=Other}', 'A\nB'],
 ];
 
 if (typeof engine.buildFormMenuToken !== 'function') {
@@ -581,6 +592,9 @@ const expansionCases = [
   ['{formmenu: A,B; name=R; print=no} and {R}', { R: 'B' }],
   ['{formmenu: A,B; name=R; print=yes}', { R: 'B' }],
   ['{formmenu: A,B; name=R}\n' + RATE_RULE, { R: 'A' }],
+  ['Via {formmenu: Email,Phone; name=R; other=Other}.', { R: 'Fax' }],
+  ['{formmenu: Email,Phone; name=R; other=Other; multiple=yes} and {R}', { R: 'Email, Fax' }],
+  ['{formmenu: REFUNDABLE,NOT REFUNDABLE; name=R; other=Other}\n' + RATE_RULE, { R: 'Partial' }],
 ];
 let expOk = 0;
 for (const [body, vals] of expansionCases) {
@@ -594,11 +608,14 @@ for (const [body, vals] of expansionCases) {
 }
 // Switching print never renames an unnamed menu: a rule checking it would stop
 // matching the moment the author ticked the box.
+// Display Other option is held to the same rule.
 for (const [plain, quiet] of [['{formmenu: A,B}', '{formmenu: A,B; print=no}'],
-                              ['{formmenu: A; B}', '{formmenu: print=no; A; B}']]) {
+                              ['{formmenu: A; B}', '{formmenu: print=no; A; B}'],
+                              ['{formmenu: A,B}', '{formmenu: A,B; other=Other}'],
+                              ['{formmenu: A; B}', '{formmenu: other=Something else; A; B}']]) {
   const kp = engine.extractFields(plain)[0];
   if (engine.extractFields(quiet)[0] !== kp || mobile.sbMenuSpec(quiet.slice(10, -1)).name !== kp) {
-    fail('print=no renamed the unnamed menu ' + plain);
+    fail('print=no or other= renamed the unnamed menu ' + plain);
   }
 }
 console.log('OK Expansion parity (engine = mobile) passed all ' + expOk + ' cases');
@@ -637,6 +654,11 @@ const fieldCfgCases = [
   '{formmenu: A,B; name=M; print=no}',
   '{formmenu: A,B; print=no}',
   '{formmenu: print=no; A; B}',
+  // other= is a setting with a free-text label, never one more option.
+  '{formmenu: A,B; name=M; other=Other}',
+  '{formmenu: A,B; name=M; other=Something else; multiple=yes}',
+  '{formmenu: A,B; name=M; other=}',
+  '{formmenu: other=Other...; A; B}',
   '{formtext: name=T; link=after:Customer}',
   '{formtext: name=N; type=number; default=0; link=before:Boxes|Box}',
   '{formtext: name=N; type=number; link=BEFORE: Boxes | Box | Boxes}',

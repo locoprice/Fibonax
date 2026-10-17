@@ -1997,7 +1997,7 @@ function renderDetailHtml(s){
           var oName=f.multiple?'':' name="d-'+esc(k)+'"';
           inp='<div class="d-multi"'+wide+'>'+f.options.map(function(o){
             return '<label class="d-opt"><input type="'+oType+'"'+oName+' data-fkey="'+esc(k)+'" value="'+esc(o)+'"'+(f.picks.indexOf(o)>=0?' checked':'')+'><span>'+esc(o)+'</span></label>';
-          }).join('')+'</div>';
+          }).join('')+detailOtherHtml(f, oType, oName)+'</div>';
         } else {
           // A number is a text box with the number keypad. type="number" lets
           // the browser drop a comma or a second dot as it is typed ("1,5"
@@ -2265,10 +2265,24 @@ function wireListRows(el){
     var box=inp.closest('.d-fields'); var did=box?box.getAttribute('data-fid'):null;
     var handler=function(){
       detailFieldVals[inp.getAttribute('data-fkey')]=detailControlValue(box, inp);
+      syncDetailOther(box);
       reorderDetailDates(el, inp);
       if(did) updateDetailPreview(did);
     };
     inp.addEventListener('input',handler); inp.addEventListener('change',handler);
+    // Ticking Other opens its box, and the answer is typed there next.
+    if(inp.hasAttribute('data-other')) inp.addEventListener('change',function(){
+      if(inp.checked){ var t=box.querySelector('.d-othertxt[data-otherkey="'+inp.getAttribute('data-fkey')+'"]'); if(t) t.focus(); }
+    });
+  });
+  // The Other box: its text is the menu's answer, read through the Other control.
+  el.querySelectorAll('.d-fields .d-othertxt').forEach(function(t){
+    var box=t.closest('.d-fields'); var did=box?box.getAttribute('data-fid'):null;
+    t.addEventListener('input',function(){
+      var ctrl=box.querySelector('[data-fkey="'+t.getAttribute('data-otherkey')+'"][data-other]');
+      if(ctrl) detailFieldVals[t.getAttribute('data-otherkey')]=detailControlValue(box, ctrl);
+      if(did) updateDetailPreview(did);
+    });
   });
   reorderDetailDates(el);
   // Action buttons: run the code block against the live values, write the
@@ -2285,11 +2299,41 @@ function wireListRows(el){
 // one at most); anything else is the control's own value.
 function detailControlValue(box, inp){
   if(box && (inp.type==='checkbox'||inp.type==='radio')){
-    var picked=[];
-    box.querySelectorAll('input[data-fkey="'+inp.getAttribute('data-fkey')+'"]').forEach(function(o){ if(o.checked) picked.push(o.value); });
-    return picked.join(', ');
+    var key=inp.getAttribute('data-fkey'), picked=[], other=null;
+    box.querySelectorAll('input[data-fkey="'+key+'"]').forEach(function(o){
+      if(!o.checked) return;
+      // The Other choice: what its box holds is the answer.
+      if(o.hasAttribute('data-other')){
+        var t=box.querySelector('.d-othertxt[data-otherkey="'+key+'"]');
+        other=t?t.value:'';
+      } else picked.push(o.value);
+    });
+    // How picks and a typed answer combine is decided once, in fill-form.js.
+    var M=window.SBFillForm;
+    return M ? M.menuValue(inp.type==='checkbox', picked, other) : picked.join(', ');
   }
   return inp.value;
+}
+
+// The Other choice on a menu: one more radio or checkbox, then the box its
+// answer is typed in, shown only while Other is ticked. The box carries
+// data-otherkey rather than data-fkey, so nothing reads it as a field.
+function detailOtherHtml(f, oType, oName){
+  if(!f.other) return '';
+  var k=esc(f.key), M=window.SBFillForm;
+  return '<label class="d-opt"><input type="'+oType+'"'+oName+' data-fkey="'+k+'" data-other="1" value=""'+(f.otherOn?' checked':'')+'><span>'+esc(f.other)+'</span></label>'
+    +'<input type="text" class="d-othertxt" data-otherkey="'+k+'" aria-label="'+esc(f.other)+'" placeholder="'+esc(M?M.OTHER_PLACEHOLDER:'')+'" value="'+esc(f.otherText)+'"'+(f.otherOn?'':' hidden')+'>';
+}
+
+// Shows each Other box while its choice is ticked. Picking an option on a
+// single-choice menu unticks Other with no event of its own, so this runs
+// after every change.
+function syncDetailOther(box){
+  if(!box) return;
+  box.querySelectorAll('input[data-other]').forEach(function(c){
+    var t=box.querySelector('.d-othertxt[data-otherkey="'+c.getAttribute('data-fkey')+'"]');
+    if(t) t.hidden=!c.checked;
+  });
 }
 
 // ── FILL FROM LINK ──────────────────────────────────────────────────
@@ -2446,6 +2490,7 @@ function applyDetailLink(id, pieces){
   // so the ordering clears only a closing date the page did not write, once
   // the page's opening date has moved past it; it empties the stored value
   // with the control.
+  syncDetailOther(box);
   reorderDetailDates(wrap);
   written.forEach(function(inp){ detailFieldVals[inp.getAttribute('data-fkey')]=detailControlValue(box, inp); });
   updateDetailPreview(id);
@@ -2508,10 +2553,10 @@ function runDetailButton(btn){
     // than writing over the first radio's value, which would rewrite a choice.
     if(target.type==='radio'){
       var want=String(res.values[name]), matched=false;
-      box.querySelectorAll('input[type=radio][data-fkey="'+name+'"]').forEach(function(r){
+      box.querySelectorAll('input[type=radio][data-fkey="'+name+'"]:not([data-other])').forEach(function(r){
         if(r.value===want){ r.checked=true; matched=true; }
       });
-      if(matched) detailFieldVals[name]=want;
+      if(matched){ detailFieldVals[name]=want; syncDetailOther(box); }
       else errs.push(name+' has no option "'+want+'"');
       continue;
     }

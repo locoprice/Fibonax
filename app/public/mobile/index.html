@@ -635,6 +635,13 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   font-size:16px;color:var(--text)}
 .field-opt input.field-in{width:18px;height:18px;flex:none;
   accent-color:var(--primary)}
+/* The Other choice's box: what is typed here is the menu's answer. Indented
+   under the choices, bold like every typed answer. */
+.field-othertxt{border:none;border-bottom:1px solid var(--border);outline:none;
+  font-size:16px;font-weight:700;color:var(--text);background:transparent;
+  width:calc(100% - 28px);margin-left:28px;padding:6px 0;font-family:inherit}
+.field-othertxt::placeholder{color:#C7C7CC;font-weight:400}
+.field-othertxt:focus{border-bottom-color:var(--primary)}
 
 /* Date/Time Adjust panel — the builder's three decisions, offered again while
    the form is open. A quiet link under the picker rather than a button: it is
@@ -2520,6 +2527,35 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
     return layout === 'steps' ? [fields.map(function(f) { return f.key; })] : [];
   }
 
+  // ── THE OTHER CHOICE ────────────────────────────────────────────
+  // A menu written with `other=LABEL` offers one more choice after its own,
+  // LABEL, and picking it opens a box. What is typed there is the answer: it
+  // prints where the menu sits, {NAME} repeats it, and a Show or hide rule
+  // compares against it. Nothing about "Other" itself ever reaches the text.
+
+  // The hint inside the Other box, the same on all four surfaces.
+  var OTHER_PLACEHOLDER = 'Type your own answer';
+
+  /**
+   * What a menu holds, from what is ticked on it. Every surface that reads a
+   * menu off its own controls calls this, so a pick and a typed answer combine
+   * the same way everywhere.
+   *
+   * @param {boolean} multiple   whether the menu takes several picks
+   * @param {string[]} picks     the menu's own options that are ticked
+   * @param {?string} other      the Other box's text when Other is ticked,
+   *                             null or undefined when it is not
+   * @returns {string} a single pick, or several joined with ", " as always
+   */
+  function menuValue(multiple, picks, other) {
+    var on = other !== null && other !== undefined;
+    var typed = on ? trim(other) : '';
+    if (!multiple) return on ? typed : ((picks && picks[0]) || '');
+    var out = (picks || []).slice();
+    if (typed !== '') out.push(typed);
+    return out.join(', ');
+  }
+
   // text    the snippet or prompt body. A string, never a row: prompts keep
   //         theirs in a different column and must be able to use this later
   //         without the module knowing what a snippet is.
@@ -2532,6 +2568,11 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   //         linked marks the fields whose value came from a page (Fill from
   //         link), keyed the same way again: { KEY: true }. A renderer drops a
   //         key the moment the operator edits that field by hand.
+  //         other marks the menus whose Other choice is ticked, with what is
+  //         typed in its box: { KEY: 'text' }. Only a surface that keeps its
+  //         answers apart from its controls needs it, to hold Other ticked
+  //         while the box is still empty. Without an entry, a menu value that
+  //         is not one of the options is read as Other with that text.
   function fillForm(text, values, opts) {
     var E = engine();
     var src = (text === null || text === undefined) ? '' : String(text);
@@ -2553,6 +2594,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
     var stored = o.fieldCfg || {};
     var picked = o.fieldFmt || {};
     var linked = o.linked || {};
+    var others = o.other || {};
     var keys = fieldKeys(E, src);
     var ctxs = E.fieldContext ? (E.fieldContext(src) || {}) : {};
 
@@ -2582,6 +2624,30 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
       }
       var ctx = ctxs[key] || { before: '', after: '' };
       var val = Object.prototype.hasOwnProperty.call(vals, key) ? vals[key] : def;
+      var multi = raw.multiple === true;
+      var picks = (isMenu && E.formMenuPicks) ? E.formMenuPicks(val) : [];
+
+      // A menu with an Other choice. What it holds splits into its own options
+      // and the rest, and the rest is what was typed in the Other box. A menu
+      // without one is read exactly as it always was.
+      var otherLabel = isMenu ? trim(raw.other) : '';
+      var otherOn = false, otherText = '';
+      if (otherLabel) {
+        var own = [], rest = [];
+        for (var pk = 0; pk < picks.length; pk++) {
+          (options.indexOf(picks[pk]) !== -1 ? own : rest).push(picks[pk]);
+        }
+        if (Object.prototype.hasOwnProperty.call(others, key)) {
+          otherOn = true;
+          otherText = String(others[key] === null || others[key] === undefined ? '' : others[key]);
+        } else if (rest.length) {
+          otherOn = true;
+          otherText = multi ? rest.join(', ') : trim(val);
+        }
+        // A single choice holds one answer: with Other ticked, no option is.
+        picks = (otherOn && !multi) ? [] : own;
+        val = menuValue(multi, picks, otherOn ? otherText : null);
+      }
 
       // The format this field prints in: the author's, unless the operator
       // picked another in the Adjust panel. '' is a real answer on both sides —
@@ -2633,8 +2699,14 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
         // pointed at is often the one after this in walk order.
         min: '',
         options: options,
-        picks: (isMenu && E.formMenuPicks) ? E.formMenuPicks(val) : [],
-        multiple: raw.multiple === true,
+        picks: picks,
+        multiple: multi,
+        // The Other choice's label, or '' for a menu without one. When it is
+        // ticked, otherOn is true and otherText is what its box holds; the
+        // field's value is then that text (with the picks, on a multiple menu).
+        other: otherLabel,
+        otherOn: otherOn,
+        otherText: otherText,
         cols: raw.cols || 0,
         'default': def,
         value: val,
@@ -3160,6 +3232,8 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 
   var API = {
     fillForm: fillForm,
+    menuValue: menuValue,
+    OTHER_PLACEHOLDER: OTHER_PLACEHOLDER,
     orderedMin: orderedMin,
     linkUrl: linkUrl,
     readFromPage: readFromPage,
@@ -4830,11 +4904,14 @@ function sbGenderTokenField(rest){
    below. Unnamed menus are legal and get a key hashed from the token, matching
    _parseMenuSettings in extension/formula-engine.js — keep the two in step or
    mobile will fill a different field than the desktop surfaces. */
-var SB_MENU_KEYS=/^\s*(name|default|multiple|cols|link|print)\s*=/i;
+var SB_MENU_KEYS=/^\s*(name|default|multiple|cols|link|print|other)\s*=/i;
 /* print=no (v3.70.0): the menu is asked and decides rules, but prints nothing.
-   The unnamed-menu key never reads it, so switching it renames nothing. */
+   other=LABEL (v3.71.0): one more choice, LABEL, whose typed text is the value;
+   "Other" when left empty. The unnamed-menu key reads neither, so switching
+   them renames nothing. */
 var SB_MENU_PRINT=/^\s*print\s*=/i;
 var SB_MENU_QUIET=/^\s*print\s*=\s*(?:no|false|0)\s*$/i;
+var SB_MENU_OTHER=/^\s*other\s*=\s*(.*)$/i;
 function sbMenuKeyHash(src){
   var h=5381,s=String(src);
   for(var i=0;i<s.length;i++)h=((h*33)^s.charCodeAt(i))>>>0;
@@ -4846,7 +4923,7 @@ function sbMenuKeyHash(src){
    disagree with each other. */
 function sbMenuSpec(rest){
   var segs=String(rest==null?'':rest).split(';');
-  var options=[],attrs='',name='',prints=true,keySegs=[];
+  var options=[],attrs='',name='',prints=true,other='',keySegs=[];
   for(var i=0;i<segs.length;i++){
     var seg=segs[i];
     if(SB_MENU_KEYS.test(seg)){
@@ -4854,7 +4931,9 @@ function sbMenuSpec(rest){
       var nm=/^\s*name\s*=\s*([A-Za-z_][A-Za-z0-9_]*)/i.exec(seg);
       if(nm&&!name)name=nm[1];
       if(SB_MENU_QUIET.test(seg))prints=false;
-      if(!SB_MENU_PRINT.test(seg))keySegs.push(seg);
+      var ot=SB_MENU_OTHER.exec(seg);
+      if(ot&&!other)other=ot[1].trim()||'Other';
+      if(!SB_MENU_PRINT.test(seg)&&!ot)keySegs.push(seg);
       continue;
     }
     keySegs.push(seg);
@@ -4865,7 +4944,7 @@ function sbMenuSpec(rest){
     }
   }
   if(!name)name=options.length?'MENU_'+sbMenuKeyHash(keySegs.join(';')):'';
-  return {options:options,attrs:attrs,name:name,print:prints};
+  return {options:options,attrs:attrs,name:name,print:prints,other:other};
 }
 function sbFormTokenName(tokLow,rest){
   if(tokLow.slice(0,9)==='formmenu:')return sbMenuSpec(rest).name;
@@ -4928,6 +5007,7 @@ function sbBodyFieldCfg(body){
       if(colsM){var cols=parseInt(colsM[1],10);if(cols>0)menu.cols=cols;}
       var menuLink=sbLinkAttr(spec.attrs);
       if(menuLink)menu.link=menuLink;
+      if(spec.other)menu.other=spec.other;
       cfg[key]=menu;
     }else{
       cfg[key]=sbNumberOrTextCfg(spec?spec.attrs:rest,defVal);
@@ -8409,7 +8489,7 @@ function renderDetail(snip,keepVals){
             +'<input class="field-in" type="'+oType+'"'+oName+' data-f="'+esc(f)+'" '
               +'value="'+esc(o)+'"'+(picks.indexOf(o)>=0?' checked':'')+'>'
             +'<span>'+esc(o)+'</span></label>';
-        }).join('')+'</div>';
+        }).join('')+mobOtherHtml(fld,oType,oName)+'</div>';
       }else if(t==='date'){
         inp='<input class="field-in" data-f="'+esc(f)+'"'+sbOrderAttrs(fld)+' type="date" value="'+esc(def)+'">';
       }else if(t==='time'){
@@ -8442,7 +8522,22 @@ function renderDetail(snip,keepVals){
     form.querySelectorAll('.field-in').forEach(function(inp){
       inp.addEventListener('input',function(){linkTouched(this);sbReorderDates(form,this);updatePrev();});
       /* Selects and checkboxes report a pick through 'change', not 'input'. */
-      inp.addEventListener('change',function(){linkTouched(this);sbReorderDates(form,this);updatePrev();});
+      inp.addEventListener('change',function(){
+        linkTouched(this);mobSyncOther(form);sbReorderDates(form,this);updatePrev();
+        /* Ticking Other opens its box, and the answer is typed there next. */
+        if(this.hasAttribute('data-other')&&this.checked){
+          var t=form.querySelector('.field-othertxt[data-otherf="'+this.getAttribute('data-f')+'"]');
+          if(t)t.focus();
+        }
+      });
+    });
+    /* The Other box: its text is the menu's answer, read through readFields. */
+    form.querySelectorAll('.field-othertxt').forEach(function(t){
+      t.addEventListener('input',function(){
+        var c=form.querySelector('.field-in[data-other][data-f="'+t.getAttribute('data-otherf')+'"]');
+        if(c)linkTouched(c);
+        updatePrev();
+      });
     });
     sbReorderDates(form);
     bindAdjust(form);
@@ -8605,26 +8700,51 @@ function bindAdjust(form){
    The engine reads a number itself (sbToNumber); turning it into one here with
    parseFloat read "1.234,57" as 1.234 and the answer "12 Main St" as 12. */
 function readFields(){
-  var v={},groups={};
+  var v={},menus={};
   document.querySelectorAll('#fform .field-in').forEach(function(i){
     var f=i.getAttribute('data-f');
-    if(i.type==='checkbox'){
-      if(!groups[f])groups[f]=[];
-      if(i.checked)groups[f].push(i.value);
-      return;
-    }
-    /* A single-choice menu is a radio group sharing one data-f. Seed the key
-       before looking at checked, so a group with nothing ticked reads '' rather
-       than dropping out of the values. */
-    if(i.type==='radio'){
-      if(v[f]===undefined)v[f]='';
-      if(i.checked)v[f]=i.value;
+    /* A menu is a group of radios (single choice) or checkboxes (multiple)
+       sharing one data-f. Every control contributes, checked or not, so a group
+       with nothing ticked still reads '' rather than dropping out. */
+    if(i.type==='checkbox'||i.type==='radio'){
+      var m=menus[f]||(menus[f]={multiple:i.type==='checkbox',picks:[],other:null});
+      if(!i.checked)return;
+      /* The Other choice: what its box holds is the answer. */
+      if(i.hasAttribute('data-other')){
+        var t=document.querySelector('#fform .field-othertxt[data-otherf="'+f+'"]');
+        m.other=t?t.value:'';
+      }else m.picks.push(i.value);
       return;
     }
     v[f]=i.value;
   });
-  for(var g in groups)v[g]=groups[g].join(', ');
+  /* How picks and a typed answer combine is decided once, in fill-form.js. */
+  for(var g in menus)v[g]=SBFillForm.menuValue(menus[g].multiple,menus[g].picks,menus[g].other);
   return v;
+}
+
+/* The Other choice on a menu: one more radio or checkbox, then the box its
+   answer is typed in, shown only while Other is ticked. The box is not a
+   .field-in, so nothing reads it as a field of its own. */
+function mobOtherHtml(fld,oType,oName){
+  if(!fld.other)return '';
+  var f=esc(fld.key);
+  return '<label class="field-opt">'
+      +'<input class="field-in" type="'+oType+'"'+oName+' data-f="'+f+'" data-other="1" value=""'+(fld.otherOn?' checked':'')+'>'
+      +'<span>'+esc(fld.other)+'</span></label>'
+    +'<input class="field-othertxt" type="text" data-otherf="'+f+'" aria-label="'+esc(fld.other)+'" '
+      +'placeholder="'+esc(SBFillForm.OTHER_PLACEHOLDER)+'" value="'+esc(fld.otherText)+'"'
+      +' autocomplete="off"'+(fld.otherOn?'':' hidden')+'>';
+}
+
+/* Shows each Other box while its choice is ticked. Picking an option on a
+   single-choice menu unticks Other with no event of its own, so this runs
+   after every change. */
+function mobSyncOther(form){
+  form.querySelectorAll('.field-in[data-other]').forEach(function(c){
+    var t=form.querySelector('.field-othertxt[data-otherf="'+c.getAttribute('data-f')+'"]');
+    if(t)t.hidden=!c.checked;
+  });
 }
 
 /* The field values as typed: what the message is built from, and what carries
@@ -8766,6 +8886,7 @@ function linkApply(pieces){
     });
     linkMarks[key]=true;
   });
+  mobSyncOther(form);
   form.querySelectorAll('.field-link').forEach(function(slot){
     var key=slot.getAttribute('data-link');
     slot.innerHTML=linkMarkHtml(key,linkMarks[key]===true);

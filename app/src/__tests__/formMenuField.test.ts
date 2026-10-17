@@ -36,6 +36,7 @@ interface MenuCfg {
   default?: string;
   multiple?: boolean;
   cols?: number;
+  other?: string;
 }
 
 interface FormulaEngine {
@@ -47,6 +48,7 @@ interface FormulaEngine {
     multiple?: boolean;
     cols?: number | null;
     print?: boolean;
+    other?: string;
   }) => string;
   formMenuPicks: (value: string | null | undefined) => string[];
   fieldContext: (body: string) => Record<string, { before: string; after: string }>;
@@ -122,6 +124,34 @@ describe('formMenuToken — writer', () => {
     expect(parseFormMenuToken('{formmenu: A,B; name=M}')).not.toHaveProperty('print');
     // Still a setting, never one more option, on both sides.
     expect(engine.buildFormFieldCfg(token).RATE?.opts).toBe('REFUNDABLE\nNOT REFUNDABLE');
+  });
+
+  it('writes other= last, the same as the engine, and reads it back', () => {
+    const cfg: FormMenuConfig = {
+      options: ['Email', 'Phone'],
+      selected: ['Phone'],
+      name: 'CHANNEL',
+      multiple: false,
+      cols: null,
+      other: 'Something else',
+    };
+    const token = buildFormMenuToken(cfg);
+    expect(token).toBe('{formmenu: Email,Phone; name=CHANNEL; default=Phone; other=Something else}');
+    expect(engine.buildFormMenuToken(cfg)).toBe(token);
+    expect(parseFormMenuToken(token)).toEqual(cfg);
+    // A menu without the choice carries no other setting at all.
+    expect(parseFormMenuToken('{formmenu: A,B; name=M}')).not.toHaveProperty('other');
+    // An empty label still asks for the choice, under the default word.
+    expect(parseFormMenuToken('{formmenu: A,B; name=M; other=}')?.other).toBe('Other');
+    expect(buildFormMenuToken({ ...cfg, other: ' ; ' })).toContain('; other=Other}');
+    // A setting, never one more option, on both sides; the engine hands the
+    // label to the fill form.
+    expect(engine.buildFormFieldCfg(token).CHANNEL?.opts).toBe('Email\nPhone');
+    expect(engine.buildFormFieldCfg(token).CHANNEL?.other).toBe('Something else');
+    // An unnamed menu keeps the key a rule may already check.
+    expect(engine.extractFields('{formmenu: A,B; other=Other}')).toEqual(
+      engine.extractFields('{formmenu: A,B}'),
+    );
   });
 
   it('switches print on a token without touching anything else', () => {

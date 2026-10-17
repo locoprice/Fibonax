@@ -349,6 +349,35 @@
     return layout === 'steps' ? [fields.map(function(f) { return f.key; })] : [];
   }
 
+  // ── THE OTHER CHOICE ────────────────────────────────────────────
+  // A menu written with `other=LABEL` offers one more choice after its own,
+  // LABEL, and picking it opens a box. What is typed there is the answer: it
+  // prints where the menu sits, {NAME} repeats it, and a Show or hide rule
+  // compares against it. Nothing about "Other" itself ever reaches the text.
+
+  // The hint inside the Other box, the same on all four surfaces.
+  var OTHER_PLACEHOLDER = 'Type your own answer';
+
+  /**
+   * What a menu holds, from what is ticked on it. Every surface that reads a
+   * menu off its own controls calls this, so a pick and a typed answer combine
+   * the same way everywhere.
+   *
+   * @param {boolean} multiple   whether the menu takes several picks
+   * @param {string[]} picks     the menu's own options that are ticked
+   * @param {?string} other      the Other box's text when Other is ticked,
+   *                             null or undefined when it is not
+   * @returns {string} a single pick, or several joined with ", " as always
+   */
+  function menuValue(multiple, picks, other) {
+    var on = other !== null && other !== undefined;
+    var typed = on ? trim(other) : '';
+    if (!multiple) return on ? typed : ((picks && picks[0]) || '');
+    var out = (picks || []).slice();
+    if (typed !== '') out.push(typed);
+    return out.join(', ');
+  }
+
   // text    the snippet or prompt body. A string, never a row: prompts keep
   //         theirs in a different column and must be able to use this later
   //         without the module knowing what a snippet is.
@@ -361,6 +390,11 @@
   //         linked marks the fields whose value came from a page (Fill from
   //         link), keyed the same way again: { KEY: true }. A renderer drops a
   //         key the moment the operator edits that field by hand.
+  //         other marks the menus whose Other choice is ticked, with what is
+  //         typed in its box: { KEY: 'text' }. Only a surface that keeps its
+  //         answers apart from its controls needs it, to hold Other ticked
+  //         while the box is still empty. Without an entry, a menu value that
+  //         is not one of the options is read as Other with that text.
   function fillForm(text, values, opts) {
     var E = engine();
     var src = (text === null || text === undefined) ? '' : String(text);
@@ -382,6 +416,7 @@
     var stored = o.fieldCfg || {};
     var picked = o.fieldFmt || {};
     var linked = o.linked || {};
+    var others = o.other || {};
     var keys = fieldKeys(E, src);
     var ctxs = E.fieldContext ? (E.fieldContext(src) || {}) : {};
 
@@ -411,6 +446,30 @@
       }
       var ctx = ctxs[key] || { before: '', after: '' };
       var val = Object.prototype.hasOwnProperty.call(vals, key) ? vals[key] : def;
+      var multi = raw.multiple === true;
+      var picks = (isMenu && E.formMenuPicks) ? E.formMenuPicks(val) : [];
+
+      // A menu with an Other choice. What it holds splits into its own options
+      // and the rest, and the rest is what was typed in the Other box. A menu
+      // without one is read exactly as it always was.
+      var otherLabel = isMenu ? trim(raw.other) : '';
+      var otherOn = false, otherText = '';
+      if (otherLabel) {
+        var own = [], rest = [];
+        for (var pk = 0; pk < picks.length; pk++) {
+          (options.indexOf(picks[pk]) !== -1 ? own : rest).push(picks[pk]);
+        }
+        if (Object.prototype.hasOwnProperty.call(others, key)) {
+          otherOn = true;
+          otherText = String(others[key] === null || others[key] === undefined ? '' : others[key]);
+        } else if (rest.length) {
+          otherOn = true;
+          otherText = multi ? rest.join(', ') : trim(val);
+        }
+        // A single choice holds one answer: with Other ticked, no option is.
+        picks = (otherOn && !multi) ? [] : own;
+        val = menuValue(multi, picks, otherOn ? otherText : null);
+      }
 
       // The format this field prints in: the author's, unless the operator
       // picked another in the Adjust panel. '' is a real answer on both sides —
@@ -462,8 +521,14 @@
         // pointed at is often the one after this in walk order.
         min: '',
         options: options,
-        picks: (isMenu && E.formMenuPicks) ? E.formMenuPicks(val) : [],
-        multiple: raw.multiple === true,
+        picks: picks,
+        multiple: multi,
+        // The Other choice's label, or '' for a menu without one. When it is
+        // ticked, otherOn is true and otherText is what its box holds; the
+        // field's value is then that text (with the picks, on a multiple menu).
+        other: otherLabel,
+        otherOn: otherOn,
+        otherText: otherText,
         cols: raw.cols || 0,
         'default': def,
         value: val,
@@ -989,6 +1054,8 @@
 
   var API = {
     fillForm: fillForm,
+    menuValue: menuValue,
+    OTHER_PLACEHOLDER: OTHER_PLACEHOLDER,
     orderedMin: orderedMin,
     linkUrl: linkUrl,
     readFromPage: readFromPage,

@@ -16,9 +16,11 @@ import { cn } from '@/lib/utils';
 import {
   buildFormMenuToken,
   isValidMenuName,
+  MENU_OTHER_LABEL,
   sanitizeMenuOption,
   type FormMenuConfig,
 } from '@/lib/formMenuToken';
+import { MENU_PRESETS, menuPresetOptions } from '@/lib/menuPresets';
 import {
   emptyLinkDraft,
   LABEL_LINK_MODES,
@@ -37,6 +39,11 @@ const STARTING_ROWS = 3;
 
 const HINT = 'text-[11px] text-ink-subtle mt-1.5';
 const SECTION_LABEL = 'block text-xs font-medium text-ink-muted mb-1.5';
+const SELECT =
+  'h-10 w-full rounded-[10px] border border-line bg-card px-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
+/** The Predefined options dropdown's resting answer: the values are the author's own. */
+const NO_PRESET = 'none';
 
 interface FormMenuDialogProps {
   open: boolean;
@@ -49,6 +56,11 @@ interface FormMenuDialogProps {
    * rebuilt on every render would wipe the edit in progress.
    */
   initial?: FormMenuConfig | null;
+  /**
+   * The snippet's language (EN, IT, ES, FR or MULTI). A ready-made list prints
+   * in the message, so it is written in that language; Multi gets English.
+   */
+  language: string;
   onSubmit: (token: string) => void;
 }
 
@@ -65,6 +77,7 @@ export function FormMenuDialog({
   onOpenChange,
   suggestedName,
   initial = null,
+  language,
   onSubmit,
 }: FormMenuDialogProps) {
   const nextId = useRef(0);
@@ -82,6 +95,12 @@ export function FormMenuDialog({
   const [link, setLink] = useState<LinkRuleDraft>(emptyLinkDraft('after'));
   // Off when the pick only decides what Show or hide rules print.
   const [print, setPrint] = useState(true);
+  // Display Other option: one more choice whose typed text is the answer.
+  const [otherOn, setOtherOn] = useState(false);
+  const [otherLabel, setOtherLabel] = useState(MENU_OTHER_LABEL);
+  // Which ready-made list the values came from. Back to None the moment they
+  // are edited, because from then on they are the author's own.
+  const [preset, setPreset] = useState(NO_PRESET);
 
   const firstOptionRef = useRef<HTMLInputElement | null>(null);
 
@@ -101,6 +120,9 @@ export function FormMenuDialog({
       setCols(initial.cols === null ? '' : String(initial.cols));
       setLink(linkDraftFrom(initial.link, 'after'));
       setPrint(initial.print !== false);
+      setOtherOn(initial.other !== undefined);
+      setOtherLabel(initial.other ?? MENU_OTHER_LABEL);
+      setPreset(NO_PRESET);
       return;
     }
     nextId.current = STARTING_ROWS;
@@ -117,38 +139,51 @@ export function FormMenuDialog({
     setCols('');
     setLink(emptyLinkDraft('after'));
     setPrint(true);
+    setOtherOn(false);
+    setOtherLabel(MENU_OTHER_LABEL);
+    setPreset(NO_PRESET);
   }, [open, suggestedName, initial]);
 
   function updateRow(id: number, label: string) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, label } : r)));
+    setPreset(NO_PRESET);
   }
 
   function addRow() {
     setRows((prev) => [...prev, makeRow()]);
+    setPreset(NO_PRESET);
   }
 
   function removeRow(id: number) {
     setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
     setSelectedIds((prev) => prev.filter((s) => s !== id));
+    setPreset(NO_PRESET);
   }
 
-  // Single-choice menus hold one preselection; a second click clears it, which
-  // writes a token with no `default=`. On a `multiple` menu that means it opens
-  // with nothing ticked. On a single-choice one the engine still opens it on the
-  // first option: one option has to win, so "no default" is not a state a
-  // single-choice menu can actually be in.
+  // A ready-made list replaces the values, as JotForm's does. A single-choice
+  // menu then opens on its first option; a multiple one on nothing ticked.
+  function applyPreset(id: string) {
+    setPreset(id);
+    const options = menuPresetOptions(id, language);
+    if (options.length === 0) return;
+    const next = options.map((label) => makeRow(label));
+    setRows(next);
+    setSelectedIds(multiple || !next[0] ? [] : [next[0].id]);
+  }
+
+  // Multiple Choice only: each row's box preselects it. A single-choice menu
+  // picks its default from the Selected by default dropdown instead.
   function toggleSelected(id: number) {
-    setSelectedIds((prev) => {
-      if (prev.includes(id)) return prev.filter((s) => s !== id);
-      return multiple ? [...prev, id] : [id];
-    });
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
   }
 
   // Turning multiple off collapses the preselection to the first pick, matching
-  // what the written token can actually carry.
+  // what the written token can actually carry. Turning it on keeps the option
+  // the dropdown named, ticked.
   function changeMultiple(next: boolean) {
     setMultiple(next);
-    if (!next) setSelectedIds((prev) => prev.slice(0, 1));
+    if (next) setSelectedIds(singleDefault ? [singleDefault.id] : []);
+    else setSelectedIds((prev) => prev.slice(0, 1));
   }
 
   // Drag to reorder, matching the grip handles on Text Blaze's rows. The order
@@ -166,9 +201,25 @@ export function FormMenuDialog({
       if (moved) next.splice(to, 0, moved);
       return next;
     });
+    setPreset(NO_PRESET);
   }
 
   const filledRows = rows.filter((r) => sanitizeMenuOption(r.label) !== '');
+  // A single-choice menu always opens on one option (the engine's own rule),
+  // so the dropdown always names one: the chosen row while it still has a
+  // label, else the first option, which is what the menu would open on anyway.
+  const singleDefault =
+    filledRows.find((r) => r.id === selectedIds[0]) ?? filledRows[0] ?? null;
+  const singleLabel = singleDefault?.label ?? null;
+  const preselected = useMemo(
+    () =>
+      multiple
+        ? rows.filter((r) => selectedIds.includes(r.id)).map((r) => r.label)
+        : singleLabel !== null
+          ? [singleLabel]
+          : [],
+    [multiple, rows, selectedIds, singleLabel],
+  );
   // The name is optional, exactly as it is in Text Blaze: blank is fine and the
   // engine keys the menu itself. Only a non-empty *invalid* name blocks Insert.
   const nameValid = name === '' || isValidMenuName(name);
@@ -177,14 +228,15 @@ export function FormMenuDialog({
     () =>
       buildFormMenuToken({
         options: rows.map((r) => r.label),
-        selected: rows.filter((r) => selectedIds.includes(r.id)).map((r) => r.label),
+        selected: preselected,
         name,
         multiple,
         cols: cols.trim() === '' ? null : Number(cols),
         link: linkFromDraft(link),
         print,
+        ...(otherOn ? { other: otherLabel } : {}),
       }),
-    [rows, selectedIds, name, multiple, cols, link, print],
+    [rows, preselected, name, multiple, cols, link, print, otherOn, otherLabel],
   );
 
   const canInsert = filledRows.length > 0 && nameValid;
@@ -212,7 +264,31 @@ export function FormMenuDialog({
         </DialogHeader>
 
         <div className="max-h-[60vh] overflow-y-auto px-6 pb-2 flex flex-col gap-4">
-          {/* ── Values: the options, and which one starts selected ── */}
+          {/* ── Predefined options: a ready-made list fills the values ── */}
+          <div>
+            <label htmlFor="form-menu-preset" className={SECTION_LABEL}>
+              Predefined options
+            </label>
+            <select
+              id="form-menu-preset"
+              value={preset}
+              onChange={(e) => applyPreset(e.target.value)}
+              className={SELECT}
+            >
+              <option value={NO_PRESET}>None</option>
+              {MENU_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <p className={HINT}>
+              Fill the values with a ready-made list, such as days or months. It replaces the
+              values below.
+            </p>
+          </div>
+
+          {/* ── Values: the options ── */}
           <div>
             <span className={SECTION_LABEL}>Values</span>
             <div className="rounded-[12px] border border-line bg-bg-alt p-3 flex flex-col gap-2">
@@ -243,18 +319,15 @@ export function FormMenuDialog({
                     >
                       <GripVertical className="h-4 w-4" />
                     </span>
-                    <input
-                      type={multiple ? 'checkbox' : 'radio'}
-                      name="form-menu-default"
-                      checked={isSelected}
-                      // The click owns the toggle: a radio fires no change event
-                      // when it is already selected, and "no default" has to stay
-                      // reachable by clicking the selected one again.
-                      onChange={() => undefined}
-                      onClick={() => toggleSelected(row.id)}
-                      aria-label={`Preselect ${row.label || `choice ${i + 1}`}`}
-                      className="h-4 w-4 shrink-0 cursor-pointer accent-primary"
-                    />
+                    {multiple && (
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelected(row.id)}
+                        aria-label={`Preselect ${row.label || `choice ${i + 1}`}`}
+                        className="h-4 w-4 shrink-0 cursor-pointer accent-primary"
+                      />
+                    )}
                     <Input
                       ref={i === 0 ? firstOptionRef : undefined}
                       value={row.label}
@@ -288,7 +361,62 @@ export function FormMenuDialog({
               </div>
             </div>
             <p className={HINT}>
-              The options for the menu. Tick one to preselect it.
+              {multiple
+                ? 'The options for the menu. Tick the ones to preselect.'
+                : 'The options for the menu.'}
+            </p>
+          </div>
+
+          {/* ── Selected by default (Single Choice) ── */}
+          {/* Multiple Choice keeps a box on each row instead: a dropdown holds
+              one answer, and a multiple menu may preselect several. */}
+          {!multiple && (
+            <div>
+              <label htmlFor="form-menu-default" className={SECTION_LABEL}>
+                Selected by default
+              </label>
+              <select
+                id="form-menu-default"
+                value={singleDefault ? String(singleDefault.id) : ''}
+                onChange={(e) => setSelectedIds([Number(e.target.value)])}
+                disabled={filledRows.length === 0}
+                className={cn(SELECT, 'disabled:opacity-50')}
+              >
+                {filledRows.length === 0 && <option value="">Add an option first</option>}
+                {filledRows.map((r) => (
+                  <option key={r.id} value={String(r.id)}>
+                    {sanitizeMenuOption(r.label)}
+                  </option>
+                ))}
+              </select>
+              <p className={HINT}>Choose an option to be selected by default.</p>
+            </div>
+          )}
+
+          {/* ── Display Other option ── */}
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="form-menu-other" className="text-xs font-medium text-ink-muted">
+                Display Other option
+              </label>
+              <Switch id="form-menu-other" checked={otherOn} onChange={setOtherOn} />
+            </div>
+            {otherOn && (
+              <Input
+                aria-label="Other text"
+                value={otherLabel}
+                onChange={(e) => setOtherLabel(e.target.value)}
+                onBlur={() => {
+                  if (sanitizeMenuOption(otherLabel) === '') setOtherLabel(MENU_OTHER_LABEL);
+                }}
+                placeholder={MENU_OTHER_LABEL}
+                className="mt-2 h-10 rounded-[10px]"
+              />
+            )}
+            <p className={HINT}>
+              {otherOn
+                ? 'The name of the extra choice. Whoever picks it types their own answer, and that answer prints.'
+                : 'Adds one more choice where whoever fills the snippet can type their own answer.'}
             </p>
           </div>
 

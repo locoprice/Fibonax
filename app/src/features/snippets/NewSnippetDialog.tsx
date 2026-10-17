@@ -2192,6 +2192,7 @@ export function NewSnippetDialog() {
               onOpenChange={setMenuFieldOpen}
               suggestedName={nextMenuName(form.content)}
               initial={menuEdit?.cfg ?? null}
+              language={form.language}
               onSubmit={submitMenuToken}
             />
 
