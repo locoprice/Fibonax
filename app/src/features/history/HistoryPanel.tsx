@@ -123,7 +123,9 @@ function EntryRow({ entry, entries, ownIdx, isLatest, expanded, onToggle, onRest
   const hasOlderVersions = ownIdx + 1 < entries.length;
 
   return (
-    <div className="rounded-[10px] border border-line bg-card overflow-hidden">
+    // shrink-0: the list scrolls, so a row keeps its height instead of being
+    // squeezed to a sliver when many versions do not fit.
+    <div className="shrink-0 rounded-[10px] border border-line bg-card overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
