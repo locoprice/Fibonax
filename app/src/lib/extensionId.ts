@@ -8,4 +8,5 @@ export const SPRINTBRAIN_EXTENSION_IDS = [
   'khdpimdpkgmmaimpbfjgglnpaemmopoo', // Chrome Web Store (published)
   'ngcgkbpekdallmninmclhopdmhkijidm', // unpacked / dev build
   'mfobnhbgijfiehjghhhdgendjpegmjge', // unpacked / dev build
+  'abgnlhlplficnapppofkahablookoabp', // unpacked / dev build (Fibonax folder)
 ] as const;
