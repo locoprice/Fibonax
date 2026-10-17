@@ -744,6 +744,15 @@ function injectLangModal(variantsMap, el, scLen) {
   }, 50);
 }
 
+// Shared presentation for snippet headings, matching the landing and app icon.
+function snippetIcon(size) {
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="flex-shrink:0"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>';
+}
+
+function promptIcon(size) {
+  return '<svg width="' + size + '" height="' + size + '" style="flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>';
+}
+
 // ── DYNAMIC SNIPPET MODAL (Shadow DOM) ───────────────────────────
 /**
  * Renders a centered modal inside a Shadow DOM to collect
@@ -764,7 +773,7 @@ function injectDynamicModal(variables, onConfirm, onCancel) {
   var style = document.createElement('style');
   style.textContent =
     '.sb-modal{background:#fff;border-radius:12px;padding:28px 32px;width:420px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.18);display:flex;flex-direction:column;gap:16px;}' +
-    '.sb-modal h2{margin:0;font-size:16px;font-weight:600;color:#1a1a1a;letter-spacing:-0.2px;}' +
+    '.sb-modal h2{margin:0;font-size:16px;font-weight:600;color:#1a1a1a;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}' +
     '.sb-modal p.sb-sub{margin:-8px 0 0;font-size:13px;color:#666;}' +
     '.sb-field{display:flex;flex-direction:column;gap:6px;}' +
     '.sb-field label{font-size:12px;font-weight:500;color:#444;text-transform:uppercase;letter-spacing:0.4px;}' +
@@ -784,7 +793,7 @@ function injectDynamicModal(variables, onConfirm, onCancel) {
   modal.className = 'sb-modal';
 
   var h2 = document.createElement('h2');
-  h2.textContent = '\u26A1 Fill in your snippet';
+  h2.innerHTML = snippetIcon(18) + 'Fill in your snippet';
   modal.appendChild(h2);
 
   var sub = document.createElement('p');
@@ -3128,7 +3137,9 @@ function showTriggerPicker(el, mode, seqLen, filterStr) {
   div.style.cssText = 'position:fixed;z-index:2147483647;display:flex;flex-direction:column;background:#fff;border:1px solid #E4E4E7;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);min-width:260px;max-width:360px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;';
 
   var header = '<div style="flex:0 0 auto;padding:9px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#A1A1AA;border-bottom:1px solid #E4E4E7;display:flex;align-items:center;gap:8px">';
-  header += '<span>' + (mode === 'snippet' ? '\u26a1 Insert snippet' : '\ud83e\udd16 Prompt mode \u00b7 ' + xesc(triggerCfg.promptTrigger || '"""')) + '</span>';
+  header += mode === 'snippet'
+    ? '<span style="display:inline-flex;align-items:center;gap:4px">' + snippetIcon(14) + 'Insert snippet</span>'
+    : '<span style="display:inline-flex;align-items:center;gap:4px">' + promptIcon(14) + 'Prompt mode \u00b7 ' + xesc(triggerCfg.promptTrigger || '"""') + '</span>';
   header += '<span style="margin-left:auto;font-weight:500;text-transform:none;letter-spacing:0;color:#A1A1AA;font-size:10px">Tab / Enter to insert</span>';
   header += '</div>';
   header += '<div class="sb-tp-items" style="flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:6px;"></div>';
@@ -3570,7 +3581,7 @@ function showSelectionSuggestions(el, matches) {
   div.style.cssText = 'position:fixed;z-index:2147483647;display:flex;flex-direction:column;background:#fff;border:1px solid #E4E4E7;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);min-width:260px;max-width:360px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;';
 
   var header = '<div style="flex:0 0 auto;padding:9px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#A1A1AA;border-bottom:1px solid #E4E4E7;display:flex;align-items:center;gap:8px">';
-  header += '<span>✨ Suggested snippets</span>';
+  header += '<span style="display:inline-flex;align-items:center;gap:4px">' + snippetIcon(14) + 'Suggested snippets</span>';
   header += '<span style="margin-left:auto;font-weight:500;text-transform:none;letter-spacing:0;color:#A1A1AA;font-size:10px">Enter to insert</span>';
   header += '</div>';
   header += '<div class="sb-ss-items" style="flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:6px;"></div>';

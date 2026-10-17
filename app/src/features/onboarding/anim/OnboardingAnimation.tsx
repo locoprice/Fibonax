@@ -1,4 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import {
   AnimationStage,
   Sprite,
@@ -704,13 +706,7 @@ function SnipCard({
           flexShrink: 0,
         }}
       >
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-          <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-          <path d="M10 9H8" />
-          <path d="M16 13H8" />
-          <path d="M16 17H8" />
-        </svg>
+        <SnippetIcon size={20} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14.5, fontWeight: 700, color: INK, letterSpacing: '-.2px', fontFamily: FONT }}>{title}</div>
@@ -1143,10 +1139,16 @@ function CompanionHome({ scroll = 0 }: { scroll?: number }): ReactElement {
                     boxShadow: on ? '0 1px 2px rgba(20,64,176,.35)' : '0 4px 8px rgba(27,79,216,.16)',
                   }}
                 >
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                  </svg>
+                  {lbl === 'Snippets' ? (
+                    <SnippetIcon size={22} />
+                  ) : lbl === 'Prompts' ? (
+                    <PromptIcon size={22} />
+                  ) : (
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                    </svg>
+                  )}
                 </div>
                 <span style={{ fontFamily: FONT, fontSize: 10.5, fontWeight: on ? 700 : 600, color: on ? AZURE : INK }}>{lbl}</span>
               </div>

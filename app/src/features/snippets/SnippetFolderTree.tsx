@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
 import { FolderTree } from '@/features/org/FolderTree';
 import { useSnippetStore } from '@/stores/snippetStore';
 
@@ -39,6 +40,7 @@ export function SnippetFolderTree() {
       itemCounts={counts}
       totalCount={snippets.length}
       allLabel="All snippets"
+      allIcon={SnippetIcon}
       itemNoun="snippet"
       addFolder={addFolder}
       editFolder={editFolder}

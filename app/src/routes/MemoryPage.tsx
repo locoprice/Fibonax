@@ -1,7 +1,8 @@
+import { BrainIcon } from '@/components/shared/BrainIcon';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Brain, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { LoadingBlock } from '@/components/layout/LoadingBlock';
 import { PageBanner } from '@/components/layout/PageBanner';
@@ -245,7 +246,7 @@ export function MemoryPage() {
         <LoadingBlock what="your Brains" />
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon={Brain}
+          icon={BrainIcon}
           title={spaces.length === 0 ? 'No Brains yet' : 'Nothing matches'}
           description={
             spaces.length === 0

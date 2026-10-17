@@ -685,6 +685,7 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 #platforms .sb-mobile-node svg{width:clamp(13px,3cqi,22px);height:clamp(13px,3cqi,22px);flex:none;color:var(--sb-blue)}
 #platforms .sb-mobile-node-library{left:9%;top:40%;display:grid;grid-template-columns:auto 1fr;gap:5px 9px;transform:perspective(600px) rotateY(12deg) rotateZ(-4deg);animation-delay:-3s}
 #platforms .sb-mobile-node-glyph{font:400 clamp(14px,4cqi,26px)/1.1 var(--sb-mono,monospace);color:var(--sb-blue);grid-row:span 2}
+#platforms .sb-mobile-node-glyph svg{display:block;width:1em;height:1em}
 #platforms .sb-mobile-node-code{font-size:.8em;color:#6b7e9e}
 #platforms .sb-mobile-node-browser{left:72%;top:30%;padding:2.2%;flex-direction:column;gap:7px;animation-delay:-5s}
 #platforms .sb-mobile-node-sync{right:7%;max-width:30%;top:62%;padding:2%;font-size:clamp(6px,1.4cqi,10px);gap:5px;animation-delay:-7s}
@@ -1240,9 +1241,9 @@ body.cm-locked{overflow:hidden}
         <div class="hc-library">
           <div class="hc-library-brand"><img src="leib-tour-icon.png" alt="" width="28" height="28"><strong>Fibonax</strong><span class="hc-library-mark" aria-hidden="true">✳</span></div>
           <div class="hc-library-grid">
-            <div class="hc-library-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/></svg><strong>Snippets</strong><span>Your content</span></div>
-            <div class="hc-library-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg><strong>Prompts</strong><span>Your instructions</span></div>
-            <div class="hc-library-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><strong>Brains</strong><span>Your knowledge</span></div>
+            <div class="hc-library-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg><strong>Snippets</strong><span>Your content</span></div>
+            <div class="hc-library-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg><strong>Prompts</strong><span>Your instructions</span></div>
+            <div class="hc-library-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><strong>Brains</strong><span>Your knowledge</span></div>
           </div>
         </div>
         <div class="hc-routing" aria-hidden="true">
@@ -1276,7 +1277,7 @@ body.cm-locked{overflow:hidden}
       <div class="context-layer-grid">
         <article class="context-layer">
           <div class="context-layer-heading">
-            <span class="context-layer-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/></svg></span>
+            <span class="context-layer-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></span>
             <h3>Snippets</h3>
           </div>
           <p class="context-layer-lead">Your reusable content, always ready when you need it.</p>
@@ -1284,7 +1285,7 @@ body.cm-locked{overflow:hidden}
         </article>
         <article class="context-layer">
           <div class="context-layer-heading">
-            <span class="context-layer-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg></span>
+            <span class="context-layer-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg></span>
             <h3>Prompts</h3>
           </div>
           <p class="context-layer-lead">Your best instructions, structured and ready to execute.</p>
@@ -1292,7 +1293,7 @@ body.cm-locked{overflow:hidden}
         </article>
         <article class="context-layer">
           <div class="context-layer-heading">
-            <span class="context-layer-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg></span>
+            <span class="context-layer-icon" aria-hidden="true"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg></span>
             <h3>Brains</h3>
           </div>
           <p class="context-layer-lead">Your persistent context.</p>
@@ -1762,7 +1763,7 @@ body.cm-locked{overflow:hidden}
                     <div class="sb-mobile-speaker" aria-hidden="true"></div>
                   </div>
                 </div>
-                <div class="sb-mobile-node sb-mobile-node-library" aria-hidden="true"><span class="sb-mobile-node-glyph">{ }</span><span>Snippets</span><span class="sb-mobile-node-code">::time</span></div>
+                <div class="sb-mobile-node sb-mobile-node-library" aria-hidden="true"><span class="sb-mobile-node-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></span><span>Snippets</span><span class="sb-mobile-node-code">::time</span></div>
                 <div class="sb-mobile-node sb-mobile-node-browser" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6 6-2Z"/><path d="m10 14 4-4"/></svg><span>Safari / Chrome</span></div>
                 <div class="sb-mobile-node sb-mobile-node-sync" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m3 12 5 5L20 5"/></svg><span>Always in sync</span></div>
               </div>
@@ -2410,7 +2411,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.71.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.71.1';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.

@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronDown, Folders, X } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import { cn } from '@/lib/utils';
 import { FolderIcon } from '@/lib/folderIcons';
 import { FolderShareBadge } from '@/features/org/FolderTree';
@@ -180,7 +181,7 @@ function FolderChips() {
         onClick={() => setSelected(null)}
         label="All prompts"
         count={prompts.length}
-        icon={<Folders className="h-3.5 w-3.5 shrink-0" />}
+        icon={<PromptIcon className="h-3.5 w-3.5 shrink-0" />}
       />
       {visible.map(({ folder, count }) => {
         const share = folderShares.get(folder.id);

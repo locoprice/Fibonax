@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ChevronRight, Folders, Globe, Pencil, Plus, Share2, Users } from 'lucide-react';
+import { ChevronRight, Folders, Globe, Pencil, Plus, Share2, Users, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FolderIcon } from '@/lib/folderIcons';
 import {
@@ -35,6 +35,8 @@ export interface FolderTreeProps {
   totalCount: number;
   /** Label for the "All" row, e.g. "All snippets" / "All prompts". */
   allLabel: string;
+  /** Content-type glyph for the "All" row; individual folders keep their chosen icons. */
+  allIcon?: LucideIcon;
   /** Singular noun used in dialog copy, e.g. "snippet" / "prompt". */
   itemNoun: string;
   addFolder: (payload: FolderFormValues) => Promise<Folder>;
@@ -76,6 +78,7 @@ export function FolderTree({
   itemCounts,
   totalCount,
   allLabel,
+  allIcon: AllIcon = Folders,
   itemNoun,
   addFolder,
   editFolder,
@@ -186,7 +189,7 @@ export function FolderTree({
         )}
       >
         <span className="flex items-center gap-2">
-          <Folders className="h-4 w-4" />
+          <AllIcon className="h-4 w-4" />
           {allLabel}
         </span>
         <span className="text-xs text-ink-subtle">{totalCount}</span>

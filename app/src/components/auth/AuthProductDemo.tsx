@@ -1,11 +1,14 @@
+import { BrainIcon } from '@/components/shared/BrainIcon';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowDown, Brain, Check, CheckCheck, FileText, Mail, Pause, Play, Sparkles, Terminal, Zap } from 'lucide-react';
+import { ArrowDown, Check, CheckCheck, FileText, Mail, Pause, Play, Sparkles } from 'lucide-react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import { cn } from '@/lib/utils';
 
 const SCENES = [
-  { name: 'Snippets', icon: Zap, description: 'The shortcut ::followup expands into a complete follow-up message.' },
-  { name: 'Prompts', icon: Terminal, description: 'Role, objective and constraints build a reusable prompt.' },
-  { name: 'Brains', icon: Brain, description: 'Two notes from a Brain are selected and inserted above an AI message, ready to review.' },
+  { name: 'Snippets', icon: SnippetIcon, description: 'The shortcut ::followup expands into a complete follow-up message.' },
+  { name: 'Prompts', icon: PromptIcon, description: 'Role, objective and constraints build a reusable prompt.' },
+  { name: 'Brains', icon: BrainIcon, description: 'Two notes from a Brain are selected and inserted above an AI message, ready to review.' },
 ] as const;
 
 const LAST_FRAME = 90;
@@ -29,7 +32,7 @@ function SnippetScene({ frame }: { frame: number }) {
         <div className={cn('absolute inset-x-0 top-0 font-mono text-primary', REVEAL, expanded ? '-translate-y-2 opacity-0' : 'translate-y-0 opacity-100')}>
           {shortcut}<span className="ml-0.5 inline-block h-4 w-px translate-y-0.5 bg-primary" />
           <Reveal show={frame >= 24 && !expanded} className="mt-3 flex items-center gap-2 rounded-[10px] border border-line bg-card p-3 font-sans text-xs shadow-sm">
-            <Zap className="h-4 w-4" /><span className="font-medium text-ink">Follow-up</span><span className="ml-auto text-ink-muted">↵</span>
+            <SnippetIcon className="h-4 w-4" /><span className="font-medium text-ink">Follow-up</span><span className="ml-auto text-ink-muted">↵</span>
           </Reveal>
         </div>
         <Reveal show={expanded} className="space-y-3 text-ink">
@@ -85,7 +88,7 @@ function BrainScene({ frame }: { frame: number }) {
       </div>
       <Reveal show={inserted}>
         <div className="rounded-[10px] border border-primary/20 bg-primary-light p-3">
-          <div className="mb-2 flex items-center gap-2 font-medium text-primary"><Brain className="h-3.5 w-3.5" />Context from Project Brain</div>
+          <div className="mb-2 flex items-center gap-2 font-medium text-primary"><BrainIcon className="h-3.5 w-3.5" />Context from Project Brain</div>
           <p className="leading-relaxed text-ink">Project brief: launch the new website.</p>
           <p className="mt-1 leading-relaxed text-ink">Writing style: clear, friendly, concise.</p>
         </div>

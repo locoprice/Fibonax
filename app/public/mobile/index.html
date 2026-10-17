@@ -1034,6 +1034,10 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   width:1em;height:1em;display:inline-block;vertical-align:-.125em;
   stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round
 }
+/* Keep the approved Snippets glyph identical to the landing on every surface. */
+.mqa-ico svg.snippet-icon,.an-recent-ico svg.snippet-icon,
+.mqa-ico svg.prompt-type-icon,.prompt-icon svg.prompt-type-icon{stroke-width:1.8}
+svg.brain-type-icon{stroke-width:1.8}
 /* New-folder icon picker (matches the extension folder-modal + dashboard FolderDialog).
    Scoped under .sb-fico-picker to beat the generic ".sb-folder-new-form button" rule. */
 .sb-fico-picker{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;padding:2px 0}
@@ -1312,7 +1316,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 <body>
 
 <div id="loading">
-  <div style="font-size:40px">⚡</div>
+  <div style="font-size:40px;color:var(--primary)"><svg class="snippet-icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></div>
   <div class="spinner"></div>
   <p>Loading snippets…</p>
 </div>
@@ -6339,6 +6343,11 @@ function esc(s){
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// The product-type icon is separate from icons chosen for folders.
+var SNIPPET_SVG='<svg class="snippet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>';
+
+var PROMPT_SVG='<svg class="prompt-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>';
+
 // Canonical folder-icon SVG set — byte-identical to the extension's _FOLDER_SVGS
 // (extension/popup/popup.js) and the dashboard's lucide map (app/src/lib/folderIcons.tsx),
 // the native right-click menu projects the same keys to emoji (FOLDER_ICON_EMOJI in
@@ -6699,7 +6708,7 @@ function renderPromptList(){
     var details=labels.length?'<button type="button" class="search-details" data-detail-pid="'+esc(p.id)+'" aria-label="Details for '+esc(p.name)+'">Details</button>':'';
     var reason=hiddenSearchMatch(q,[p.name,p.intent_category],labels,[]);
     return '<div class="prompt-card'+(isPin?' is-pinned':'')+'" data-pid="'+esc(p.id)+'" role="button" tabindex="0">'
-      +'<div class="prompt-icon">'+folderIcon(getFolderById(p.folder_id))+'</div>'
+      +'<div class="prompt-icon">'+(getFolderById(p.folder_id)?folderIcon(getFolderById(p.folder_id)):PROMPT_SVG)+'</div>'
       +'<div class="prompt-info">'
         +'<div class="prompt-name">'+esc(p.name)+'</div>'
         +(preview?'<div class="prompt-preview">'+esc(preview)+'</div>':'')
@@ -6900,9 +6909,10 @@ var MEM_NAME_EMOJI=(function(){
 })();
 /* Brain icons: memory_spaces.ico stores a keyword, drawn with the dashboard's
    Lucide glyphs (app/src/features/memory/spaceIcon.tsx). An unknown key falls
-   back to the brain, as it does there. */
+   back to the approved Brains layers glyph, as it does there. */
+var BRAIN_SVG='<svg class="brain-type-icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>';
 var SPACE_ICON_SVGS={
-  brain:'<svg viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>',
+  brain:BRAIN_SVG,
   book:'<svg viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></svg>',
   'file-text':_FOLDER_SVGS['file-text'],
   briefcase:'<svg viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>',
@@ -7127,7 +7137,7 @@ function renderMemory(){
     return;
   }
   if(!n){
-    list.innerHTML=memEmptyHtml('🧠','No Brains yet','Create one in the dashboard and it shows up here.');
+    list.innerHTML=memEmptyHtml(BRAIN_SVG,'No Brains yet','Create one in the dashboard and it shows up here.');
     return;
   }
   var q=memSearch.trim().toLowerCase();
@@ -10028,9 +10038,9 @@ document.getElementById('sb-modal-save').addEventListener('click',function(e){
    section is called Brains wherever someone reads it, as on the dashboard;
    "memory" is only its name inside the code. */
 var QUICK_ACTIONS=[
-  {qa:'prompts',label:'Prompts',svg:'<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H7"/><path d="M17 12H7"/></svg>'},
-  {qa:'snippets',label:'Snippets',svg:_FOLDER_SVGS['file-text']},
-  {qa:'memory',label:'Brains',svg:SPACE_ICON_SVGS.brain}
+  {qa:'prompts',label:'Prompts',svg:PROMPT_SVG},
+  {qa:'snippets',label:'Snippets',svg:SNIPPET_SVG},
+  {qa:'memory',label:'Brains',svg:BRAIN_SVG}
 ];
 function mountQuickActions(){
   var html='<div class="mqa-grid">'+QUICK_ACTIONS.map(function(t){
@@ -10794,7 +10804,7 @@ function renderAnalytics(){
         var rel=relativeTime(s.updated_at);
         var langBadge='<span class="lbadge l'+esc(s.lang||'EN')+'" style="font-size:9px;padding:1px 5px">'+esc(s.lang||'EN')+'</span>';
         return '<div class="an-recent-item" data-snip-id="'+esc(s.id)+'" role="button" tabindex="0" aria-label="'+esc(s.title||s.id)+'">'
-          +'<div class="an-recent-ico">'+folderIcon(getFolderById(s.folder_id))+'</div>'
+          +'<div class="an-recent-ico">'+(getFolderById(s.folder_id)?folderIcon(getFolderById(s.folder_id)):SNIPPET_SVG)+'</div>'
           +'<div class="an-recent-info">'
             +'<div class="an-recent-title">'+esc(s.title||s.id)+'</div>'
             +'<div class="an-recent-meta">'

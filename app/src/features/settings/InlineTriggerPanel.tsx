@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertCircle, Check, Lock, Zap } from 'lucide-react';
+import { AlertCircle, Check } from 'lucide-react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import {
@@ -278,7 +280,7 @@ export function InlineTriggerPanel() {
         {/* ── Snippet trigger ── */}
         <TriggerRow
           label="Snippet"
-          icon={<Zap className="h-3.5 w-3.5" />}
+          icon={<SnippetIcon className="h-3.5 w-3.5" />}
           value={snippetSeq.value}
           status={snippetSeq.status}
           error={snippetSeq.error}
@@ -292,7 +294,7 @@ export function InlineTriggerPanel() {
         {/* ── Prompt trigger ── */}
         <TriggerRow
           label="Prompt"
-          icon={<Lock className="h-3.5 w-3.5" />}
+          icon={<PromptIcon className="h-3.5 w-3.5" />}
           value={promptSeq.value}
           status={promptSeq.status}
           error={promptSeq.error}
