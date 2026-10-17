@@ -472,7 +472,7 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           <div
             className={cn(
-              'h-full min-h-[120px] whitespace-pre-wrap break-words rounded-[10px] border border-line bg-card px-3 py-2.5 font-mono text-xs leading-relaxed',
+              'min-h-[max(100%,120px)] whitespace-pre-wrap break-words rounded-[10px] border border-line bg-card px-3 py-2.5 font-mono text-xs leading-relaxed',
               view?.preview ? 'text-ink' : 'italic text-ink-subtle',
             )}
           >
