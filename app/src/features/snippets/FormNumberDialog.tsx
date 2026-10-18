@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
+import { EditingBanner, RenameNote } from '@/features/snippets/formulaDialogParts';
 import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { cn } from '@/lib/utils';
 import {
@@ -19,9 +20,16 @@ import {
   isValidFieldName,
   isValidNumberDefault,
   type CurrencyCode,
+  type FormNumberConfig,
   type NumberFormat,
 } from '@/lib/formNumberToken';
-import { emptyLinkDraft, linkFromDraft, LINK_MODES, type LinkRuleDraft } from '@/lib/linkRule';
+import {
+  emptyLinkDraft,
+  linkDraftFrom,
+  linkFromDraft,
+  LINK_MODES,
+  type LinkRuleDraft,
+} from '@/lib/linkRule';
 
 const HINT = 'text-[11px] text-ink-subtle mt-1.5';
 const SECTION_LABEL = 'block text-xs font-medium text-ink-muted mb-1.5';
@@ -58,6 +66,17 @@ interface FormNumberDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Prefilled field name — the next free NUM_n for the body being edited. */
   suggestedName: string;
+  /**
+   * The field being changed, or null to build a new one. Must stay the same
+   * object while open: the window reloads whenever it changes.
+   */
+  initial?: FormNumberConfig | null;
+  /** The number fields already in the snippet, listed above the form. */
+  list?: ReactNode;
+  /** How many other parts read the field being changed, for the rename note. */
+  readers?: number;
+  /** Leaves the field being changed as it is and starts a new one. */
+  onNew?: () => void;
   onInsert: (token: string) => void;
 }
 
@@ -78,6 +97,10 @@ export function FormNumberDialog({
   open,
   onOpenChange,
   suggestedName,
+  initial = null,
+  list,
+  readers = 0,
+  onNew,
   onInsert,
 }: FormNumberDialogProps) {
   const [name, setName] = useState('');
@@ -85,19 +108,33 @@ export function FormNumberDialog({
   const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
   const [defaultValue, setDefaultValue] = useState('');
   const [link, setLink] = useState<LinkRuleDraft>(NUMBER_LINK_START);
+  // Not shown: the caption a Calculator or Price line gave its box. Kept so an
+  // edit here does not take it away from the fill form.
+  const [label, setLabel] = useState('');
 
   const nameRef = useRef<HTMLInputElement | null>(null);
 
   // Every opening starts from a clean field — a half-built one carried over
-  // from a cancelled insert would silently ship into the next snippet.
+  // from a cancelled insert would silently ship into the next snippet. Opened
+  // on a field already in the snippet, it starts from that one.
   useEffect(() => {
     if (!open) return;
+    if (initial) {
+      setName(initial.name);
+      setFormat(initial.format);
+      setCurrency(initial.currency);
+      setDefaultValue(initial.default);
+      setLink(linkDraftFrom(initial.link, 'before'));
+      setLabel(initial.label ?? '');
+      return;
+    }
     setName(suggestedName);
     setFormat('plain');
     setCurrency(DEFAULT_CURRENCY);
     setDefaultValue('');
     setLink(NUMBER_LINK_START);
-  }, [open, suggestedName]);
+    setLabel('');
+  }, [open, suggestedName, initial]);
 
   const nameValid = isValidFieldName(name);
   const defaultValid = isValidNumberDefault(defaultValue);
@@ -110,9 +147,10 @@ export function FormNumberDialog({
         format,
         currency,
         default: defaultValue.trim(),
+        label,
         link: linkFromDraft(link),
       }),
-    [name, format, currency, defaultValue, link],
+    [name, format, currency, defaultValue, label, link],
   );
 
   function handleSubmit() {
@@ -134,15 +172,23 @@ export function FormNumberDialog({
         }}
       >
         <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle>Insert number field</DialogTitle>
+          <DialogTitle>{initial ? 'Edit number field' : 'Insert number field'}</DialogTitle>
           <DialogDescription>
             A quantity typed in when the snippet expands. Formulas can add it up.
           </DialogDescription>
         </DialogHeader>
 
+        {list && <div className="min-w-0 px-6 pb-3">{list}</div>}
+
         {/* Scrolls like the Choice builder's: with Fill from link open, the
             window outgrows a laptop screen. */}
         <div className="max-h-[60vh] overflow-y-auto px-6 pb-2 flex flex-col gap-4">
+          {initial && onNew && (
+            <EditingBanner onNew={onNew} newLabel="New field instead">
+              Editing {initial.name}. Save puts it back where it was.
+            </EditingBanner>
+          )}
+
           {/* ── Field name ── */}
           <div>
             <label htmlFor="form-number-name" className={SECTION_LABEL}>
@@ -179,6 +225,7 @@ export function FormNumberDialog({
                 underscore, starting with a letter — e.g. {suggestedName}.
               </p>
             )}
+            {initial && nameValid && <RenameNote from={initial.name} to={name} readers={readers} />}
             <p className="mt-2 rounded-[8px] border border-line bg-bg-alt px-2.5 py-2 text-[11px] leading-tight text-ink-subtle">
               {NOT_A_NUMBER_WARNING}
             </p>
@@ -280,7 +327,7 @@ export function FormNumberDialog({
           {canInsert && (
             <div className="rounded-[10px] border border-line bg-bg-alt px-3 py-2.5">
               <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-widest mb-1">
-                Inserts
+                {initial ? 'Saves as' : 'Inserts'}
               </p>
               <code className="block font-mono text-[11px] leading-relaxed text-ink-muted break-all">
                 {token}
@@ -294,7 +341,7 @@ export function FormNumberDialog({
             Cancel
           </Button>
           <Button type="button" variant="primary" onClick={handleSubmit} disabled={!canInsert}>
-            Insert
+            {initial ? 'Save' : 'Insert'}
           </Button>
         </div>
       </DialogContent>

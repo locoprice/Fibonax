@@ -1,6 +1,6 @@
 {
   "name": "sprintbrain-mcp-memory",
-  "version": "3.72.1",
+  "version": "3.73.0",
   "private": true,
   "type": "module",
   "description": "Fibonax working-memory MCP server. Attaches and detaches memory shards per step, inside a token budget.",

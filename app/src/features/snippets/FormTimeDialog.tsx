@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
+import { EditingBanner } from '@/features/snippets/formulaDialogParts';
 import { cn } from '@/lib/utils';
 import { loadFillFormEngine, formulaEngine } from '@/lib/fillFormEngine';
 import {
@@ -26,6 +27,8 @@ import {
   NAMED_SHIFTS,
   previewTime,
   SHIFT_UNITS,
+  timeFormState,
+  type FormTimeConfig,
   type NamedShift,
   type ShiftMode,
   type ShiftUnit,
@@ -68,6 +71,15 @@ interface FormTimeDialogProps {
    * date in it, so the preview has to as well.
    */
   lang?: string;
+  /**
+   * The automatic date being changed, or null to build a new one. Must stay
+   * the same object while open: the window reloads whenever it changes.
+   */
+  initial?: FormTimeConfig | null;
+  /** The automatic dates already in the snippet, listed above the form. */
+  list?: ReactNode;
+  /** Leaves the date being changed as it is and starts a new one. */
+  onNew?: () => void;
   onInsert: (token: string) => void;
 }
 
@@ -83,7 +95,15 @@ interface FormTimeDialogProps {
  * The preview resolves through the engine's own `sbFormatDate`, not a copy, so
  * what the dialog shows is what the snippet prints.
  */
-export function FormTimeDialog({ open, onOpenChange, lang = '', onInsert }: FormTimeDialogProps) {
+export function FormTimeDialog({
+  open,
+  onOpenChange,
+  lang = '',
+  initial = null,
+  list,
+  onNew,
+  onInsert,
+}: FormTimeDialogProps) {
   const [dateFormat, setDateFormat] = useState<DateFormat>(DEFAULT_DATE_FORMAT);
   const [mode, setMode] = useState<ShiftMode>('none');
   const [amount, setAmount] = useState('1');
@@ -100,9 +120,24 @@ export function FormTimeDialog({ open, onOpenChange, lang = '', onInsert }: Form
   const amountRef = useRef<HTMLInputElement | null>(null);
 
   // Every opening starts clean — a half-built token carried over from a
-  // cancelled insert would silently ship into the next snippet.
+  // cancelled insert would silently ship into the next snippet. Opened on a
+  // date already in the snippet, it starts from that one.
   useEffect(() => {
     if (!open) return;
+    const loaded = initial ? timeFormState(initial) : null;
+    if (loaded) {
+      setDateFormat(loaded.dateFormat);
+      setMode(loaded.mode);
+      setAmount(loaded.amount);
+      setUnit(loaded.unit);
+      setBack(loaded.back);
+      setNamed(loaded.named);
+      setWithTime(loaded.withTime);
+      setTimeFormat(loaded.timeFormat);
+      setHour(loaded.hour);
+      setMinute(loaded.minute);
+      return;
+    }
     setDateFormat(DEFAULT_DATE_FORMAT);
     setMode('none');
     setAmount('1');
@@ -113,7 +148,7 @@ export function FormTimeDialog({ open, onOpenChange, lang = '', onInsert }: Form
     setTimeFormat(DEFAULT_TIME_FORMAT);
     setHour('09');
     setMinute('00');
-  }, [open]);
+  }, [open, initial]);
 
   // The formatter lives in the shared engine. Loading it here rather than
   // mirroring it keeps one date-formatting implementation in the product.
@@ -177,11 +212,20 @@ export function FormTimeDialog({ open, onOpenChange, lang = '', onInsert }: Form
         }}
       >
         <DialogHeader className="px-6 pt-5 pb-3">
-          <DialogTitle>Insert an automatic date</DialogTitle>
+          <DialogTitle>{initial ? 'Edit an automatic date' : 'Insert an automatic date'}</DialogTitle>
           <DialogDescription>
             A date worked out when the snippet expands. Nobody fills it in.
           </DialogDescription>
         </DialogHeader>
+
+        {list && <div className="min-w-0 px-6 pb-3">{list}</div>}
+        {initial && onNew && (
+          <div className="px-6 pb-3">
+            <EditingBanner onNew={onNew} newLabel="New date instead">
+              Editing this automatic date. Save puts it back where it was.
+            </EditingBanner>
+          </div>
+        )}
 
         {/* Two columns: which day on the left, what time on the right. They are
             independent decisions, and stacking them made the time read as a
@@ -334,7 +378,7 @@ export function FormTimeDialog({ open, onOpenChange, lang = '', onInsert }: Form
                   className={cn(SELECT_CLASS, 'w-[84px] shrink-0')}
                   size={1}
                 >
-                  {MINUTES.map((m) => (
+                  {(MINUTES.includes(minute) ? MINUTES : [...MINUTES, minute].sort()).map((m) => (
                     <option key={m} value={m}>
                       {m}
                     </option>
@@ -384,7 +428,7 @@ export function FormTimeDialog({ open, onOpenChange, lang = '', onInsert }: Form
             Cancel
           </Button>
           <Button type="button" variant="primary" disabled={!canInsert} onClick={handleSubmit}>
-            Insert
+            {initial ? 'Save' : 'Insert'}
           </Button>
         </div>
       </DialogContent>

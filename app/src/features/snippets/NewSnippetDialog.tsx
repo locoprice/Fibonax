@@ -44,7 +44,9 @@ import { LabelPicker } from '@/features/labels/LabelPicker';
 import { LabelSuggestions } from '@/features/labels/LabelSuggestions';
 import { FormButtonDialog } from '@/features/snippets/FormButtonDialog';
 import { FormCalculatorDialog } from '@/features/snippets/FormCalculatorDialog';
-import { FormConditionDialog, RuleSummary } from '@/features/snippets/FormConditionDialog';
+import { ConditionList, FormConditionDialog, RuleSummary } from '@/features/snippets/FormConditionDialog';
+import { FormDateDialog } from '@/features/snippets/FormDateDialog';
+import { FormulaListSection, ItemListSection } from '@/features/snippets/formulaDialogParts';
 import { FormPriceLineDialog } from '@/features/snippets/FormPriceLineDialog';
 import { FormInterestDialog } from '@/features/snippets/FormInterestDialog';
 import { FormDateRangeDialog } from '@/features/snippets/FormDateRangeDialog';
@@ -55,13 +57,17 @@ import { FormTimeDialog } from '@/features/snippets/FormTimeDialog';
 import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { SnippetPreview } from '@/features/snippets/SnippetPreview';
 import { cn, countWords } from '@/lib/utils';
+import { findMenuTokenAt, nextMenuName } from '@/lib/formMenuToken';
 import {
-  findMenuTokenAt,
-  nextMenuName,
-  parseFormMenuToken,
-  type FormMenuConfig,
-  type MenuTokenRange,
-} from '@/lib/formMenuToken';
+  bodyItems,
+  changedSpan,
+  itemTitle,
+  readersOf,
+  renameInBody,
+  tokenName,
+  type BodyItem,
+  type BodyItemKind,
+} from '@/lib/bodyItems';
 import { nextTextName } from '@/lib/formTextToken';
 import {
   findRuleAt,
@@ -387,6 +393,25 @@ const CONDITION_FIELDS: { label: string; hint: string }[] = [
 
 const GREETING_TOKEN = '{greeting}';
 
+// What each window and panel section lists, and what its count line calls them.
+// Module-level so the lists keep one identity across renders.
+const TEXT_KINDS: readonly BodyItemKind[] = ['text'];
+const NUMBER_KINDS: readonly BodyItemKind[] = ['number'];
+const MENU_KINDS: readonly BodyItemKind[] = ['menu'];
+const BUTTON_KINDS: readonly BodyItemKind[] = ['button'];
+const DATE_KINDS: readonly BodyItemKind[] = ['date', 'time'];
+const AUTO_KINDS: readonly BodyItemKind[] = ['auto'];
+const GREETING_KINDS: readonly BodyItemKind[] = ['greeting'];
+const TEXT_NOUN = { one: 'text field', many: 'text fields' };
+const NUMBER_NOUN = { one: 'number field', many: 'number fields' };
+const MENU_NOUN = { one: 'choice field', many: 'choice fields' };
+const BUTTON_NOUN = { one: 'button', many: 'buttons' };
+const DATE_NOUN = { one: 'date or time field', many: 'date and time fields' };
+const AUTO_NOUN = { one: 'automatic date', many: 'automatic dates' };
+const GREETING_NOUN = { one: 'greeting', many: 'greetings' };
+const RANGE_NOUN = { one: 'date range count', many: 'date range counts' };
+const isRangeCount = (expression: string) => /^datespan\(/i.test(expression);
+
 // Hours, languages and options are the engine's own (GREETING_WORDS,
 // sbGreetingSlot, sbResolveGreetingToken). The four thresholds are worth
 // printing rather than summarising as "the time of day": whether 18:00 reads as
@@ -518,12 +543,23 @@ export function NewSnippetDialog() {
   // {formmenu:} token. React's onSelect fires on plain caret moves, not only
   // on selections, which is what makes this cheap enough to keep in state.
   const [caret, setCaret] = useState(0);
-  // The menu being edited: its range in the body plus the config the dialog
-  // loads. Held in state so the object stays referentially stable while the
-  // dialog is open — rebuilding it per render would reseed and wipe the edit.
-  const [menuEdit, setMenuEdit] = useState<{ range: MenuTokenRange; cfg: FormMenuConfig } | null>(
-    null,
-  );
+  // The element a window is changing (a field, a button, an automatic date),
+  // or null while it builds a new one. Held in state so the object stays
+  // referentially stable while the window is open: rebuilding it per render
+  // would reseed the window and wipe the edit.
+  const [itemEdit, setItemEdit] = useState<BodyItem | null>(null);
+  // Date or time field window, opened by Edit in the panel's list. New ones
+  // are inserted straight from the panel.
+  const [dateFieldOpen, setDateFieldOpen] = useState(false);
+  // The last change a window saved, so the body's footer can offer Undo. Shown
+  // only while the body is still exactly what that save left.
+  const [lastSave, setLastSave] = useState<{
+    note: string;
+    start: number;
+    length: number;
+    text: string;
+    after: string;
+  } | null>(null);
   // Date-range builder — writes two dates and the span between them.
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   // Automatic-date builder — writes a {time:} token at the cursor. A dialog and
@@ -549,7 +585,7 @@ export function NewSnippetDialog() {
   // Which formula window is open: a line of a quote from a price, or a calculator.
   const [formulaWindow, setFormulaWindow] = useState<FormulaWindow | null>(null);
   // Show or hide builder — writes an {if:} block at the cursor, or rewrites the
-  // one the cursor sits in. Held in state for the same reason as menuEdit.
+  // one the cursor sits in. Held in state for the same reason as itemEdit.
   const [ruleOpen, setRuleOpen] = useState(false);
   const [ruleEdit, setRuleEdit] = useState<RuleInBody | null>(null);
 
@@ -804,22 +840,91 @@ export function NewSnippetDialog() {
   }
 
   function openMenuBuilder() {
-    const cfg = menuAtCaret ? parseFormMenuToken(menuAtCaret.raw) : null;
-    setMenuEdit(menuAtCaret && cfg ? { range: menuAtCaret, cfg } : null);
+    const item = menuAtCaret
+      ? bodyItems(form.content).find((i) => i.kind === 'menu' && i.start === menuAtCaret.start)
+      : undefined;
+    setItemEdit(item && item.cfg ? item : null);
     setMenuFieldOpen(true);
   }
 
-  function submitMenuToken(token: string) {
-    if (menuEdit) {
-      const { start, end, raw } = menuEdit.range;
-      // The body can't change behind a modal, but replacing a stale range would
-      // overwrite unrelated text — confirm the range still holds that token.
-      if (form.content.slice(start, end) === raw) {
-        replaceRange(start, end, token);
-        return;
-      }
+  // A window closing ends whatever it was changing, so the next opening
+  // starts on a new element.
+  function windowOpenChange(set: (open: boolean) => void) {
+    return (next: boolean) => {
+      set(next);
+      if (!next) setItemEdit(null);
+    };
+  }
+
+  /** Swaps the body for `next`, changing only the stretch that differs, and offers Undo. */
+  function commitBody(next: string, note: string) {
+    const source = contentRef.current ? contentRef.current.value : form.content;
+    const span = changedSpan(source, next);
+    if (span.start === span.end && span.text === '') return;
+    replaceRange(span.start, span.end, span.text);
+    setLastSave({
+      note,
+      start: span.start,
+      length: span.text.length,
+      text: source.slice(span.start, span.end),
+      after: next,
+    });
+  }
+
+  function undoLastSave() {
+    if (lastSave && form.content === lastSave.after) {
+      replaceRange(lastSave.start, lastSave.start + lastSave.length, lastSave.text);
     }
-    insertAtCursor(token);
+    setLastSave(null);
+  }
+
+  /**
+   * Puts a changed element back where it sits now. Removing another one while
+   * the window was open can move it, so it is found again by its text; gone
+   * altogether, the change goes in as a new element. A renamed field takes the
+   * formulas and rules that read it along to the new name.
+   */
+  function saveItem(target: BodyItem, token: string) {
+    const source = contentRef.current ? contentRef.current.value : form.content;
+    const here =
+      source.slice(target.start, target.end) === target.raw
+        ? target
+        : bodyItems(source)
+            .filter((i) => i.raw === target.raw)
+            .sort((a, b) => Math.abs(a.start - target.start) - Math.abs(b.start - target.start))[0];
+    if (!here) {
+      insertAtCursor(token);
+      return;
+    }
+    let next = source.slice(0, here.start) + token + source.slice(here.end);
+    const renamed = tokenName(token);
+    if (here.name !== '' && renamed !== '' && renamed !== here.name) {
+      next = renameInBody(next, here.name, renamed, here.start, here.start + token.length);
+    }
+    commitBody(next, `Saved ${renamed || itemTitle(here)}.`);
+  }
+
+  /** What every builder window's Insert or Save does. */
+  function submitItem(token: string) {
+    if (itemEdit) saveItem(itemEdit, token);
+    else insertAtCursor(token);
+  }
+
+  /** How many other parts read the element being changed, for the rename note. */
+  const editReaders = itemEdit ? readersOf(form.content, itemEdit.name, itemEdit.start, itemEdit.end) : 0;
+
+  /** The list a window shows above its form: its own kind of element. */
+  function itemList(kinds: readonly BodyItemKind[], noun: { one: string; many: string }) {
+    return (
+      <ItemListSection
+        body={form.content}
+        onReplace={replaceRange}
+        kinds={kinds}
+        noun={noun}
+        onEdit={setItemEdit}
+        editing={itemEdit}
+      />
+    );
   }
 
   const handleOpenChange = useCallback(
@@ -1365,6 +1470,20 @@ export function NewSnippetDialog() {
                     </div>
                   ))}
                 </dl>
+                {/* Dates and times are inserted straight from here, so they are
+                    changed and removed from here too. */}
+                <div className="mt-2.5">
+                  <ItemListSection
+                    body={form.content}
+                    onReplace={replaceRange}
+                    kinds={DATE_KINDS}
+                    noun={DATE_NOUN}
+                    onEdit={(item) => {
+                      setItemEdit(item);
+                      setDateFieldOpen(true);
+                    }}
+                  />
+                </div>
               </Toggle>
 
               <Toggle
@@ -1730,6 +1849,9 @@ export function NewSnippetDialog() {
                     </div>
                   ))}
                 </dl>
+                <div className="mt-2.5">
+                  <ConditionList body={form.content} onReplace={replaceRange} onEditRule={openRuleBuilder} />
+                </div>
               </Toggle>
 
               <Toggle
@@ -1761,6 +1883,14 @@ export function NewSnippetDialog() {
                     </div>
                   ))}
                 </dl>
+                <div className="mt-2.5">
+                  <ItemListSection
+                    body={form.content}
+                    onReplace={replaceRange}
+                    kinds={GREETING_KINDS}
+                    noun={GREETING_NOUN}
+                  />
+                </div>
               </Toggle>
             </div>
           </ToggleGroup>
@@ -2098,6 +2228,18 @@ export function NewSnippetDialog() {
                 <div className="min-w-0">
                   {contentError && <FieldError message={contentError} />}
                   {!contentError && translateError && <FieldError message={translateError} />}
+                  {!contentError && !translateError && lastSave && form.content === lastSave.after && (
+                    <p className="text-[11px] text-ink-subtle">
+                      {lastSave.note}{' '}
+                      <button
+                        type="button"
+                        onClick={undoLastSave}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        Undo
+                      </button>
+                    </p>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2.5">
                   {/* Translate fills this slot from the English body. Shown only
@@ -2175,31 +2317,55 @@ export function NewSnippetDialog() {
 
             <FormTextDialog
               open={textFieldOpen}
-              onOpenChange={setTextFieldOpen}
+              onOpenChange={windowOpenChange(setTextFieldOpen)}
               suggestedName={nextTextName(form.content)}
-              onInsert={insertAtCursor}
+              initial={itemEdit?.kind === 'text' ? itemEdit.cfg : null}
+              list={itemList(TEXT_KINDS, TEXT_NOUN)}
+              readers={editReaders}
+              onNew={() => setItemEdit(null)}
+              onInsert={submitItem}
             />
 
             <FormNumberDialog
               open={numberFieldOpen}
-              onOpenChange={setNumberFieldOpen}
+              onOpenChange={windowOpenChange(setNumberFieldOpen)}
               suggestedName={nextNumberName(form.content)}
-              onInsert={insertAtCursor}
+              initial={itemEdit?.kind === 'number' ? itemEdit.cfg : null}
+              list={itemList(NUMBER_KINDS, NUMBER_NOUN)}
+              readers={editReaders}
+              onNew={() => setItemEdit(null)}
+              onInsert={submitItem}
             />
 
             <FormMenuDialog
               open={menuFieldOpen}
-              onOpenChange={setMenuFieldOpen}
+              onOpenChange={windowOpenChange(setMenuFieldOpen)}
               suggestedName={nextMenuName(form.content)}
-              initial={menuEdit?.cfg ?? null}
+              initial={itemEdit?.kind === 'menu' ? itemEdit.cfg : null}
               language={form.language}
-              onSubmit={submitMenuToken}
+              list={itemList(MENU_KINDS, MENU_NOUN)}
+              readers={editReaders}
+              onNew={() => setItemEdit(null)}
+              onSubmit={submitItem}
             />
 
             <FormButtonDialog
               open={actionButtonOpen}
-              onOpenChange={setActionButtonOpen}
-              onInsert={insertAtCursor}
+              onOpenChange={windowOpenChange(setActionButtonOpen)}
+              initial={itemEdit?.kind === 'button' ? itemEdit.cfg : null}
+              list={itemList(BUTTON_KINDS, BUTTON_NOUN)}
+              onNew={() => setItemEdit(null)}
+              onInsert={submitItem}
+            />
+
+            <FormDateDialog
+              open={dateFieldOpen}
+              onOpenChange={windowOpenChange(setDateFieldOpen)}
+              initial={itemEdit?.kind === 'date' || itemEdit?.kind === 'time' ? itemEdit.cfg : null}
+              lang={form.language === 'MULTI' ? '' : form.language}
+              list={itemList(DATE_KINDS, DATE_NOUN)}
+              readers={editReaders}
+              onSave={submitItem}
             />
 
             <FormPriceLineDialog
@@ -2241,6 +2407,9 @@ export function NewSnippetDialog() {
               initial={ruleEdit}
               onInsert={insertAtCursor}
               onReplace={replaceRange}
+              onSave={(start, end, text) =>
+                commitBody(form.content.slice(0, start) + text + form.content.slice(end), 'Saved the rule.')
+              }
             />
 
             <FormDateRangeDialog
@@ -2248,14 +2417,25 @@ export function NewSnippetDialog() {
               onOpenChange={setDateRangeOpen}
               body={form.content}
               lang={form.language === 'MULTI' ? '' : form.language}
+              list={
+                <FormulaListSection
+                  body={form.content}
+                  onReplace={replaceRange}
+                  only={isRangeCount}
+                  noun={RANGE_NOUN}
+                />
+              }
               onInsert={insertAtCursor}
             />
 
             <FormTimeDialog
               open={autoDateOpen}
-              onOpenChange={setAutoDateOpen}
+              onOpenChange={windowOpenChange(setAutoDateOpen)}
               lang={form.language === 'MULTI' ? '' : form.language}
-              onInsert={insertAtCursor}
+              initial={itemEdit?.kind === 'auto' ? itemEdit.cfg : null}
+              list={itemList(AUTO_KINDS, AUTO_NOUN)}
+              onNew={() => setItemEdit(null)}
+              onInsert={submitItem}
             />
 
           </div>

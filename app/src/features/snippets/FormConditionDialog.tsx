@@ -4,7 +4,7 @@ import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
 import { fillFormApi, loadFillFormEngine } from '@/lib/fillFormEngine';
 import { menuTokensIn, parseFormMenuToken, setMenuPrint } from '@/lib/formMenuToken';
-import { insideCondition } from '@/lib/formulaToken';
+import { editTextError, insideCondition } from '@/lib/formulaToken';
 import {
   buildRuleToken,
   defaultOperator,
@@ -33,6 +33,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   BodyListSection,
+  EditingBanner,
   ERROR,
   FormulaDialogFrame,
   HINT,
@@ -41,6 +42,21 @@ import {
   SELECT,
   type BodyListItem,
 } from '@/features/snippets/formulaDialogParts';
+
+/** The check of a condition typed by hand, as its row's edit box changes it. */
+function conditionEdit(entry: RuleInBody): NonNullable<BodyListItem['inlineEdit']> {
+  const colon = entry.raw.indexOf(':');
+  const brace = entry.raw.indexOf('}');
+  const inner = entry.raw.slice(colon + 1, brace);
+  const start = entry.start + colon + 1 + (inner.length - inner.trimStart().length);
+  return {
+    start,
+    end: start + inner.trim().length,
+    text: inner.trim(),
+    label: 'Show the text when',
+    error: (text: string) => editTextError(text, 'Type a condition, or use Remove to take it out.'),
+  };
+}
 
 /** A field a rule can check, as the shared fill-form decider reads the body. */
 interface RuleField {
@@ -123,6 +139,40 @@ export function RuleSummary({
   );
 }
 
+const CONDITION_NOUN = { one: 'condition', many: 'conditions' };
+
+/**
+ * Every condition in the body, as the Condition section of the editor's panel
+ * lists them. A rule the Show or hide window builds opens there to be changed;
+ * a condition typed by hand in another shape is changed in its row.
+ */
+export function ConditionList({
+  body,
+  onReplace,
+  onEditRule,
+}: {
+  body: string;
+  onReplace: (start: number, end: number, text: string) => void;
+  onEditRule: (entry: RuleInBody) => void;
+}) {
+  const items = useMemo<BodyListItem[]>(
+    () =>
+      rulesInBody(body).map((entry) => {
+        const parts = summarizeEntry(entry);
+        return {
+          key: entry.start,
+          removeStart: entry.start,
+          removeEnd: entry.end,
+          description: summaryText(parts),
+          content: <RuleSummary parts={parts} className="text-[11px]" />,
+          ...(entry.rule ? { onEdit: () => onEditRule(entry) } : { inlineEdit: conditionEdit(entry) }),
+        };
+      }),
+    [body, onEditRule],
+  );
+  return <BodyListSection body={body} onReplace={onReplace} items={items} noun={CONDITION_NOUN} />;
+}
+
 /** One of the three steps of a rule, boxed under its keyword. */
 function RuleStep({
   keyword,
@@ -154,8 +204,10 @@ interface FormConditionDialogProps {
   /** The rule the cursor sat in when the window opened, edited in place. */
   initial: RuleInBody | null;
   onInsert: (token: string) => void;
-  /** Swaps a range of the body: a saved edit, a removal, an undo. */
+  /** Swaps a range of the body: a removal or an undo from the list. */
   onReplace: (start: number, end: number, text: string) => void;
+  /** Puts an edited rule back, where the editor can offer to undo it. Defaults to `onReplace`. */
+  onSave?: (start: number, end: number, text: string) => void;
 }
 
 /**
@@ -174,6 +226,7 @@ export function FormConditionDialog({
   initial,
   onInsert,
   onReplace,
+  onSave = onReplace,
 }: FormConditionDialogProps) {
   const [engineReady, setEngineReady] = useState(() => fillFormApi() !== null);
   const [fieldsFailed, setFieldsFailed] = useState(false);
@@ -389,6 +442,9 @@ export function FormConditionDialog({
         <RuleSummary parts={parts} className={cn(isEditing && 'rounded-[4px] bg-primary-light px-1')} />
       ),
       onEdit: entry.rule ? () => startEditing(entry) : undefined,
+      // A condition typed by hand, in a shape the window does not build, is
+      // changed in its row: the check between `{if:` and its brace.
+      ...(entry.rule ? {} : { inlineEdit: conditionEdit(entry) }),
     };
   });
 
@@ -411,7 +467,7 @@ export function FormConditionDialog({
     // An edited rule goes back where it sits now. Gone altogether, the edit goes
     // in as a new rule.
     if (printEdits.length === 0) {
-      if (target) onReplace(target.start, target.end, token);
+      if (target) onSave(target.start, target.end, token);
       else onInsert(token);
       onOpenChange(false);
       return;
@@ -427,7 +483,8 @@ export function FormConditionDialog({
     // Never null here: a token inside the rule is left out of menuTokens, and
     // a new rule is moved out of the token it would have split.
     if (!merged) return;
-    onReplace(merged.start, merged.end, merged.text);
+    if (target) onSave(merged.start, merged.end, merged.text);
+    else onReplace(merged.start, merged.end, merged.text);
     onOpenChange(false);
   }
 
@@ -475,16 +532,9 @@ export function FormConditionDialog({
       ) : (
         <>
           {editing && (
-            <p className="flex items-center justify-between gap-2 rounded-[10px] border border-primary/25 bg-primary-light px-3 py-2 text-xs text-ink">
+            <EditingBanner onNew={startNew} newLabel="New rule instead">
               Editing a rule. Save puts it back where it was.
-              <button
-                type="button"
-                onClick={startNew}
-                className="shrink-0 font-medium text-primary hover:underline"
-              >
-                New rule instead
-              </button>
-            </p>
+            </EditingBanner>
           )}
 
           <div className="flex flex-col gap-2">

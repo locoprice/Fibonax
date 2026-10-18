@@ -660,6 +660,12 @@ export interface FormulaInBody {
   context: string;
   /** What it works out, in plain words. */
   description: string;
+  /**
+   * The formula's own text, inside `{= }` and without the spaces around it, so
+   * Edit changes only that and the guard, rate and boxes stay as they are.
+   * Absent for an interest block: its answers only make sense together.
+   */
+  expression?: { start: number; end: number; text: string };
 }
 
 const ANSWER_TOKEN = /\{=([^}]*)\}/g;
@@ -674,6 +680,51 @@ function balanced(s: string): boolean {
     if (depth < 0) return false;
   }
   return depth === 0;
+}
+
+/**
+ * Why text typed into a row's edit box cannot be saved, or '' when it can.
+ * `empty` says what to do with a box left blank.
+ */
+export function editTextError(text: string, empty: string): string {
+  const s = text.trim();
+  if (s === '') return empty;
+  // A brace would end the token early and print the rest as text.
+  if (/[{}]/.test(s)) return 'This cannot hold { or }.';
+  if (!balanced(s)) return 'Every ( needs a ) to close it.';
+  return '';
+}
+
+/** Why an edited formula cannot be saved, or '' when it can. */
+export function formulaTextError(text: string): string {
+  return editTextError(text, 'Type a formula, or use Remove to take it out.');
+}
+
+/** A `{var: NAME = …}` the body sets: a saved percentage, or a result other lines read. */
+export interface SavedValueInBody {
+  start: number;
+  end: number;
+  name: string;
+  /** The value's own text, after the `=`, for Edit. */
+  expression: { start: number; end: number; text: string };
+}
+
+export function savedValuesInBody(body: string): SavedValueInBody[] {
+  const out: SavedValueInBody[] = [];
+  const re = /\{var:\s*([A-Za-z_][A-Za-z0-9_]*)\s*=([^}]*)\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body)) !== null) {
+    const value = m[2] ?? '';
+    const valueAt = m.index + m[0].length - 1 - value.length;
+    const exprStart = valueAt + (value.length - value.trimStart().length);
+    out.push({
+      start: m.index,
+      end: m.index + m[0].length,
+      name: m[1] ?? '',
+      expression: { start: exprStart, end: exprStart + value.trim().length, text: value.trim() },
+    });
+  }
+  return out;
 }
 
 /** The rounding the builder wrapped around an answer, and what is inside it. */
@@ -713,7 +764,7 @@ export function describeFormula(expr: string, rates: readonly SnippetRate[] = []
 }
 
 /** The author's words on the line, without tokens or style markers. */
-function lineContext(body: string, from: number, to: number): string {
+export function lineContext(body: string, from: number, to: number): string {
   const lineStart = body.lastIndexOf('\n', from - 1) + 1;
   const nl = body.indexOf('\n', to);
   const lineEnd = nl === -1 ? body.length : nl;
@@ -843,12 +894,14 @@ export function formulasInBody(body: string): FormulaInBody[] {
       if (ownsBoxes) start = blockStart;
     }
 
+    const exprStart = at + 2 + (expr.length - expr.trimStart().length);
     out.push({
       at,
       removeStart: start,
       removeEnd: end,
       context: lineContext(body, start, end),
       description: describeFormula(expr, rates),
+      expression: { start: exprStart, end: exprStart + expr.trim().length, text: expr.trim() },
     });
   }
   return out.sort((a, b) => a.at - b.at);

@@ -537,12 +537,12 @@ function summarizeEachOption(rule: ConditionRule): RuleSummaryPart[] {
   return parts;
 }
 
-/** A condition written by hand, which the builder lists but does not edit. */
+/** A condition written by hand, which the builder lists and changes in its row. */
 export function summarizeCustomCondition(condition: string): RuleSummaryPart[] {
   return [
     { kind: 'keyword', text: 'IF' },
     { kind: 'value', text: condition },
-    { kind: 'text', text: '(written by hand: change it in the body)' },
+    { kind: 'text', text: '(written by hand)' },
   ];
 }
 

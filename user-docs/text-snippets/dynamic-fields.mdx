@@ -73,6 +73,8 @@ The window shows how the date prints today before you insert it.
 
 The end date can't be set before the start date. You can add a time to both dates. It doesn't change the count.
 
+The **Range** window lists the counts already in the snippet. **Edit** changes one in its row, for example from `"between"` to `"inclusive"`, and **Remove** takes it out. The two dates are listed under **Date/Time**.
+
 ## Choice
 
 **Choice** builds a list of options to pick from while filling.
@@ -85,7 +87,7 @@ The end date can't be set before the start date. You can add a time to both date
 - **Print the picked option**: on by default, so the option picked prints where the field sits. Switch it off when the choice only decides what a [Show or hide](/text-snippets/formulas#show-or-hide) rule prints. The form still asks, and the option stays out of the message.
 - **Name** (optional): only needed if the body repeats the choice somewhere else.
 
-To change a list later, put the cursor inside it and click **Edit this menu**.
+To change a list later, click **Edit** beside it in the Choice window's list, or put the cursor inside it and click **Edit this menu**.
 
 ## Button
 
@@ -98,6 +100,16 @@ A **Button** changes numbers while you fill the form, like a "10% off" button. I
 ## Fill from a pasted link
 
 The Text, Number, Date/Time and Choice windows have a **Fill from a pasted link** option. Tick it and say where the value is on a web page, and the form gets a box where you paste the page's link to fill the fields. See [Fill a form from a link](/text-snippets/fill-from-link).
+
+## Change or remove a field
+
+The Text, Number, Choice, Button and Automatic date windows list the ones already in the snippet. **Manage** shows them, each with **Edit** and **Remove**. Date and time fields are listed the same way under **Date/Time** in the panel.
+
+- **Edit** opens the field in its window. Change what you need and click **Save**, or **Cancel** to leave it as it was. **New field instead** keeps it and starts a new one.
+- Rename a field and the formulas, rules and buttons that read it change with it. The window says how many before you save.
+- **Undo**, under the body, takes back the last save.
+- **Remove** takes the field out. If a formula, rule or button still reads it, the row says so first: **Remove anyway** or **Keep it**. **Undo** under the list puts it back.
+- A field written by hand with a setting its window doesn't offer has **Remove** only. Change it in the body.
 
 ## Writing fields by hand
 

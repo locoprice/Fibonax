@@ -144,6 +144,24 @@ Mobile is verified at phone width, not by trusting the desktop. It cannot be rea
 
 ---
 
+## ✏️ Edit and Remove for Every Element (Non-Negotiable)
+**Anything the snippet editor puts into a body can be changed and taken out again, without touching its raw text.** A field, a button, a formula, a saved value, an automatic date, a rule, a greeting: once it is in a snippet, the user can find it, edit it, save it, cancel the edit, remove it and undo. Valentina asked for this on 2026-10-18 for every section (Fields, Actions, Math, Logic) and for every element added from now on.
+
+### 1. The pattern, the same everywhere
+- **Listed.** The window that builds an element shows the ones already in the snippet above its form: a count line ("2 text fields in this snippet") and **Manage**. An element with no window of its own (date and time fields, greetings, conditions) is listed in its section of the side panel instead. The list is `BodyListSection` / `ItemListSection` / `FormulaListSection` in `app/src/features/snippets/formulaDialogParts.tsx`, one component, never a copy.
+- **Edit** loads the element into its window: the title reads "Edit …", the button **Save**, a banner says what is being changed and offers "New … instead". Something with no form (a formula, a saved value, a greeting, a condition typed by hand) is changed in its row: a box, **Save**, **Cancel**.
+- **Save** puts it back where it sat. A renamed field takes the formulas, rules and buttons that read it along (`renameInBody`), and the window says so before Save. **Undo** follows every Save (the note under the body) and every Remove (the note under the list).
+- **Remove** takes it out whole. When another part of the snippet still reads it, the row says so and asks first: **Remove anyway** or **Keep it**.
+- **Cancel** always leaves the body exactly as it was.
+
+### 2. Reading back is decided once
+What a body holds, where each element sits and the settings its window loads come from `app/src/lib/bodyItems.ts` (fields, buttons, automatic dates, greetings), `formulasInBody` / `savedValuesInBody` in `app/src/lib/formulaToken.ts` and `rulesInBody` in `app/src/lib/conditionRule.ts`. Edit is offered only when writing the element back loses nothing; an element holding a setting its window does not know keeps Remove and is changed in the body. Never let a Save drop a setting silently.
+
+### 3. A new element ships with all of it
+A new field kind, token, builder or window is not done until it is listed, editable, removable and undoable as above, in the same task: a parser beside its writer, a round-trip test in `src/__tests__/bodyItems.test.ts` (or its own suite), its row in the list, and its Edit path. "Insert works" is half the feature.
+
+---
+
 ## 📱 Mobile (`fibonax.com/mobile`) — Non-Negotiable
 **Mobile is a surface the team lives in, and it must stay in step.** It is used daily and in the field. Anything a snippet is or does has to work there, in the same task, at the same version.
 
@@ -247,6 +265,7 @@ Senior-engineer method — **Explore → Plan → Implement → Verify** (never 
 - Deferring mobile to a later version, or calling a snippet change done while `app/public/mobile/index.html` still lacks it (see 📱 Mobile).
 - Translating the dashboard, extension popup or mobile interface — the translation authorisation covers the landing page only. See 🌐 Landing Translations.
 - Shipping a user-visible change without its page in `user-docs/`, or editing the manual anywhere but this repository (see 📘 User Docs).
+- Shipping an editor element that can be inserted but not listed, edited, saved, cancelled, removed and undone (see ✏️ Edit and Remove for Every Element).
 
 ---
 
@@ -266,6 +285,7 @@ Senior-engineer method — **Explore → Plan → Implement → Verify** (never 
 - Ship every snippet change to `app/public/mobile/index.html` in the same task and verify it at phone width (see 📱 Mobile). Mobile is used daily; it is never the surface that waits for a later version.
 - Keep every shipped field, formula, example and suggestion industry-neutral (🌍).
 - Update `user-docs/` in the same task as every user-visible change, and keep the page map in `docs/USER_DOCS.md` current (see 📘 User Docs).
+- Give every element the editor inserts its list row, Edit, Save, Cancel, Remove and Undo in the same task (see ✏️ Edit and Remove for Every Element).
 
 ---
 

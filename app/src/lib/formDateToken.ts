@@ -138,6 +138,11 @@ export interface FormDateConfig {
    * See `@/lib/linkRule`.
    */
   link?: string;
+  /**
+   * The field whose date this one cannot open before, as a date range writes
+   * on its closing date. Kept through an edit so the rule is never lost.
+   */
+  after?: string;
 }
 
 /**
@@ -181,6 +186,9 @@ export function normalizeDateFormat(kind: DateFieldKind, format: string): string
 export function buildFormDateToken(cfg: FormDateConfig): string {
   let out = `{formdate: name=${sanitizeDateName(cfg.name, cfg.kind)}`;
   if (cfg.kind === 'time') out += '; type=time';
+  // Where the range writer puts it: after the kind, before the format.
+  const after = (cfg.after ?? '').trim();
+  if (after !== '' && isValidFieldName(after)) out += `; after=${after}`;
   const format = normalizeDateFormat(cfg.kind, cfg.format);
   if (format !== '') out += `; format=${format}`;
   // Last, as the engine writes it: the only free text the token carries.

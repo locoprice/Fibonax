@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { GripVertical, MinusCircle, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
+import { EditingBanner, RenameNote } from '@/features/snippets/formulaDialogParts';
 import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { cn } from '@/lib/utils';
 import {
@@ -61,6 +62,12 @@ interface FormMenuDialogProps {
    * in the message, so it is written in that language; Multi gets English.
    */
   language: string;
+  /** The choice fields already in the snippet, listed above the form. */
+  list?: ReactNode;
+  /** How many other parts read the menu being changed, for the rename note. */
+  readers?: number;
+  /** Leaves the menu being changed as it is and starts a new one. */
+  onNew?: () => void;
   onSubmit: (token: string) => void;
 }
 
@@ -78,6 +85,9 @@ export function FormMenuDialog({
   suggestedName,
   initial = null,
   language,
+  list,
+  readers = 0,
+  onNew,
   onSubmit,
 }: FormMenuDialogProps) {
   const nextId = useRef(0);
@@ -263,7 +273,15 @@ export function FormMenuDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {list && <div className="min-w-0 px-6 pb-3">{list}</div>}
+
         <div className="max-h-[60vh] overflow-y-auto px-6 pb-2 flex flex-col gap-4">
+          {initial && onNew && (
+            <EditingBanner onNew={onNew} newLabel="New menu instead">
+              Editing {initial.name || 'this menu'}. Save puts it back where it was.
+            </EditingBanner>
+          )}
+
           {/* ── Predefined options: a ready-made list fills the values ── */}
           <div>
             <label htmlFor="form-menu-preset" className={SECTION_LABEL}>
@@ -453,6 +471,9 @@ export function FormMenuDialog({
                 Name of the form field — the body reads it back as{' '}
                 <code className="font-mono text-primary/80">{`{${name}}`}</code>.
               </p>
+            )}
+            {initial && nameValid && initial.name !== '' && name !== '' && (
+              <RenameNote from={initial.name} to={name} readers={readers} />
             )}
           </div>
 

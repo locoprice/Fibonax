@@ -56,9 +56,15 @@ A **Calculator** works out a number from figures you fill in, and prints the wor
 - An empty, zero or negative box prints no answer instead of a wrong one.
 - Compound interest needs extension version 3.52.0 or later. An older one prints the working without the answer.
 
-## Remove a formula
+## Change or remove a formula
 
-The formula windows show how many formulas the snippet has. **Manage** lists them, each with **Remove** and **Undo**.
+The formula windows show how many formulas the snippet has. **Manage** lists them, each with **Edit** and **Remove**.
+
+- **Edit** turns the line into a box holding the formula. Change it, then click **Save** or press Enter. **Cancel** leaves it as it was.
+- If the formula can't work, for example a bracket is never closed, the box says what to fix and **Save** waits.
+- **Undo** puts back the last change or removal.
+- An Interest formula has no **Edit**, because its answers only work together. Remove it and add it again.
+- Saved values, like `{var: DISCOUNT = 1.5}`, are in the list too. **Edit** changes the value, and every line that uses it follows. Removing one that another line still reads asks first: **Remove anyway** or **Keep it**.
 
 ## Show or hide
 
@@ -134,12 +140,15 @@ Every rule in the snippet is listed in plain words at the top of the window, eac
 {if: TOTAL > 500}Delivery is free.{else}Delivery costs 15.{endif}
 ```
 
+Every condition in the snippet is listed under **Condition** in the panel, with **Edit** and **Remove**. A rule built with **Show or hide** opens in its window. One typed by hand is changed in its row: edit what has to be true, then click **Save**.
+
 ## Greeting
 
 **Greeting** inserts `{greeting}`, which prints Good morning, Good afternoon, Good evening or Good night from the clock where the snippet expands. Morning starts at 5, afternoon at 12, evening at 18 and night at 22.
 
 - It follows the snippet's language: English, Italian, Spanish or French. Force one with `{greeting: lang=ES}`.
 - Replace a wording with your own: `{greeting: morning=Hi there}`.
+- The greetings in the snippet are listed under **Greeting** in the panel. **Edit** changes the settings in the row, for example to `greeting: lang=ES`, and **Remove** takes it out.
 
 ## Writing formulas by hand
 
