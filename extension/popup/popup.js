@@ -3290,6 +3290,7 @@ if (syncNowBtn) {
 var OTP_TTL_MS = 55 * 60 * 1000; // Supabase OTPs are valid for 60 min; bail at 55.
 
 var SB_DASHBOARD_LINK_URL = 'https://app.fibonax.com/extension-link';
+var SB_DELETE_ACCOUNT_URL = 'https://app.fibonax.com/settings?tab=account';
 
 (function initAuthGate() {
   var gate    = document.getElementById('sb-auth');
@@ -3391,6 +3392,15 @@ var SB_DASHBOARD_LINK_URL = 'https://app.fibonax.com/extension-link';
     if (signOutBtn && !signOutBtn._wired) {
       signOutBtn._wired = true;
       signOutBtn.addEventListener('click', function() { window.sbSignOut(); });
+    }
+    // Deleting an account names the teams it would delete and asks to confirm,
+    // so it lives in one place: the dashboard's Account settings.
+    var deleteAccountBtn = document.getElementById('sb-delete-account-btn');
+    if (deleteAccountBtn && !deleteAccountBtn._wired) {
+      deleteAccountBtn._wired = true;
+      deleteAccountBtn.addEventListener('click', function() {
+        try { chrome.tabs.create({ url: SB_DELETE_ACCOUNT_URL }); } catch(e) { window.open(SB_DELETE_ACCOUNT_URL, '_blank'); }
+      });
     }
     if (!booted) { booted = true; boot(); }
     // Runs after a session exists, because the capture card reads memory_spaces

@@ -67,6 +67,12 @@ These scripts are **not safe to apply until specific auth events happen**.
 3. Click **Run**
 4. The `RAISE NOTICE` at the bottom prints how many rows moved
 
+## Delete account (v3.72.0)
+
+| File | Status | Notes |
+|---|---|---|
+| `20261018120000_delete_account.sql` | ✅ applied 2026-10-18 | Settings → Account → Delete account. Makes six author columns nullable with ON DELETE SET NULL (they blocked deleting anyone who had edited, invited, shared or created a team). Lets the tenancy triggers change `user_id` only during a deletion handover (no JWT, transaction-local `app.account_handover` naming the current owner). Adds `account_deletion_preview()` for the dialog and `delete_account(uuid)`, service_role only, called by the `delete-account` edge function. Team items go to another admin; a team whose only admin leaves is deleted for everyone. Also lets the audit stamp (`updated_by`) clear during the same handover: it re-filled itself and blocked deleting anyone who had ever edited a snippet or prompt (caught by the trial). Recorded as `delete_account` (`20261018093712`). Before applying, the whole migration plus a scenario (five fake users, four teams covering handover, sole-admin team, admin-less team, solo team, personal items, Brain, shares, history, invitation) ran on production inside one DO block that ended in an exception, so nothing was kept: every check passed. `delete-account` deployed (v2, `verify_jwt`; v2 only changes a comment); it answers 401 without a valid sign-in. |
+
 ## Adding a new migration
 
 ```sh

@@ -260,7 +260,8 @@ export interface SnippetRevision {
   id: Uuid;
   snippet_id: Uuid;
   version_number: number;
-  editor_id: Uuid;
+  /** Null once the editor's account is deleted; `editor_display` keeps the name. */
+  editor_id: Uuid | null;
   /** Denormalized display string (email or display_name) captured at save time. */
   editor_display: string;
   title: string;
@@ -555,7 +556,7 @@ export interface MemoryVersion {
   id: Uuid;
   shard_id: Uuid;
   version_number: number;
-  editor_id: Uuid;
+  editor_id: Uuid | null;
   editor_display: string;
   name: string;
   summary: string;
