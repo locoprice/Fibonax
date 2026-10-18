@@ -61,6 +61,8 @@ interface FormCalculatorDialogProps {
   onInsert: (token: string) => void;
   /** Swaps a range of the body for `text`: '' removes a formula, the old text undoes it. */
   onReplace: (start: number, end: number, text: string) => void;
+  /** Puts a formula changed in the step editor back, where the editor offers Undo. */
+  onSave?: (start: number, end: number, text: string) => void;
 }
 
 /**
@@ -78,6 +80,7 @@ export function FormCalculatorDialog({
   caret,
   onInsert,
   onReplace,
+  onSave,
 }: FormCalculatorDialogProps) {
   const [operation, setOperation] = useState<FormulaOperation>('add');
   const [names, setNames] = useState<string[]>([]);
@@ -184,6 +187,7 @@ export function FormCalculatorDialog({
       description="Numbers filled in when the snippet expands. The working and the answer print on one line."
       body={body}
       onReplace={onReplace}
+      onSave={onSave}
       note={note}
       canInsert={valid}
       onInsert={handleInsert}

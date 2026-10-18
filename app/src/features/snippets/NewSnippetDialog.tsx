@@ -904,6 +904,11 @@ export function NewSnippetDialog() {
     commitBody(next, `Saved ${renamed || itemTitle(here)}.`);
   }
 
+  /** A formula window's Save: the changed formula goes back, with Undo under the body. */
+  function saveFormula(start: number, end: number, text: string) {
+    commitBody(form.content.slice(0, start) + text + form.content.slice(end), 'Saved the formula.');
+  }
+
   /** What every builder window's Insert or Save does. */
   function submitItem(token: string) {
     if (itemEdit) saveItem(itemEdit, token);
@@ -2375,6 +2380,7 @@ export function NewSnippetDialog() {
               caret={caret}
               onInsert={insertAtCursor}
               onReplace={replaceRange}
+              onSave={saveFormula}
             />
 
             <FormCalculatorDialog
@@ -2384,6 +2390,7 @@ export function NewSnippetDialog() {
               caret={caret}
               onInsert={insertAtCursor}
               onReplace={replaceRange}
+              onSave={saveFormula}
             />
 
             {(['simple', 'compound'] as const).map((kind) => (
@@ -2396,6 +2403,7 @@ export function NewSnippetDialog() {
                 caret={caret}
                 onInsert={insertAtCursor}
                 onReplace={replaceRange}
+                onSave={saveFormula}
               />
             ))}
 

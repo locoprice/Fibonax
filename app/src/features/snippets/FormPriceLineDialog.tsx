@@ -55,6 +55,8 @@ interface FormPriceLineDialogProps {
   onInsert: (token: string) => void;
   /** Swaps a range of the body for `text`: '' removes a formula, the old text undoes it. */
   onReplace: (start: number, end: number, text: string) => void;
+  /** Puts a formula changed in the step editor back, where the editor offers Undo. */
+  onSave?: (start: number, end: number, text: string) => void;
 }
 
 /**
@@ -73,6 +75,7 @@ export function FormPriceLineDialog({
   caret,
   onInsert,
   onReplace,
+  onSave,
 }: FormPriceLineDialogProps) {
   const [engineReady, setEngineReady] = useState(() => fillFormApi() !== null);
   const [fieldsFailed, setFieldsFailed] = useState(false);
@@ -255,6 +258,7 @@ export function FormPriceLineDialog({
       description="One line of a quote worked out from a price: a discount, a fee, a deposit or the saving."
       body={body}
       onReplace={onReplace}
+      onSave={onSave}
       note={note}
       canInsert={valid}
       onInsert={handleInsert}
@@ -278,7 +282,7 @@ export function FormPriceLineDialog({
                 setNewRateName(null);
               }}
               ariaLabel="What to work out"
-              columns="grid-cols-1"
+              columns="grid-cols-2"
             />
           </div>
 
