@@ -741,3 +741,130 @@ describe('Undo after a contenteditable insert', () => {
     });
   });
 });
+
+describe('Undo keeps the space in front of the snippet', () => {
+  // "Hi " typed at the end of a plain field is kept by Chrome as a non-breaking
+  // space, and becomes a normal one once the trigger's first colon follows. Undo
+  // removes the snippet with Range.deleteContents, which skips that clean-up and
+  // leaves a normal space at the end of the line. Chrome draws nothing for it (a
+  // zero-width box) and drops it when typing resumes: "Hi " undone, then "there"
+  // typed, read "Hithere". A field that keeps its spaces (white-space: pre-wrap)
+  // draws it, and it stays as typed. v3.74.1.
+  interface TextNode {
+    nodeType: number;
+    nodeValue: string;
+    replaceData: (offset: number, count: number, data: string) => void;
+  }
+  interface Snapshot {
+    type: string;
+    el: unknown;
+    syncInserted: boolean;
+    endCharOffset: number;
+    visibleLen: number;
+  }
+  const NF = { SHOW_TEXT: 4, SHOW_ELEMENT: 1, FILTER_ACCEPT: 1, FILTER_SKIP: 3 };
+
+  // The text of a one-line field after Undo has taken the snippet out of it.
+  function undoLeaves(opts: { before: string; snippet: string; drawn: boolean }): string {
+    const node: TextNode = {
+      nodeType: 3,
+      nodeValue: opts.before + opts.snippet,
+      replaceData: (offset, count, data) => {
+        node.nodeValue = node.nodeValue.slice(0, offset) + data + node.nodeValue.slice(offset + count);
+      },
+    };
+    const host = {
+      nodeType: 1,
+      childNodes: [node],
+      parentElement: null,
+      contains: () => true,
+      focus: () => {},
+      dispatchEvent: () => true,
+      getAttribute: (name: string) => (name === 'contenteditable' ? 'true' : null),
+    };
+    const makeRange = () => {
+      const r = {
+        start: 0,
+        end: 0,
+        setStart: (_n: unknown, offset: number) => {
+          r.start = offset;
+        },
+        setEnd: (_n: unknown, offset: number) => {
+          r.end = offset;
+        },
+        collapse: () => {},
+        deleteContents: () => {
+          node.nodeValue = node.nodeValue.slice(0, r.start) + node.nodeValue.slice(r.end);
+        },
+        // Chrome gives a space it does not draw a box of no width
+        getClientRects: () => [{ width: opts.drawn ? 4.4 : 0 }],
+      };
+      return r;
+    };
+    const doc = {
+      activeElement: host,
+      createRange: makeRange,
+      createTreeWalker: (
+        root: { childNodes: TextNode[] },
+        _what: number,
+        filter: { acceptNode: (n: TextNode) => number },
+      ) => {
+        const shown = root.childNodes.filter((n) => filter.acceptNode(n) === NF.FILTER_ACCEPT);
+        let i = -1;
+        return { nextNode: () => shown[++i] ?? null };
+      },
+    };
+    const win = { getSelection: () => ({ removeAllRanges: () => {}, addRange: () => {} }) };
+    class StubEvent {}
+    const restore = new Function(
+      'document',
+      'window',
+      'NodeFilter',
+      'InputEvent',
+      'Event',
+      positionHelpers +
+        '\n' +
+        [
+          'function _ceHost(el) {',
+          'function _isLexicalHost(host) {',
+          'function _ceCharOffsetToPoint(host, target, atStart) {',
+          'function _ceHoldSpace(at) {',
+          'function restoreFieldState(snapshot) {',
+        ]
+          .map((sig) => sliceFunction(source, sig))
+          .join('\n') +
+        '\nreturn restoreFieldState;',
+    )(doc, win, NF, StubEvent, StubEvent) as (snapshot: Snapshot) => void;
+
+    restore({
+      type: 'ce',
+      el: host,
+      syncInserted: true,
+      endCharOffset: node.nodeValue.length,
+      visibleLen: opts.snippet.length,
+    });
+    return node.nodeValue;
+  }
+
+  const SNIPPET = 'Hello there.';
+
+  it('keeps the space as a non-breaking one when no box is drawn for it', () => {
+    expect(undoLeaves({ before: 'Hi ', snippet: SNIPPET, drawn: false })).toBe('Hi\u00a0');
+  });
+
+  it('leaves the space alone in a field that draws it (pre-wrap)', () => {
+    expect(undoLeaves({ before: 'Hi ', snippet: SNIPPET, drawn: true })).toBe('Hi ');
+  });
+
+  it('changes only the space next to the snippet', () => {
+    expect(undoLeaves({ before: 'Hi there ', snippet: SNIPPET, drawn: false })).toBe('Hi there\u00a0');
+  });
+
+  it('has nothing to keep when the snippet followed a letter', () => {
+    expect(undoLeaves({ before: 'Hi', snippet: SNIPPET, drawn: false })).toBe('Hi');
+  });
+
+  it('has nothing to keep when the snippet opened the field', () => {
+    expect(undoLeaves({ before: '', snippet: SNIPPET, drawn: false })).toBe('');
+  });
+});

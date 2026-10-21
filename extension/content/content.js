@@ -2569,6 +2569,26 @@ function _markSyncInserted(snapshot, el, before, text) {
   }
 }
 
+// A space left at the end of a line is not drawn, and Chrome drops it the moment
+// typing resumes: "Hi " undone, then "there" typed, read "Hithere". While a space
+// is typed at a line end the browser keeps it as a non-breaking one and turns it
+// into a normal one once a character follows, which the snippet's first letter
+// did. Range.deleteContents skips that clean-up, so it is done here: a space with
+// nothing drawn for it becomes a non-breaking one again. A field that keeps its
+// spaces (white-space: pre-wrap) still draws it, and the space stays as it is.
+// `at` is where the removed snippet began.
+function _ceHoldSpace(at) {
+  try {
+    var node = at.node, k = at.offset;
+    if (!node || node.nodeType !== 3 || k < 1 || node.nodeValue.charAt(k - 1) !== ' ') return;
+    var r = document.createRange();
+    r.setStart(node, k - 1);
+    r.setEnd(node, k);
+    var drawn = r.getClientRects();
+    if (drawn.length && drawn[0].width === 0) node.replaceData(k - 1, 1, '\u00a0');
+  } catch(e) { console.error('[Fibonax] could not keep the space before the snippet', e); }
+}
+
 function restoreFieldState(snapshot) {
   if (!snapshot || !snapshot.el) return;
   var el = snapshot.el;
@@ -2616,6 +2636,7 @@ function restoreFieldState(snapshot) {
               return;
             }
             delR.deleteContents();
+            _ceHoldSpace(sp);
             try {
               var caretR = document.createRange();
               caretR.setStart(sp.node, sp.offset);
