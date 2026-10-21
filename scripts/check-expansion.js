@@ -351,6 +351,17 @@ async function runLexicalDeleteCases() {
     setEnd(n, o) { this.endContainer = n; this.endOffset = o; },
     selectNodeContents(h) { this.startContainer = h.textNode; this.startOffset = 0; this.endContainer = h.textNode; this.endOffset = h.textNode.nodeValue.length; },
     toString() { return String(this.startContainer.nodeValue || '').slice(this.startOffset, this.endOffset); },
+    // a plain contenteditable's trigger start is held across the delete
+    cloneRange() {
+      const c = makeRange(this.startContainer);
+      c.setStart(this.startContainer, this.startOffset);
+      c.setEnd(this.endContainer, this.endOffset);
+      return c;
+    },
+    collapse(toStart) {
+      if (toStart) { this.endContainer = this.startContainer; this.endOffset = this.startOffset; }
+      else { this.startContainer = this.endContainer; this.startOffset = this.endOffset; }
+    },
   });
   const saved = { createRange: doc.createRange, createTreeWalker: doc.createTreeWalker, execCommand: doc.execCommand };
   const savedGlobals = ['NodeFilter', 'StaticRange', 'InputEvent', 'ClipboardEvent', 'DataTransfer', 'getSelection', 'console']

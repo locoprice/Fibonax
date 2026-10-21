@@ -55,6 +55,9 @@ interface Recorded {
   // every command and event, in the order the browser was asked for them
   order: string[];
   inserted: string;
+  // where the first line of the body was written: over the selected trigger, at
+  // the caret, or at a caret the browser left on another line
+  firstWrite: string | null;
 }
 interface Options {
   // false → the plain textarea/input branch
@@ -71,6 +74,13 @@ interface Options {
   claimsDeletion?: boolean;
   // nothing is selected: a right-click insert at a bare caret
   collapsed?: boolean;
+  // removing the trigger leaves the caret on another line (it was the whole of
+  // its line), and what lies between that caret and where the trigger began:
+  // an element (a <br> or a block) or a "\n" character (a pre-wrap field)
+  movesCaret?: boolean;
+  between?: 'element' | 'newline';
+  // the page will not hand over its selection
+  selectionThrows?: boolean;
 }
 interface DispatchedEvent {
   type: string;
@@ -119,6 +129,8 @@ const fnSource = [
   'function _ceRetryDelete(host, startCO, endCO, gone, end) {',
   'function _ceDeleteSelection(host, done) {',
   'function _ceLineInsert(text) {',
+  'function _ceHoldSelection() {',
+  'function _ceBringBackTrigger(held) {',
   'function _cePasteInsert(el, text) {',
   'function _cePasteLand(el, host, dt, text) {',
   'function insertText(el, text) {',
@@ -141,6 +153,9 @@ function run(text: string, opts: Options = {}): Recorded {
     lexical = false,
     claimsDeletion = true,
     collapsed = false,
+    movesCaret = false,
+    between,
+    selectionThrows = false,
   } = opts;
   const cmds: Recorded['cmds'] = [];
   const pastes: PasteRecord[] = [];
@@ -182,13 +197,43 @@ function run(text: string, opts: Options = {}): Recorded {
     },
   };
 
+  // Where the next write lands: over the selected trigger, at the caret, or at a
+  // caret the browser left on another line once the trigger was removed.
+  let at = collapsed ? 'caret' : 'trigger';
+  let removed = false;
+  let firstWrite: string | null = null;
+
   const doc = {
     activeElement: el,
     execCommand: (cmd: string, _ui: boolean, value: string | null) => {
       order.push('execCommand:' + cmd);
       cmds.push({ cmd, value: value ?? null });
+      if (cmd === 'insertText' && value === '' && !removed) {
+        removed = true;
+        at = movesCaret && !collapsed ? 'moved' : 'caret';
+      } else if (firstWrite === null) {
+        firstWrite = at;
+      }
       return true; // Lexical's lie: reports success for commands it drops
     },
+    // What _ceBringBackTrigger reads: the range between the caret and where the
+    // trigger began, and the selection it builds over the trigger it gives back.
+    createRange: () => {
+      const r = {
+        tag: 'range',
+        setStart: () => {},
+        setEnd: () => {},
+        selectNodeContents: () => {
+          r.tag = 'trigger';
+        },
+        cloneContents: () => ({
+          querySelector: () => (between === 'element' ? {} : null),
+          textContent: between === 'newline' ? '\n' : '',
+        }),
+      };
+      return r;
+    },
+    createTextNode: (value: string) => ({ nodeValue: value }),
   };
 
   // The selection deleteChars set over the trigger (or a bare caret).
@@ -198,8 +243,32 @@ function run(text: string, opts: Options = {}): Recorded {
     startOffset: 0,
     endContainer: 'trigger-end',
     endOffset: 6,
+    toString: () => (collapsed ? '' : '::multi'),
+    // the start of the selection, held across the removal of the trigger
+    cloneRange: () => ({
+      startContainer: 'trigger-start',
+      startOffset: 0,
+      collapse: () => {},
+      comparePoint: () => -1,
+      insertNode: () => {
+        order.push('trigger back');
+      },
+    }),
   };
-  const win = { getSelection: () => ({ rangeCount: 1, getRangeAt: () => range }) };
+  const win = {
+    getSelection: () => {
+      if (selectionThrows) throw new Error('no selection');
+      return {
+        rangeCount: 1,
+        getRangeAt: () => range,
+        removeAllRanges: () => {},
+        addRange: (r: { tag: string }) => {
+          order.push('select');
+          at = r.tag;
+        },
+      };
+    },
+  };
   class StubStaticRange {
     init: unknown;
     constructor(init: unknown) {
@@ -274,7 +343,7 @@ function run(text: string, opts: Options = {}): Recorded {
     StubStaticRange,
   )(el, text);
 
-  return { cmds, pastes, inputs, order, inserted: textOf(cmds) };
+  return { cmds, pastes, inputs, order, inserted: textOf(cmds), firstWrite };
 }
 
 // The text a recorded command sequence actually writes into the field.
@@ -739,6 +808,89 @@ describe('Undo after a contenteditable insert', () => {
       visibleLen: 16,
       endCharOffset: -1,
     });
+  });
+});
+
+describe('snippet expansion: a trigger that is the whole of its line', () => {
+  // Removing a trigger that was alone on its line makes the line disappear, and
+  // the browser moves the caret to another line: the end of the line above, the
+  // start of the next one, or the start of the field. Where the page ignores the
+  // paste, the body was then written line by line at that caret ("Line ALine one"),
+  // joined to the text of another line, with the line it was typed on left empty.
+  // A one-line body never did this: its first execCommand replaces the selected
+  // trigger in one step. The multi-line path now gives the trigger back, selected,
+  // so its first line does the same. The real shapes (Shift+Enter and Enter lines,
+  // a pre-wrap field, Gmail-style div lines) were checked in the browser; this
+  // pins the order of what is asked of it. v3.74.2.
+  const BACK = [
+    'execCommand:insertText', // the trigger goes
+    'paste', // the page ignores the paste
+    'trigger back',
+    'select',
+    'execCommand:insertText', // the first line replaces it
+  ];
+
+  it('writes the first line over the trigger when removing it moved the caret to another line', () => {
+    const { firstWrite, order, inserted } = run(LF, { movesCaret: true, between: 'element' });
+    expect(order.slice(0, BACK.length)).toEqual(BACK);
+    expect(firstWrite).toBe('trigger');
+    expect(inserted).toBe(LF);
+  });
+
+  it('does the same in a field that writes its line breaks as characters (pre-wrap)', () => {
+    const { firstWrite, order } = run(LF, { movesCaret: true, between: 'newline' });
+    expect(order.slice(0, BACK.length)).toEqual(BACK);
+    expect(firstWrite).toBe('trigger');
+  });
+
+  it('leaves the caret where the browser put it when nothing but a tag lies between', () => {
+    // A caret that only moved past formatting (bold, a link) is still on the line.
+    const { firstWrite, order } = run(LF, { movesCaret: true });
+    expect(order).not.toContain('trigger back');
+    expect(firstWrite).toBe('moved');
+  });
+
+  it('leaves the caret alone when it never left the trigger', () => {
+    const { firstWrite, order } = run(LF);
+    expect(order).not.toContain('trigger back');
+    expect(firstWrite).toBe('caret');
+  });
+
+  it('leaves the field alone when the editor claims the paste', () => {
+    const { order, firstWrite } = run(LF, { claimsPaste: true, movesCaret: true, between: 'element' });
+    expect(order).toEqual(['execCommand:insertText', 'paste']);
+    expect(firstWrite).toBeNull();
+  });
+
+  it('has nothing to give back at a bare caret (right-click insert)', () => {
+    const { order, firstWrite } = run(LF, { collapsed: true, movesCaret: true, between: 'element' });
+    expect(order).not.toContain('trigger back');
+    expect(firstWrite).toBe('caret');
+  });
+
+  it('keeps a one-line body replacing the trigger in one step', () => {
+    const { order, firstWrite } = run('Todo confirmado', { movesCaret: true, between: 'element' });
+    expect(order).toEqual(['execCommand:insertText']);
+    expect(firstWrite).toBe('trigger');
+  });
+
+  it('still writes the body when the page will not hand over its selection', () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { inserted, order } = run(LF, { selectionThrows: true });
+      expect(inserted).toBe(LF);
+      expect(order).not.toContain('trigger back');
+      expect(quiet).toHaveBeenCalledTimes(1);
+    } finally {
+      quiet.mockRestore();
+    }
+  });
+
+  it('does not touch the Lexical path', () => {
+    const { order } = run(LF, { lexical: true, movesCaret: true, between: 'element' });
+    expect(order.slice(0, 3)).toEqual(['beforeinput', 'paste', 'execCommand:insertText']);
+    expect(order).not.toContain('trigger back');
+    expect(order).not.toContain('select');
   });
 });
 

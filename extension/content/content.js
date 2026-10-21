@@ -1387,6 +1387,55 @@ function _ceDeleteSelection(host, done) {
   end();
 }
 
+// What the selection holds, and where it starts. The start is held as a collapsed
+// range, which follows the DOM through an edit; a character offset cannot do
+// that, since it does not tell the two sides of a line break apart.
+function _ceHoldSelection() {
+  try {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    var r = sel.getRangeAt(0);
+    var start = r.cloneRange();
+    start.collapse(true);
+    return { start: start, text: r.toString() };
+  } catch(e) {
+    console.error('[Fibonax] could not note where the trigger began', e);
+    return null;
+  }
+}
+
+// Gives a removed trigger back to the field, selected, when removing it has moved
+// the caret to another line: a line break or a block lies between the caret and
+// where the trigger began. A caret that only moved past a formatting tag, or past
+// the space the browser keeps at a line end, is where the browser put it and the
+// trigger stays out.
+function _ceBringBackTrigger(held) {
+  if (!held || !held.text) return;
+  try {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var caret = sel.getRangeAt(0);
+    var start = held.start;
+    var between = document.createRange();
+    if (start.comparePoint(caret.startContainer, caret.startOffset) < 0) {
+      between.setStart(caret.startContainer, caret.startOffset);
+      between.setEnd(start.startContainer, start.startOffset);
+    } else {
+      between.setStart(start.startContainer, start.startOffset);
+      between.setEnd(caret.startContainer, caret.startOffset);
+    }
+    var passed = between.cloneContents();
+    // A field styled white-space: pre-wrap writes its line breaks as "\n".
+    if (!passed.querySelector('br,div,p,li') && passed.textContent.indexOf('\n') < 0) return;
+    var back = document.createTextNode(held.text);
+    start.insertNode(back);
+    var again = document.createRange();
+    again.selectNodeContents(back);
+    sel.removeAllRanges();
+    sel.addRange(again);
+  } catch(e) { console.error('[Fibonax] could not put the trigger back before the body', e); }
+}
+
 // Lexical (WhatsApp Web) keeps its own input model. It accepts
 // execCommand('insertLineBreak') — returning true — and then inserts nothing,
 // so the fallbacks above never fire and a multi-paragraph snippet lands as one
@@ -1397,6 +1446,16 @@ function _ceDeleteSelection(host, done) {
 // The trigger is removed first (_ceDeleteSelection). A paste event carries no
 // target ranges: Lexical pastes at its own cached caret and would leave the
 // trigger text in the field ("...reserva ♡::neob").
+//
+// Where the page ignores the paste, the body goes in line by line, and the first
+// line replaces the selected trigger in one step. That is how a one-line body
+// lands, and it lands right in every field. Here the trigger is already gone, and
+// removing a trigger that was the whole of its line makes the line disappear: the
+// browser moves the caret to a neighbouring line (the end of the line above, the
+// start of the next one, the start of the field) and the body was written there,
+// joined to another line's text, with the line it was typed on left empty. So the
+// trigger is put back, selected (_ceBringBackTrigger), and the body replaces it
+// as a one-line body does.
 function _cePasteInsert(el, text) {
   var host = _ceHost(el);
   if (!host || typeof DataTransfer !== 'function' || typeof ClipboardEvent !== 'function') return false;
@@ -1416,8 +1475,11 @@ function _cePasteInsert(el, text) {
     });
     return true;
   }
+  var held = _ceHoldSelection();
   _ceDeleteSelection(host);
-  return _cePasteLand(el, host, dt, text);
+  if (_cePasteLand(el, host, dt, text)) return true;
+  _ceBringBackTrigger(held);
+  return false;
 }
 
 // Sends the paste and checks that the body landed. Returns false when the editor
