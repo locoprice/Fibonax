@@ -65,16 +65,6 @@ function fieldLabel(key: string): string {
   return key.replace(/_/g, ' ');
 }
 
-/**
- * The prose before a field is worth showing only when it says something the
- * label does not: `Plan: {formmenu: …; name=PLAN}` would otherwise render as
- * "PLAN" above "Plan:", twice, on every menu in the form.
- */
-function isEchoOfLabel(prose: string, label: string): boolean {
-  const strip = (s: string) => s.trim().replace(/[\s:：\-–—]+$/, '').toLowerCase();
-  return strip(prose) === strip(label);
-}
-
 /** The Link box's one line: what it is doing, or what came of it. */
 interface LinkStatus {
   tone: 'idle' | 'busy' | 'done' | 'error';
@@ -110,6 +100,9 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
   const [engineReady, setEngineReady] = useState(
     () => fillFormApi() !== null && formulaEngine() !== null,
   );
+  const [expanded, setExpanded] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  const previewRef = useRef<HTMLElement | null>(null);
   const [engineError, setEngineError] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   // Formats picked in a field's Adjust panel. Beside `values` rather than in
@@ -366,6 +359,14 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
 
   async function handleCopy() {
     if (!view?.preview) return;
+    setAttempted(true);
+    if (view.errors?.length) {
+      const row = Array.from(previewRef.current?.querySelectorAll<HTMLElement>('[data-fill-key]') ?? []).find((el) => el.dataset.fillKey === view.errors?.[0]?.key);
+      let parent = row?.parentElement;
+      while (parent && parent !== previewRef.current) { if (parent instanceof HTMLDetailsElement) parent.open = true; parent = parent.parentElement; }
+      row?.querySelector<HTMLElement>('input, summary, select')?.focus();
+      return;
+    }
     if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
     try {
       await navigator.clipboard.writeText(view.preview);
@@ -383,19 +384,24 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
 
   return (
     <aside
+      ref={previewRef}
       aria-label="Live preview"
+      onKeyDown={(e) => { if (expanded && e.key === 'Escape') { e.stopPropagation(); setExpanded(false); } }}
       // Matches the dialog's insert rail on the other side, so the editor
       // sits between two equal columns instead of off-centre.
-      className="flex w-[260px] shrink-0 flex-col overflow-hidden bg-bg"
+      className={cn("flex shrink-0 overflow-hidden bg-bg", expanded ? "absolute inset-4 z-50 flex-row rounded-2xl border border-line shadow-xl" : "w-[260px] flex-col")}
     >
       {/* ── Values ── */}
       {/* Takes the larger share: this pane is the one being operated, and a
           form of six fields should not need scrolling to reach half of them. */}
-      <div className="flex min-h-0 flex-[1.4] flex-col border-b border-line">
+      <div className="flex min-h-0 min-w-0 flex-[1.4] flex-col border-b border-r border-line">
         <div className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-4">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
-            Values
+            Fill in
           </p>
+          <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="ml-auto rounded-lg px-2 py-2 text-xs text-primary focus-visible:outline focus-visible:outline-2">
+            {expanded ? 'Close expanded view' : 'Expand'}
+          </button>
           {fields.length > 0 && (
             <span className={PILL}>
               {fields.length} {fields.length === 1 ? 'field' : 'fields'}
@@ -436,19 +442,20 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
             </p>
           ) : (
             <div className="flex flex-col gap-2.5">
-              {fields.map((field) => (
-                <PreviewField
-                  key={field.key}
-                  field={field}
-                  note={fieldNote(linkResults[field.key])}
-                  onChange={(value) => setValue(field.key, value)}
-                  onFormat={(format) => setFormat(field.key, format)}
-                  onToggleOption={(option, checked) =>
-                    toggleOption(field, option, checked)
-                  }
-                  onToggleOther={(checked) => toggleOther(field, checked)}
-                  onOtherText={(text) => setOtherText(field, text)}
-                />
+              {(view?.sections ?? [{ title: 'Fields', keys: fields.map((f) => f.key) }]).map((section) => (
+                <details key={section.title} open className="rounded-xl border border-line bg-card">
+                  <summary className="cursor-pointer px-3 py-3 text-xs font-semibold text-ink-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{section.title}</summary>
+                  <div className={cn('grid gap-4 p-3', expanded ? 'grid-cols-2' : 'grid-cols-1')}>
+                    {section.keys.map((key) => fields.find((f) => f.key === key)).filter((f): f is SbFillField => !!f).map((field) => (
+                      <div key={field.key} data-fill-key={field.key}>
+                        <PreviewField field={field} note={attempted && field.error ? {text: field.error, warn: true} : fieldNote(linkResults[field.key])}
+                          onChange={(value) => setValue(field.key, value)} onFormat={(format) => setFormat(field.key, format)}
+                          onToggleOption={(option, checked) => toggleOption(field, option, checked)}
+                          onToggleOther={(checked) => toggleOther(field, checked)} onOtherText={(text) => setOtherText(field, text)} />
+                      </div>
+                    ))}
+                  </div>
+                </details>
               ))}
 
               {buttons.length > 0 && (
@@ -477,7 +484,7 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
       </div>
 
       {/* ── Result ── */}
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-4">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
             Result
@@ -667,25 +674,22 @@ function PreviewField({
   onOtherText,
 }: PreviewFieldProps) {
   // A stored display name wins; otherwise the key, humanised.
-  const label = field.label || fieldLabel(field.key);
-  const showBefore = field.before !== '' && !isEchoOfLabel(field.before, label);
-  const before = showBefore ? (
-    <span className="text-[11px] leading-snug text-ink-muted">{field.before}</span>
-  ) : null;
-  const after = field.after ? (
-    <span className="text-[11px] leading-snug text-ink-muted">{field.after}</span>
-  ) : null;
+  const label = field.label || field.before.replace(/^[\s>→\-·]+/, '').replace(/[\s:：-]+$/, '') || fieldLabel(field.key);
 
   if (field.type === 'dd') {
     const type = optionInputType(field);
     return (
       <div className="flex flex-col gap-1">
-        <FieldTitle label={label} fromLink={field.fromLink} />
-        {before}
-        {/* Every option on screen, for both kinds of menu: a <select> hides the
-            choices behind a control most people do not read as a menu at all.
-            Mirrors the overlay, the popup detail and the mobile fill form. */}
-        <div className="flex flex-col gap-0.5">
+        <FieldTitle label={label + (field.required ? ' *' : '')} fromLink={field.fromLink} />
+        {/* Keep multiple-choice and Other controls inside a compact menu. */}
+        <details className="rounded-lg border border-line bg-card" onKeyDown={(e) => {
+          if (e.key === 'Escape' && e.currentTarget.open) {
+            e.stopPropagation(); e.currentTarget.open = false;
+            e.currentTarget.querySelector('summary')?.focus();
+          }
+        }}>
+          <summary aria-label={`${label} — choices`} className="min-h-11 cursor-pointer px-3 py-2 text-xs text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{field.value || (field.otherOn ? field.other : 'Choose an option')}</summary>
+          <div className="flex flex-col gap-0.5 p-2">
           {field.options.map((option) => {
             const checked = field.picks.includes(option);
             return (
@@ -701,7 +705,7 @@ function PreviewField({
                   // Radios need a group name or two menus share a group.
                   name={type === 'radio' ? `sb-preview-${field.key}` : undefined}
                   checked={checked}
-                  onChange={(e) => onToggleOption(option, e.target.checked)}
+                  onChange={(e) => { onToggleOption(option, e.target.checked); if (!field.multiple) { const menu = e.currentTarget.closest('details'); if (menu) { menu.open = false; menu.querySelector('summary')?.focus(); } } }}
                   className="h-3.5 w-3.5 shrink-0 accent-primary"
                 />
                 <span className="min-w-0 break-words">{option}</span>
@@ -742,8 +746,8 @@ function PreviewField({
               )}
             />
           )}
-        </div>
-        {after}
+          </div>
+        </details>
         <FieldNoteLine note={note} />
       </div>
     );
@@ -752,11 +756,12 @@ function PreviewField({
   const type = inputType(field);
   return (
     <div className="flex flex-col gap-1">
-      <FieldTitle label={label} fromLink={field.fromLink} />
+      <FieldTitle label={label + (field.required ? ' *' : '')} fromLink={field.fromLink} />
       <div className="flex flex-wrap items-center gap-1.5">
-        {before}
         <input
           type={type}
+          aria-label={label}
+          aria-invalid={!!(note?.warn && field.error)}
           {...(field.type === 'number' ? { inputMode: 'decimal' as const } : {})}
           {...(field.min ? { min: field.min } : {})}
           value={field.value}
@@ -778,7 +783,6 @@ function PreviewField({
             field.cols ? '' : 'flex-1 min-w-[7rem]',
           )}
         />
-        {after}
       </div>
       <FieldNoteLine note={note} />
       <PreviewAdjust field={field} onValue={onChange} onFormat={onFormat} />
@@ -869,7 +873,7 @@ function PreviewAdjust({ field, onValue, onFormat }: PreviewAdjustProps) {
           open ? 'text-primary' : 'text-ink-subtle hover:text-primary',
         )}
       >
-        Adjust {open ? '▴' : '▾'}
+        Options {open ? '▴' : '▾'}
       </button>
 
       {open && (

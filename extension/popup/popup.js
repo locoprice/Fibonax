@@ -1794,9 +1794,15 @@ function detailBody(s, lang, vars){
 // inside a popup that would then render nothing at all.
 function detailForm(body, lang){
   var M=window.SBFillForm;
-  if(!M||!body) return { fields:[], buttons:[], preview:body||'', layout:'flat', steps:[] };
-  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked }); }
-  catch(e){ return { fields:[], buttons:[], preview:body, layout:'flat', steps:[] }; }
+  if(!M||!body) return { fields:[], buttons:[], preview:body||'', errors:[], sections:[], layout:'flat', steps:[] };
+  var other = {};
+  var current=document.querySelector('.d-fields[data-fid="'+expandedId+'"]');
+  (current?current.querySelectorAll('[data-other]:checked'):[]).forEach(function(ctrl) {
+    var box = ctrl.closest('.d-fields').querySelector('.d-othertxt[data-otherkey="' + ctrl.getAttribute('data-fkey') + '"]');
+    other[ctrl.getAttribute('data-fkey')] = box ? box.value : '';
+  });
+  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked, other: other }); }
+  catch(e){ return { fields:[], buttons:[], preview:body, errors:[], sections:[], layout:'flat', steps:[] }; }
 }
 // Effective values for a body: what the operator entered, else each field's
 // default. Read off the view model so this surface can never disagree with the
@@ -1826,12 +1832,16 @@ function updateDetailPreview(id){
   var out=resolveFilled(body, detailActiveLang(s));
   var wrap=document.querySelector('.detail[data-detail="'+id+'"]');
   var pv=wrap?wrap.querySelector('.d-body'):null;
+  if(wrap) window.SBFillFormUI.refresh(wrap.querySelector('.d-fields'), detailForm(body, detailActiveLang(s)));
   if(pv){ pv.textContent=out; if(out.trim()) pv.classList.remove('plain'); else pv.classList.add('plain'); }
 }
 function copyFilled(id){
   var s=findSnip(id); if(!s) return;
   var body=detailActiveBody(s);
-  var out=resolveFilled(body, detailActiveLang(s));
+  var vm=detailForm(body, detailActiveLang(s));
+  var form=document.querySelector('.d-fields[data-fid="'+id+'"]');
+  if(!window.SBFillFormUI.validate(form,vm)) return;
+  var out=vm.preview;
   try{ navigator.clipboard.writeText(out||''); }catch(e){}
   showToast('Copied filled text');
 }
@@ -1886,7 +1896,7 @@ function detailAdjustHtml(f){
       +'<select class="d-mm" data-adjkey="'+k+'">'+optList(a.minutes,a.minute)+'</select></div>';
   }
   if(!rows) return '';
-  return '<button class="d-adj" type="button" data-adj="'+k+'" aria-expanded="false">Adjust ▾</button>'
+  return '<button class="d-adj" type="button" data-adj="'+k+'" aria-expanded="false">Options ▾</button>'
     +'<div class="d-adjbox" data-adjbox="'+k+'" hidden>'+rows+'</div>';
 }
 
@@ -2289,6 +2299,12 @@ function wireListRows(el){
   // results back into the inputs, re-resolve the preview in place.
   el.querySelectorAll('.d-fields .d-actbtn').forEach(function(btn){
     btn.addEventListener('click',function(e){ e.stopPropagation(); runDetailButton(btn); });
+  });
+  el.querySelectorAll('.d-fields').forEach(function(form) {
+    var snip=findSnip(form.getAttribute('data-fid')); if(!snip) return;
+    window.SBFillFormUI.enhance(form, detailForm(detailActiveBody(snip), detailActiveLang(snip)), {
+      prefix: 'popup', row: '.d-frow', caption: '.d-frow>label,.d-ctx,.d-ctxline', menu: '.d-multi', control: '[data-fkey],.d-othertxt'
+    });
   });
   bindDetailAdjust(el);
   bindDetailLink(el);

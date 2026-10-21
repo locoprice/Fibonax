@@ -1163,10 +1163,10 @@
           if (cll === -1) { out += body[i++]; continue; }
           var dtok = body.slice(i+2, cll).replace(/^\s+|\s+$/g, '');
           if (dtok.charAt(0) === '=') {
-            var dfv = evalFormula(dtok.slice(1).replace(/^\s+|\s+$/g, ''), vals);
+            var dfv = (_o.formula || evalFormula)(dtok.slice(1).replace(/^\s+|\s+$/g, ''), vals);
             out += dfv !== null ? String(dfv) : '';
           } else {
-            var dval = vals[dtok];
+            var dval = _o.value ? _o.value(dtok, vals) : vals[dtok];
             if (dval !== undefined && dval !== null) out = sbEmitValue(out, dval, gLock);
             else out += '{{' + dtok + '}}';
           }
@@ -1183,14 +1183,14 @@
             var vname = vdecl.slice(0, veq).replace(/^\s+|\s+$/g, '');
             var vexpr = vdecl.slice(veq+1).replace(/^\s+|\s+$/g, '');
             try {
-              var vres = evalFormula(vexpr, vals);
+              var vres = (_o.formula || evalFormula)(vexpr, vals, vname);
               vals[vname] = (vres !== null && typeof vres === 'number' && !isNaN(vres)) ? vres : 0;
             } catch(e) { vals[vname] = 0; }
           }
           i = cl+1; continue;
         }
         if (tok.charAt(0) === '=') {
-          var fv = evalFormula(tok.slice(1), vals);
+          var fv = (_o.formula || evalFormula)(tok.slice(1), vals);
           out += fv !== null ? String(fv) : '';
           i = cl+1; continue;
         }
@@ -1275,7 +1275,7 @@
         if (tok === 'endif' || tok === 'else' || tok.slice(0,7).toLowerCase() === 'elseif:') {
           i = cl+1; continue;
         }
-        var fval = vals[tok];
+        var fval = _o.value ? _o.value(tok, vals) : vals[tok];
         if (fval !== undefined && fval !== null) {
           out = sbEmitValue(out, _emitField(tok, fval, fmtMap), gLock);
         }

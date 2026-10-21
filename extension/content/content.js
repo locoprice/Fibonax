@@ -1579,6 +1579,7 @@ var overlayTriggerLen = 0;
 // editor, so the walk backwards found nothing. The snippet then landed at the
 // top of the field and the whole trigger survived at the end. -1 when unknown.
 var overlayCaretCO = -1;
+var overlaySelectionStartCO = -1;
 
 // ── ADJUST PANEL ───────────────────────────────────────────────────
 // The Date/Time builder's three decisions — which format, which day, what time
@@ -1636,7 +1637,7 @@ function _sbAdjustHtml(cfg) {
 
   if (!rows) return '';
   return '<button type="button" class="sb-adj" data-adj="' + k + '" aria-expanded="false">' +
-         'Adjust ▾</button>' +
+         'Options ▾</button>' +
          '<div class="sb-adjbox" data-adjbox="' + k + '" hidden>' + rows + '</div>';
 }
 
@@ -1861,8 +1862,11 @@ function showOverlay(targetEl, snip, scLen, done) {
   overlayTriggerLen = scLen || 0;
   // Read the caret BEFORE the overlay exists: deleteChars has just selected the
   // trigger, so the selection end is exactly where the user was typing.
-  overlayCaretCO = (overlayTriggerLen > 0 && targetEl && _isCEEl(targetEl))
+  overlayCaretCO = (targetEl && _isCEEl(targetEl))
     ? _ceCaretCharOffset(_ceHost(targetEl))
+    : -1;
+  overlaySelectionStartCO = (targetEl && _isCEEl(targetEl))
+    ? _ceCaretCharOffset(_ceHost(targetEl), true)
     : -1;
   triggerPending = false;
   triggerPendingMode = null;
@@ -1969,6 +1973,7 @@ function showOverlay(targetEl, snip, scLen, done) {
   var el = document.createElement('div');
   el.id = 'sb-overlay';
   el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-labelledby', 'sb-fill-title');
   el.setAttribute('aria-describedby', 'sb-fill-description');
   el.innerHTML =
@@ -1976,14 +1981,15 @@ function showOverlay(targetEl, snip, scLen, done) {
       '<h2 class="sb-function-name" id="sb-fill-title">'+xesc(snip.title)+'</h2>' +
       '<button type="button" class="sb-close" aria-label="Cancel insertion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>' +
     '</div>' +
-    '<div class="sb-form-content">' +
+    '<nav class="sb-view-switch" aria-label="Snippet view"><button type="button" data-pane="fields" aria-pressed="true">Fill in</button><button type="button" data-pane="preview" aria-pressed="false">Preview</button></nav>' +
+    '<div class="sb-form-content"><div class="sb-input-pane">' +
       '<div class="sb-heading"><h3 class="sb-title">Fill in your snippet</h3>' +
         '<p id="sb-fill-description">Fill in the fields, then insert your message.</p></div>' +
       (reviewWarning(snip) ? '<div class="sb-revwarn" role="alert">' + xesc(reviewWarning(snip)) + '</div>' : '') +
       (vm.linkable ? _sbLinkHtml() : '') +
-      '<div class="sb-fields">'+fhtml+'</div>' +
+      '<div class="sb-fields">'+fhtml+'</div></div>' +
       '<section class="sb-preview" aria-labelledby="sb-preview-label">' +
-        '<div class="sb-preview-heading"><h3 id="sb-preview-label">Message preview</h3><span>First 5 lines</span></div>' +
+        '<div class="sb-preview-heading"><h3 id="sb-preview-label">Message preview</h3><span>Live preview</span></div>' +
         '<div class="sb-prev" id="sb-prev"></div>' +
       '</section>' +
     '</div>' +
@@ -1996,7 +2002,7 @@ function showOverlay(targetEl, snip, scLen, done) {
     'position:fixed!important;top:50%!important;left:50%!important;' +
     'transform:translate(-50%,-50%)!important;z-index:2147483647!important;' +
     'display:flex!important;flex-direction:column!important;' +
-    'width:800px!important;max-width:calc(100vw - var(--sb-s-8))!important;max-height:calc(100dvh - var(--sb-s-8))!important;' +
+    'width:1280px!important;height:calc(100dvh - var(--sb-s-8))!important;max-width:calc(100vw - var(--sb-s-8))!important;max-height:calc(100dvh - var(--sb-s-8))!important;' +
     'overflow:hidden!important;' +
     'box-shadow:var(--sb-shadow-xl)!important;';
 
@@ -2007,11 +2013,22 @@ function showOverlay(targetEl, snip, scLen, done) {
   document.body.appendChild(bd);
   document.body.appendChild(el);
   overlayEl = el;
+  el.dataset.pane = 'fields';
+  el.querySelectorAll('[data-pane]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      el.dataset.pane = button.dataset.pane;
+      el.querySelectorAll('[data-pane]').forEach(function(b) { b.setAttribute('aria-pressed', String(b === button)); });
+    });
+  });
+  if (window.SBFillFormUI) window.SBFillFormUI.enhance(el.querySelector('.sb-fields'), vm, {
+    prefix: 'overlay', row: '.sb-field', caption: '.sb-lbl,.sb-ctx,.sb-ctxline', menu: '.sb-multi', control: '.sb-inp'
+  });
 
   setTimeout(function() {
     // A form that can fill from a link opens on the Link box: the next thing
-    // the operator does there is paste.
-    _sbFocus(el.querySelector('.sb-linkinp') || _sbFirstEmpty(el));
+    // the operator does there is paste. Other forms start at the first field,
+    // including prefilled dates, so long snippets open at the top in text order.
+    _sbFocus(el.querySelector('.sb-linkinp') || el.querySelector('.sb-fields .ff-menu > summary,.sb-fields .sb-inp:not([type="radio"]):not([type="checkbox"])'));
     updatePrev(snip);
   }, 50);
 
@@ -2197,6 +2214,12 @@ function showOverlay(targetEl, snip, scLen, done) {
   bd.addEventListener('click',      onBdClose);
   bd.addEventListener('touchstart', onBdClose, {passive: false});
   el.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      var focusable = Array.prototype.slice.call(el.querySelectorAll('button,input,select,textarea,summary,[tabindex="0"]')).filter(function(n) { return !n.disabled && n.getClientRects().length; });
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeOverlay(); }
     if (e.key === 'Enter' && !e.shiftKey) {
       // The Link box is not a field: Enter there reads the page, and never
@@ -2212,7 +2235,7 @@ function showOverlay(targetEl, snip, scLen, done) {
       // Enter, so inserting here too would fire an action button and insert
       // the message in one keypress.
       var tag = document.activeElement ? document.activeElement.tagName : '';
-      if (tag !== 'TEXTAREA' && tag !== 'SELECT' && tag !== 'BUTTON') {
+      if (tag !== 'TEXTAREA' && tag !== 'SELECT' && tag !== 'BUTTON' && tag !== 'SUMMARY') {
         e.preventDefault(); e.stopPropagation(); doInsert(targetEl, snip);
       }
     }
@@ -2348,20 +2371,35 @@ function getFmts() {
   return f;
 }
 
+function overlayForm(snip) {
+  var other = {};
+  overlayEl.querySelectorAll('.sb-inp[data-other]:checked').forEach(function(ctrl) {
+    var box = overlayEl.querySelector('.sb-othertxt[data-otherkey="' + ctrl.dataset.key + '"]');
+    other[ctrl.dataset.key] = box ? box.value : '';
+  });
+  return _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, fieldFmt: getFmts(), other: other });
+}
 function updatePrev(snip) {
   var box = document.getElementById('sb-prev');
-  if (!box) return;
-  var all = resolveBody(snip.body, getVals(),
-    { lang: snip.lang, fmtOverride: getFmts() }).split('\n');
-  box.textContent = all.slice(0, 5).join('\n') + (all.length > 5 ? '\n\u2026' : '');
+  if (!box || !overlayEl) return;
+  var vm = overlayForm(snip);
+  box.textContent = vm.preview;
+  if (window.SBFillFormUI) window.SBFillFormUI.refresh(overlayEl.querySelector('.sb-fields'), vm);
 }
 
 function doInsert(targetEl, snip) {
+  var vm = overlayForm(snip);
+  if (vm.errors.length) {
+    overlayEl.dataset.pane = 'fields';
+    overlayEl.querySelectorAll('[data-pane]').forEach(function(b) { b.setAttribute('aria-pressed', String(b.dataset.pane === 'fields')); });
+    window.SBFillFormUI.validate(overlayEl.querySelector('.sb-fields'), vm);
+    return;
+  }
   var vals = getVals();
   // Read BEFORE closeOverlay tears the panel down, and passed to the same
   // resolveBody the preview used, or what lands in the field prints in a
   // different format from the preview the operator just approved.
-  var text = resolveBody(snip.body, vals, { lang: snip.lang, fmtOverride: getFmts() });
+  var text = vm.preview;
   var fillCount = Object.keys(vals).length;
   closeOverlay();
   if (!targetEl) return;
@@ -2402,8 +2440,11 @@ function doInsert(targetEl, snip) {
       deleteChars(targetEl, overlayTriggerLen, insertSyncCE);
     }
   } else if (isCE) {
-    // CE with no captured trigger (context-menu / selection-suggest): nothing to
-    // strip, so insert at the live caret now and celebrate with Undo.
+    // The form also takes focus when opened from the picker or context menu.
+    // Restore the original caret/selection before inserting, just as for triggers.
+    if (overlaySelectionStartCO >= 0) {
+      _ceRestoreTriggerRange(targetEl, overlayCaretCO, overlayCaretCO - overlaySelectionStartCO);
+    }
     insertSyncCE();
   } else {
     // Textarea/input: the trigger was already stripped before the overlay opened.

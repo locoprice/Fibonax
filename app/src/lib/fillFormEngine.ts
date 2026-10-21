@@ -61,6 +61,8 @@ export interface SbFieldAdjust {
 
 /** One row of the fill form. Mirrors FIELD_SHAPE in scripts/check-fill-form.js. */
 export interface SbFillField {
+  required?: boolean;
+  error?: string;
   key: string;
   /**
    * Display name from a stored field_cfg, or '' when none is set — the renderer
@@ -129,6 +131,8 @@ export interface SbFillButton {
 
 /** The view model every fill surface renders. Mirrors SHAPE in the gate. */
 export interface SbFillFormViewModel {
+  errors?: Array<{ key: string; message: string }>;
+  sections?: Array<{ title: string; keys: string[] }>;
   fields: SbFillField[];
   buttons: SbFillButton[];
   preview: string;

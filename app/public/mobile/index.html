@@ -1421,6 +1421,7 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <span id="det-lang" class="lbadge"></span>
   </div>
+  <nav class="fill-switch" aria-label="Snippet view"><button type="button" data-detail-pane="fields" aria-pressed="true">Fill in</button><button type="button" data-detail-pane="preview" aria-pressed="false">Preview</button></nav>
   <div class="det-body" id="det-body">
     <div id="det-revwarn" class="mrevwarn sb-hidden" role="alert"></div>
     <div id="det-lang-section" class="sb-hide">
@@ -1436,11 +1437,11 @@ svg.brain-type-icon{stroke-width:1.8}
       </div>
       <div id="det-link-status" class="link-status" role="status" aria-live="polite"></div>
     </div>
-    <div>
+    <div class="mobile-fill-pane">
       <div class="sec-lbl">Fields</div>
       <div class="fields-card" id="fform"></div>
     </div>
-    <div>
+    <div class="mobile-preview-pane">
       <div class="sec-lbl">Preview</div>
       <div class="prev-card"><pre id="prev-text"></pre></div>
     </div>
@@ -2205,7 +2206,7 @@ svg.brain-type-icon{stroke-width:1.8}
 // `layout` and `steps` are computed here and ignored by every renderer today.
 // They are the seam for a future automatic step mode: turning it on is a change
 // to chooseLayout() in this file and nowhere else. It is deliberately not wired
-// up, because the longest form in the library is three fields.
+// up: long forms use open, collapsible sections without changing field order.
 (function(root) {
   'use strict';
 
@@ -2577,6 +2578,94 @@ svg.brain-type-icon{stroke-width:1.8}
   //         answers apart from its controls needs it, to hold Other ticked
   //         while the box is still empty. Without an entry, a menu value that
   //         is not one of the options is read as Other with that text.
+  // User-facing labels and contiguous groups never reorder the author's fields.
+  function fieldTitle(field) {
+    var title = field.label || field.before || field.key.replace(/_/g, ' ');
+    title = trim(title).replace(/^[\s>→\-·]+/, '').replace(/[\s:：\-]+$/, '');
+    return title || field.key.replace(/_/g, ' ');
+  }
+
+  function sectionsFor(fields) {
+    if (fields.length <= STEP_THRESHOLD) return [{ title: 'Fields', keys: fields.map(function(f) { return f.key; }) }];
+    var groups = [];
+    for (var i = 0; i < fields.length; i += 4) {
+      groups.push({ title: 'Fields ' + (i + 1) + '–' + Math.min(i + 4, fields.length),
+        keys: fields.slice(i, i + 4).map(function(f) { return f.key; }) });
+    }
+    return groups;
+  }
+
+  // Only a whole line containing exclusively unanswered optional fields is
+  // omitted. Mixed answered/empty lines and lines carrying rules or formulas
+  // stay intact: removing them would discard independent content or logic.
+  function omitEmptyLines(E, src, values, required) {
+    var removed = false;
+    var lines = src.split('\n').filter(function(line) {
+      var keys = fieldKeys(E, line);
+      if (!keys.length) return true;
+      var prose = line.replace(/\{\{[A-Za-z_][A-Za-z0-9_]*\}\}|\{(?:formtext:|formdate:|formmenu:)[^{}]*\}|\{[A-Za-z_][A-Za-z0-9_]*\}/gi, '');
+      if (/[{}]/.test(prose)) return true;
+      var first = line.indexOf('{'), last = line.lastIndexOf('}');
+      var prefix = trim(line.slice(0, first)), suffix = trim(line.slice(last + 1));
+      // A labelled row is safe to omit; a paragraph such as "Hello {NAME},
+      // here are the instructions" may contain independent information.
+      if ((prefix && !/[:：]$/.test(prefix)) || suffix.length > 40 || /[.!?]/.test(suffix)) return true;
+      var empty = keys.every(function(k) {
+        return Object.prototype.hasOwnProperty.call(values, k) && !required[k] && trim(values[k]) === '';
+      });
+      if (empty) removed = true;
+      return !empty;
+    });
+    return removed ? lines.join('\n').replace(/\n[ \t]*\n(?:[ \t]*\n)+/g, '\n\n').replace(/^\n+|\n+$/g, '') : src;
+  }
+
+  // Trace the values actually read by active calculations, through saved
+  // values as well. Inactive conditional branches do not make optional data
+  // mandatory. Each resolution owns its scope; the caller's values never mutate.
+  function resolvedForm(E, src, fields, opts) {
+    var values = {}, byKey = Object.create(null), required = Object.create(null), dependencies = Object.create(null);
+    fields.forEach(function(f) {
+      values[f.key] = trim(f.value) === '' ? '' : f.value;
+      byKey[f.key] = f;
+    });
+    function formula(expr, scope, assignment) {
+      var used = {};
+      var result = E.evalFormula(expr, new Proxy(scope, {
+        get: function(target, key) {
+          if (dependencies[key]) Object.keys(dependencies[key]).forEach(function(k) { used[k] = true; });
+          else if (byKey[key]) used[key] = true;
+          return target[key];
+        }
+      }));
+      if (assignment) dependencies[assignment] = used;
+      else Object.keys(used).forEach(function(k) { required[k] = true; });
+      // A provisional calculation must not look like a final zero total.
+      if (!assignment && Object.keys(used).some(function(k) { return trim(values[k]) === ''; })) return '…';
+      return result;
+    }
+    var resolveOpts = { lang: opts.lang || '', fmtOverride: opts.fmtOverride, formula: formula,
+      value: function(key, scope) { return dependencies[key] ? formula(key, scope) : scope[key]; } };
+    function resolve(body) {
+      dependencies = Object.create(null);
+      return E.resolveBody(E.interpolateSnippet(body, values), Object.assign({}, values), resolveOpts);
+    }
+    var preview = resolve(src);
+    var clean = omitEmptyLines(E, src, values, required);
+    if (clean !== src) preview = resolve(clean);
+    var errors = [];
+    fields.forEach(function(f) {
+      var value = values[f.key], message = '';
+      f.required = !!required[f.key];
+      if (f.required && trim(value) === '') message = 'Enter ' + fieldTitle(f) + ' to complete the calculation.';
+      else if (trim(value) !== '' && f.type === 'number' && E.sbToNumber(value) === null) message = 'Enter a valid number.';
+      else if (value && f.min && value < f.min) message = 'Choose a date on or after ' + fieldTitle(byKey[f.notBefore]) + '.';
+      else if (f.otherOn && trim(f.otherText) === '') message = 'Enter your own answer or choose an option.';
+      f.error = message;
+      if (message) errors.push({ key: f.key, message: message });
+    });
+    return { preview: preview, errors: errors };
+  }
+
   function fillForm(text, values, opts) {
     var E = engine();
     var src = (text === null || text === undefined) ? '' : String(text);
@@ -2585,7 +2674,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, errors: [], sections: [], layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -2788,19 +2877,14 @@ svg.brain-type-icon{stroke-width:1.8}
     // single-choice menu the operator never touched already reads as its first
     // option in the form, so resolving against raw values previewed a hole in a
     // sentence the surface was visibly showing as answered.
-    var eff = {};
-    for (var e1 = 0; e1 < fields.length; e1++) eff[fields[e1].key] = fields[e1].value;
-
-    var preview = src;
-    try {
-      preview = E.resolveBody(E.interpolateSnippet(src, eff), eff,
-        { lang: o.lang || '', fmtOverride: fmtOverride });
-    } catch (e) { preview = src; }
+    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride });
 
     return {
       fields: fields,
       buttons: E.extractButtons ? (E.extractButtons(src) || []) : [],
-      preview: preview,
+      preview: resolved.preview,
+      errors: resolved.errors,
+      sections: sectionsFor(fields),
       // Hand straight to resolveBody alongside the values. A surface that
       // resolves the body itself on insert — the overlay does — must pass this
       // too, or what it inserts prints in a different format from the preview
@@ -3236,6 +3320,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
   var API = {
     fillForm: fillForm,
+    fieldTitle: fieldTitle,
     menuValue: menuValue,
     OTHER_PLACEHOLDER: OTHER_PLACEHOLDER,
     orderedMin: orderedMin,
@@ -3265,6 +3350,154 @@ svg.brain-type-icon{stroke-width:1.8}
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
 </script>
 <!-- SB_FILL_FORM:END -->
+<!-- SB_FILL_FORM_UI:BEGIN -->
+<style>
+.ff-form{--ff-bg:var(--sb-bg,#fff);--ff-line:var(--sb-line,#E5E5EA);--ff-ink:var(--sb-ink,#1C1C1E);--ff-muted:var(--sb-ink-muted,#6E6E73);--ff-primary:var(--sb-azure,#1B4FD8);--ff-danger:var(--sb-danger,#D70015);display:block!important;}
+.ff-form .ff-section{margin:0 0 16px;border:1px solid var(--ff-line);border-radius:12px;background:var(--ff-bg);}
+.ff-form .ff-section>summary{padding:12px 16px;font-weight:600;font-size:13px;color:var(--ff-muted);cursor:pointer;min-height:44px;}
+.ff-form .ff-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;padding:4px 16px 20px;}
+.ff-form .ff-field{min-width:0;gap:8px;margin-bottom:16px;}
+.ff-form .ff-grid .ff-field{margin-bottom:0;}
+.ff-form .ff-label{font-size:13px;line-height:1.5;font-weight:600;color:var(--ff-ink);margin-bottom:4px;overflow-wrap:anywhere;}
+.ff-form .ff-menu{min-width:0;max-width:100%;}
+.ff-form .ff-menu>summary{box-sizing:border-box;min-height:44px;padding:10px 12px;border:1px solid var(--ff-line);border-radius:10px;background:var(--ff-bg);color:var(--ff-ink);font:inherit;cursor:pointer;overflow-wrap:anywhere;}
+.ff-form .ff-menu[open]>summary{margin-bottom:8px;border-color:var(--ff-primary);}
+.ff-form summary:focus-visible{outline:2px solid var(--ff-primary);outline-offset:2px;}
+.ff-form .ff-error{font-size:12px;line-height:1.5;color:var(--ff-danger);margin:4px 0 0;}
+.ff-form .ff-error[hidden]{display:none;}
+.ff-form [aria-invalid=true]{border-color:var(--ff-danger)!important;}
+@media(min-width:900px){#sb-overlay[role=dialog] .ff-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+#sb-overlay[role=dialog] .sb-form-content{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);padding:0;overflow:hidden;}
+#sb-overlay[role=dialog] .sb-input-pane{min-width:0;overflow-y:auto;padding:24px;overscroll-behavior:contain;}
+#sb-overlay[role=dialog] .sb-preview{min-width:0;min-height:0;display:flex;flex-direction:column;margin:0;padding:24px;border-left:1px solid var(--sb-line);border-radius:0;}
+#sb-overlay[role=dialog] .sb-preview-heading{flex:none;margin-bottom:16px;}
+#sb-overlay[role=dialog] .sb-prev{overflow-y:auto;min-height:0;flex:1;color:var(--sb-ink);padding:16px;border:1px solid var(--sb-line);border-radius:12px;background:var(--sb-bg);}
+#sb-overlay[role=dialog] .ff-field{grid-column:auto;}
+#sb-overlay[role=dialog] .sb-row{display:block;}
+#sb-overlay[role=dialog] .sb-view-switch{display:none;}
+#sb-overlay[role=dialog] .sb-view-switch button[aria-pressed=true]{color:var(--sb-azure);background:var(--sb-azure-bg);}
+@media(max-width:800px){
+ #sb-overlay[role=dialog] .sb-view-switch{display:flex;gap:8px;padding:8px 16px;border-bottom:1px solid var(--sb-line);}
+ #sb-overlay[role=dialog] .sb-view-switch button{flex:1;}
+ #sb-overlay[role=dialog] .sb-form-content{display:flex;flex-direction:column;padding:0;}
+ #sb-overlay[role=dialog] .sb-input-pane,#sb-overlay[role=dialog] .sb-preview{flex:1;min-height:0;padding:16px;}
+ #sb-overlay[role=dialog][data-pane=fields] .sb-preview,#sb-overlay[role=dialog][data-pane=preview] .sb-input-pane{display:none;}
+}
+.d-fields.ff-form{max-height:none;overflow:visible;}
+#view-detail .fill-switch{display:flex;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);}
+#view-detail .fill-switch button{flex:1;min-height:44px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font:inherit;}
+#view-detail .fill-switch button[aria-pressed=true]{color:var(--primary);border-color:var(--primary);}
+#view-detail[data-pane=preview] .mobile-fill-pane,#view-detail[data-pane=preview] #det-link,#view-detail[data-pane=fields] .mobile-preview-pane{display:none;}
+#view-detail .ff-field .field-inline{display:block;}
+
+#sb-overlay[role=dialog] .sb-row .sb-inp{width:100%;}
+
+.detail:has(.d-fields){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;}
+.detail .d-fields.ff-form{max-height:320px;overflow-y:auto;min-width:0;padding-right:4px;}
+.detail:has(.d-fields) .d-body{max-height:320px;height:320px;min-width:0;margin:0;}
+.detail:has(.d-fields) .d-acts,.detail:has(.d-fields) .d-note,.detail:has(.d-fields) .d-link,.detail:has(.d-fields) .d-langs,.detail:has(.d-fields) .d-warn{grid-column:1/-1;}
+#view-detail #prev-text{max-height:none;overflow:visible;}
+</style>
+<script>
+// DOM presentation shared by the overlay, popup and mobile fill forms.
+// Existing controls keep their handlers, values, order and keyboard semantics.
+(function(root) {
+  'use strict';
+  function enhance(host, vm, cfg) {
+    if (!host || host._fillUI) return;
+    host.classList.add('ff-form');
+    var rows = Array.prototype.slice.call(host.querySelectorAll(cfg.row));
+    rows.forEach(function(row, index) {
+      var field = vm.fields[index];
+      if (!field) return;
+      row.classList.add('ff-field');
+      row.dataset.ffKey = field.key;
+      var title = root.SBFillForm.fieldTitle(field);
+      row.querySelectorAll(cfg.caption).forEach(function(el) { el.remove(); });
+      var label = document.createElement('div');
+      label.className = 'ff-label';
+      label.textContent = title;
+      row.prepend(label);
+      row.querySelectorAll(cfg.control).forEach(function(el) {
+        if (el.type !== 'radio' && el.type !== 'checkbox') el.setAttribute('aria-label', title);
+      });
+      var menu = row.querySelector(cfg.menu);
+      if (menu) {
+        var dropdown = document.createElement('details');
+        dropdown.className = 'ff-menu';
+        var summary = document.createElement('summary');
+        summary.setAttribute('aria-label', title + ' — choices');
+        dropdown.appendChild(summary);
+        menu.replaceWith(dropdown);
+        dropdown.appendChild(menu);
+        dropdown.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && dropdown.open) {
+            e.stopPropagation(); dropdown.open = false; summary.focus();
+          }
+        });
+        dropdown.addEventListener('change', function(e) {
+          if (e.target.type === 'radio' && !e.target.hasAttribute('data-other')) {
+            dropdown.open = false; summary.focus();
+          }
+        });
+      }
+      var error = document.createElement('p');
+      error.className = 'ff-error';
+      error.setAttribute('role', 'alert');
+      error.id = 'ff-error-' + cfg.prefix + '-' + index;
+      error.hidden = true;
+      row.appendChild(error);
+      row.querySelectorAll(cfg.control).forEach(function(el) { el.setAttribute('aria-describedby', error.id); });
+    });
+    if (vm.sections.length > 1) {
+      vm.sections.forEach(function(section) {
+        var group = document.createElement('details'); group.className = 'ff-section'; group.open = true;
+        var summary = document.createElement('summary'); summary.textContent = section.title;
+        group.appendChild(summary);
+        var grid = document.createElement('div'); grid.className = 'ff-grid'; group.appendChild(grid);
+        var members = rows.filter(function(row) { return section.keys.indexOf(row.dataset.ffKey) !== -1; });
+        if (members.length) members[0].before(group);
+        members.forEach(function(row) { grid.appendChild(row); });
+      });
+    }
+    host._fillUI = { rows: rows, cfg: cfg, attempted: false };
+    refresh(host, vm);
+  }
+  function refresh(host, vm) {
+    if (!host || !host._fillUI) return;
+    var state = host._fillUI;
+    state.rows.forEach(function(row) {
+      var field = vm.fields.find(function(f) { return f.key === row.dataset.ffKey; });
+      if (!field) return;
+      var summary = row.querySelector('.ff-menu > summary');
+      if (summary) summary.textContent = field.value || (field.otherOn ? field.other : 'Choose an option');
+      row.querySelector('.ff-label').textContent = root.SBFillForm.fieldTitle(field) + (field.required ? ' *' : '');
+      var message = state.attempted ? field.error : '';
+      var error = row.querySelector('.ff-error'); error.hidden = !message; error.textContent = message;
+      row.querySelectorAll(state.cfg.control).forEach(function(el) {
+        el.setAttribute('aria-invalid', message ? 'true' : 'false');
+      });
+    });
+  }
+  function validate(host, vm) {
+    if (!host || !host._fillUI) return vm.errors.length === 0;
+    host._fillUI.attempted = true; refresh(host, vm);
+    if (!vm.errors.length) return true;
+    var row = host._fillUI.rows.find(function(r) { return r.dataset.ffKey === vm.errors[0].key; });
+    if (row) {
+      var parent = row.parentElement;
+      while (parent && parent !== host) { if (parent.tagName === 'DETAILS') parent.open = true; parent = parent.parentElement; }
+      var menu = row.querySelector('.ff-menu'); if (menu) menu.open = true;
+      var control = row.querySelector(host._fillUI.cfg.control);
+      if (control) control.focus();
+      row.scrollIntoView({block:'nearest'});
+    }
+    return false;
+  }
+  root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<!-- SB_FILL_FORM_UI:END -->
 <!-- SB_MEMORY_PACK:BEGIN (generated from extension/shared/memory-pack.js by scripts/sync-memory-pack.js, do not edit) -->
 <script>
 // WORKING-MEMORY PACK — the extension's copy of the shard selection rule.
@@ -5921,7 +6154,7 @@ function resolveBody(body,vals,opts){
           var ve=vd.slice(veq+1).replace(/^\s+|\s+$/g,'');
           /* Same evaluator as {= }, as in the engine: a value that cannot be
              worked out stores 0. */
-          var vr=sbEvalFormula(ve,vals);
+          var vr=(_o.formula||sbEvalFormula)(ve,vals,vn);
           vals[vn]=vr===null?0:vr;
         }
         i=cl+1;continue;
@@ -5929,7 +6162,7 @@ function resolveBody(body,vals,opts){
 
       /* {=expr} */
       if(tok.charAt(0)==='='){
-        var fv=sbEvalFormula(tok.slice(1),vals);
+        var fv=(_o.formula||sbEvalFormula)(tok.slice(1),vals);
         out+=fv!==null?String(fv):'';
         i=cl+1;continue;
       }
@@ -6013,7 +6246,7 @@ function resolveBody(body,vals,opts){
       }
 
       /* {FIELD} */
-      var fval=vals[tok];
+      var fval=_o.value?_o.value(tok,vals):vals[tok];
       if(fval!==undefined&&fval!==null)out=sbEmitValue(out,sbEmitField(tok,fval,fmtMap),gLock);
       i=cl+1;
     }else{out+=body[i++];}
@@ -6037,6 +6270,7 @@ function resolveBody(body,vals,opts){
    must exist rather than be absent, because the module calls it unguarded and
    a throw there would silently blank the preview. */
 window.SBFillFormEngine = {
+  evalFormula:      sbEvalFormula,
   extractFields:     extractFields,
   buildFormFieldCfg: sbBodyFieldCfg,
   fieldContext:      sbFieldContext,
@@ -8461,6 +8695,7 @@ function renderDetail(snip,keepVals){
      in so a re-render keeps them. */
   var _vm=detailForm(snip,keepVals);
   var form=document.getElementById('fform');
+  delete form._fillUI;
   /* Fill from link sits above the fields only when one of them says where it
      is on a page. */
   document.getElementById('det-link').classList.toggle('sb-hidden',!_vm.linkable);
@@ -8552,6 +8787,8 @@ function renderDetail(snip,keepVals){
     sbReorderDates(form);
     bindAdjust(form);
   }
+  window.SBFillFormUI.enhance(form, _vm, {prefix: 'mobile', row: '.field-row', caption: '.field-lbl,.field-ctx,.field-ctxline', menu: '.field-opts', control: '.field-in,.field-othertxt'});
+  setDetailPane('fields');
   updatePrev();
   document.getElementById('det-body').scrollTop=0;
 }
@@ -8634,7 +8871,7 @@ function mobAdjustHtml(fld){
       +'<select class="field-mm" data-f="'+k+'">'+optList(a.minutes,a.minute)+'</select></div>';
   }
   if(!rows)return '';
-  return '<button class="field-adj" type="button" data-adj="'+k+'" aria-expanded="false">Adjust ▾</button>'
+  return '<button class="field-adj" type="button" data-adj="'+k+'" aria-expanded="false">Options ▾</button>'
     +'<div class="field-adjbox" data-adjbox="'+k+'" hidden>'+rows+'</div>';
 }
 
@@ -8788,9 +9025,26 @@ function getFmts(){
 
 /* The finished text on the snippet page: what the preview shows, and what
    Copy and Share hand over. */
+function currentForm() {
+  var other={};
+  document.querySelectorAll('#fform .field-in[data-other]:checked').forEach(function(ctrl) {
+    var box=document.querySelector('#fform .field-othertxt[data-otherf="'+ctrl.getAttribute('data-f')+'"]');
+    other[ctrl.getAttribute('data-f')]=box?box.value:'';
+  });
+  return window.SBFillForm.fillForm(curSnip.body||'',getRawVals(),{lang:curSnip.lang,fieldCfg:curSnip.field_cfg||{},fieldFmt:getFmts(),other:other});
+}
+function validateDetail() {
+  var vm=currentForm();
+  if(vm.errors.length) setDetailPane('fields');
+  return window.SBFillFormUI.validate(document.getElementById('fform'),vm);
+}
+function setDetailPane(pane) {
+  document.getElementById('view-detail').dataset.pane=pane;
+  document.querySelectorAll('[data-detail-pane]').forEach(function(b) {b.setAttribute('aria-pressed',String(b.dataset.detailPane===pane));});
+}
+document.querySelectorAll('[data-detail-pane]').forEach(function(b) {b.addEventListener('click',function(){setDetailPane(b.dataset.detailPane);});});
 function detailText(){
-  return resolveBody(curSnip.body||'',getRawVals(),
-    {lang:curSnip.lang,fmtOverride:getFmts()});
+  return currentForm().preview;
 }
 function detailFilled(){
   var raw=getRawVals(),filled=0;
@@ -8800,7 +9054,9 @@ function detailFilled(){
 
 function updatePrev(){
   if(!curSnip)return;
-  document.getElementById('prev-text').textContent=detailText();
+  var vm=currentForm();
+  document.getElementById('prev-text').textContent=vm.preview;
+  window.SBFillFormUI.refresh(document.getElementById('fform'),vm);
 }
 
 /* ── FILL FROM LINK ─────────────────────────────── */
@@ -8958,13 +9214,13 @@ function fillFromLink(){
 
 /* ── COPY & SHARE ───────────────────────────────── */
 document.getElementById('copy-btn').addEventListener('click',function(){
-  if(!curSnip)return;
+  if(!curSnip||!validateDetail())return;
   var btn=this;
   logSnipUse(curSnip,detailFilled());
   copyText(detailText(),function(){flashFootBtn(btn,'Copied!');});
 });
 document.getElementById('share-btn').addEventListener('click',function(){
-  if(!curSnip)return;
+  if(!curSnip||!validateDetail())return;
   var btn=this,s=curSnip,filled=detailFilled();
   shareOut(s.title||'Snippet',detailText(),function(){
     logSnipUse(s,filled);

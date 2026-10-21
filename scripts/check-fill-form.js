@@ -491,3 +491,34 @@ if (ff.linkText('no-such-code') !== ff.linkText('failed')) fail('an unknown erro
 console.log('OK Fill from link checks the link and has words for every outcome');
 
 console.log('OK Fill form view model passed all gates');
+
+// Filled-message validation and omission: run through the real engine, not a
+// second implementation of the rules. Zero, guarded formulas and mixed lines
+// are the cases where removing a label or requiring a field can lose data.
+const assert = require('assert/strict');
+const filled = (body, values = {}, opts = {}) => ff.fillForm(body, values, opt(opts));
+assert.equal(filled('Request: {formtext: name=REQUEST}\nKeep this.', {REQUEST:'   '}).preview, 'Keep this.');
+assert.equal(filled('Count: {formtext: name=COUNT; type=number}\nKeep this.', {COUNT:0}).preview, 'Count: 0\nKeep this.');
+assert.equal(filled('A: {A}, B: {B}', {A:'one', B:''}).preview, 'A: one, B: ');
+assert.equal(filled('Value: {{VALUE}}\nKeep', {VALUE:''}).preview, 'Keep');
+assert.equal(filled('Hello {NAME}, please read these instructions.', {NAME:''}).preview, 'Hello , please read these instructions.');
+const chain = 'Amount: {formtext: name=AMOUNT; type=number}\n{var: RATE=3}{var: TOTAL=AMOUNT*(100+RATE)/100}Total: {=TOTAL}';
+assert.deepEqual(filled(chain, {AMOUNT:''}).errors.map(e=>e.key), ['AMOUNT']);
+assert.match(filled(chain, {AMOUNT:''}).preview, /Total: …/);
+assert.deepEqual(filled(chain.replace('{=TOTAL}', '{TOTAL}'), {AMOUNT:''}).errors.map(e=>e.key), ['AMOUNT']);
+assert.equal(filled(chain, {AMOUNT:'450'}).errors.length, 0);
+assert.match(filled(chain, {AMOUNT:'450'}).preview, /Total: 463.5/);
+assert.equal(filled(chain, {AMOUNT:'0'}).errors.length, 0);
+assert.equal(filled(chain, {AMOUNT:'bad'}).errors.length, 1);
+const guarded = 'Original: {formtext: name=ORIGINAL; type=number}\n{var: SAVED=ORIGINAL-10}{if: ORIGINAL > 0}Saved: {=SAVED}{endif}';
+assert.equal(filled(guarded, {ORIGINAL:''}).errors.length, 0);
+assert.ok(!filled(guarded, {ORIGINAL:''}).preview.includes('Original:'));
+assert.match(filled(guarded, {ORIGINAL:'50'}).preview, /Saved: 40/);
+const range = '{formdate: name=START}\n{formdate: name=END; after=START}\n{= datespan(START, END, "between")}';
+assert.ok(filled(range, {START:'2026-10-21', END:''}).errors.some(e=>e.key==='END'));
+assert.ok(filled(range, {START:'2026-10-21', END:'2026-10-20'}).errors.some(e=>e.key==='END'));
+assert.equal(filled(range, {START:'2026-10-21', END:'2026-10-24'}).errors.length, 0);
+assert.equal(filled(OTHER_BODY, {}, {other:{CH:''}}).errors[0].key, 'CH');
+const input = {AMOUNT:'100'}; filled(chain, input); assert.deepEqual(input, {AMOUNT:'100'});
+assert.deepEqual(vmLong.sections.flatMap(s=>s.keys), vmLong.fields.map(f=>f.key));
+console.log('OK Empty optional lines, active calculation dependencies, zero, validation and ordered sections');

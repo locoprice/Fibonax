@@ -403,3 +403,18 @@ requirements. The private Notion benchmark library was unavailable during review
 ### Under-review indicator
 
 `under_review` is a quiet inline clock with muted text, without a filled background or pill border. It distinguishes review state from the blue `formula` capability badge by shape as well as colour. Reuse the existing muted text tokens and 12 px clock on dashboard, mobile and extension. Labels, hints, status rules and actions remain unchanged.
+
+
+### Long snippet fill forms (v3.75.0)
+
+Owner-approved on 2026-10-20: a near-viewport overlay (1280 px maximum width,
+32 px outer margin), fields left and full read-only preview right. At 800 px
+and below, Fill in / Preview switches panes. Header and insertion action stay
+visible. Existing Azure / neutral tokens and 44 px controls remain. Long forms
+keep walk order in open, collapsible groups of four; generic numbered headings
+avoid assigning an industry to a user's content. Choices collapse into a native
+details disclosure retaining the existing radio/checkbox controls and Other.
+Date/time adjustment is named Options. The popup adapts the split to 320 px
+scroll panels; the dashboard preview can expand within its editor. Mobile has
+Fill in / Preview views and an untruncated result. Shared vanilla presentation
+is extension/shared/fill-form-ui.{js,css}; mobile copies are generated.

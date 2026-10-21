@@ -173,6 +173,10 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 .foot-lang a{color:#8E8E93;transition:color .15s}
 .foot-lang a:hover{color:#fff}
 .foot-lang-current{color:#fff;font-weight:600}
+/* A static Fibonacci numeral texture: decoration, never an extra action. */
+.foot-wordmark{margin:var(--space-16) auto 0;max-width:1600px;color:color-mix(in srgb,var(--primary) 70%,var(--card));pointer-events:none;user-select:none}
+.foot-wordmark svg{display:block;width:100%;height:auto;overflow:hidden}
+@media(max-width:640px){.foot-wordmark{margin-top:var(--space-10)}.foot-wordmark g{fill:url(#foot-fibonacci-digits-mobile)}}
 
 /* ── CONTACT MODAL ───────────────────────────────────────
    Deliberately light, unlike the dark .fm-* feature modals above: it frames a
@@ -405,6 +409,25 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       © <span id="foot-year">2026</span> Fibonax<span id="foot-ver"> · {{EXT_VERSION}}</span><span id="foot-updated"> · Aggiornato {{RELEASE_MONTH}}</span>
     </div>
   </div>
+  <div class="foot-wordmark" aria-hidden="true">
+    <svg viewBox="0 0 1300 220" xmlns="http://www.w3.org/2000/svg" focusable="false">
+      <defs>
+        <pattern id="foot-fibonacci-digits" width="156" height="14" patternUnits="userSpaceOnUse">
+          <text x="0" y="11" fill="currentColor" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" textLength="156" lengthAdjust="spacingAndGlyphs">01123581321345589144233</text>
+        </pattern>
+        <pattern id="foot-fibonacci-digits-mobile" href="#foot-fibonacci-digits" patternTransform="scale(2)"/>
+      </defs>
+      <g fill="url(#foot-fibonacci-digits)" fill-rule="evenodd">
+        <path d="M0 0H160V44H48V90H144V134H48V220H0Z"/>
+        <path d="M190 0H238V220H190Z"/>
+        <path d="M268 0H362C406 0 432 21 432 57C432 80 420 98 401 105C427 112 442 131 442 158C442 198 413 220 366 220H268ZM316 42V87H359C377 87 385 79 385 64C385 49 377 42 359 42ZM316 128V178H363C383 178 393 170 393 153C393 136 383 128 363 128Z"/>
+        <path d="M568 0C633 0 664 40 664 110C664 180 633 220 568 220C503 220 472 180 472 110C472 40 503 0 568 0ZM568 44C535 44 521 66 521 110C521 154 535 176 568 176C601 176 615 154 615 110C615 66 601 44 568 44Z"/>
+        <path d="M694 220V0H740L824 137V0H870V220H824L740 83V220Z"/>
+        <path d="M900 220L974 0H1028L1102 220H1051L1037 174H965L951 220ZM978 132H1024L1001 55Z"/>
+        <path d="M1120 0H1175L1210 66L1245 0H1300L1238 107L1300 220H1245L1210 151L1175 220H1120L1182 107Z"/>
+      </g>
+    </svg>
+  </div>
 </footer>
 <div class="cm-backdrop" id="cm-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="cm-dialog">
@@ -552,7 +575,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.74.2';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.75.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.

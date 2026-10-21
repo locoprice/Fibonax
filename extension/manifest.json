@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Fibonax",
-  "version": "3.74.2",
+  "version": "3.75.0",
   "description": "AI prompt library and text expander. Free team sharing, dynamic snippets with live formulas, and two-way Notion sync.",
   "permissions": [
     "storage",
@@ -29,13 +29,15 @@
         "<all_urls>"
       ],
       "css": [
-        "shared/tokens/colors_and_type.css"
+        "shared/tokens/colors_and_type.css",
+        "shared/fill-form-ui.css"
       ],
       "js": [
         "formula-engine.js",
         "shared/snippet-stats.js",
         "shared/memory-pack.js",
         "shared/fill-form.js",
+        "shared/fill-form-ui.js",
         "shared/inactivity.js",
         "shared/memory-chunk.js",
         "shared/interactive-steps.js",
