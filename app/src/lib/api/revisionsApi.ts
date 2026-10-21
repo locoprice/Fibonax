@@ -14,7 +14,7 @@ type DbRevision = {
   id: string;
   snippet_id: string;
   version_number: number;
-  editor_id: string;
+  editor_id: string | null;
   editor_display: string;
   title: string;
   body: string;

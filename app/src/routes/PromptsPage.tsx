@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Brain, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { LoadingBlock } from '@/components/layout/LoadingBlock';
 import { PageBanner } from '@/components/layout/PageBanner';
@@ -14,6 +14,7 @@ import { PromptFilters } from '@/features/prompts/PromptFilters';
 import { PromptPreviewModal } from '@/features/prompts/PromptPreviewModal';
 import type { InactivityCandidate } from '@/lib/inactivity';
 import { useInactivityMonths } from '@/lib/useInactivityMonths';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import { cn } from '@/lib/utils';
 import { useFilteredPrompts, usePromptStore } from '@/stores/promptStore';
 import { useLabelStore } from '@/stores/labelStore';
@@ -118,7 +119,7 @@ export function PromptsPage() {
           <LoadingBlock what="prompts" />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={Brain}
+            icon={PromptIcon}
             title={prompts.length === 0 ? 'No prompts yet' : 'Nothing matches'}
             description={
               prompts.length === 0

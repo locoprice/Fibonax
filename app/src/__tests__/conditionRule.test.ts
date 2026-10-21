@@ -48,6 +48,7 @@ function loadHelper<T>(path: string, req?: Requirer): T {
 interface FormulaEngine {
   resolveBody: (body: string, vals: Record<string, unknown>) => string;
   validateTemplate: (body: string) => { ok: boolean };
+  sbToNumber: (raw: unknown) => number | null;
 }
 
 const engine = loadHelper<FormulaEngine>(
@@ -145,6 +146,16 @@ describe('conditionRule — writing', () => {
     expect(parseRuleNumber('ten')).toBeNull();
     expect(parseRuleNumber('1.200,50')).toBeNull();
     expect(parseRuleNumber('')).toBeNull();
+  });
+
+  it('reads thousands the way the engine reads the answer', () => {
+    // "greater than 1.500" next to an answer of "1.600" must compare 1500 with
+    // 1600, not 1.5 with 1600.
+    for (const typed of ['1.500', '1,500', '-2.400', '999.999', '1.5', '12,50', '0.125', '1234.567', '1.2345']) {
+      expect(Number(parseRuleNumber(typed))).toBe(engine.sbToNumber(typed));
+    }
+    expect(parseRuleNumber('1.500')).toBe('1500');
+    expect(parseRuleNumber('0,125')).toBe('0.125');
   });
 
   it('refuses what would break the token or the block', () => {

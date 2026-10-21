@@ -11,8 +11,9 @@
 //   {time: FORMAT[; shift=+3D|next monday][; at=09:00][; from=FIELD]}  — automatic date
 //   {formtext: name=VAR; default=X}   — text input field
 //   {formdate: name=VAR[; type=time][; format=DD/MM/YYYY]}  — date or time field
-//   {formmenu: opt1,opt2; name=VAR[; default=opt1][; multiple=yes][; cols=N][; print=no]}  (dropdown field)
+//   {formmenu: opt1,opt2; name=VAR[; default=opt1][; multiple=yes][; cols=N][; print=no][; other=Other]}  (dropdown field)
 //     (print=no: the menu is asked and decides rules, but prints nothing itself)
+//     (other=LABEL: one more choice, LABEL, whose typed text is the value)
 //   {if: COND}...{elseif: COND}...{else}...{endif}  — conditional blocks
 //   {gender: FIELD; m=Querido; f=Querida[; u=Hola][; lang=IT]}  — gendered word
 //   {greeting[: lang=ES][; morning=…][; night=…]}  (greeting for the local time of day)
@@ -775,12 +776,17 @@
   //   "1.200,50"           1200.5   both separators present: the LAST is decimal
   //   "1,200.50"           1200.5
   //   "1.200.000"          1200000  a separator used twice is grouping
-  //   "1,5"                1.5      ',' reads as a decimal point, exactly like '.'
+  //   "1.500", "1,500"     1500     one mark, then exactly three digits: thousands
+  //   "1,5", "12.50"       1.5 12.5 one mark, then one, two or four+ digits: decimal
+  //   "0.125", "1234.567"  decimal  a leading 0, or four digits before the mark
   //   "€1.200", "abc"      null     present, but not a number
   //
-  // A single '.' keeps meaning a decimal point, so nothing that resolves
-  // correctly today changes. A single ',' now does too: "1,200" reads as 1.2
-  // where parseFloat read 1, which was wrong under either reading.
+  // One mark followed by exactly three digits is how people on either side of
+  // the Atlantic write a round amount: "2.400" in Madrid, "2,400" in London.
+  // Reading it as 2.4 turned a quote's "save 900€" into a negative number. The
+  // cost falls on a number with exactly three decimals and a 1 to 3 digit
+  // whole part: "1.125" now reads 1125, while "1.1250" and "0.125" stay
+  // decimals. One rule for both marks, so it never depends on the locale.
   //
   // null is the point of the function: it lets a caller tell "no answer" (0)
   // from "an answer that is not a number", which the engine used to collapse.
@@ -796,9 +802,10 @@
     var dots = s.split('.').length - 1;
     var commas = s.split(',').length - 1;
     var dec = -1;
+    var thousands = /^[1-9][0-9]{0,2}[.,][0-9]{3}$/.test(s);
     if (dots && commas) dec = Math.max(s.lastIndexOf('.'), s.lastIndexOf(','));
-    else if (dots === 1) dec = s.lastIndexOf('.');
-    else if (commas === 1) dec = s.lastIndexOf(',');
+    else if (dots === 1 && !thousands) dec = s.lastIndexOf('.');
+    else if (commas === 1 && !thousands) dec = s.lastIndexOf(',');
     var whole = (dec === -1 ? s : s.slice(0, dec)).replace(/[.,]/g, '');
     var frac = dec === -1 ? '' : s.slice(dec + 1);
     // Grouping marks are gone by now, so anything left in the fraction is a
@@ -1156,10 +1163,10 @@
           if (cll === -1) { out += body[i++]; continue; }
           var dtok = body.slice(i+2, cll).replace(/^\s+|\s+$/g, '');
           if (dtok.charAt(0) === '=') {
-            var dfv = evalFormula(dtok.slice(1).replace(/^\s+|\s+$/g, ''), vals);
+            var dfv = (_o.formula || evalFormula)(dtok.slice(1).replace(/^\s+|\s+$/g, ''), vals);
             out += dfv !== null ? String(dfv) : '';
           } else {
-            var dval = vals[dtok];
+            var dval = _o.value ? _o.value(dtok, vals) : vals[dtok];
             if (dval !== undefined && dval !== null) out = sbEmitValue(out, dval, gLock);
             else out += '{{' + dtok + '}}';
           }
@@ -1176,14 +1183,14 @@
             var vname = vdecl.slice(0, veq).replace(/^\s+|\s+$/g, '');
             var vexpr = vdecl.slice(veq+1).replace(/^\s+|\s+$/g, '');
             try {
-              var vres = evalFormula(vexpr, vals);
+              var vres = (_o.formula || evalFormula)(vexpr, vals, vname);
               vals[vname] = (vres !== null && typeof vres === 'number' && !isNaN(vres)) ? vres : 0;
             } catch(e) { vals[vname] = 0; }
           }
           i = cl+1; continue;
         }
         if (tok.charAt(0) === '=') {
-          var fv = evalFormula(tok.slice(1), vals);
+          var fv = (_o.formula || evalFormula)(tok.slice(1), vals);
           out += fv !== null ? String(fv) : '';
           i = cl+1; continue;
         }
@@ -1268,7 +1275,7 @@
         if (tok === 'endif' || tok === 'else' || tok.slice(0,7).toLowerCase() === 'elseif:') {
           i = cl+1; continue;
         }
-        var fval = vals[tok];
+        var fval = _o.value ? _o.value(tok, vals) : vals[tok];
         if (fval !== undefined && fval !== null) {
           out = sbEmitValue(out, _emitField(tok, fval, fmtMap), gLock);
         }
@@ -1315,13 +1322,19 @@
   // decides Show or hide rules, formulas and {NAME}, but the token itself prints
   // nothing. It is how a choice that only decides what shows stays out of the
   // message.
-  var MENU_KEYS = /^\s*(name|default|multiple|cols|link|print)\s*=/i;
+  //
+  // `other=LABEL` joined in v3.71.0: the menu offers one more choice, LABEL,
+  // and picking it opens a box whose typed text is the field's value. The
+  // label is the attribute's own text, "Other" when it is left empty.
+  var MENU_KEYS = /^\s*(name|default|multiple|cols|link|print|other)\s*=/i;
   var MENU_PRINT = /^\s*print\s*=/i;
   var MENU_QUIET = /^\s*print\s*=\s*(?:no|false|0)\s*$/i;
+  var MENU_OTHER = /^\s*other\s*=\s*(.*)$/i;
+  var MENU_OTHER_LABEL = 'Other';
 
   function _parseMenuSettings(rest) {
     var segs = String(rest === null || rest === undefined ? '' : rest).split(';');
-    var options = [], attrs = '', name = '', prints = true, keySegs = [];
+    var options = [], attrs = '', name = '', prints = true, other = '', keySegs = [];
     for (var i = 0; i < segs.length; i++) {
       var seg = segs[i];
       if (MENU_KEYS.test(seg)) {
@@ -1329,9 +1342,11 @@
         var nm = /^\s*name\s*=\s*([A-Za-z_][A-Za-z0-9_]*)/i.exec(seg);
         if (nm && !name) name = nm[1];
         if (MENU_QUIET.test(seg)) prints = false;
-        // Switching print on or off must not rename an unnamed menu: a rule
-        // that checks it would stop matching. So the key never reads it.
-        if (!MENU_PRINT.test(seg)) keySegs.push(seg);
+        var ot = MENU_OTHER.exec(seg);
+        if (ot && !other) other = _sTrim(ot[1]) || MENU_OTHER_LABEL;
+        // Switching print or Other on or off must not rename an unnamed menu:
+        // a rule that checks it would stop matching. So the key reads neither.
+        if (!MENU_PRINT.test(seg) && !ot) keySegs.push(seg);
         continue;
       }
       keySegs.push(seg);
@@ -1345,7 +1360,7 @@
     // token itself: stable wherever it is read from (extractFields, the config
     // builder, resolveBody's {if:} recursion) without depending on walk order.
     if (!name) name = options.length ? 'MENU_' + _menuKeyHash(keySegs.join(';')) : '';
-    return { options: options, attrs: attrs, name: name, print: prints };
+    return { options: options, attrs: attrs, name: name, print: prints, other: other };
   }
 
   function _menuKeyHash(src) {
@@ -2049,6 +2064,7 @@
   //   default=X[,Y]  — preselected option(s); silently dropped when not declared
   //   multiple=yes   — the field accepts several picks, joined with ", " on output
   //   cols=N         — field width in characters (presentation only)
+  //   other=LABEL    : an Other choice whose typed text is the value (cfg.other)
   function buildFormFieldCfg(body) {
     var cfg = {}, re = /\{([^}]+)\}/g, m;
     while ((m = re.exec(body)) !== null) {
@@ -2095,6 +2111,7 @@
         }
         var menuLink = _linkAttr(attrs);
         if (menuLink) menu.link = menuLink;
+        if (menuSet.other) menu.other = menuSet.other;
         cfg[key] = menu;
       } else {
         cfg[key] = _numberOrTextCfg(_formAttrSrc(tokLow, rest), defVal);
@@ -2119,10 +2136,9 @@
   // implementation detail nobody authoring a snippet has to know.
   var NUMBER_FORMATS = ['plain', 'currency', 'percent'];
 
-  // A declared default has to survive into an <input type="number">, which
-  // rejects the very thing an operator is most likely to have typed: a
-  // default of "1.200,50" would arrive as a blank box. Normalising it here
-  // means every renderer gets a value it can actually show.
+  // A declared default reaches every renderer in one plain spelling: "1.200,50"
+  // arrives as "1200.5", which every box shows and sbToNumber reads back as the
+  // same number. A default that is not a number at all opens the box empty.
   //
   // Empty stays empty. sbToNumber reads '' as 0 because an unanswered field
   // contributes nothing to a sum, but "no default" and "a default of zero"
@@ -2490,6 +2506,10 @@
     var link = _linkValue(c.link);
     if (link !== '') out += '; link=' + link;
     if (c.print === false) out += '; print=no';
+    // `other` is the Other choice's label, or absent for a menu without one.
+    // A label emptied by sanitising is still a wish for the choice, so it
+    // falls back to the default word rather than dropping it.
+    if (typeof c.other === 'string') out += '; other=' + (_menuSafe(c.other) || MENU_OTHER_LABEL);
     return out + '}';
   }
 

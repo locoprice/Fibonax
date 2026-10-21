@@ -173,6 +173,10 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 .foot-lang a{color:#8E8E93;transition:color .15s}
 .foot-lang a:hover{color:#fff}
 .foot-lang-current{color:#fff;font-weight:600}
+/* A static Fibonacci numeral texture: decoration, never an extra action. */
+.foot-wordmark{margin:var(--space-16) auto 0;max-width:1600px;color:color-mix(in srgb,var(--primary) 70%,var(--card));pointer-events:none;user-select:none}
+.foot-wordmark svg{display:block;width:100%;height:auto;overflow:hidden}
+@media(max-width:640px){.foot-wordmark{margin-top:var(--space-10)}.foot-wordmark g{fill:url(#foot-fibonacci-digits-mobile)}}
 
 /* ── CONTACT MODAL ───────────────────────────────────────
    Deliberately light, unlike the dark .fm-* feature modals above: it frames a
@@ -293,8 +297,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <a href="../#features" class="nav-link">Features</a>
       <a href="./" class="nav-link" aria-current="page">Pricing</a>
       <a href="https://app.fibonax.com/mobile/" class="nav-link">Mobile</a>
-      <a href="mailto:sprintbrainapp@gmail.com" class="nav-link" id="nav-contact-open">Contact us</a>
-      <a href="https://github.com/locoprice/SprintBrain" class="btn btn-github btn-sm" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>Star on GitHub</a>
+      <a href="mailto:fibonaxai@gmail.com" class="nav-link" id="nav-contact-open">Contact us</a>
+      <a href="https://github.com/locoprice/Fibonax" class="btn btn-github btn-sm" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>Star on GitHub</a>
       <a href="https://chromewebstore.google.com/detail/khdpimdpkgmmaimpbfjgglnpaemmopoo" class="btn btn-primary btn-sm" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add to Chrome</a>
       <div class="nav-account">
         <button type="button" class="btn btn-ghost btn-sm nav-account-trigger" id="nav-account-trigger" aria-haspopup="true" aria-expanded="false" aria-controls="nav-account-menu">
@@ -344,7 +348,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <a href="../#features" class="nav-link">Features</a>
       <a href="./" class="nav-link" aria-current="page">Pricing</a>
     <a href="https://app.fibonax.com/mobile/" class="nav-link">Mobile</a>
-    <a href="https://github.com/locoprice/SprintBrain" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>Star on GitHub</a>
+    <a href="https://github.com/locoprice/Fibonax" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>Star on GitHub</a>
     <a href="https://app.fibonax.com/login">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       <span>Sign in</span>
@@ -393,8 +397,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <div class="foot-links">
       <a href="./">Pricing</a>
       <a href="https://app.fibonax.com/mobile/">Mobile</a>
-      <a href="https://github.com/locoprice/SprintBrain" target="_blank" rel="noopener">GitHub</a>
-      <a href="mailto:sprintbrainapp@gmail.com" id="contact-open">Support</a>
+      <a href="https://github.com/locoprice/Fibonax" target="_blank" rel="noopener">GitHub</a>
+      <a href="mailto:fibonaxai@gmail.com" id="contact-open">Support</a>
       <a href="../legal/privacy-policy.html">Privacy</a>
       <a href="../legal/terms-and-conditions.html">Terms</a>
       <a href="../legal/cookie-policy.html">Cookies</a>
@@ -404,6 +408,25 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <div class="foot-brand">
       © <span id="foot-year">2026</span> Fibonax<span id="foot-ver"> · {{EXT_VERSION}}</span><span id="foot-updated"> · Updated {{RELEASE_MONTH}}</span>
     </div>
+  </div>
+  <div class="foot-wordmark" aria-hidden="true">
+    <svg viewBox="0 0 1300 220" xmlns="http://www.w3.org/2000/svg" focusable="false">
+      <defs>
+        <pattern id="foot-fibonacci-digits" width="156" height="14" patternUnits="userSpaceOnUse">
+          <text x="0" y="11" fill="currentColor" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12" textLength="156" lengthAdjust="spacingAndGlyphs">01123581321345589144233</text>
+        </pattern>
+        <pattern id="foot-fibonacci-digits-mobile" href="#foot-fibonacci-digits" patternTransform="scale(2)"/>
+      </defs>
+      <g fill="url(#foot-fibonacci-digits)" fill-rule="evenodd">
+        <path d="M0 0H160V44H48V90H144V134H48V220H0Z"/>
+        <path d="M190 0H238V220H190Z"/>
+        <path d="M268 0H362C406 0 432 21 432 57C432 80 420 98 401 105C427 112 442 131 442 158C442 198 413 220 366 220H268ZM316 42V87H359C377 87 385 79 385 64C385 49 377 42 359 42ZM316 128V178H363C383 178 393 170 393 153C393 136 383 128 363 128Z"/>
+        <path d="M568 0C633 0 664 40 664 110C664 180 633 220 568 220C503 220 472 180 472 110C472 40 503 0 568 0ZM568 44C535 44 521 66 521 110C521 154 535 176 568 176C601 176 615 154 615 110C615 66 601 44 568 44Z"/>
+        <path d="M694 220V0H740L824 137V0H870V220H824L740 83V220Z"/>
+        <path d="M900 220L974 0H1028L1102 220H1051L1037 174H965L951 220ZM978 132H1024L1001 55Z"/>
+        <path d="M1120 0H1175L1210 66L1245 0H1300L1238 107L1300 220H1245L1210 151L1175 220H1120L1182 107Z"/>
+      </g>
+    </svg>
   </div>
 </footer>
 <div class="cm-backdrop" id="cm-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
@@ -517,7 +540,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     // accessible name is whatever that page's language already calls it. Uses
     // aria-label, not aria-labelledby on an opener: they are mailto: anchors
     // and name computation renders one as the raw address
-    // ("Mail to sprintbrainapp@gmail.com") instead of its text.
+    // ("Mail to fibonaxai@gmail.com") instead of its text.
     frame.setAttribute('title',from.textContent);
     backdrop.setAttribute('aria-label',from.textContent);
     backdrop.classList.add('cm-open');
@@ -552,7 +575,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.70.2';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.75.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.

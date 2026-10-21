@@ -270,6 +270,61 @@ Keep the text short. Avada centres it inside 200 px, so a sentence or two reads 
 
 ## Visual references
 
+### Snippets identity icon (approved 2026-10-16)
+
+Snippets use the same outlined text-selection glyph across the landing,
+dashboard, mobile companion, extension and documentation. This replaces the
+older lightning, document and text-type symbols used as Snippets category icons
+in the historical mockup. The approved glyph uses a `0 0 24 24` viewBox, no fill,
+`currentColor`, a 1.8 stroke, and round caps and joins. Its path is:
+
+```text
+M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6
+```
+
+Reuse `SnippetIcon` in React and the shared Snippets SVG value within each
+standalone surface. Keep each context's existing size, color and selected state;
+do not override the glyph's stroke weight. Decorative instances are hidden from
+assistive technology and are not keyboard stops. Preserve actual trigger text,
+action icons, user-selected folder icons and intentionally icon-free lists.
+All three category glyphs now share the approved 1.8 stroke weight.
+Archived screenshots remain historical product captures, not icon definitions.
+
+### Prompts identity icon (approved 2026-10-17)
+
+Prompts use the approved landing command-window glyph (option A). Its closed,
+rounded rectangular frame complements the open frame of Snippets. Reuse
+`PromptIcon` in React and the matching inline SVG on standalone surfaces:
+`viewBox="0 0 24 24"`, no fill, currentColor, 1.8 stroke, round caps and joins.
+
+```svg
+<rect x="3" y="4" width="18" height="16" rx="3"/>
+<path d="m7 9 3 3-3 3m6 0h4"/>
+```
+
+Use it for Prompts navigation, category headings, filters and empty states.
+Preserve the existing contextual size, color and selected state. Hide decorative
+instances from assistive technology. Keep user-selected folder icons, functional
+AI/action symbols and configurable trigger text; unfiled mobile prompts use the
+Prompts glyph. Archived raster captures remain historical references.
+
+### Brains identity icon (approved 2026-10-17)
+
+Brains use the three outlined layers from the landing. Reuse `BrainIcon` in
+React and `BRAIN_SVG` on mobile. The glyph has a 0 0 24 24 viewBox, no fill,
+currentColor, a 1.8 stroke, and round caps and joins:
+
+```text
+m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5
+```
+
+The stored default key `brain` resolves to this glyph on desktop and mobile;
+no stored data or icon keys change. Preserve alternative user-selected space
+icons and functional action/status symbols. Category navigation, sources,
+review rows, empty states and the default Brain cards use this identity.
+Decorative SVGs are hidden from assistive technology and not focusable.
+The extension popup Brains tab uses the same layers glyph. Icon-free Context controls remain icon-free.
+
 ### Landing platforms and security (v3.49.0)
 
 The approved landing composition merges the three platform cards and security section into four tabs: Chrome Extension, Web Dashboard, Mobile Website, and Security. It retains the existing copy and azure palette. `#platforms` scopes the styling; the blue, ink, muted text and paper aliases inherit the landing's `--primary`, `--text`, `--text2` and `--card`. The section registers `--sb-line: #dde2ef`, `--sb-bg: #f7f8fc` and `--sb-radius: 24px`. The pale azure gradients, translucent backplates and cube shading are decorative artwork, local to this marketing composition. They do not introduce new product status colours.
@@ -348,3 +403,18 @@ requirements. The private Notion benchmark library was unavailable during review
 ### Under-review indicator
 
 `under_review` is a quiet inline clock with muted text, without a filled background or pill border. It distinguishes review state from the blue `formula` capability badge by shape as well as colour. Reuse the existing muted text tokens and 12 px clock on dashboard, mobile and extension. Labels, hints, status rules and actions remain unchanged.
+
+
+### Long snippet fill forms (v3.75.0)
+
+Owner-approved on 2026-10-20: a near-viewport overlay (1280 px maximum width,
+32 px outer margin), fields left and full read-only preview right. At 800 px
+and below, Fill in / Preview switches panes. Header and insertion action stay
+visible. Existing Azure / neutral tokens and 44 px controls remain. Long forms
+keep walk order in open, collapsible groups of four; generic numbered headings
+avoid assigning an industry to a user's content. Choices collapse into a native
+details disclosure retaining the existing radio/checkbox controls and Other.
+Date/time adjustment is named Options. The popup adapts the split to 320 px
+scroll panels; the dashboard preview can expand within its editor. Mobile has
+Fill in / Preview views and an untruncated result. Shared vanilla presentation
+is extension/shared/fill-form-ui.{js,css}; mobile copies are generated.

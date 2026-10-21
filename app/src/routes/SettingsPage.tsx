@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountPanel } from '@/features/settings/AccountPanel';
 import { BrandingPanel } from '@/features/settings/BrandingPanel';
+import { DeleteAccountPanel } from '@/features/settings/DeleteAccountPanel';
 import { InactivityPanel } from '@/features/settings/InactivityPanel';
 import { InlineTriggerPanel } from '@/features/settings/InlineTriggerPanel';
 import { IntegrationsPanel } from '@/features/settings/IntegrationsPanel';
@@ -50,6 +51,7 @@ export function SettingsPage() {
           <InlineTriggerPanel />
           <InactivityPanel />
           <SaintOfDayPanel />
+          <DeleteAccountPanel />
         </TabsContent>
         <TabsContent value="security" className="space-y-4">
           <PasswordPanel />

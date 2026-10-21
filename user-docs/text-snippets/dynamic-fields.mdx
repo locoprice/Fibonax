@@ -24,7 +24,12 @@ A quantity: a price, a count, a duration. A number field always holds a number, 
 - **Currency**: EUR (€), USD ($), GBP (£), CHF, CAD (CA$), AUD (A$) or JPY (¥, no decimals).
 - **Default** (optional). A blank default opens empty, which is not the same as 0.
 
-People can type `1.200,50` or `1,200.50`. Both read as the same number.
+People can write a number their own way:
+
+- `1.200,50` and `1,200.50` are the same number.
+- A dot or comma followed by exactly three digits marks thousands: `1.500` and `1,500` both mean fifteen hundred.
+- Any other dot or comma marks decimals: `1,5`, `12.50`, `0.125`.
+- For three decimals, start with 0 or add a 0 at the end: `0.125`, `1.1250`.
 
 <Warning>
   Phone numbers, order references and postcodes are not numbers. They lose a leading zero and can't hold `+` or spaces. Use a Text field for them.
@@ -68,16 +73,21 @@ The window shows how the date prints today before you insert it.
 
 The end date can't be set before the start date. You can add a time to both dates. It doesn't change the count.
 
+The **Range** window lists the counts already in the snippet. **Edit** changes one in its row, for example from `"between"` to `"inclusive"`, and **Remove** takes it out. The two dates are listed under **Date/Time**.
+
 ## Choice
 
 **Choice** builds a list of options to pick from while filling.
 
-- **Values**: the options. Tick one to have it selected from the start. Drag the handles to reorder them.
-- **Selection**: **Single Choice** shows round buttons, **Multiple Choice** shows tick boxes.
+- **Predefined options**: fills the values with a ready-made list: days of the week, months, yes / no, numbers 1 to 10, satisfaction or priority. Days, months and the other words come in the snippet's language. Picking a list replaces the values already there.
+- **Values**: the options. Drag the handles to reorder them.
+- **Selected by default**: the option the form opens on, for **Single Choice**. With **Multiple Choice** this box goes away and each value gets a tick box instead: tick the ones to select from the start.
+- **Display Other option**: adds one more choice at the end, named **Other** unless you type another name. Whoever fills the form picks it and types their own answer, and that answer prints where the field sits. A [Show or hide](/text-snippets/formulas#show-or-hide) rule checks the typed answer too. With **Multiple Choice**, the typed answer prints after the options ticked.
+- **Selection**: open the compact menu to choose. **Single Choice** shows round buttons, **Multiple Choice** shows tick boxes and keeps the menu open for more than one answer.
 - **Print the picked option**: on by default, so the option picked prints where the field sits. Switch it off when the choice only decides what a [Show or hide](/text-snippets/formulas#show-or-hide) rule prints. The form still asks, and the option stays out of the message.
 - **Name** (optional): only needed if the body repeats the choice somewhere else.
 
-To change a list later, put the cursor inside it and click **Edit this menu**.
+To change a list later, click **Edit** beside it in the Choice window's list, or put the cursor inside it and click **Edit this menu**.
 
 ## Button
 
@@ -90,6 +100,16 @@ A **Button** changes numbers while you fill the form, like a "10% off" button. I
 ## Fill from a pasted link
 
 The Text, Number, Date/Time and Choice windows have a **Fill from a pasted link** option. Tick it and say where the value is on a web page, and the form gets a box where you paste the page's link to fill the fields. See [Fill a form from a link](/text-snippets/fill-from-link).
+
+## Change or remove a field
+
+The Text, Number, Choice, Button and Automatic date windows list the ones already in the snippet. **Manage** shows them, each with **Edit** and **Remove**. Date and time fields are listed the same way under **Date/Time** in the panel.
+
+- **Edit** opens the field in its window. Change what you need and click **Save**, or **Cancel** to leave it as it was. **New field instead** keeps it and starts a new one.
+- Rename a field and the formulas, rules and buttons that read it change with it. The window says how many before you save.
+- **Undo**, under the body, takes back the last save.
+- **Remove** takes the field out. If a formula, rule or button still reads it, the row says so first: **Remove anyway** or **Keep it**. **Undo** under the list puts it back.
+- A field written by hand with a setting its window doesn't offer has **Remove** only. Change it in the body.
 
 ## Writing fields by hand
 
@@ -110,6 +130,7 @@ You can also type fields straight into the body:
 | Choice | `{formmenu: Basic,Plus,Pro; name=PLAN; default=Plus}` |
 | Choice, several answers | `{formmenu: Email,Phone,Chat; name=CHANNEL; multiple=yes}` |
 | Choice that only decides what shows | `{formmenu: Basic,Pro; name=PLAN; print=no}` |
+| Choice with an Other answer | `{formmenu: Email,Phone; name=CHANNEL; other=Other}` |
 | Button | `{button label="10% off"}PRICE = PRICE * 0.9{/button}` |
 
 To repeat a field's answer elsewhere in the body, write its name in braces, like `{CLIENT}`.

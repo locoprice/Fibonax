@@ -1,6 +1,6 @@
+import { BrainIcon } from '@/components/shared/BrainIcon';
 import {
   Book,
-  Brain,
   Briefcase,
   FileText,
   FlaskConical,
@@ -41,7 +41,7 @@ export type SpaceIconKey = (typeof SPACE_ICON_KEYS)[number];
 export const DEFAULT_SPACE_ICON: SpaceIconKey = 'brain';
 
 const ICON_BY_KEY: Record<SpaceIconKey, LucideIcon> = {
-  brain: Brain,
+  brain: BrainIcon,
   book: Book,
   'file-text': FileText,
   briefcase: Briefcase,

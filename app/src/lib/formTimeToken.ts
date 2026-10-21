@@ -28,6 +28,14 @@
  * the phone.
  */
 
+import {
+  DATE_FORMATS,
+  DEFAULT_TIME_FORMAT,
+  TIME_FORMATS,
+  type DateFormat,
+  type TimeFormat,
+} from '@/lib/formDateToken';
+
 /** The anchors the builder offers, in the order it offers them. */
 export const NAMED_SHIFTS = [
   'tomorrow',
@@ -240,4 +248,59 @@ export function previewTime(
   const at = (cfg.at ?? '').trim();
   if (at && formatShowsTime(format)) base = applyAt(base, at);
   return formatDate(base, format);
+}
+
+/** What the automatic-date window shows for a token it is asked to change. */
+export interface TimeFormState {
+  dateFormat: DateFormat;
+  withTime: boolean;
+  timeFormat: TimeFormat;
+  mode: ShiftMode;
+  amount: string;
+  unit: ShiftUnit;
+  back: boolean;
+  named: NamedShift;
+  hour: string;
+  minute: string;
+}
+
+const UNIT_BY_KEY: Record<string, ShiftUnit> = { d: 'D', w: 'W', mo: 'Mo', y: 'Y', h: 'H', m: 'M' };
+
+/**
+ * A token's settings as the window's controls hold them, or null when the
+ * window cannot show it: a format or a shift it does not offer, or a time
+ * printed without one pinned. Such a token is changed in the body.
+ */
+export function timeFormState(cfg: FormTimeConfig): TimeFormState | null {
+  const format = cfg.format.trim();
+  let dateFormat: DateFormat;
+  let timeFormat: TimeFormat = DEFAULT_TIME_FORMAT;
+  let withTime = false;
+  const asDate = DATE_FORMATS.find((d) => d === format);
+  if (asDate) {
+    dateFormat = asDate;
+  } else {
+    const t = TIME_FORMATS.find((f) => format.endsWith(` ${f}`));
+    const d = t ? DATE_FORMATS.find((f) => f === format.slice(0, -t.length - 1)) : undefined;
+    if (!t || !d) return null;
+    dateFormat = d;
+    timeFormat = t;
+    withTime = true;
+  }
+
+  const at = cfg.at.trim();
+  if (withTime !== (at !== '')) return null;
+  const clock = AT_RE.exec(at);
+  const hour = clock ? (clock[1] ?? '').padStart(2, '0') : '09';
+  const minute = clock ? (clock[2] ?? '') : '00';
+
+  const base = { dateFormat, withTime, timeFormat, amount: '1', unit: 'D' as ShiftUnit, back: false, named: 'tomorrow' as NamedShift, hour, minute };
+  const shift = cfg.shift.trim();
+  if (shift === '') return { ...base, mode: 'none' };
+  const named = NAMED_SHIFTS.find((n) => n === shiftKey(shift));
+  if (named) return { ...base, mode: 'named', named };
+  const fixed = FIXED_SHIFT_RE.exec(shift.replace(/\s+/g, ''));
+  const unit = fixed ? UNIT_BY_KEY[(fixed[3] ?? '').toLowerCase()] : undefined;
+  if (!fixed || !unit) return null;
+  return { ...base, mode: 'fixed', amount: String(Number.parseInt(fixed[2] ?? '1', 10)), unit, back: fixed[1] === '-' };
 }

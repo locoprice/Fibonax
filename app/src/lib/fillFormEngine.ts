@@ -61,6 +61,8 @@ export interface SbFieldAdjust {
 
 /** One row of the fill form. Mirrors FIELD_SHAPE in scripts/check-fill-form.js. */
 export interface SbFillField {
+  required?: boolean;
+  error?: string;
   key: string;
   /**
    * Display name from a stored field_cfg, or '' when none is set — the renderer
@@ -83,6 +85,12 @@ export interface SbFillField {
   /** Which choices are currently selected, for `dd` only. */
   picks: string[];
   multiple: boolean;
+  /** The Other choice's label (`other=`), or '' for a menu without one. */
+  other: string;
+  /** Other is ticked: the value is what its box holds (after the picks, when multiple). */
+  otherOn: boolean;
+  /** What the Other box holds; '' while Other is not ticked. */
+  otherText: string;
   /** Author-requested width in characters; 0 when unset. */
   cols: number;
   default: string;
@@ -123,6 +131,8 @@ export interface SbFillButton {
 
 /** The view model every fill surface renders. Mirrors SHAPE in the gate. */
 export interface SbFillFormViewModel {
+  errors?: Array<{ key: string; message: string }>;
+  sections?: Array<{ title: string; keys: string[] }>;
   fields: SbFillField[];
   buttons: SbFillButton[];
   preview: string;
@@ -158,6 +168,11 @@ export interface SbFillFormOptions {
    * The renderer drops a key the moment that field is edited by hand.
    */
   linked?: Record<string, boolean>;
+  /**
+   * The menus whose Other choice is ticked, with what its box holds,
+   * `{ KEY: 'text' }`. Keeps Other ticked while the box is still empty.
+   */
+  other?: Record<string, string>;
 }
 
 /** Why a pasted link was refused before anything was sent. */
@@ -212,6 +227,10 @@ interface SbFillFormApi {
     values: Record<string, string>,
     opts: SbFillFormOptions,
   ): SbFillFormViewModel;
+  /** A menu's value from its ticked options and, when Other is ticked, its text. */
+  menuValue(multiple: boolean, picks: readonly string[], other: string | null): string;
+  /** The hint inside the Other box, the same on every surface. */
+  OTHER_PLACEHOLDER: string;
   /** The picker value a Day choice lands on, in the picker's own spelling. */
   dayValue(type: SbFieldType, choice: SbDayChoice, current: string, now?: Date): string;
   /** The picker value a Clock choice lands on; '' for a field with no clock. */
@@ -366,6 +385,11 @@ export function fillForm(
   const api = window.SBFillForm;
   if (!api) return null;
   return api.fillForm(body, values, opts);
+}
+
+/** The hint inside a menu's Other box; '' until the engine has loaded. */
+export function otherPlaceholder(): string {
+  return window.SBFillForm?.OTHER_PLACEHOLDER ?? '';
 }
 
 /**

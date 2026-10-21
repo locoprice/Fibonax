@@ -1,5 +1,5 @@
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { useEffect, useId, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Check, ChevronDown, Divide, Minus, Pencil, Percent, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,7 +12,30 @@ import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { cn } from '@/lib/utils';
 import { isValidFieldName } from '@/lib/formNumberToken';
-import { formulasInBody, hasDuplicateNames, type FormulaDecimals } from '@/lib/formulaToken';
+import { bodyItems, itemDetail, itemTitle, readersOf, type BodyItem, type BodyItemKind } from '@/lib/bodyItems';
+import { formulaEngine, loadFillFormEngine } from '@/lib/fillFormEngine';
+import {
+  buildSteps,
+  humanizeName,
+  isPercentOp,
+  parseSteps,
+  STEP_OPS,
+  stepNumber,
+  stepOpLabel,
+  stepsComplete,
+  type FormulaStep,
+  type StepOp,
+} from '@/lib/formulaSteps';
+import {
+  editTextError,
+  formulasInBody,
+  formulaTextError,
+  hasDuplicateNames,
+  lineContext,
+  savedValuesInBody,
+  withRounding,
+  type FormulaDecimals,
+} from '@/lib/formulaToken';
 
 // The pieces the formula windows (Price line, Calculator, the two interest
 // windows, Show or hide) share, so they look and behave as one: same frame,
@@ -254,7 +277,7 @@ export function BoxNames({
 }
 
 /** Settings most people never need, out of the way until asked for. */
-export function MoreOptions({ children }: { children: ReactNode }) {
+export function MoreOptions({ children, label = 'More options' }: { children: ReactNode; label?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div>
@@ -265,7 +288,7 @@ export function MoreOptions({ children }: { children: ReactNode }) {
         className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
       >
         <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} aria-hidden />
-        More options
+        {label}
       </button>
       {open && <div className="mt-3 flex flex-col gap-4">{children}</div>}
     </div>
@@ -284,15 +307,102 @@ export interface BodyListItem {
   content: ReactNode;
   /** Present when the item can be loaded back into the window. */
   onEdit?: () => void;
+  /**
+   * Present when the item's text can be changed right in its row: the range
+   * Save swaps for the new text, the text the box opens on, the words above
+   * the box, and why a text cannot be saved ('' when it can).
+   */
+  inlineEdit?: {
+    start: number;
+    end: number;
+    text: string;
+    label: string;
+    error: (text: string) => string;
+  };
+  /**
+   * Present when something else in the snippet still reads the item: what
+   * removing it would break. Remove then asks before it removes.
+   */
+  removeWarning?: string;
+  /** The item the window is changing right now, marked so it can be found. */
+  active?: boolean;
 }
 
 const ROW_ACTION =
   'flex shrink-0 items-center gap-1 rounded-[6px] border border-line bg-card px-2 py-1 text-[11px] font-medium text-ink-subtle transition-colors';
 
+/** A `BodyListSection` row while its text is changed in place. */
+function InlineEditRow({
+  item,
+  draft,
+  onDraft,
+  onSave,
+  onCancel,
+}: {
+  item: BodyListItem;
+  draft: string;
+  onDraft: (next: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const errorId = useId();
+  const error = item.inlineEdit?.error(draft) ?? '';
+  const label = item.inlineEdit?.label ?? '';
+  return (
+    <li className="px-3 py-2">
+      {label !== '' && <p className="truncate text-[11px] text-ink-subtle">{label}</p>}
+      {/* Wraps where it is narrow, as in the editor's side panel: the box
+          keeps a usable width and the buttons move under it. */}
+      <div className={cn('flex flex-wrap items-center gap-2', label !== '' && 'mt-1')}>
+        <Input
+          autoFocus
+          value={draft}
+          onChange={(e) => onDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onSave();
+            }
+          }}
+          aria-label={`Change ${item.description}`}
+          aria-invalid={error !== ''}
+          aria-describedby={error !== '' ? errorId : undefined}
+          spellCheck={false}
+          className={cn(
+            'h-8 min-w-[8rem] flex-1 rounded-[10px] px-2.5 font-mono text-xs',
+            error !== '' && 'border-danger focus:border-danger focus:ring-danger/20',
+          )}
+        />
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={error !== ''}
+          className={cn(
+            ROW_ACTION,
+            'border-primary bg-primary text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50',
+          )}
+        >
+          <Check className="h-3 w-3" aria-hidden />
+          Save
+        </button>
+        <button type="button" onClick={onCancel} className={cn(ROW_ACTION, 'hover:bg-bg-alt hover:text-ink')}>
+          Cancel
+        </button>
+      </div>
+      {error !== '' && (
+        <p id={errorId} className={ERROR}>
+          {error}
+        </p>
+      )}
+    </li>
+  );
+}
+
 /**
  * What the snippet already holds, one line by default (how many there are) and
- * the list behind Manage. Each can be removed, and the last removal undone; an
- * item the window can load back also carries Edit.
+ * the list behind Manage. Each can be removed, and the last removal or change
+ * undone; an item the window can load back, or change in its row, also carries
+ * Edit.
  *
  * It sits above the scrolling form in every window, never inside it: in there
  * it scrolled out of sight and could not be found.
@@ -312,13 +422,52 @@ export function BodyListSection({
   defaultExpanded?: boolean;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  // What the last Remove took out, and where, so Undo can put it back.
-  const [lastRemoved, setLastRemoved] = useState<{
+  // What the last Remove or Save took out, where, and how much it put there
+  // instead (0 for a removal), so Undo can put the old text back.
+  const [lastChange, setLastChange] = useState<{
     start: number;
+    length: number;
     text: string;
-    description: string;
+    note: string;
   } | null>(null);
+  // The row being changed in place. It holds only for the body it was opened
+  // on: once the body moves, its range may point at another item's text.
+  const [editing, setEditing] = useState<{
+    key: string | number;
+    body: string;
+    draft: string;
+  } | null>(null);
+  // The row whose Remove is waiting for a yes, for the same body only.
+  const [confirming, setConfirming] = useState<{ key: string | number; body: string } | null>(null);
   const count = items.length;
+  const editingKey = editing !== null && editing.body === body ? editing.key : null;
+  const confirmingKey = confirming !== null && confirming.body === body ? confirming.key : null;
+
+  function remove(item: BodyListItem) {
+    setConfirming(null);
+    setLastChange({
+      start: item.removeStart,
+      length: 0,
+      text: body.slice(item.removeStart, item.removeEnd),
+      note: `Removed ${item.description}.`,
+    });
+    onReplace(item.removeStart, item.removeEnd, '');
+  }
+
+  function saveEdit(item: BodyListItem, draft: string) {
+    const edit = item.inlineEdit;
+    if (!edit || edit.error(draft) !== '') return;
+    const next = draft.trim();
+    setEditing(null);
+    if (next === edit.text) return;
+    setLastChange({
+      start: edit.start,
+      length: next.length,
+      text: body.slice(edit.start, edit.end),
+      note: `Changed ${item.description}.`,
+    });
+    onReplace(edit.start, edit.end, next);
+  }
 
   return (
     <div className="rounded-[10px] border border-line bg-bg-alt">
@@ -342,49 +491,89 @@ export function BodyListSection({
 
       {expanded && count > 0 && (
         <ul className="max-h-[140px] divide-y divide-line overflow-y-auto border-t border-line bg-card">
-          {items.map((item) => (
-            <li key={item.key} className="flex items-center gap-2 px-3 py-2">
-              <div className="min-w-0 flex-1">{item.content}</div>
-              {item.onEdit && (
+          {items.map((item) =>
+            item.inlineEdit && editing !== null && item.key === editingKey ? (
+              <InlineEditRow
+                key={item.key}
+                item={item}
+                draft={editing.draft}
+                onDraft={(draft) => setEditing({ ...editing, draft })}
+                onSave={() => saveEdit(item, editing.draft)}
+                onCancel={() => setEditing(null)}
+              />
+            ) : item.key === confirmingKey ? (
+              <li key={item.key} className="px-3 py-2">
+                <div className="min-w-0">{item.content}</div>
+                <p role="alert" className="mt-1 text-[11px] leading-tight text-danger">
+                  {item.removeWarning}
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    autoFocus
+                    onClick={() => remove(item)}
+                    className={cn(ROW_ACTION, 'border-danger bg-danger text-white hover:bg-danger/90')}
+                  >
+                    <Trash2 className="h-3 w-3" aria-hidden />
+                    Remove anyway
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(null)}
+                    className={cn(ROW_ACTION, 'hover:bg-bg-alt hover:text-ink')}
+                  >
+                    Keep it
+                  </button>
+                </div>
+              </li>
+            ) : (
+              // Wraps where it is narrow, as in the editor's side panel: the
+              // words keep a readable width and the buttons move under them.
+              <li
+                key={item.key}
+                className={cn('flex flex-wrap items-center gap-2 px-3 py-2', item.active && 'bg-primary-light')}
+              >
+                <div className="min-w-[8rem] flex-1">{item.content}</div>
+                {(item.onEdit || item.inlineEdit) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (item.onEdit) item.onEdit();
+                      else if (item.inlineEdit) setEditing({ key: item.key, body, draft: item.inlineEdit.text });
+                    }}
+                    aria-label={`Edit ${item.description}`}
+                    className={cn(ROW_ACTION, 'hover:border-primary/30 hover:bg-primary-light hover:text-primary')}
+                  >
+                    <Pencil className="h-3 w-3" aria-hidden />
+                    Edit
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={item.onEdit}
-                  aria-label={`Edit ${item.description}`}
-                  className={cn(ROW_ACTION, 'hover:border-primary/30 hover:bg-primary-light hover:text-primary')}
+                  onClick={() => {
+                    if (item.removeWarning) setConfirming({ key: item.key, body });
+                    else remove(item);
+                  }}
+                  aria-label={`Remove ${item.description}`}
+                  className={cn(ROW_ACTION, 'hover:border-danger/30 hover:bg-danger/5 hover:text-danger')}
                 >
-                  <Pencil className="h-3 w-3" aria-hidden />
-                  Edit
+                  <Trash2 className="h-3 w-3" aria-hidden />
+                  Remove
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setLastRemoved({
-                    start: item.removeStart,
-                    text: body.slice(item.removeStart, item.removeEnd),
-                    description: item.description,
-                  });
-                  onReplace(item.removeStart, item.removeEnd, '');
-                }}
-                aria-label={`Remove ${item.description}`}
-                className={cn(ROW_ACTION, 'hover:border-danger/30 hover:bg-danger/5 hover:text-danger')}
-              >
-                <Trash2 className="h-3 w-3" aria-hidden />
-                Remove
-              </button>
-            </li>
-          ))}
+              </li>
+            ),
+          )}
         </ul>
       )}
 
-      {lastRemoved && (
+      {lastChange && (
         <p className="border-t border-line px-3 py-2 text-[11px] text-ink-subtle">
-          Removed {lastRemoved.description}.{' '}
+          {lastChange.note}{' '}
           <button
             type="button"
             onClick={() => {
-              onReplace(lastRemoved.start, lastRemoved.start, lastRemoved.text);
-              setLastRemoved(null);
+              onReplace(lastChange.start, lastChange.start + lastChange.length, lastChange.text);
+              setLastChange(null);
             }}
             className="font-medium text-primary hover:underline"
           >
@@ -398,33 +587,530 @@ export function BodyListSection({
 
 const FORMULA_NOUN = { one: 'formula', many: 'formulas' };
 
-/** The formulas already in the snippet, as every formula window lists them. */
+/** A row's two lines: the words around it, then what it is. */
+function RowContent({ context, main }: { context: string; main: string }) {
+  return (
+    <>
+      {context !== '' && <p className="truncate text-[11px] text-ink-subtle">{context}</p>}
+      <p className="truncate font-mono text-xs text-ink" title={main}>
+        {main}
+      </p>
+    </>
+  );
+}
+
+/** What Remove warns about when other parts of the snippet read `name`. */
+export function readersWarning(name: string, readers: number): string | undefined {
+  if (readers === 0) return undefined;
+  return `${readers === 1 ? 'Another part' : `${readers} other parts`} of this snippet ${readers === 1 ? 'reads' : 'read'} ${name}. Without it, ${readers === 1 ? 'it prints' : 'they print'} nothing.`;
+}
+
+/**
+ * The formulas already in the snippet, as every formula window lists them,
+ * with the values the snippet saves for its formulas ({var:}) among them.
+ * `only` keeps the formulas one window is about, such as a date range's counts.
+ */
 export function FormulaListSection({
   body,
   onReplace,
+  only,
+  noun = FORMULA_NOUN,
+  onEditSteps,
+  activeKey,
 }: {
   body: string;
   onReplace: (start: number, end: number, text: string) => void;
+  only?: (expression: string) => boolean;
+  noun?: { one: string; many: string };
+  /**
+   * Opens a formula the steps can show in the window's step editor. Without
+   * it, or for a formula the steps cannot show, Edit changes the text in its row.
+   */
+  onEditSteps?: (target: StepsTarget) => void;
+  /** The formula the step editor is changing, to mark its row. */
+  activeKey?: string | number | null;
+}) {
+  const items = useMemo<BodyListItem[]>(() => {
+    const formulas = formulasInBody(body)
+      .filter((f) => !only || only(f.expression?.text ?? ''))
+      .map((f) => ({
+        at: f.at,
+        item: {
+          key: f.at,
+          removeStart: f.removeStart,
+          removeEnd: f.removeEnd,
+          description: f.description,
+          content: <RowContent context={f.context} main={f.description} />,
+          ...(f.expression && onEditSteps && parseSteps(f.expression.text)
+            ? {
+                onEdit: () =>
+                  f.expression &&
+                  onEditSteps({
+                    ...f.expression,
+                    key: f.at,
+                    what: f.context !== '' ? `the formula on "${f.context}"` : 'this formula',
+                  }),
+                active: activeKey === f.at,
+              }
+            : f.expression
+              ? { inlineEdit: { ...f.expression, label: f.context, error: formulaTextError } }
+              : {}),
+        } satisfies BodyListItem,
+      }));
+    const saved = only
+      ? []
+      : savedValuesInBody(body).map((v) => {
+          const context = lineContext(body, v.start, v.end);
+          const main = `${v.name} = ${v.expression.text}`;
+          return {
+            at: v.start,
+            item: {
+              key: `var-${v.start}`,
+              removeStart: v.start,
+              removeEnd: v.end,
+              description: `the saved value ${v.name}`,
+              content: <RowContent context={context} main={main} />,
+              ...(onEditSteps && parseSteps(v.expression.text)
+                ? {
+                    onEdit: () => onEditSteps({ ...v.expression, key: `var-${v.start}`, what: `the saved value ${v.name}` }),
+                    active: activeKey === `var-${v.start}`,
+                  }
+                : {
+                    inlineEdit: {
+                      ...v.expression,
+                      label: `${v.name} =`,
+                      error: (text: string) => editTextError(text, 'Type a value, or use Remove to take it out.'),
+                    },
+                  }),
+              removeWarning: readersWarning(v.name, readersOf(body, v.name, v.start, v.end)),
+            } satisfies BodyListItem,
+          };
+        });
+    return [...formulas, ...saved].sort((a, b) => a.at - b.at).map((r) => r.item);
+  }, [body, only, onEditSteps, activeKey]);
+  return <BodyListSection body={body} onReplace={onReplace} items={items} noun={noun} />;
+}
+
+/**
+ * The fields, buttons, automatic dates or greetings already in the snippet, as
+ * the window that builds them lists them. Edit loads one into the window (or,
+ * for a greeting, changes it in its row); Remove asks first when something
+ * else reads it.
+ */
+export function ItemListSection({
+  body,
+  onReplace,
+  kinds,
+  noun,
+  onEdit,
+  editing,
+}: {
+  body: string;
+  onReplace: (start: number, end: number, text: string) => void;
+  kinds: readonly BodyItemKind[];
+  noun: { one: string; many: string };
+  /** Loads an item into its window. Absent where the window has no form for it. */
+  onEdit?: (item: BodyItem) => void;
+  /** The item being changed now, to mark its row. */
+  editing?: BodyItem | null;
 }) {
   const items = useMemo<BodyListItem[]>(
     () =>
-      formulasInBody(body).map((f) => ({
-        key: f.at,
-        removeStart: f.removeStart,
-        removeEnd: f.removeEnd,
-        description: f.description,
-        content: (
-          <>
-            {f.context !== '' && <p className="truncate text-[11px] text-ink-subtle">{f.context}</p>}
-            <p className="truncate font-mono text-xs text-ink" title={f.description}>
-              {f.description}
-            </p>
-          </>
-        ),
-      })),
-    [body],
+      bodyItems(body)
+        .filter((i) => kinds.includes(i.kind))
+        .map((i) => {
+          const title = itemTitle(i);
+          const detail = itemDetail(i);
+          return {
+            key: i.start,
+            removeStart: i.start,
+            removeEnd: i.end,
+            description: title,
+            content: (
+              <>
+                <p className="truncate font-mono text-xs text-ink" title={title}>
+                  {title}
+                </p>
+                <p className="truncate text-[11px] text-ink-subtle" title={detail}>
+                  {detail}
+                </p>
+              </>
+            ),
+            ...(i.kind === 'greeting'
+              ? {
+                  inlineEdit: {
+                    start: i.start + 1,
+                    end: i.end - 1,
+                    text: i.raw.slice(1, -1),
+                    label: 'Greeting',
+                    error: greetingTextError,
+                  },
+                }
+              : i.cfg && onEdit
+                ? { onEdit: () => onEdit(i) }
+                : {}),
+            removeWarning: readersWarning(i.name, readersOf(body, i.name, i.start, i.end)),
+            active: editing != null && editing.start === i.start && editing.raw === i.raw,
+          } satisfies BodyListItem;
+        }),
+    [body, kinds, onEdit, editing],
   );
-  return <BodyListSection body={body} onReplace={onReplace} items={items} noun={FORMULA_NOUN} />;
+  return <BodyListSection body={body} onReplace={onReplace} items={items} noun={noun} />;
+}
+
+/** A greeting changed in its row must stay a greeting. */
+function greetingTextError(text: string): string {
+  const error = editTextError(text, 'Type the greeting, or use Remove to take it out.');
+  if (error !== '') return error;
+  return /^greeting\s*(?::|$)/i.test(text.trim()) ? '' : 'Start with greeting, for example greeting: lang=ES.';
+}
+
+/** Under a renamed field's name: the parts that read it follow the new name. */
+export function RenameNote({ from, to, readers }: { from: string; to: string; readers: number }) {
+  if (from === to || readers === 0) return null;
+  const one = readers === 1;
+  return (
+    <p className={HINT}>
+      {one ? 'Another part' : `${readers} other parts`} of this snippet {one ? 'reads' : 'read'}{' '}
+      <span className="font-mono">{from}</span>. Save changes {one ? 'it' : 'them'} to read{' '}
+      <span className="font-mono">{to}</span>.
+    </p>
+  );
+}
+
+/**
+ * Shown above a window's form while it changes something already in the
+ * snippet, so Save is never mistaken for adding a second one.
+ */
+export function EditingBanner({
+  children,
+  onNew,
+  newLabel,
+}: {
+  children: ReactNode;
+  onNew: () => void;
+  newLabel: string;
+}) {
+  return (
+    <p className="flex items-center justify-between gap-2 rounded-[10px] border border-primary/25 bg-primary-light px-3 py-2 text-xs text-ink">
+      {children}
+      <button type="button" onClick={onNew} className="shrink-0 font-medium text-primary hover:underline">
+        {newLabel}
+      </button>
+    </p>
+  );
+}
+
+
+/** A formula the step editor changes: where its text sits, and what to call it. */
+export interface StepsTarget {
+  start: number;
+  end: number;
+  text: string;
+  key: string | number;
+  /** "the formula on "- Card:"", "the saved value DISCOUNT": for the banner. */
+  what: string;
+}
+
+const STEP_ICONS: Record<StepOp, typeof Plus> = { add: Plus, sub: Minus, mul: X, div: Divide, off: Percent, on: Percent };
+
+/** The value menu's last choice: a number typed into the step itself. */
+const TYPED = '__typed__';
+
+const ROUNDINGS: readonly FormulaDecimals[] = [2, 1, 0];
+const ROUNDING_WORDS: Record<FormulaDecimals, string> = { 2: '2 decimals', 1: '1 decimal', 0: 'Whole number' };
+
+/**
+ * Changes a formula as steps, for people who do not write maths: the answer
+ * on top, then "Start with", "Subtract", "Take off %" and so on, one menu
+ * each, and how the number should look as the actual numbers to pick from.
+ * Typing the formula stays under one link, for whoever wants it.
+ *
+ * The example is worked out by the shipping engine, with the snippet's own
+ * defaults (or sample numbers) and the values it saves before this line.
+ */
+export function FormulaStepsEditor({
+  body,
+  target,
+  onChange,
+}: {
+  body: string;
+  target: StepsTarget;
+  /** The formula to save, or null while it is not finished. */
+  onChange: (expression: string | null) => void;
+}) {
+  const start = useMemo(() => parseSteps(target.text), [target]);
+  const [steps, setSteps] = useState<FormulaStep[]>(start?.steps ?? []);
+  const [decimals, setDecimals] = useState<FormulaDecimals>(start?.decimals ?? 2);
+  // What was typed under "Type the formula yourself", or null while the steps decide.
+  const [typed, setTyped] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [engineReady, setEngineReady] = useState(() => formulaEngine() !== null);
+
+  useEffect(() => {
+    setSteps(start?.steps ?? []);
+    setDecimals(start?.decimals ?? 2);
+    setTyped(null);
+    setPicking(false);
+  }, [start]);
+
+  useEffect(() => {
+    if (engineReady) return;
+    let alive = true;
+    loadFillFormEngine()
+      .then(() => {
+        if (alive) setEngineReady(true);
+      })
+      .catch(() => {
+        // No example without the engine; the steps still save.
+      });
+    return () => {
+      alive = false;
+    };
+  }, [engineReady]);
+
+  // What a step can pick: the number boxes, then the values saved above this line.
+  const options = useMemo(() => {
+    const out: { name: string; label: string; sample: string | null; saved: boolean }[] = [];
+    for (const item of bodyItems(body)) {
+      if (item.kind !== 'number' || out.some((o) => o.name === item.name)) continue;
+      const fallback = humanizeName(item.name);
+      out.push({ name: item.name, label: item.cfg?.label || fallback, sample: stepNumber(item.cfg?.default ?? ''), saved: false });
+    }
+    for (const v of savedValuesInBody(body)) {
+      if (v.end > target.start || out.some((o) => o.name === v.name)) continue;
+      out.push({ name: v.name, label: humanizeName(v.name), sample: null, saved: true });
+    }
+    for (const step of steps) {
+      if (step.value.kind === 'name' && !out.some((o) => o.name === (step.value.kind === 'name' ? step.value.name : ''))) {
+        out.push({ name: step.value.name, label: humanizeName(step.value.name), sample: null, saved: false });
+      }
+    }
+    return out;
+  }, [body, target, steps]);
+
+  const typedSteps = typed !== null ? parseSteps(typed) : null;
+  const stepsShown = typed === null || typedSteps !== null;
+  const typedError = typed !== null ? formulaTextError(typed) : '';
+  const expression =
+    typed !== null ? (typedError === '' ? typed.trim() : null) : stepsComplete(steps) ? buildSteps({ steps, decimals }) : null;
+
+  useEffect(() => {
+    onChange(expression);
+  }, [expression, onChange]);
+
+  // The example: boxes at their default, or 100 for the first and 10 for the rest.
+  const engine = engineReady ? formulaEngine() : null;
+  const savedTokens = useMemo(
+    () => savedValuesInBody(body).filter((v) => v.end <= target.start).map((v) => body.slice(v.start, v.end)).join(''),
+    [body, target],
+  );
+  const vals = useMemo(() => {
+    const out: Record<string, string> = {};
+    let first = true;
+    const used = steps.flatMap((st) => (st.value.kind === 'name' ? [st.value.name] : []));
+    for (const o of [...options].sort((a, b) => {
+      const ia = used.indexOf(a.name);
+      const ib = used.indexOf(b.name);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    })) {
+      if (o.saved) continue;
+      out[o.name] = o.sample ?? (first ? '100' : '10');
+      first = false;
+    }
+    return out;
+  }, [options, steps]);
+  const work = (expr: string) => (engine ? engine.resolveBody(`${savedTokens}{=${expr}}`, { ...vals }) : '');
+  const result = expression !== null ? work(expression) : '';
+  const usedNames = [...new Set(steps.flatMap((st) => (st.value.kind === 'name' ? [st.value.name] : [])))];
+  const exampleWith = listAnd(
+    usedNames.map((n) => {
+      const o = options.find((x) => x.name === n);
+      return `${o?.label ?? humanizeName(n)} at ${o?.saved ? work(n) || '0' : (vals[n] ?? '0')}`;
+    }),
+  );
+  const plain = stepsComplete(steps) ? buildSteps({ steps, decimals: 2 }) : null;
+
+  // Each choice shows the number it prints, so nobody has to know what a
+  // decimal is. When the example prints the same number for two of them, the
+  // numbers would not tell them apart, so the words show instead.
+  function roundingOptions(expr: string): { value: `${FormulaDecimals}`; label: string }[] {
+    const printed = ROUNDINGS.map((d) => (engine ? work(withRounding(expr, d)) : ''));
+    const distinct = printed.every((p, i) => p !== '' && printed.indexOf(p) === i);
+    return ROUNDINGS.map((d, i) => ({ value: `${d}`, label: distinct ? (printed[i] ?? '') : ROUNDING_WORDS[d] }));
+  }
+
+  function changeStep(i: number, next: FormulaStep) {
+    setTyped(null);
+    setSteps((prev) => prev.map((st, j) => (j === i ? next : st)));
+  }
+
+  function addStep(op: StepOp) {
+    setTyped(null);
+    setPicking(false);
+    const used = new Set(steps.flatMap((st) => (st.value.kind === 'name' ? [st.value.name] : [])));
+    const free = options.find((o) => !o.saved && !used.has(o.name));
+    const value: FormulaStep['value'] =
+      isPercentOp(op) || !free ? { kind: 'number', text: '' } : { kind: 'name', name: free.name };
+    setSteps((prev) => [...prev, { op, value }]);
+  }
+
+  return (
+    <>
+      <div className="rounded-[12px] border border-primary/25 bg-primary-light px-4 py-3">
+        <p className="text-[11px] text-primary">This line will print</p>
+        <p className="mt-0.5 text-2xl font-semibold text-primary" aria-live="polite">
+          {result !== '' ? result : expression === null ? 'Finish the steps' : 'Nothing yet'}
+        </p>
+        {result !== '' && usedNames.length > 0 && (
+          <p className="mt-0.5 text-[11px] text-primary">Example with {exampleWith}.</p>
+        )}
+      </div>
+
+      {stepsShown ? (
+        <div>
+          <span className={SECTION_LABEL}>How it&apos;s worked out</span>
+          <ul className="divide-y divide-line border-y border-line">
+            {steps.map((step, i) => {
+              const word = step.op === null ? 'Start with' : stepOpLabel(step.op);
+              const pct = isPercentOp(step.op);
+              const numberBad = step.value.kind === 'number' && step.value.text.trim() !== '' && stepNumber(step.value.text) === null;
+              return (
+                <li key={i} className="grid grid-cols-[104px_minmax(0,1fr)_28px] items-center gap-2 py-2">
+                  <span className="text-sm font-medium text-ink">{word}</span>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <select
+                      aria-label={`${word}: which value`}
+                      value={step.value.kind === 'name' ? step.value.name : TYPED}
+                      onChange={(e) =>
+                        changeStep(i, {
+                          op: step.op,
+                          value: e.target.value === TYPED ? { kind: 'number', text: '' } : { kind: 'name', name: e.target.value },
+                        })
+                      }
+                      className={cn(SELECT, 'h-9 min-w-0 flex-1 font-sans')}
+                    >
+                      {options.map((o) => (
+                        <option key={o.name} value={o.name}>
+                          {o.label}
+                        </option>
+                      ))}
+                      <option value={TYPED}>A number I type</option>
+                    </select>
+                    {step.value.kind === 'number' && (
+                      <>
+                        <Input
+                          aria-label={`${word}: the number`}
+                          value={step.value.text}
+                          onChange={(e) => changeStep(i, { op: step.op, value: { kind: 'number', text: e.target.value } })}
+                          inputMode="decimal"
+                          placeholder={pct ? '1.5' : '10'}
+                          aria-invalid={numberBad}
+                          className={cn(
+                            'h-9 w-20 shrink-0 rounded-[10px] px-2.5 font-mono',
+                            numberBad && 'border-danger focus:border-danger focus:ring-danger/20',
+                          )}
+                        />
+                        {pct && (
+                          <span className="text-sm text-ink-muted" aria-hidden>
+                            %
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  {i === 0 ? (
+                    <span />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTyped(null);
+                        setSteps((prev) => prev.filter((_, j) => j !== i));
+                      }}
+                      aria-label={`Remove the step ${word}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-[6px] text-ink-subtle transition-colors hover:bg-danger/5 hover:text-danger"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          <button
+            type="button"
+            onClick={() => setPicking((v) => !v)}
+            aria-expanded={picking}
+            className="mt-2 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden />
+            Add a step
+          </button>
+          {picking && (
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {STEP_OPS.map(({ op, label }) => {
+                const Icon = STEP_ICONS[op];
+                return (
+                  <button
+                    key={op}
+                    type="button"
+                    onClick={() => addStep(op)}
+                    className="flex flex-col items-center gap-1 rounded-[10px] border border-line bg-card px-2 py-2.5 text-xs font-medium text-ink transition-colors hover:border-primary/30 hover:bg-primary-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <Icon className="h-4 w-4 text-primary" aria-hidden />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className={HINT}>The steps can&apos;t show this formula, so it saves exactly as typed.</p>
+      )}
+
+      {stepsShown && plain !== null && (
+        <div>
+          <span className={SECTION_LABEL}>How should the number look?</span>
+          <Segmented
+            options={roundingOptions(plain)}
+            value={`${typedSteps?.decimals ?? decimals}`}
+            onChange={(v) => {
+              setTyped(null);
+              setDecimals(Number(v) as FormulaDecimals);
+            }}
+            ariaLabel="How the number looks"
+            className="w-full [&>button]:flex-1"
+          />
+        </div>
+      )}
+
+      <MoreOptions label="Type the formula yourself">
+        <div>
+          <Input
+            aria-label="The formula"
+            value={typed ?? expression ?? ''}
+            onChange={(e) => {
+              const next = e.target.value;
+              setTyped(next);
+              const read = parseSteps(next);
+              if (read) {
+                setSteps(read.steps);
+                setDecimals(read.decimals);
+              }
+            }}
+            spellCheck={false}
+            className={cn(
+              'h-10 rounded-[10px] font-mono text-xs',
+              typedError !== '' && 'border-danger focus:border-danger focus:ring-danger/20',
+            )}
+          />
+          {typedError !== '' ? <p className={ERROR}>{typedError}</p> : <p className={HINT}>Changes here show in the steps above.</p>}
+        </div>
+      </MoreOptions>
+    </>
+  );
 }
 
 /**
@@ -445,6 +1131,7 @@ export function FormulaDialogFrame({
   canInsert,
   onInsert,
   insertLabel = 'Insert',
+  onSave,
   children,
 }: {
   open: boolean;
@@ -461,12 +1148,29 @@ export function FormulaDialogFrame({
   onInsert: () => void;
   /** The confirm button's wording, for a window that also edits. */
   insertLabel?: string;
+  /** Puts a formula changed in the step editor back. Defaults to `onReplace`. */
+  onSave?: (start: number, end: number, text: string) => void;
   children: ReactNode;
 }) {
+  // The formula the step editor is changing, for the body it was opened on:
+  // once the body moves, its place may hold another formula's text.
+  const [editing, setEditing] = useState<{ target: StepsTarget; body: string } | null>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  useEffect(() => {
+    setEditing(null);
+  }, [open]);
+  const target = editing !== null && editing.body === body ? editing.target : null;
+
+  function save() {
+    if (!target || draft === null) return;
+    (onSave ?? onReplace)(target.start, target.end, draft);
+    onOpenChange(false);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-h-[90vh] max-w-[480px] grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-0 p-0"
+        className="max-h-[90vh] max-w-[640px] grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-0 p-0"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader className="px-6 pt-6 pb-3">
@@ -474,24 +1178,49 @@ export function FormulaDialogFrame({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 pb-3">
-          {list ?? <FormulaListSection body={body} onReplace={onReplace} />}
+        {/* min-w-0: a long formula is cut short with an ellipsis, rather than
+            its row widening the window past its edge. */}
+        <div className="min-w-0 px-6 pb-3">
+          {list ?? (
+            <FormulaListSection
+              body={body}
+              onReplace={onReplace}
+              onEditSteps={(next) => setEditing({ target: next, body })}
+              activeKey={target?.key ?? null}
+            />
+          )}
         </div>
 
         {/* shrink-0 on every section: in a scrolling column, a section that
             clips its own overflow would otherwise be squeezed to nothing
             instead of the column scrolling. */}
         <div className="min-h-0 overflow-y-auto px-6 pb-2 flex flex-col gap-5 [&>*]:shrink-0">
-          {children}
+          {target ? (
+            <>
+              <EditingBanner onNew={() => setEditing(null)} newLabel="New formula instead">
+                Editing {target.what}. Save puts it back where it was.
+              </EditingBanner>
+              <FormulaStepsEditor body={body} target={target} onChange={setDraft} />
+            </>
+          ) : (
+            children
+          )}
         </div>
 
         <div className="mt-2 flex items-center gap-3 border-t border-line px-6 py-4">
-          <p className="mr-auto text-[11px] leading-tight text-ink-subtle">{note}</p>
+          <p className="mr-auto text-[11px] leading-tight text-ink-subtle">
+            {target ? (draft === null ? 'Finish every step to save.' : '') : note}
+          </p>
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" variant="primary" onClick={onInsert} disabled={!canInsert}>
-            {insertLabel}
+          <Button
+            type="button"
+            variant="primary"
+            onClick={target ? save : onInsert}
+            disabled={target ? draft === null : !canInsert}
+          >
+            {target ? 'Save' : insertLabel}
           </Button>
         </div>
       </DialogContent>

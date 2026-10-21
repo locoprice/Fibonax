@@ -744,6 +744,15 @@ function injectLangModal(variantsMap, el, scLen) {
   }, 50);
 }
 
+// Shared presentation for snippet headings, matching the landing and app icon.
+function snippetIcon(size) {
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="flex-shrink:0"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>';
+}
+
+function promptIcon(size) {
+  return '<svg width="' + size + '" height="' + size + '" style="flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>';
+}
+
 // ── DYNAMIC SNIPPET MODAL (Shadow DOM) ───────────────────────────
 /**
  * Renders a centered modal inside a Shadow DOM to collect
@@ -764,7 +773,7 @@ function injectDynamicModal(variables, onConfirm, onCancel) {
   var style = document.createElement('style');
   style.textContent =
     '.sb-modal{background:#fff;border-radius:12px;padding:28px 32px;width:420px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.18);display:flex;flex-direction:column;gap:16px;}' +
-    '.sb-modal h2{margin:0;font-size:16px;font-weight:600;color:#1a1a1a;letter-spacing:-0.2px;}' +
+    '.sb-modal h2{margin:0;font-size:16px;font-weight:600;color:#1a1a1a;letter-spacing:-0.2px;display:flex;align-items:center;gap:8px;}' +
     '.sb-modal p.sb-sub{margin:-8px 0 0;font-size:13px;color:#666;}' +
     '.sb-field{display:flex;flex-direction:column;gap:6px;}' +
     '.sb-field label{font-size:12px;font-weight:500;color:#444;text-transform:uppercase;letter-spacing:0.4px;}' +
@@ -784,7 +793,7 @@ function injectDynamicModal(variables, onConfirm, onCancel) {
   modal.className = 'sb-modal';
 
   var h2 = document.createElement('h2');
-  h2.textContent = '\u26A1 Fill in your snippet';
+  h2.innerHTML = snippetIcon(18) + 'Fill in your snippet';
   modal.appendChild(h2);
 
   var sub = document.createElement('p');
@@ -1378,6 +1387,55 @@ function _ceDeleteSelection(host, done) {
   end();
 }
 
+// What the selection holds, and where it starts. The start is held as a collapsed
+// range, which follows the DOM through an edit; a character offset cannot do
+// that, since it does not tell the two sides of a line break apart.
+function _ceHoldSelection() {
+  try {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    var r = sel.getRangeAt(0);
+    var start = r.cloneRange();
+    start.collapse(true);
+    return { start: start, text: r.toString() };
+  } catch(e) {
+    console.error('[Fibonax] could not note where the trigger began', e);
+    return null;
+  }
+}
+
+// Gives a removed trigger back to the field, selected, when removing it has moved
+// the caret to another line: a line break or a block lies between the caret and
+// where the trigger began. A caret that only moved past a formatting tag, or past
+// the space the browser keeps at a line end, is where the browser put it and the
+// trigger stays out.
+function _ceBringBackTrigger(held) {
+  if (!held || !held.text) return;
+  try {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    var caret = sel.getRangeAt(0);
+    var start = held.start;
+    var between = document.createRange();
+    if (start.comparePoint(caret.startContainer, caret.startOffset) < 0) {
+      between.setStart(caret.startContainer, caret.startOffset);
+      between.setEnd(start.startContainer, start.startOffset);
+    } else {
+      between.setStart(start.startContainer, start.startOffset);
+      between.setEnd(caret.startContainer, caret.startOffset);
+    }
+    var passed = between.cloneContents();
+    // A field styled white-space: pre-wrap writes its line breaks as "\n".
+    if (!passed.querySelector('br,div,p,li') && passed.textContent.indexOf('\n') < 0) return;
+    var back = document.createTextNode(held.text);
+    start.insertNode(back);
+    var again = document.createRange();
+    again.selectNodeContents(back);
+    sel.removeAllRanges();
+    sel.addRange(again);
+  } catch(e) { console.error('[Fibonax] could not put the trigger back before the body', e); }
+}
+
 // Lexical (WhatsApp Web) keeps its own input model. It accepts
 // execCommand('insertLineBreak') — returning true — and then inserts nothing,
 // so the fallbacks above never fire and a multi-paragraph snippet lands as one
@@ -1388,6 +1446,16 @@ function _ceDeleteSelection(host, done) {
 // The trigger is removed first (_ceDeleteSelection). A paste event carries no
 // target ranges: Lexical pastes at its own cached caret and would leave the
 // trigger text in the field ("...reserva ♡::neob").
+//
+// Where the page ignores the paste, the body goes in line by line, and the first
+// line replaces the selected trigger in one step. That is how a one-line body
+// lands, and it lands right in every field. Here the trigger is already gone, and
+// removing a trigger that was the whole of its line makes the line disappear: the
+// browser moves the caret to a neighbouring line (the end of the line above, the
+// start of the next one, the start of the field) and the body was written there,
+// joined to another line's text, with the line it was typed on left empty. So the
+// trigger is put back, selected (_ceBringBackTrigger), and the body replaces it
+// as a one-line body does.
 function _cePasteInsert(el, text) {
   var host = _ceHost(el);
   if (!host || typeof DataTransfer !== 'function' || typeof ClipboardEvent !== 'function') return false;
@@ -1407,8 +1475,11 @@ function _cePasteInsert(el, text) {
     });
     return true;
   }
+  var held = _ceHoldSelection();
   _ceDeleteSelection(host);
-  return _cePasteLand(el, host, dt, text);
+  if (_cePasteLand(el, host, dt, text)) return true;
+  _ceBringBackTrigger(held);
+  return false;
 }
 
 // Sends the paste and checks that the body landed. Returns false when the editor
@@ -1508,6 +1579,7 @@ var overlayTriggerLen = 0;
 // editor, so the walk backwards found nothing. The snippet then landed at the
 // top of the field and the whole trigger survived at the end. -1 when unknown.
 var overlayCaretCO = -1;
+var overlaySelectionStartCO = -1;
 
 // ── ADJUST PANEL ───────────────────────────────────────────────────
 // The Date/Time builder's three decisions — which format, which day, what time
@@ -1565,7 +1637,7 @@ function _sbAdjustHtml(cfg) {
 
   if (!rows) return '';
   return '<button type="button" class="sb-adj" data-adj="' + k + '" aria-expanded="false">' +
-         'Adjust ▾</button>' +
+         'Options ▾</button>' +
          '<div class="sb-adjbox" data-adjbox="' + k + '" hidden>' + rows + '</div>';
 }
 
@@ -1707,6 +1779,7 @@ function _sbBindLink(el, snip) {
     for (var key in read.values) {
       if (Object.prototype.hasOwnProperty.call(read.values, key)) write(key, read.values[key]);
     }
+    _sbSyncOther(el);
     // The same two steps a hand edit runs: the date ordering, then the preview.
     _sbReorder(el);
     updatePrev(snip);
@@ -1789,8 +1862,11 @@ function showOverlay(targetEl, snip, scLen, done) {
   overlayTriggerLen = scLen || 0;
   // Read the caret BEFORE the overlay exists: deleteChars has just selected the
   // trigger, so the selection end is exactly where the user was typing.
-  overlayCaretCO = (overlayTriggerLen > 0 && targetEl && _isCEEl(targetEl))
+  overlayCaretCO = (targetEl && _isCEEl(targetEl))
     ? _ceCaretCharOffset(_ceHost(targetEl))
+    : -1;
+  overlaySelectionStartCO = (targetEl && _isCEEl(targetEl))
+    ? _ceCaretCharOffset(_ceHost(targetEl), true)
     : -1;
   triggerPending = false;
   triggerPendingMode = null;
@@ -1841,7 +1917,7 @@ function showOverlay(targetEl, snip, scLen, done) {
       inp = '<div class="sb-multi"'+wide+'>' + opts.map(function(o){
         return '<label class="sb-opt"><input type="'+oType+'" class="sb-inp"'+oName+' data-key="'+key+'" value="'+xesc(o)+'"'+
                (picked.indexOf(o) >= 0 ? ' checked' : '')+'><span>'+xesc(o)+'</span></label>';
-      }).join('') + '</div>';
+      }).join('') + _sbOtherHtml(cfg, oType, oName) + '</div>';
     } else if (cfg.type === 'date') {
       inp = '<input type="date" class="sb-inp" data-key="'+key+'"'+_sbOrderAttrs(cfg)+' value="'+xesc(cfg.value)+'">';
     } else if (cfg.type === 'time') {
@@ -1849,7 +1925,10 @@ function showOverlay(targetEl, snip, scLen, done) {
     } else if (cfg.type === 'datetime' || cfg.type === 'datetime-local') {
       inp = '<input type="datetime-local" class="sb-inp" data-key="'+key+'"'+_sbOrderAttrs(cfg)+' value="'+xesc(cfg.value)+'">';
     } else {
-      inp = '<input type="'+(cfg.type==='number'?'number':'text')+'" class="sb-inp" data-key="'+key+'" placeholder="'+key.replace(/_/g,' ')+'" value="'+xesc(cfg.value)+'">';
+      // A number is a text box with the number keypad. type="number" lets the
+      // browser drop a comma or a second dot as it is typed ("1,5" became 15),
+      // so the engine never saw what was written.
+      inp = '<input type="text"'+(cfg.type==='number'?' inputmode="decimal"':'')+' class="sb-inp" data-key="'+key+'" placeholder="'+key.replace(/_/g,' ')+'" value="'+xesc(cfg.value)+'">';
     }
     // Presentation-only naming: answer keys, defaults and handlers stay intact.
     var fieldId = 'sb-fill-' + i;
@@ -1894,6 +1973,7 @@ function showOverlay(targetEl, snip, scLen, done) {
   var el = document.createElement('div');
   el.id = 'sb-overlay';
   el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-labelledby', 'sb-fill-title');
   el.setAttribute('aria-describedby', 'sb-fill-description');
   el.innerHTML =
@@ -1901,14 +1981,15 @@ function showOverlay(targetEl, snip, scLen, done) {
       '<h2 class="sb-function-name" id="sb-fill-title">'+xesc(snip.title)+'</h2>' +
       '<button type="button" class="sb-close" aria-label="Cancel insertion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>' +
     '</div>' +
-    '<div class="sb-form-content">' +
+    '<nav class="sb-view-switch" aria-label="Snippet view"><button type="button" data-pane="fields" aria-pressed="true">Fill in</button><button type="button" data-pane="preview" aria-pressed="false">Preview</button></nav>' +
+    '<div class="sb-form-content"><div class="sb-input-pane">' +
       '<div class="sb-heading"><h3 class="sb-title">Fill in your snippet</h3>' +
         '<p id="sb-fill-description">Fill in the fields, then insert your message.</p></div>' +
       (reviewWarning(snip) ? '<div class="sb-revwarn" role="alert">' + xesc(reviewWarning(snip)) + '</div>' : '') +
       (vm.linkable ? _sbLinkHtml() : '') +
-      '<div class="sb-fields">'+fhtml+'</div>' +
+      '<div class="sb-fields">'+fhtml+'</div></div>' +
       '<section class="sb-preview" aria-labelledby="sb-preview-label">' +
-        '<div class="sb-preview-heading"><h3 id="sb-preview-label">Message preview</h3><span>First 5 lines</span></div>' +
+        '<div class="sb-preview-heading"><h3 id="sb-preview-label">Message preview</h3><span>Live preview</span></div>' +
         '<div class="sb-prev" id="sb-prev"></div>' +
       '</section>' +
     '</div>' +
@@ -1921,7 +2002,7 @@ function showOverlay(targetEl, snip, scLen, done) {
     'position:fixed!important;top:50%!important;left:50%!important;' +
     'transform:translate(-50%,-50%)!important;z-index:2147483647!important;' +
     'display:flex!important;flex-direction:column!important;' +
-    'width:800px!important;max-width:calc(100vw - var(--sb-s-8))!important;max-height:calc(100dvh - var(--sb-s-8))!important;' +
+    'width:1280px!important;height:calc(100dvh - var(--sb-s-8))!important;max-width:calc(100vw - var(--sb-s-8))!important;max-height:calc(100dvh - var(--sb-s-8))!important;' +
     'overflow:hidden!important;' +
     'box-shadow:var(--sb-shadow-xl)!important;';
 
@@ -1932,11 +2013,22 @@ function showOverlay(targetEl, snip, scLen, done) {
   document.body.appendChild(bd);
   document.body.appendChild(el);
   overlayEl = el;
+  el.dataset.pane = 'fields';
+  el.querySelectorAll('[data-pane]').forEach(function(button) {
+    button.addEventListener('click', function() {
+      el.dataset.pane = button.dataset.pane;
+      el.querySelectorAll('[data-pane]').forEach(function(b) { b.setAttribute('aria-pressed', String(b === button)); });
+    });
+  });
+  if (window.SBFillFormUI) window.SBFillFormUI.enhance(el.querySelector('.sb-fields'), vm, {
+    prefix: 'overlay', row: '.sb-field', caption: '.sb-lbl,.sb-ctx,.sb-ctxline', menu: '.sb-multi', control: '.sb-inp'
+  });
 
   setTimeout(function() {
     // A form that can fill from a link opens on the Link box: the next thing
-    // the operator does there is paste.
-    _sbFocus(el.querySelector('.sb-linkinp') || _sbFirstEmpty(el));
+    // the operator does there is paste. Other forms start at the first field,
+    // including prefilled dates, so long snippets open at the top in text order.
+    _sbFocus(el.querySelector('.sb-linkinp') || el.querySelector('.sb-fields .ff-menu > summary,.sb-fields .sb-inp:not([type="radio"]):not([type="checkbox"])'));
     updatePrev(snip);
   }, 50);
 
@@ -1946,7 +2038,13 @@ function showOverlay(targetEl, snip, scLen, done) {
       inp.addEventListener('input',  function(){ _sbReorder(el, inp); updatePrev(snip); });
       inp.addEventListener('change', function(){
         _sbReorder(el, inp);
+        _sbSyncOther(el);
         updatePrev(snip);
+        // Ticking Other opens its box, and the answer is typed there next.
+        if (inp.hasAttribute('data-other')) {
+          if (inp.checked) _sbFocus(el.querySelector('.sb-othertxt[data-otherkey="' + inp.getAttribute('data-key') + '"]'));
+          return;
+        }
         // A radio is a finished answer the moment it is ticked, so the caret
         // moves to whatever is still empty. Checkboxes are excluded: a multiple
         // choice menu is not finished by one tick. No key is involved, so this
@@ -2068,12 +2166,13 @@ function showOverlay(targetEl, snip, scLen, done) {
           // value, silently changing one of the choices on offer.
           if (target.type === 'radio') {
             var want = String(res.values[name]);
-            var group = el.querySelectorAll('.sb-inp[type="radio"][data-key="' + name + '"]');
+            var group = el.querySelectorAll('.sb-inp[type="radio"][data-key="' + name + '"]:not([data-other])');
             var matched = false;
             for (var r = 0; r < group.length; r++) {
               if (group[r].value === want) { group[r].checked = true; matched = true; }
             }
             if (!matched) errs.push(name + ' has no option "' + want + '"');
+            _sbSyncOther(el);
             continue;
           }
           target.value = String(res.values[name]);
@@ -2115,6 +2214,12 @@ function showOverlay(targetEl, snip, scLen, done) {
   bd.addEventListener('click',      onBdClose);
   bd.addEventListener('touchstart', onBdClose, {passive: false});
   el.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+      var focusable = Array.prototype.slice.call(el.querySelectorAll('button,input,select,textarea,summary,[tabindex="0"]')).filter(function(n) { return !n.disabled && n.getClientRects().length; });
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeOverlay(); }
     if (e.key === 'Enter' && !e.shiftKey) {
       // The Link box is not a field: Enter there reads the page, and never
@@ -2130,7 +2235,7 @@ function showOverlay(targetEl, snip, scLen, done) {
       // Enter, so inserting here too would fire an action button and insert
       // the message in one keypress.
       var tag = document.activeElement ? document.activeElement.tagName : '';
-      if (tag !== 'TEXTAREA' && tag !== 'SELECT' && tag !== 'BUTTON') {
+      if (tag !== 'TEXTAREA' && tag !== 'SELECT' && tag !== 'BUTTON' && tag !== 'SUMMARY') {
         e.preventDefault(); e.stopPropagation(); doInsert(targetEl, snip);
       }
     }
@@ -2198,28 +2303,60 @@ function _sbNextEmptyAfter(root, key) {
 
 function getVals() {
   if (!overlayEl) return {};
-  var v = {}, groups = {};
+  var v = {}, menus = {};
   var inps = overlayEl.querySelectorAll('.sb-inp[data-key]');
   for (var i = 0; i < inps.length; i++) {
     var el = inps[i], k = el.dataset.key;
-    // A multiple-choice {formmenu:} is a checkbox group sharing one data-key —
-    // every box contributes, checked or not, so the value is the picks in the
-    // order the menu declares them.
-    if (el.type === 'checkbox') {
-      if (!groups[k]) groups[k] = [];
-      if (el.checked) groups[k].push(el.value);
-    } else if (el.type === 'radio') {
-      // A single-choice menu is a radio group sharing one data-key. Seed the key
-      // before looking at checked, so a group with nothing ticked reads '' and
-      // does not drop out of the values entirely.
-      if (v[k] === undefined) v[k] = '';
-      if (el.checked) v[k] = el.value;
+    // A {formmenu:} is a group of radios (single choice) or checkboxes
+    // (multiple) sharing one data-key. Every control contributes, checked or
+    // not, so a group with nothing ticked still reads '' rather than dropping
+    // out, and the picks keep the order the menu declares them in.
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      var m = menus[k] || (menus[k] = { multiple: el.type === 'checkbox', picks: [], other: null });
+      if (!el.checked) continue;
+      // The Other choice: what its box holds is the answer.
+      if (el.hasAttribute('data-other')) {
+        var box = overlayEl.querySelector('.sb-othertxt[data-otherkey="' + k + '"]');
+        m.other = box ? box.value : '';
+      } else {
+        m.picks.push(el.value);
+      }
     } else {
       v[k] = el.value;
     }
   }
-  for (var g in groups) v[g] = groups[g].join(', ');
+  // How picks and a typed answer combine is decided once, in fill-form.js.
+  for (var g in menus) {
+    var mm = menus[g];
+    v[g] = _SBFF ? _SBFF.menuValue(mm.multiple, mm.picks, mm.other)
+                 : (mm.multiple ? mm.picks.join(', ') : (mm.picks[0] || ''));
+  }
   return v;
+}
+
+// The Other choice on a menu: one more radio or checkbox, then the box its
+// answer is typed in, shown only while Other is ticked. The box carries
+// data-otherkey rather than data-key, so nothing reads it as a field of its
+// own; getVals reads it through the Other control.
+function _sbOtherHtml(cfg, oType, oName) {
+  if (!cfg.other) return '';
+  var key = xesc(cfg.key);
+  return '<label class="sb-opt"><input type="'+oType+'" class="sb-inp"'+oName+' data-key="'+key+'" data-other="1" value=""'+
+           (cfg.otherOn ? ' checked' : '')+'><span>'+xesc(cfg.other)+'</span></label>' +
+         '<input type="text" class="sb-inp sb-othertxt" data-otherkey="'+key+'" aria-label="'+xesc(cfg.other)+'"'+
+           ' placeholder="'+xesc(_SBFF ? _SBFF.OTHER_PLACEHOLDER : '')+'" value="'+xesc(cfg.otherText)+'"'+
+           (cfg.otherOn ? '' : ' hidden')+'>';
+}
+
+// Shows each Other box while its choice is ticked and hides it otherwise. On a
+// single-choice menu, picking an option unticks Other without an event of its
+// own, so this runs after every change rather than on the Other control alone.
+function _sbSyncOther(root) {
+  var ctrls = root.querySelectorAll('.sb-inp[data-other]');
+  for (var i = 0; i < ctrls.length; i++) {
+    var box = root.querySelector('.sb-othertxt[data-otherkey="' + ctrls[i].getAttribute('data-key') + '"]');
+    if (box) box.hidden = !ctrls[i].checked;
+  }
 }
 
 // How each date and time field prints, when the operator has chosen for
@@ -2234,20 +2371,35 @@ function getFmts() {
   return f;
 }
 
+function overlayForm(snip) {
+  var other = {};
+  overlayEl.querySelectorAll('.sb-inp[data-other]:checked').forEach(function(ctrl) {
+    var box = overlayEl.querySelector('.sb-othertxt[data-otherkey="' + ctrl.dataset.key + '"]');
+    other[ctrl.dataset.key] = box ? box.value : '';
+  });
+  return _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, fieldFmt: getFmts(), other: other });
+}
 function updatePrev(snip) {
   var box = document.getElementById('sb-prev');
-  if (!box) return;
-  var all = resolveBody(snip.body, getVals(),
-    { lang: snip.lang, fmtOverride: getFmts() }).split('\n');
-  box.textContent = all.slice(0, 5).join('\n') + (all.length > 5 ? '\n\u2026' : '');
+  if (!box || !overlayEl) return;
+  var vm = overlayForm(snip);
+  box.textContent = vm.preview;
+  if (window.SBFillFormUI) window.SBFillFormUI.refresh(overlayEl.querySelector('.sb-fields'), vm);
 }
 
 function doInsert(targetEl, snip) {
+  var vm = overlayForm(snip);
+  if (vm.errors.length) {
+    overlayEl.dataset.pane = 'fields';
+    overlayEl.querySelectorAll('[data-pane]').forEach(function(b) { b.setAttribute('aria-pressed', String(b.dataset.pane === 'fields')); });
+    window.SBFillFormUI.validate(overlayEl.querySelector('.sb-fields'), vm);
+    return;
+  }
   var vals = getVals();
   // Read BEFORE closeOverlay tears the panel down, and passed to the same
   // resolveBody the preview used, or what lands in the field prints in a
   // different format from the preview the operator just approved.
-  var text = resolveBody(snip.body, vals, { lang: snip.lang, fmtOverride: getFmts() });
+  var text = vm.preview;
   var fillCount = Object.keys(vals).length;
   closeOverlay();
   if (!targetEl) return;
@@ -2288,8 +2440,11 @@ function doInsert(targetEl, snip) {
       deleteChars(targetEl, overlayTriggerLen, insertSyncCE);
     }
   } else if (isCE) {
-    // CE with no captured trigger (context-menu / selection-suggest): nothing to
-    // strip, so insert at the live caret now and celebrate with Undo.
+    // The form also takes focus when opened from the picker or context menu.
+    // Restore the original caret/selection before inserting, just as for triggers.
+    if (overlaySelectionStartCO >= 0) {
+      _ceRestoreTriggerRange(targetEl, overlayCaretCO, overlayCaretCO - overlaySelectionStartCO);
+    }
     insertSyncCE();
   } else {
     // Textarea/input: the trigger was already stripped before the overlay opened.
@@ -2517,6 +2672,26 @@ function _markSyncInserted(snapshot, el, before, text) {
   }
 }
 
+// A space left at the end of a line is not drawn, and Chrome drops it the moment
+// typing resumes: "Hi " undone, then "there" typed, read "Hithere". While a space
+// is typed at a line end the browser keeps it as a non-breaking one and turns it
+// into a normal one once a character follows, which the snippet's first letter
+// did. Range.deleteContents skips that clean-up, so it is done here: a space with
+// nothing drawn for it becomes a non-breaking one again. A field that keeps its
+// spaces (white-space: pre-wrap) still draws it, and the space stays as it is.
+// `at` is where the removed snippet began.
+function _ceHoldSpace(at) {
+  try {
+    var node = at.node, k = at.offset;
+    if (!node || node.nodeType !== 3 || k < 1 || node.nodeValue.charAt(k - 1) !== ' ') return;
+    var r = document.createRange();
+    r.setStart(node, k - 1);
+    r.setEnd(node, k);
+    var drawn = r.getClientRects();
+    if (drawn.length && drawn[0].width === 0) node.replaceData(k - 1, 1, '\u00a0');
+  } catch(e) { console.error('[Fibonax] could not keep the space before the snippet', e); }
+}
+
 function restoreFieldState(snapshot) {
   if (!snapshot || !snapshot.el) return;
   var el = snapshot.el;
@@ -2564,6 +2739,7 @@ function restoreFieldState(snapshot) {
               return;
             }
             delR.deleteContents();
+            _ceHoldSpace(sp);
             try {
               var caretR = document.createRange();
               caretR.setStart(sp.node, sp.offset);
@@ -3085,7 +3261,9 @@ function showTriggerPicker(el, mode, seqLen, filterStr) {
   div.style.cssText = 'position:fixed;z-index:2147483647;display:flex;flex-direction:column;background:#fff;border:1px solid #E4E4E7;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);min-width:260px;max-width:360px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;';
 
   var header = '<div style="flex:0 0 auto;padding:9px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#A1A1AA;border-bottom:1px solid #E4E4E7;display:flex;align-items:center;gap:8px">';
-  header += '<span>' + (mode === 'snippet' ? '\u26a1 Insert snippet' : '\ud83e\udd16 Prompt mode \u00b7 ' + xesc(triggerCfg.promptTrigger || '"""')) + '</span>';
+  header += mode === 'snippet'
+    ? '<span style="display:inline-flex;align-items:center;gap:4px">' + snippetIcon(14) + 'Insert snippet</span>'
+    : '<span style="display:inline-flex;align-items:center;gap:4px">' + promptIcon(14) + 'Prompt mode \u00b7 ' + xesc(triggerCfg.promptTrigger || '"""') + '</span>';
   header += '<span style="margin-left:auto;font-weight:500;text-transform:none;letter-spacing:0;color:#A1A1AA;font-size:10px">Tab / Enter to insert</span>';
   header += '</div>';
   header += '<div class="sb-tp-items" style="flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:6px;"></div>';
@@ -3527,7 +3705,7 @@ function showSelectionSuggestions(el, matches) {
   div.style.cssText = 'position:fixed;z-index:2147483647;display:flex;flex-direction:column;background:#fff;border:1px solid #E4E4E7;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.06);min-width:260px;max-width:360px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;';
 
   var header = '<div style="flex:0 0 auto;padding:9px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#A1A1AA;border-bottom:1px solid #E4E4E7;display:flex;align-items:center;gap:8px">';
-  header += '<span>✨ Suggested snippets</span>';
+  header += '<span style="display:inline-flex;align-items:center;gap:4px">' + snippetIcon(14) + 'Suggested snippets</span>';
   header += '<span style="margin-left:auto;font-weight:500;text-transform:none;letter-spacing:0;color:#A1A1AA;font-size:10px">Enter to insert</span>';
   header += '</div>';
   header += '<div class="sb-ss-items" style="flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:6px;"></div>';
@@ -3981,7 +4159,8 @@ document.addEventListener('input', function(e) {
     "#sb-overlay .sb-inp{display:block;margin:0;width:100%;min-width:0;min-height:calc(var(--sb-s-10) + var(--sb-s-1));padding:var(--sb-s-2) var(--sb-s-3);background:var(--sb-bg);border:1px solid var(--sb-line-2);border-radius:var(--sb-r-lg);font-family:inherit;font-size:var(--sb-fs-16);line-height:1.4;color:var(--sb-ink);outline:none;touch-action:manipulation;transition:border-color var(--sb-dur-base),box-shadow var(--sb-dur-base);}" +
     "#sb-overlay .sb-inp:hover{border-color:var(--sb-ink-muted);}" +
     "#sb-overlay .sb-inp:focus{border-color:var(--sb-azure);box-shadow:0 0 0 3px var(--sb-azure-glow);}" +
-    "#sb-overlay .sb-inp[type=text],#sb-overlay .sb-inp[type=number]{font-weight:700;}" +
+    "#sb-overlay .sb-inp[type=text]{font-weight:700;}" +
+    "#sb-overlay .sb-inp[hidden]{display:none;}" +
     "#sb-overlay .sb-inp::placeholder{font-weight:400;color:var(--sb-ink-muted);opacity:1;}" +
     "#sb-overlay .sb-inp[type=date],#sb-overlay .sb-inp[type=time],#sb-overlay .sb-inp[type=datetime-local]{color:var(--sb-azure);}" +
     "#sb-overlay .sb-adj{align-self:flex-start;padding:var(--sb-s-1) var(--sb-s-2);margin:calc(-1 * var(--sb-s-1)) 0;font-size:var(--sb-fs-12);font-weight:500;color:var(--sb-ink-muted);}" +

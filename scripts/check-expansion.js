@@ -351,6 +351,17 @@ async function runLexicalDeleteCases() {
     setEnd(n, o) { this.endContainer = n; this.endOffset = o; },
     selectNodeContents(h) { this.startContainer = h.textNode; this.startOffset = 0; this.endContainer = h.textNode; this.endOffset = h.textNode.nodeValue.length; },
     toString() { return String(this.startContainer.nodeValue || '').slice(this.startOffset, this.endOffset); },
+    // a plain contenteditable's trigger start is held across the delete
+    cloneRange() {
+      const c = makeRange(this.startContainer);
+      c.setStart(this.startContainer, this.startOffset);
+      c.setEnd(this.endContainer, this.endOffset);
+      return c;
+    },
+    collapse(toStart) {
+      if (toStart) { this.endContainer = this.startContainer; this.endOffset = this.startOffset; }
+      else { this.startContainer = this.endContainer; this.startOffset = this.endOffset; }
+    },
   });
   const saved = { createRange: doc.createRange, createTreeWalker: doc.createTreeWalker, execCommand: doc.execCommand };
   const savedGlobals = ['NodeFilter', 'StaticRange', 'InputEvent', 'ClipboardEvent', 'DataTransfer', 'getSelection', 'console']
@@ -469,6 +480,46 @@ async function runLexicalDeleteCases() {
   }
 }
 
+// Filling a form moves focus away from its destination. All entry points
+// must restore the original rich-editor selection before the edit, while an
+// invalid form must leave the destination and the modal untouched.
+function runFormInsertionCases() {
+  const names = ['overlayForm','getVals','closeOverlay','_ceRestoreTriggerRange',
+    '_ceMeasureBefore','insertText','captureFieldState','_markSyncInserted',
+    'showCelebration','overlayEl','SBFillFormUI','overlayCaretCO',
+    'overlaySelectionStartCO','overlayTriggerLen'];
+  const saved = names.map(k => [k, sandbox[k]]);
+  try {
+    const events = [];
+    const host = {isContentEditable:true};
+    sandbox.overlayForm = () => ({preview:'Filled message', errors:[]});
+    sandbox.getVals = () => ({ANSWER:'yes'});
+    sandbox.closeOverlay = () => events.push('close');
+    sandbox._ceRestoreTriggerRange = (el,end,length) => {events.push(['restore',end,length]);return true;};
+    sandbox._ceMeasureBefore = () => ({});
+    sandbox.insertText = (el,text) => events.push(['insert',text]);
+    sandbox.captureFieldState = () => ({});
+    sandbox._markSyncInserted = () => {};
+    sandbox.showCelebration = () => {};
+    let count = 0;
+    for (const [start,end,trigger,length] of [[0,0,0,0],[5,5,0,0],[5,9,0,4],[0,7,7,7]]) {
+      events.length=0;
+      sandbox.overlaySelectionStartCO=start; sandbox.overlayCaretCO=end; sandbox.overlayTriggerLen=trigger;
+      sandbox.doInsert(host,{body:'',review_status:'approved'});
+      const want = ['close',['restore',end,length],['insert','Filled message']];
+      if (JSON.stringify(events)!==JSON.stringify(want)) fail('filled form did not restore its destination: '+JSON.stringify(events));
+      count++;
+    }
+    events.length=0;
+    sandbox.overlayForm=()=>({preview:'Incomplete',errors:[{key:'AMOUNT'}]});
+    sandbox.overlayEl={dataset:{},querySelectorAll:()=>[],querySelector:()=>({})};
+    sandbox.SBFillFormUI={validate:()=>events.push('validate')};
+    sandbox.doInsert(host,{body:''});
+    if (JSON.stringify(events)!=='["validate"]') fail('invalid filled form reached insertion');
+    return count+1;
+  } finally { saved.forEach(([k,v])=>{sandbox[k]=v;}); }
+}
+
 (async () => {
   for (const c of cases) {
     await reset();
@@ -501,6 +552,6 @@ async function runLexicalDeleteCases() {
       '  Confirming from the suggestion menu would clip the wrong characters and\n' +
       '  leave part of the trigger in the message.');
   }
-  const extra = (await runPickerEnterCase()) + (await runPlaceholderCases()) + (await runLexicalDeleteCases());
+  const extra = runFormInsertionCases() + (await runPickerEnterCase()) + (await runPlaceholderCases()) + (await runLexicalDeleteCases());
   console.log('OK Trigger expansion passed all ' + (cases.length + spanCases.length + 1 + extra) + ' cases');
 })();

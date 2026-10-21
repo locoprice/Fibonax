@@ -1794,9 +1794,15 @@ function detailBody(s, lang, vars){
 // inside a popup that would then render nothing at all.
 function detailForm(body, lang){
   var M=window.SBFillForm;
-  if(!M||!body) return { fields:[], buttons:[], preview:body||'', layout:'flat', steps:[] };
-  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked }); }
-  catch(e){ return { fields:[], buttons:[], preview:body, layout:'flat', steps:[] }; }
+  if(!M||!body) return { fields:[], buttons:[], preview:body||'', errors:[], sections:[], layout:'flat', steps:[] };
+  var other = {};
+  var current=document.querySelector('.d-fields[data-fid="'+expandedId+'"]');
+  (current?current.querySelectorAll('[data-other]:checked'):[]).forEach(function(ctrl) {
+    var box = ctrl.closest('.d-fields').querySelector('.d-othertxt[data-otherkey="' + ctrl.getAttribute('data-fkey') + '"]');
+    other[ctrl.getAttribute('data-fkey')] = box ? box.value : '';
+  });
+  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked, other: other }); }
+  catch(e){ return { fields:[], buttons:[], preview:body, errors:[], sections:[], layout:'flat', steps:[] }; }
 }
 // Effective values for a body: what the operator entered, else each field's
 // default. Read off the view model so this surface can never disagree with the
@@ -1826,12 +1832,16 @@ function updateDetailPreview(id){
   var out=resolveFilled(body, detailActiveLang(s));
   var wrap=document.querySelector('.detail[data-detail="'+id+'"]');
   var pv=wrap?wrap.querySelector('.d-body'):null;
+  if(wrap) window.SBFillFormUI.refresh(wrap.querySelector('.d-fields'), detailForm(body, detailActiveLang(s)));
   if(pv){ pv.textContent=out; if(out.trim()) pv.classList.remove('plain'); else pv.classList.add('plain'); }
 }
 function copyFilled(id){
   var s=findSnip(id); if(!s) return;
   var body=detailActiveBody(s);
-  var out=resolveFilled(body, detailActiveLang(s));
+  var vm=detailForm(body, detailActiveLang(s));
+  var form=document.querySelector('.d-fields[data-fid="'+id+'"]');
+  if(!window.SBFillFormUI.validate(form,vm)) return;
+  var out=vm.preview;
   try{ navigator.clipboard.writeText(out||''); }catch(e){}
   showToast('Copied filled text');
 }
@@ -1886,7 +1896,7 @@ function detailAdjustHtml(f){
       +'<select class="d-mm" data-adjkey="'+k+'">'+optList(a.minutes,a.minute)+'</select></div>';
   }
   if(!rows) return '';
-  return '<button class="d-adj" type="button" data-adj="'+k+'" aria-expanded="false">Adjust ▾</button>'
+  return '<button class="d-adj" type="button" data-adj="'+k+'" aria-expanded="false">Options ▾</button>'
     +'<div class="d-adjbox" data-adjbox="'+k+'" hidden>'+rows+'</div>';
 }
 
@@ -1997,16 +2007,20 @@ function renderDetailHtml(s){
           var oName=f.multiple?'':' name="d-'+esc(k)+'"';
           inp='<div class="d-multi"'+wide+'>'+f.options.map(function(o){
             return '<label class="d-opt"><input type="'+oType+'"'+oName+' data-fkey="'+esc(k)+'" value="'+esc(o)+'"'+(f.picks.indexOf(o)>=0?' checked':'')+'><span>'+esc(o)+'</span></label>';
-          }).join('')+'</div>';
+          }).join('')+detailOtherHtml(f, oType, oName)+'</div>';
         } else {
+          // A number is a text box with the number keypad. type="number" lets
+          // the browser drop a comma or a second dot as it is typed ("1,5"
+          // became 15), so the engine never saw what was written.
           var itype=(f.type==='date'||f.type==='time')?f.type
-                   :(f.type==='datetime'?'datetime-local':(f.type==='number'?'number':'text'));
+                   :(f.type==='datetime'?'datetime-local':'text');
+          var keypad=f.type==='number'?' inputmode="decimal"':'';
           var ordAttr='';
           /* A closing date may not open before its opening one. The value comes
              from the shared fill-form module; only the markup is local. */
           if(f.notBefore) ordAttr+=' data-after="'+esc(f.notBefore)+'"';
           if(f.min) ordAttr+=' min="'+esc(f.min)+'"';
-          inp='<input type="'+itype+'" data-fkey="'+esc(k)+'"'+ordAttr+' placeholder="'+esc(label)+'" value="'+esc(val)+'">';
+          inp='<input type="'+itype+'"'+keypad+' data-fkey="'+esc(k)+'"'+ordAttr+' placeholder="'+esc(label)+'" value="'+esc(val)+'">';
         }
         // Reads like the snippet — "Rate Plan: [ Refundable ] per night". The
         // key label survives only for a field with no prose around it, which
@@ -2261,16 +2275,36 @@ function wireListRows(el){
     var box=inp.closest('.d-fields'); var did=box?box.getAttribute('data-fid'):null;
     var handler=function(){
       detailFieldVals[inp.getAttribute('data-fkey')]=detailControlValue(box, inp);
+      syncDetailOther(box);
       reorderDetailDates(el, inp);
       if(did) updateDetailPreview(did);
     };
     inp.addEventListener('input',handler); inp.addEventListener('change',handler);
+    // Ticking Other opens its box, and the answer is typed there next.
+    if(inp.hasAttribute('data-other')) inp.addEventListener('change',function(){
+      if(inp.checked){ var t=box.querySelector('.d-othertxt[data-otherkey="'+inp.getAttribute('data-fkey')+'"]'); if(t) t.focus(); }
+    });
+  });
+  // The Other box: its text is the menu's answer, read through the Other control.
+  el.querySelectorAll('.d-fields .d-othertxt').forEach(function(t){
+    var box=t.closest('.d-fields'); var did=box?box.getAttribute('data-fid'):null;
+    t.addEventListener('input',function(){
+      var ctrl=box.querySelector('[data-fkey="'+t.getAttribute('data-otherkey')+'"][data-other]');
+      if(ctrl) detailFieldVals[t.getAttribute('data-otherkey')]=detailControlValue(box, ctrl);
+      if(did) updateDetailPreview(did);
+    });
   });
   reorderDetailDates(el);
   // Action buttons: run the code block against the live values, write the
   // results back into the inputs, re-resolve the preview in place.
   el.querySelectorAll('.d-fields .d-actbtn').forEach(function(btn){
     btn.addEventListener('click',function(e){ e.stopPropagation(); runDetailButton(btn); });
+  });
+  el.querySelectorAll('.d-fields').forEach(function(form) {
+    var snip=findSnip(form.getAttribute('data-fid')); if(!snip) return;
+    window.SBFillFormUI.enhance(form, detailForm(detailActiveBody(snip), detailActiveLang(snip)), {
+      prefix: 'popup', row: '.d-frow', caption: '.d-frow>label,.d-ctx,.d-ctxline', menu: '.d-multi', control: '[data-fkey],.d-othertxt'
+    });
   });
   bindDetailAdjust(el);
   bindDetailLink(el);
@@ -2281,11 +2315,41 @@ function wireListRows(el){
 // one at most); anything else is the control's own value.
 function detailControlValue(box, inp){
   if(box && (inp.type==='checkbox'||inp.type==='radio')){
-    var picked=[];
-    box.querySelectorAll('input[data-fkey="'+inp.getAttribute('data-fkey')+'"]').forEach(function(o){ if(o.checked) picked.push(o.value); });
-    return picked.join(', ');
+    var key=inp.getAttribute('data-fkey'), picked=[], other=null;
+    box.querySelectorAll('input[data-fkey="'+key+'"]').forEach(function(o){
+      if(!o.checked) return;
+      // The Other choice: what its box holds is the answer.
+      if(o.hasAttribute('data-other')){
+        var t=box.querySelector('.d-othertxt[data-otherkey="'+key+'"]');
+        other=t?t.value:'';
+      } else picked.push(o.value);
+    });
+    // How picks and a typed answer combine is decided once, in fill-form.js.
+    var M=window.SBFillForm;
+    return M ? M.menuValue(inp.type==='checkbox', picked, other) : picked.join(', ');
   }
   return inp.value;
+}
+
+// The Other choice on a menu: one more radio or checkbox, then the box its
+// answer is typed in, shown only while Other is ticked. The box carries
+// data-otherkey rather than data-fkey, so nothing reads it as a field.
+function detailOtherHtml(f, oType, oName){
+  if(!f.other) return '';
+  var k=esc(f.key), M=window.SBFillForm;
+  return '<label class="d-opt"><input type="'+oType+'"'+oName+' data-fkey="'+k+'" data-other="1" value=""'+(f.otherOn?' checked':'')+'><span>'+esc(f.other)+'</span></label>'
+    +'<input type="text" class="d-othertxt" data-otherkey="'+k+'" aria-label="'+esc(f.other)+'" placeholder="'+esc(M?M.OTHER_PLACEHOLDER:'')+'" value="'+esc(f.otherText)+'"'+(f.otherOn?'':' hidden')+'>';
+}
+
+// Shows each Other box while its choice is ticked. Picking an option on a
+// single-choice menu unticks Other with no event of its own, so this runs
+// after every change.
+function syncDetailOther(box){
+  if(!box) return;
+  box.querySelectorAll('input[data-other]').forEach(function(c){
+    var t=box.querySelector('.d-othertxt[data-otherkey="'+c.getAttribute('data-fkey')+'"]');
+    if(t) t.hidden=!c.checked;
+  });
 }
 
 // ── FILL FROM LINK ──────────────────────────────────────────────────
@@ -2442,6 +2506,7 @@ function applyDetailLink(id, pieces){
   // so the ordering clears only a closing date the page did not write, once
   // the page's opening date has moved past it; it empties the stored value
   // with the control.
+  syncDetailOther(box);
   reorderDetailDates(wrap);
   written.forEach(function(inp){ detailFieldVals[inp.getAttribute('data-fkey')]=detailControlValue(box, inp); });
   updateDetailPreview(id);
@@ -2504,10 +2569,10 @@ function runDetailButton(btn){
     // than writing over the first radio's value, which would rewrite a choice.
     if(target.type==='radio'){
       var want=String(res.values[name]), matched=false;
-      box.querySelectorAll('input[type=radio][data-fkey="'+name+'"]').forEach(function(r){
+      box.querySelectorAll('input[type=radio][data-fkey="'+name+'"]:not([data-other])').forEach(function(r){
         if(r.value===want){ r.checked=true; matched=true; }
       });
-      if(matched) detailFieldVals[name]=want;
+      if(matched){ detailFieldVals[name]=want; syncDetailOther(box); }
       else errs.push(name+' has no option "'+want+'"');
       continue;
     }
@@ -3241,6 +3306,7 @@ if (syncNowBtn) {
 var OTP_TTL_MS = 55 * 60 * 1000; // Supabase OTPs are valid for 60 min; bail at 55.
 
 var SB_DASHBOARD_LINK_URL = 'https://app.fibonax.com/extension-link';
+var SB_DELETE_ACCOUNT_URL = 'https://app.fibonax.com/settings?tab=account';
 
 (function initAuthGate() {
   var gate    = document.getElementById('sb-auth');
@@ -3342,6 +3408,15 @@ var SB_DASHBOARD_LINK_URL = 'https://app.fibonax.com/extension-link';
     if (signOutBtn && !signOutBtn._wired) {
       signOutBtn._wired = true;
       signOutBtn.addEventListener('click', function() { window.sbSignOut(); });
+    }
+    // Deleting an account names the teams it would delete and asks to confirm,
+    // so it lives in one place: the dashboard's Account settings.
+    var deleteAccountBtn = document.getElementById('sb-delete-account-btn');
+    if (deleteAccountBtn && !deleteAccountBtn._wired) {
+      deleteAccountBtn._wired = true;
+      deleteAccountBtn.addEventListener('click', function() {
+        try { chrome.tabs.create({ url: SB_DELETE_ACCOUNT_URL }); } catch(e) { window.open(SB_DELETE_ACCOUNT_URL, '_blank'); }
+      });
     }
     if (!booted) { booted = true; boot(); }
     // Runs after a session exists, because the capture card reads memory_spaces

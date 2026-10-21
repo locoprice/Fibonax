@@ -1,6 +1,9 @@
+import { BrainIcon } from '@/components/shared/BrainIcon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, MessageCircleQuestion, Search, Sparkles, Type } from 'lucide-react';
+import { MessageCircleQuestion, Search } from 'lucide-react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import {
   labelNameLookup,
   searchAll,
@@ -43,9 +46,9 @@ const TYPE_CHIPS: Array<{ value: 'all' | SearchKind; label: string }> = [
 ];
 
 const GROUPS = [
-  { key: 'snippets', label: 'Snippets', icon: Type },
-  { key: 'prompts', label: 'Prompts', icon: Sparkles },
-  { key: 'memory', label: 'Brains', icon: Brain },
+  { key: 'snippets', label: 'Snippets', icon: SnippetIcon },
+  { key: 'prompts', label: 'Prompts', icon: PromptIcon },
+  { key: 'memory', label: 'Brains', icon: BrainIcon },
 ] as const;
 
 export function GlobalSearch() {

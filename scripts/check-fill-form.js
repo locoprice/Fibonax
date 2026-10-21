@@ -18,7 +18,7 @@ function fail(msg) {
 }
 
 for (const fn of ['fillForm', 'inferType', 'chooseLayout', 'dayValue', 'clockValue', 'fixedShift',
-                  'linkUrl', 'readFromPage', 'linkText', 'linkSummary', 'linkNote']) {
+                  'linkUrl', 'readFromPage', 'linkText', 'linkSummary', 'linkNote', 'menuValue']) {
   if (typeof ff[fn] !== 'function') fail('fill-form.js no longer exports ' + fn);
 }
 
@@ -48,6 +48,7 @@ console.log('OK Field kind inferred from the name (' + TYPE_CASES.length + ' cas
 // ── THE VIEW MODEL EVERY SURFACE READS ──────────────────────────────
 const SHAPE = ['fields', 'buttons', 'preview', 'layout', 'steps', 'fmtOverride', 'linkable'];
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
+                     'other', 'otherOn', 'otherText',
                      'cols', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
                      'link', 'fromLink'];
 
@@ -130,6 +131,55 @@ if (vmPrev.preview !== 'Pick Uno now') {
 const vmTyped = ff.fillForm('Hi {N}', { N: 'Ada' }, opt());
 if (vmTyped.preview !== 'Hi Ada') fail('preview ignores what the operator typed');
 console.log('OK Preview resolves against the values the form displays');
+
+// ── THE OTHER CHOICE ────────────────────────────────────────────────
+// other=LABEL adds one more choice whose typed answer is the value. The
+// surfaces that read a menu off their own controls combine picks and the typed
+// answer through menuValue; the ones that keep answers in state pass
+// opts.other, so Other stays ticked while its box is empty. A value that is
+// not one of the options is read back as Other, so a re-drawn form (a language
+// switch) reopens on what was typed.
+const OTHER_BODY = 'Via {formmenu: Email,Phone; name=CH; other=Something else}{if: CH = "Fax"} by fax{endif}.';
+const otherCase = (vals, extra) => {
+  const vm = ff.fillForm(OTHER_BODY, vals, opt(extra));
+  const f = vm.fields[0];
+  return [f.other, f.otherOn, f.otherText, f.picks.join('|'), f.value, vm.preview].join(' / ');
+};
+const OTHER_CASES = [
+  [{}, {}, 'Something else / false /  / Email / Email / Via Email.'],
+  [{ CH: 'Phone' }, {}, 'Something else / false /  / Phone / Phone / Via Phone.'],
+  [{ CH: 'Fax' }, {}, 'Something else / true / Fax /  / Fax / Via Fax by fax.'],
+  [{ CH: 'Email' }, { other: { CH: '' } }, 'Something else / true /  /  /  / Via .'],
+  [{ CH: 'Email' }, { other: { CH: ' Fax ' } }, 'Something else / true /  Fax  /  / Fax / Via Fax by fax.'],
+];
+for (const [vals, extra, want] of OTHER_CASES) {
+  const got = otherCase(vals, extra);
+  if (got !== want) fail('Other on ' + JSON.stringify([vals, extra]) + ' gave ' + JSON.stringify(got) + ', expected ' + JSON.stringify(want));
+}
+const multiOther = ff.fillForm('{formmenu: A,B,C; name=M; multiple=yes; other=Other}', { M: 'A, C' }, opt({ other: { M: 'Z' } })).fields[0];
+if (multiOther.value !== 'A, C, Z' || multiOther.picks.join('|') !== 'A|C' || !multiOther.otherOn) {
+  fail('a multiple menu must keep its picks and add the typed answer: ' + JSON.stringify(multiOther));
+}
+const multiBack = ff.fillForm('{formmenu: A,B,C; name=M; multiple=yes; other=Other}', { M: 'A, Z, Y' }, opt()).fields[0];
+if (multiBack.picks.join('|') !== 'A' || multiBack.otherText !== 'Z, Y' || multiBack.value !== 'A, Z, Y') {
+  fail('a multiple menu holding answers that are not options must read them back as Other: ' + JSON.stringify(multiBack));
+}
+// A menu without other= is read exactly as before: a value that is not an
+// option stays as it is and no Other appears.
+const plainMenu = ff.fillForm('{formmenu: A,B; name=M}', { M: 'Z' }, opt({ other: { M: 'X' } })).fields[0];
+if (plainMenu.other !== '' || plainMenu.otherOn || plainMenu.value !== 'Z' || plainMenu.picks.join('|') !== 'Z') {
+  fail('a menu without other= changed behaviour: ' + JSON.stringify(plainMenu));
+}
+const MENU_VALUES = [
+  [false, ['A'], null, 'A'], [false, ['A'], 'typed', 'typed'], [false, [], '', ''],
+  [true, ['A', 'B'], null, 'A, B'], [true, ['A'], ' typed ', 'A, typed'], [true, ['A'], '  ', 'A'], [true, [], null, ''],
+];
+for (const [multiple, picks, other, want] of MENU_VALUES) {
+  const got = ff.menuValue(multiple, picks, other);
+  if (got !== want) fail('menuValue(' + JSON.stringify([multiple, picks, other]) + ') -> ' + JSON.stringify(got) + ', expected ' + JSON.stringify(want));
+}
+if (typeof ff.OTHER_PLACEHOLDER !== 'string' || ff.OTHER_PLACEHOLDER === '') fail('the Other box has no hint');
+console.log('OK The Other choice is decided once (' + (OTHER_CASES.length + MENU_VALUES.length + 3) + ' cases)');
 
 // ── THE STEP-MODE SEAM, DELIBERATELY SWITCHED OFF ───────────────────
 // layout and steps exist so that turning on an automatic step mode later is a
@@ -386,6 +436,9 @@ const DATE_READS = [
   ['time', 'at 9:30 pm', '21:30'],
   ['time', '14h30', '14:30'],
   ['number', '€ 1.200,50', '1200.5'],
+  ['number', 'Total 1.500 €', '1500'],             // one mark, three digits: thousands
+  ['number', '$2,400', '2400'],
+  ['number', '12,50 €', '12.5'],
   ['number', 'none', 'unclear'],
 ];
 for (const [type, text, want] of DATE_READS) {
@@ -438,3 +491,34 @@ if (ff.linkText('no-such-code') !== ff.linkText('failed')) fail('an unknown erro
 console.log('OK Fill from link checks the link and has words for every outcome');
 
 console.log('OK Fill form view model passed all gates');
+
+// Filled-message validation and omission: run through the real engine, not a
+// second implementation of the rules. Zero, guarded formulas and mixed lines
+// are the cases where removing a label or requiring a field can lose data.
+const assert = require('assert/strict');
+const filled = (body, values = {}, opts = {}) => ff.fillForm(body, values, opt(opts));
+assert.equal(filled('Request: {formtext: name=REQUEST}\nKeep this.', {REQUEST:'   '}).preview, 'Keep this.');
+assert.equal(filled('Count: {formtext: name=COUNT; type=number}\nKeep this.', {COUNT:0}).preview, 'Count: 0\nKeep this.');
+assert.equal(filled('A: {A}, B: {B}', {A:'one', B:''}).preview, 'A: one, B: ');
+assert.equal(filled('Value: {{VALUE}}\nKeep', {VALUE:''}).preview, 'Keep');
+assert.equal(filled('Hello {NAME}, please read these instructions.', {NAME:''}).preview, 'Hello , please read these instructions.');
+const chain = 'Amount: {formtext: name=AMOUNT; type=number}\n{var: RATE=3}{var: TOTAL=AMOUNT*(100+RATE)/100}Total: {=TOTAL}';
+assert.deepEqual(filled(chain, {AMOUNT:''}).errors.map(e=>e.key), ['AMOUNT']);
+assert.match(filled(chain, {AMOUNT:''}).preview, /Total: …/);
+assert.deepEqual(filled(chain.replace('{=TOTAL}', '{TOTAL}'), {AMOUNT:''}).errors.map(e=>e.key), ['AMOUNT']);
+assert.equal(filled(chain, {AMOUNT:'450'}).errors.length, 0);
+assert.match(filled(chain, {AMOUNT:'450'}).preview, /Total: 463.5/);
+assert.equal(filled(chain, {AMOUNT:'0'}).errors.length, 0);
+assert.equal(filled(chain, {AMOUNT:'bad'}).errors.length, 1);
+const guarded = 'Original: {formtext: name=ORIGINAL; type=number}\n{var: SAVED=ORIGINAL-10}{if: ORIGINAL > 0}Saved: {=SAVED}{endif}';
+assert.equal(filled(guarded, {ORIGINAL:''}).errors.length, 0);
+assert.ok(!filled(guarded, {ORIGINAL:''}).preview.includes('Original:'));
+assert.match(filled(guarded, {ORIGINAL:'50'}).preview, /Saved: 40/);
+const range = '{formdate: name=START}\n{formdate: name=END; after=START}\n{= datespan(START, END, "between")}';
+assert.ok(filled(range, {START:'2026-10-21', END:''}).errors.some(e=>e.key==='END'));
+assert.ok(filled(range, {START:'2026-10-21', END:'2026-10-20'}).errors.some(e=>e.key==='END'));
+assert.equal(filled(range, {START:'2026-10-21', END:'2026-10-24'}).errors.length, 0);
+assert.equal(filled(OTHER_BODY, {}, {other:{CH:''}}).errors[0].key, 'CH');
+const input = {AMOUNT:'100'}; filled(chain, input); assert.deepEqual(input, {AMOUNT:'100'});
+assert.deepEqual(vmLong.sections.flatMap(s=>s.keys), vmLong.fields.map(f=>f.key));
+console.log('OK Empty optional lines, active calculation dependencies, zero, validation and ordered sections');

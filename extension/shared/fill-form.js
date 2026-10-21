@@ -23,7 +23,7 @@
 // `layout` and `steps` are computed here and ignored by every renderer today.
 // They are the seam for a future automatic step mode: turning it on is a change
 // to chooseLayout() in this file and nowhere else. It is deliberately not wired
-// up, because the longest form in the library is three fields.
+// up: long forms use open, collapsible sections without changing field order.
 (function(root) {
   'use strict';
 
@@ -349,6 +349,35 @@
     return layout === 'steps' ? [fields.map(function(f) { return f.key; })] : [];
   }
 
+  // ── THE OTHER CHOICE ────────────────────────────────────────────
+  // A menu written with `other=LABEL` offers one more choice after its own,
+  // LABEL, and picking it opens a box. What is typed there is the answer: it
+  // prints where the menu sits, {NAME} repeats it, and a Show or hide rule
+  // compares against it. Nothing about "Other" itself ever reaches the text.
+
+  // The hint inside the Other box, the same on all four surfaces.
+  var OTHER_PLACEHOLDER = 'Type your own answer';
+
+  /**
+   * What a menu holds, from what is ticked on it. Every surface that reads a
+   * menu off its own controls calls this, so a pick and a typed answer combine
+   * the same way everywhere.
+   *
+   * @param {boolean} multiple   whether the menu takes several picks
+   * @param {string[]} picks     the menu's own options that are ticked
+   * @param {?string} other      the Other box's text when Other is ticked,
+   *                             null or undefined when it is not
+   * @returns {string} a single pick, or several joined with ", " as always
+   */
+  function menuValue(multiple, picks, other) {
+    var on = other !== null && other !== undefined;
+    var typed = on ? trim(other) : '';
+    if (!multiple) return on ? typed : ((picks && picks[0]) || '');
+    var out = (picks || []).slice();
+    if (typed !== '') out.push(typed);
+    return out.join(', ');
+  }
+
   // text    the snippet or prompt body. A string, never a row: prompts keep
   //         theirs in a different column and must be able to use this later
   //         without the module knowing what a snippet is.
@@ -361,6 +390,99 @@
   //         linked marks the fields whose value came from a page (Fill from
   //         link), keyed the same way again: { KEY: true }. A renderer drops a
   //         key the moment the operator edits that field by hand.
+  //         other marks the menus whose Other choice is ticked, with what is
+  //         typed in its box: { KEY: 'text' }. Only a surface that keeps its
+  //         answers apart from its controls needs it, to hold Other ticked
+  //         while the box is still empty. Without an entry, a menu value that
+  //         is not one of the options is read as Other with that text.
+  // User-facing labels and contiguous groups never reorder the author's fields.
+  function fieldTitle(field) {
+    var title = field.label || field.before || field.key.replace(/_/g, ' ');
+    title = trim(title).replace(/^[\s>→\-·]+/, '').replace(/[\s:：\-]+$/, '');
+    return title || field.key.replace(/_/g, ' ');
+  }
+
+  function sectionsFor(fields) {
+    if (fields.length <= STEP_THRESHOLD) return [{ title: 'Fields', keys: fields.map(function(f) { return f.key; }) }];
+    var groups = [];
+    for (var i = 0; i < fields.length; i += 4) {
+      groups.push({ title: 'Fields ' + (i + 1) + '–' + Math.min(i + 4, fields.length),
+        keys: fields.slice(i, i + 4).map(function(f) { return f.key; }) });
+    }
+    return groups;
+  }
+
+  // Only a whole line containing exclusively unanswered optional fields is
+  // omitted. Mixed answered/empty lines and lines carrying rules or formulas
+  // stay intact: removing them would discard independent content or logic.
+  function omitEmptyLines(E, src, values, required) {
+    var removed = false;
+    var lines = src.split('\n').filter(function(line) {
+      var keys = fieldKeys(E, line);
+      if (!keys.length) return true;
+      var prose = line.replace(/\{\{[A-Za-z_][A-Za-z0-9_]*\}\}|\{(?:formtext:|formdate:|formmenu:)[^{}]*\}|\{[A-Za-z_][A-Za-z0-9_]*\}/gi, '');
+      if (/[{}]/.test(prose)) return true;
+      var first = line.indexOf('{'), last = line.lastIndexOf('}');
+      var prefix = trim(line.slice(0, first)), suffix = trim(line.slice(last + 1));
+      // A labelled row is safe to omit; a paragraph such as "Hello {NAME},
+      // here are the instructions" may contain independent information.
+      if ((prefix && !/[:：]$/.test(prefix)) || suffix.length > 40 || /[.!?]/.test(suffix)) return true;
+      var empty = keys.every(function(k) {
+        return Object.prototype.hasOwnProperty.call(values, k) && !required[k] && trim(values[k]) === '';
+      });
+      if (empty) removed = true;
+      return !empty;
+    });
+    return removed ? lines.join('\n').replace(/\n[ \t]*\n(?:[ \t]*\n)+/g, '\n\n').replace(/^\n+|\n+$/g, '') : src;
+  }
+
+  // Trace the values actually read by active calculations, through saved
+  // values as well. Inactive conditional branches do not make optional data
+  // mandatory. Each resolution owns its scope; the caller's values never mutate.
+  function resolvedForm(E, src, fields, opts) {
+    var values = {}, byKey = Object.create(null), required = Object.create(null), dependencies = Object.create(null);
+    fields.forEach(function(f) {
+      values[f.key] = trim(f.value) === '' ? '' : f.value;
+      byKey[f.key] = f;
+    });
+    function formula(expr, scope, assignment) {
+      var used = {};
+      var result = E.evalFormula(expr, new Proxy(scope, {
+        get: function(target, key) {
+          if (dependencies[key]) Object.keys(dependencies[key]).forEach(function(k) { used[k] = true; });
+          else if (byKey[key]) used[key] = true;
+          return target[key];
+        }
+      }));
+      if (assignment) dependencies[assignment] = used;
+      else Object.keys(used).forEach(function(k) { required[k] = true; });
+      // A provisional calculation must not look like a final zero total.
+      if (!assignment && Object.keys(used).some(function(k) { return trim(values[k]) === ''; })) return '…';
+      return result;
+    }
+    var resolveOpts = { lang: opts.lang || '', fmtOverride: opts.fmtOverride, formula: formula,
+      value: function(key, scope) { return dependencies[key] ? formula(key, scope) : scope[key]; } };
+    function resolve(body) {
+      dependencies = Object.create(null);
+      return E.resolveBody(E.interpolateSnippet(body, values), Object.assign({}, values), resolveOpts);
+    }
+    var preview = resolve(src);
+    var clean = omitEmptyLines(E, src, values, required);
+    if (clean !== src) preview = resolve(clean);
+    var errors = [];
+    fields.forEach(function(f) {
+      var value = values[f.key], message = '';
+      f.required = !!required[f.key];
+      if (f.required && trim(value) === '') message = 'Enter ' + fieldTitle(f) + ' to complete the calculation.';
+      else if (trim(value) !== '' && f.type === 'number' && E.sbToNumber(value) === null) message = 'Enter a valid number.';
+      else if (value && f.min && value < f.min) message = 'Choose a date on or after ' + fieldTitle(byKey[f.notBefore]) + '.';
+      else if (f.otherOn && trim(f.otherText) === '') message = 'Enter your own answer or choose an option.';
+      f.error = message;
+      if (message) errors.push({ key: f.key, message: message });
+    });
+    return { preview: preview, errors: errors };
+  }
+
   function fillForm(text, values, opts) {
     var E = engine();
     var src = (text === null || text === undefined) ? '' : String(text);
@@ -369,7 +491,7 @@
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, errors: [], sections: [], layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -382,6 +504,7 @@
     var stored = o.fieldCfg || {};
     var picked = o.fieldFmt || {};
     var linked = o.linked || {};
+    var others = o.other || {};
     var keys = fieldKeys(E, src);
     var ctxs = E.fieldContext ? (E.fieldContext(src) || {}) : {};
 
@@ -411,6 +534,30 @@
       }
       var ctx = ctxs[key] || { before: '', after: '' };
       var val = Object.prototype.hasOwnProperty.call(vals, key) ? vals[key] : def;
+      var multi = raw.multiple === true;
+      var picks = (isMenu && E.formMenuPicks) ? E.formMenuPicks(val) : [];
+
+      // A menu with an Other choice. What it holds splits into its own options
+      // and the rest, and the rest is what was typed in the Other box. A menu
+      // without one is read exactly as it always was.
+      var otherLabel = isMenu ? trim(raw.other) : '';
+      var otherOn = false, otherText = '';
+      if (otherLabel) {
+        var own = [], rest = [];
+        for (var pk = 0; pk < picks.length; pk++) {
+          (options.indexOf(picks[pk]) !== -1 ? own : rest).push(picks[pk]);
+        }
+        if (Object.prototype.hasOwnProperty.call(others, key)) {
+          otherOn = true;
+          otherText = String(others[key] === null || others[key] === undefined ? '' : others[key]);
+        } else if (rest.length) {
+          otherOn = true;
+          otherText = multi ? rest.join(', ') : trim(val);
+        }
+        // A single choice holds one answer: with Other ticked, no option is.
+        picks = (otherOn && !multi) ? [] : own;
+        val = menuValue(multi, picks, otherOn ? otherText : null);
+      }
 
       // The format this field prints in: the author's, unless the operator
       // picked another in the Adjust panel. '' is a real answer on both sides —
@@ -462,8 +609,14 @@
         // pointed at is often the one after this in walk order.
         min: '',
         options: options,
-        picks: (isMenu && E.formMenuPicks) ? E.formMenuPicks(val) : [],
-        multiple: raw.multiple === true,
+        picks: picks,
+        multiple: multi,
+        // The Other choice's label, or '' for a menu without one. When it is
+        // ticked, otherOn is true and otherText is what its box holds; the
+        // field's value is then that text (with the picks, on a multiple menu).
+        other: otherLabel,
+        otherOn: otherOn,
+        otherText: otherText,
         cols: raw.cols || 0,
         'default': def,
         value: val,
@@ -541,19 +694,14 @@
     // single-choice menu the operator never touched already reads as its first
     // option in the form, so resolving against raw values previewed a hole in a
     // sentence the surface was visibly showing as answered.
-    var eff = {};
-    for (var e1 = 0; e1 < fields.length; e1++) eff[fields[e1].key] = fields[e1].value;
-
-    var preview = src;
-    try {
-      preview = E.resolveBody(E.interpolateSnippet(src, eff), eff,
-        { lang: o.lang || '', fmtOverride: fmtOverride });
-    } catch (e) { preview = src; }
+    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride });
 
     return {
       fields: fields,
       buttons: E.extractButtons ? (E.extractButtons(src) || []) : [],
-      preview: preview,
+      preview: resolved.preview,
+      errors: resolved.errors,
+      sections: sectionsFor(fields),
       // Hand straight to resolveBody alongside the values. A surface that
       // resolves the body itself on insert — the overlay does — must pass this
       // too, or what it inserts prints in a different format from the preview
@@ -989,6 +1137,9 @@
 
   var API = {
     fillForm: fillForm,
+    fieldTitle: fieldTitle,
+    menuValue: menuValue,
+    OTHER_PLACEHOLDER: OTHER_PLACEHOLDER,
     orderedMin: orderedMin,
     linkUrl: linkUrl,
     readFromPage: readFromPage,

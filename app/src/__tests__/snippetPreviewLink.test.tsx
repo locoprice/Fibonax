@@ -67,7 +67,10 @@ describe('SnippetPreview — the Link box', () => {
   it('is drawn above the fields for a snippet that reads a page', () => {
     const html = render(LINKABLE);
     expect(html).toContain('>Fill from link</label>');
-    expect(html.indexOf('Fill from link')).toBeLessThan(html.indexOf('ORDER REF'));
+    // The visible label follows the snippet's wording; anchor the ordering
+    // check to the actual field rather than its previous generated title.
+    expect(html).toContain('data-fill-key="ORDER_REF"');
+    expect(html.indexOf('Fill from link')).toBeLessThan(html.indexOf('data-fill-key="ORDER_REF"'));
   });
 
   it('carries the parts every surface draws, in the shared words', () => {

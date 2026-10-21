@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MinusCircle, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,12 +9,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { EditingBanner } from '@/features/snippets/formulaDialogParts';
 import { cn } from '@/lib/utils';
 import {
   buildFormButtonToken,
   isValidButtonField,
   sanitizeButtonExpr,
   type ButtonTrim,
+  type FormButtonConfig,
 } from '@/lib/formButtonToken';
 
 interface ActionRow {
@@ -39,6 +41,15 @@ const TRIM_OPTIONS: { value: ButtonTrim; label: string }[] = [
 interface FormButtonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * The button being changed, or null to build a new one. Must stay the same
+   * object while open: the window reloads whenever it changes.
+   */
+  initial?: FormButtonConfig | null;
+  /** The buttons already in the snippet, listed above the form. */
+  list?: ReactNode;
+  /** Leaves the button being changed as it is and starts a new one. */
+  onNew?: () => void;
   onInsert: (token: string) => void;
 }
 
@@ -49,7 +60,14 @@ interface FormButtonDialogProps {
  * The token is written by `@/lib/formButtonToken` and parsed back by the formula
  * engine, so what this previews is exactly what runs.
  */
-export function FormButtonDialog({ open, onOpenChange, onInsert }: FormButtonDialogProps) {
+export function FormButtonDialog({
+  open,
+  onOpenChange,
+  initial = null,
+  list,
+  onNew,
+  onInsert,
+}: FormButtonDialogProps) {
   const nextId = useRef(0);
 
   const [label, setLabel] = useState('');
@@ -59,14 +77,22 @@ export function FormButtonDialog({ open, onOpenChange, onInsert }: FormButtonDia
   const labelRef = useRef<HTMLInputElement | null>(null);
 
   // Every opening starts clean — a half-built action carried over from a
-  // cancelled insert would silently ship into the next snippet.
+  // cancelled insert would silently ship into the next snippet. Opened on a
+  // button already in the snippet, it starts from that one.
   useEffect(() => {
     if (!open) return;
+    if (initial) {
+      nextId.current = initial.lines.length;
+      setLabel(initial.label);
+      setTrim(initial.trim);
+      setRows(initial.lines.map((line, i) => ({ id: i + 1, field: line.field, expr: line.expr })));
+      return;
+    }
     nextId.current = 1;
     setLabel('');
     setTrim('left');
     setRows([{ id: 1, field: '', expr: '' }]);
-  }, [open]);
+  }, [open, initial]);
 
   function updateRow(id: number, patch: Partial<ActionRow>) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -107,14 +133,22 @@ export function FormButtonDialog({ open, onOpenChange, onInsert }: FormButtonDia
         }}
       >
         <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle>Insert action button</DialogTitle>
+          <DialogTitle>{initial ? 'Edit action button' : 'Insert action button'}</DialogTitle>
           <DialogDescription>
             A button that changes the numbers while you fill the snippet. It never
             appears in the message.
           </DialogDescription>
         </DialogHeader>
 
+        {list && <div className="min-w-0 px-6 pb-3">{list}</div>}
+
         <div className="max-h-[60vh] overflow-y-auto px-6 pb-2 flex flex-col gap-4">
+          {initial && onNew && (
+            <EditingBanner onNew={onNew} newLabel="New button instead">
+              Editing {initial.label ? `"${initial.label}"` : 'this button'}. Save puts it back where it was.
+            </EditingBanner>
+          )}
+
           {/* ── Label ── */}
           <div>
             <label htmlFor="form-button-label" className={SECTION_LABEL}>
@@ -221,7 +255,7 @@ export function FormButtonDialog({ open, onOpenChange, onInsert }: FormButtonDia
           {/* ── What lands in the body ── */}
           <div className="rounded-[10px] border border-line bg-bg-alt px-3 py-2.5">
             <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-widest mb-1">
-              Inserts
+              {initial ? 'Saves as' : 'Inserts'}
             </p>
             <code className="block font-mono text-[11px] leading-relaxed text-ink-muted break-all">
               {token}
@@ -234,7 +268,7 @@ export function FormButtonDialog({ open, onOpenChange, onInsert }: FormButtonDia
             Cancel
           </Button>
           <Button type="button" variant="primary" onClick={handleInsert} disabled={!canInsert}>
-            Insert
+            {initial ? 'Save' : 'Insert'}
           </Button>
         </div>
       </DialogContent>

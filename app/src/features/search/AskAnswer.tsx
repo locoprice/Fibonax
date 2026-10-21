@@ -1,6 +1,8 @@
+import { BrainIcon } from '@/components/shared/BrainIcon';
 import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowLeft, Brain, Check, Copy, Loader2, Type } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, Copy, Loader2 } from 'lucide-react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
 import { askApi } from '@/lib/api/askApi';
 import {
   ASK_VERDICTS,
@@ -215,7 +217,7 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
         </p>
         <ul className="divide-y divide-line rounded-[10px] border border-line">
           {result.sources.map((source) => {
-            const Icon = source.kind === 'snippet' ? Type : Brain;
+            const Icon = source.kind === 'snippet' ? SnippetIcon : BrainIcon;
             return (
               <li key={source.ref}>
                 <button

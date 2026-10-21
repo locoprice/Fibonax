@@ -1,3 +1,4 @@
+import { BrainIcon } from '@/components/shared/BrainIcon';
 import { Fragment, useState, useRef, useEffect, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
@@ -5,7 +6,6 @@ import {
   ArrowUpRight,
   BarChart3,
   BookOpen,
-  Brain,
   Briefcase,
   Bug,
   Github,
@@ -16,10 +16,11 @@ import {
   PlayCircle,
   Settings,
   ShieldCheck,
-  Sparkles,
-  Type,
   Users,
+  type LucideIcon,
 } from 'lucide-react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import { cn } from '@/lib/utils';
 import { pickHttpsUrl } from '@/lib/branding';
 import { RESOURCE_LINKS } from '@/lib/links';
@@ -36,7 +37,7 @@ import { useUiStore } from '@/stores/uiStore';
 interface NavItem {
   to: string;
   label: string;
-  icon: typeof Type;
+  icon: LucideIcon;
   end?: boolean;
   /** When provided, renders a count pill — filled (primary) when active, muted otherwise. */
   count?: number;
@@ -132,11 +133,11 @@ export function Sidebar() {
   const avatarUrl = pickHttpsUrl(user?.user_metadata, 'avatar_url');
 
   const PRIMARY: NavItem[] = [
-    { to: '/', label: 'Snippets', icon: Type, end: true, count: snippetCount },
-    { to: '/prompts', label: 'Prompts', icon: Sparkles, count: promptCount },
+    { to: '/', label: 'Snippets', icon: SnippetIcon, end: true, count: snippetCount },
+    { to: '/prompts', label: 'Prompts', icon: PromptIcon, count: promptCount },
     // No count pill: the spaces list is loaded by the Memory page itself, and
     // pulling that store into the sidebar would make every page fetch it.
-    { to: '/memory', label: 'Brains', icon: Brain },
+    { to: '/memory', label: 'Brains', icon: BrainIcon },
     { to: '/team', label: 'Team', icon: Users, count: sharedFolderCount, dividerBefore: true },
     // What waits for a person, across snippets, prompts and Brains.
     { to: '/review', label: 'Review', icon: ShieldCheck, count: waitingCount },

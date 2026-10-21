@@ -1,5 +1,7 @@
 import { Children, useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, FileText, Globe, Search, Share2, Sparkles, Users } from 'lucide-react';
+import { ChevronDown, Globe, Search, Share2, Users } from 'lucide-react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { CreateTeamPanel } from '@/features/org/CreateTeamPanel';
 import { FolderShareModal } from '@/features/org/FolderShareModal';
@@ -388,7 +390,7 @@ function SharedFolderCard({
       {/* Two columns: snippets + prompts */}
       <div className="grid grid-cols-2 gap-6 pt-4">
         <AssetColumn
-          icon={<FileText className="h-3.5 w-3.5" />}
+          icon={<SnippetIcon className="h-3.5 w-3.5" />}
           label="Snippets"
           count={visibleSnippets.length}
         >
@@ -415,7 +417,7 @@ function SharedFolderCard({
         </AssetColumn>
 
         <AssetColumn
-          icon={<Sparkles className="h-3.5 w-3.5" />}
+          icon={<PromptIcon className="h-3.5 w-3.5" />}
           label="Prompts"
           count={visiblePrompts.length}
         >

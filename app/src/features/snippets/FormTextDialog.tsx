@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,10 +9,22 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { EditingBanner, RenameNote } from '@/features/snippets/formulaDialogParts';
 import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { cn } from '@/lib/utils';
-import { buildFormTextToken, isPersonNameKey, isValidFieldName } from '@/lib/formTextToken';
-import { emptyLinkDraft, LABEL_LINK_MODES, linkFromDraft, type LinkRuleDraft } from '@/lib/linkRule';
+import {
+  buildFormTextToken,
+  isPersonNameKey,
+  isValidFieldName,
+  type FormTextConfig,
+} from '@/lib/formTextToken';
+import {
+  emptyLinkDraft,
+  LABEL_LINK_MODES,
+  linkDraftFrom,
+  linkFromDraft,
+  type LinkRuleDraft,
+} from '@/lib/linkRule';
 
 const HINT = 'text-[11px] text-ink-subtle mt-1.5';
 const SECTION_LABEL = 'block text-xs font-medium text-ink-muted mb-1.5';
@@ -25,6 +37,17 @@ interface FormTextDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Prefilled field name — the next free TEXT_n for the body being edited. */
   suggestedName: string;
+  /**
+   * The field being changed, or null to build a new one. Must stay the same
+   * object while open: the window reloads whenever it changes.
+   */
+  initial?: FormTextConfig | null;
+  /** The text fields already in the snippet, listed above the form. */
+  list?: ReactNode;
+  /** How many other parts read the field being changed, for the rename note. */
+  readers?: number;
+  /** Leaves the field being changed as it is and starts a new one. */
+  onNew?: () => void;
   onInsert: (token: string) => void;
 }
 
@@ -41,6 +64,10 @@ export function FormTextDialog({
   open,
   onOpenChange,
   suggestedName,
+  initial = null,
+  list,
+  readers = 0,
+  onNew,
   onInsert,
 }: FormTextDialogProps) {
   const [name, setName] = useState('');
@@ -54,14 +81,22 @@ export function FormTextDialog({
   const nameRef = useRef<HTMLInputElement | null>(null);
 
   // Every opening starts from a clean field: a half-built one carried over
-  // from a cancelled insert would silently ship into the next snippet.
+  // from a cancelled insert would silently ship into the next snippet. Opened
+  // on a field already in the snippet, it starts from that one.
   useEffect(() => {
     if (!open) return;
+    if (initial) {
+      setName(initial.name);
+      setDefaultValue(initial.default);
+      setPersonChoice(initial.personName ?? null);
+      setLink(linkDraftFrom(initial.link, 'after'));
+      return;
+    }
     setName(suggestedName);
     setDefaultValue('');
     setPersonChoice(null);
     setLink(TEXT_LINK_START);
-  }, [open, suggestedName]);
+  }, [open, suggestedName, initial]);
 
   const nameValid = isValidFieldName(name);
 
@@ -89,15 +124,23 @@ export function FormTextDialog({
         }}
       >
         <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle>Insert text field</DialogTitle>
+          <DialogTitle>{initial ? 'Edit text field' : 'Insert text field'}</DialogTitle>
           <DialogDescription>
             One line of text, typed in when the snippet expands.
           </DialogDescription>
         </DialogHeader>
 
+        {list && <div className="min-w-0 px-6 pb-3">{list}</div>}
+
         {/* Scrolls like the Choice builder's: with Fill from link open, the
             window outgrows a laptop screen. */}
         <div className="max-h-[60vh] overflow-y-auto px-6 pb-2 flex flex-col gap-4">
+          {initial && onNew && (
+            <EditingBanner onNew={onNew} newLabel="New field instead">
+              Editing {initial.name}. Save puts it back where it was.
+            </EditingBanner>
+          )}
+
           {/* ── Field name ── */}
           <div>
             <label htmlFor="form-text-name" className={SECTION_LABEL}>
@@ -135,6 +178,7 @@ export function FormTextDialog({
                 underscore, starting with a letter — e.g. {suggestedName}.
               </p>
             )}
+            {initial && nameValid && <RenameNote from={initial.name} to={name} readers={readers} />}
           </div>
 
           {/* ── Default ── */}
@@ -192,7 +236,7 @@ export function FormTextDialog({
           {nameValid && (
             <div className="rounded-[10px] border border-line bg-bg-alt px-3 py-2.5">
               <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-widest mb-1">
-                Inserts
+                {initial ? 'Saves as' : 'Inserts'}
               </p>
               <code className="block font-mono text-[11px] leading-relaxed text-ink-muted break-all">
                 {token}
@@ -206,7 +250,7 @@ export function FormTextDialog({
             Cancel
           </Button>
           <Button type="button" variant="primary" onClick={handleSubmit} disabled={!nameValid}>
-            Insert
+            {initial ? 'Save' : 'Insert'}
           </Button>
         </div>
       </DialogContent>

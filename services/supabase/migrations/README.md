@@ -67,6 +67,13 @@ These scripts are **not safe to apply until specific auth events happen**.
 3. Click **Run**
 4. The `RAISE NOTICE` at the bottom prints how many rows moved
 
+## Delete account (v3.72.0)
+
+| File | Status | Notes |
+|---|---|---|
+| `20261018120000_delete_account.sql` | ✅ applied 2026-10-18 | Settings → Account → Delete account. Makes six author columns nullable with ON DELETE SET NULL (they blocked deleting anyone who had edited, invited, shared or created a team). Lets the tenancy triggers change `user_id` only during a deletion handover (no JWT, transaction-local `app.account_handover` naming the current owner). Adds `account_deletion_preview()` for the dialog and `delete_account(uuid)`, service_role only, called by the `delete-account` edge function. Team items go to another admin; a team whose only admin leaves is deleted for everyone. Also lets the audit stamp (`updated_by`) clear during the same handover: it re-filled itself and blocked deleting anyone who had ever edited a snippet or prompt (caught by the trial). Recorded as `delete_account` (`20261018093712`). Before applying, the whole migration plus a scenario (five fake users, four teams covering handover, sole-admin team, admin-less team, solo team, personal items, Brain, shares, history, invitation) ran on production inside one DO block that ended in an exception, so nothing was kept: every check passed. `delete-account` deployed (v2, `verify_jwt`; v2 only changes a comment); it answers 401 without a valid sign-in. |
+| `20261018130000_drop_backup_tables.sql` | ✅ applied 2026-10-18 | Drops the eleven one-off backup tables in `app` (snippet, history, folder and prompt copies taken before data repairs on 2026-08-19, 2026-08-20, 2026-09-13 and 2026-09-17). They had no foreign key, so a deleted account's text stayed in them. Nothing read them: no code, function, view, policy or trigger, and only `postgres` held a grant. Ten were made in the SQL editor, hence `if exists`. `public.phase_b_share_migration` stays: ids only, its rows already cascade with their snippet, and `docs/PHASE_B_SOAK.md` still reads it. The project is on the free plan, so the drop is final. Before applying, the drop plus a fake account with a snippet and a prompt ran on production inside a DO block that ended in an exception: all eleven gone, the kept table intact, `delete_account` still deletes; afterwards all eleven were still there. Recorded as `drop_backup_tables` (`20261018095806`). |
+
 ## Adding a new migration
 
 ```sh
@@ -77,4 +84,8 @@ supabase/migrations/YYYYMMDDhhmmss_short_name.sql
 #    "apply migration via MCP, name: short_name"
 
 # 3. If deferred (needs a prerequisite event), add a row to the table above.
+
+# 4. A backup table taken before a data repair is dropped once the repair is
+#    checked, or references its source row with ON DELETE CASCADE. Otherwise
+#    a deleted account's text survives in it (see 20261018130000).
 ```

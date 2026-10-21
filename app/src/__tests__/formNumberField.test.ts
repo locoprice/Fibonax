@@ -91,10 +91,11 @@ describe('formNumberToken — round trip through the real engine', () => {
     { format: 'currency', def: '', wantDefault: '' },
     { format: 'percent', def: '', wantDefault: '' },
     { format: 'currency', def: '1200.5', wantDefault: '1200.5' },
-    // The separators an operator actually types must survive into the config,
-    // or the default arrives blank in an <input type="number">.
+    // The separators an operator actually types must survive into the config
+    // as one plain spelling every fill box shows the same way.
     { format: 'currency', def: '1.200,50', wantDefault: '1200.5' },
     { format: 'currency', def: '1,200.50', wantDefault: '1200.5' },
+    { format: 'currency', def: '1.500', wantDefault: '1500' },
     { format: 'plain', def: '-40', wantDefault: '-40' },
     // Zero is an answer, and must not be confused with "no default".
     { format: 'plain', def: '0', wantDefault: '0' },
@@ -144,6 +145,19 @@ describe('number field — engine-side rules the writer depends on', () => {
     expect(engine.sbToNumber('1200.5')).toBe(1200.5);
     expect(engine.sbToNumber('1.200.000')).toBe(1200000);
     expect(engine.sbToNumber('-40')).toBe(-40);
+  });
+
+  it('reads one mark followed by exactly three digits as thousands', () => {
+    // The quote that showed the defect: 1.500 read as 1.5 made "save" negative.
+    expect(engine.sbToNumber('1.500')).toBe(1500);
+    expect(engine.sbToNumber('2,400')).toBe(2400);
+    expect(engine.sbToNumber('-12.500')).toBe(-12500);
+    // Anything else after a single mark stays a decimal, as before.
+    expect(engine.sbToNumber('1,5')).toBe(1.5);
+    expect(engine.sbToNumber('12.50')).toBe(12.5);
+    expect(engine.sbToNumber('0.125')).toBe(0.125);
+    expect(engine.sbToNumber('1234.567')).toBe(1234.567);
+    expect(engine.sbToNumber('1.1250')).toBe(1.125);
   });
 
   it('tells an unanswered field from one that is not a number', () => {

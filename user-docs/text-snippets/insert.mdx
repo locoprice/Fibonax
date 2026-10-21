@@ -26,13 +26,21 @@ Prompts have a menu of their own: type `"""`. See [Prompts](/prompts/overview).
 
 When a snippet has fields, a form opens where you typed. Fill in each box, then press <kbd>Enter</kbd> to insert or <kbd>Esc</kbd> to cancel.
 
-The form shows the snippet name at the top. On a wider screen, short fields sit side by side; on a narrow screen, they stack. Check the first five lines in **Message preview**, then choose **Insert message**. The insert button stays in view when a longer form needs scrolling.
+The form opens in a wide window with the snippet name at the top. Fields stay in the order of the snippet. Long forms have sections that start open and can be collapsed. On wider screens, the full **Message preview** stays beside the fields, with separate scrolling. On smaller screens, switch between **Fill in** and **Preview**. Choose **Insert message** when ready; the button stays in view.
 
-What you type shows in **bold**, while the snippet's own words around each box stay grey, so you always see which parts of the message are yours. The bold is only on screen: the text you insert is plain.
+Each field has a label above it. What you type shows in **bold**; the inserted text stays plain. Open a choice menu to pick an answer. Multiple-choice menus still accept several answers, and **Other** opens a box for your own answer. Date and time settings are under **Options**.
 
 Date boxes open on today. You can change how a date prints, jump to a day such as **Tomorrow** or **Next Monday**, or set a time. These choices apply to this insert only. The saved snippet doesn't change.
 
 Some forms start with **Fill from link**. Paste a link to a web page, such as an order or a confirmation, and press **Fill** or <kbd>Enter</kbd>: the fields fill in from what the page says, each marked **From link**. Check them, then press <kbd>Enter</kbd> to insert. See [Fill a form from a link](/text-snippets/fill-from-link).
+
+### Empty fields and calculations
+
+An unanswered optional field on its own labelled line, such as `Request: {REQUEST}`, removes that line, including the label. Spaces alone count as empty. **0 is a value**, so it stays in the message. Lines with another answered field, formulas, rules or longer independent prose are kept; use a **Show or hide** rule when you need to control a larger block.
+
+Fields needed by an active calculation have an asterisk. Before inserting or copying, Fibonax points you to any missing value, invalid number, date before its allowed start, or unanswered **Other** choice. Complete that field and try again. Calculations in a hidden conditional branch do not require an answer. The preview shows an ellipsis for calculations still waiting for input.
+
+These rules apply in the overlay, extension popup, editor preview and mobile. They do not change the saved snippet or its defaults. **Copy raw** continues to copy the original template.
 
 ## Choose a language
 

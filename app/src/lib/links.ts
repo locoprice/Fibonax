@@ -12,8 +12,8 @@ export const RESOURCE_LINKS: Record<
   docs: 'https://docs.fibonax.com',
   investors: 'https://form.jotform.com/locoprice/investors',
   bugs: 'https://form.jotform.com/locoprice/accuracy',
-  discussions: 'https://github.com/locoprice/SprintBrain/discussions',
-  github: 'https://github.com/locoprice/SprintBrain/issues',
+  discussions: 'https://github.com/locoprice/Fibonax/discussions',
+  github: 'https://github.com/locoprice/Fibonax/issues',
   status: 'https://fibonax.instatus.com/',
 };
 

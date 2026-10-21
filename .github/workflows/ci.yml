@@ -50,6 +50,9 @@ jobs:
       - name: Fill form parity check
         run: node scripts/sync-fill-form.js --check
 
+      - name: Check shared fill-form UI copy
+        run: node scripts/sync-fill-form-ui.js --check
+
       - name: Fill form view model check
         run: node scripts/check-fill-form.js
 

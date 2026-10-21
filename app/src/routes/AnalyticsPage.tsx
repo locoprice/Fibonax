@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Activity, Clock, Hash, Library } from 'lucide-react';
+import { Activity, Clock, Hash } from 'lucide-react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { KpiCard } from '@/components/shared/KpiCard';
 import { UsageChart } from '@/features/analytics/UsageChart';
@@ -89,7 +90,7 @@ export function AnalyticsPage() {
         <KpiCard
           label="Total snippets"
           value={formatCompact(summary.total_snippets)}
-          icon={Library}
+          icon={SnippetIcon}
           hint="across 4 folders"
         />
         <KpiCard

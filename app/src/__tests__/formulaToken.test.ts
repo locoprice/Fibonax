@@ -13,6 +13,7 @@ import {
   boxLabel,
   FORMULA_OPERATIONS,
   formulasInBody,
+  formulaTextError,
   getFormulaOperation,
   getPriceAdjustment,
   isValidFormula,
@@ -550,6 +551,53 @@ describe('formulaToken: formulas already in a body', () => {
   it('finds nothing in a body without formulas', () => {
     expect(formulasInBody('Hello {formtext: name=A; type=number}')).toEqual([]);
   });
+
+  // Edit swaps only the formula's own text, so the guard, the rate and the % stay.
+  const edit = (body: string, index: number, text: string) => {
+    const e = formulasInBody(body)[index]!.expression!;
+    return body.slice(0, e.start) + text + body.slice(e.end);
+  };
+
+  it('offers each formula text for editing, without the spaces around it', () => {
+    expect(formulasInBody('Nights: {= datespan(A,B,"between") } nights').map((f) => f.expression?.text)).toEqual([
+      'datespan(A,B,"between")',
+    ]);
+    expect(formulasInBody(quote).map((f) => f.expression?.text)).toEqual([
+      'YOUR_PRICE * (100 - BANK_DISCOUNT) / 100',
+      'OTA_PRICE - YOUR_PRICE',
+      'YOUR_PRICE * BANK_DISCOUNT / 100',
+      'OTA_PRICE - YOUR_PRICE + round(YOUR_PRICE * BANK_DISCOUNT / 100)',
+      'OTA_PRICE - YOUR_PRICE',
+      'round((OTA_PRICE - YOUR_PRICE) / OTA_PRICE * 100)',
+    ]);
+  });
+
+  it('changes only the formula text, keeping its spaces, guard, rate and % sign', () => {
+    expect(edit('Nights: {= datespan(A,B,"between") } nights', 0, 'datespan(A,B,"inclusive")')).toBe(
+      'Nights: {= datespan(A,B,"inclusive") } nights',
+    );
+    const card = 'Card: {var: MARKUP = 3}{=P * (100 + MARKUP) / 100}€';
+    expect(edit(card, 0, 'round(P * (100 + MARKUP) / 100)')).toBe(
+      'Card: {var: MARKUP = 3}{=round(P * (100 + MARKUP) / 100)}€',
+    );
+    const saving = 'Save {if: A > 0}{=round((A - B) / A * 100)}%{endif}!';
+    const after = edit(saving, 0, 'round((A - B) / A * 1000) / 10');
+    expect(after).toBe('Save {if: A > 0}{=round((A - B) / A * 1000) / 10}%{endif}!');
+    expect(engine.resolveBody(after, { A: '150', B: '100' })).toBe('Save 33.3%!');
+  });
+
+  it('leaves an interest block out of editing: its answers only make sense together', () => {
+    const block = buildInterestToken({ kind: 'simple', names: ['PRINCIPAL', 'RATE', 'YEARS'], decimals: 2 });
+    expect(formulasInBody(block)[0]?.expression).toBeUndefined();
+  });
+
+  it('refuses an edited formula that would break the snippet', () => {
+    expect(formulaTextError('YOUR_PRICE * 2')).toBe('');
+    expect(formulaTextError('   ')).toBe('Type a formula, or use Remove to take it out.');
+    expect(formulaTextError('A + {B}')).toBe('This cannot hold { or }.');
+    expect(formulaTextError('round((A - B) / A * 100')).toBe('Every ( needs a ) to close it.');
+    expect(formulaTextError('A - B)')).toBe('Every ( needs a ) to close it.');
+  });
 });
 
 describe('formulaToken: simple and compound interest', () => {
@@ -721,7 +769,8 @@ describe('hand-typed spreadsheet-style formulas', () => {
   });
 
   it('keeps the decimals round() is given, and averages with avg()', () => {
-    expect(engine.resolveBody('{=round(X, 1)}', { X: '2.456' })).toBe('2.5');
+    // Not '2.456': one mark followed by exactly three digits reads as thousands.
+    expect(engine.resolveBody('{=round(X, 1)}', { X: '2.4567' })).toBe('2.5');
     expect(engine.resolveBody('{=round(X, -2)}', { X: '1234' })).toBe('1200');
     expect(engine.resolveBody('{=avg(A, B, C)}', { A: '1', B: '2', C: '4' })).toBe('2.33');
   });

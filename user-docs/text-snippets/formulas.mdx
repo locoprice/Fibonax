@@ -56,9 +56,22 @@ A **Calculator** works out a number from figures you fill in, and prints the wor
 - An empty, zero or negative box prints no answer instead of a wrong one.
 - Compound interest needs extension version 3.52.0 or later. An older one prints the working without the answer.
 
-## Remove a formula
+## Change or remove a formula
 
-The formula windows show how many formulas the snippet has. **Manage** lists them, each with **Remove** and **Undo**.
+The formula windows show how many formulas the snippet has. **Manage** lists them, each with **Edit** and **Remove**. Saved values, like `{var: DISCOUNT = 1.5}`, are in the list too, and every line that uses one follows when you change it.
+
+**Edit** opens the formula as steps, with no maths to type:
+
+- At the top, **This line will print** shows the answer, worked out with the snippet's default numbers, or 100 and 10 where a box has none.
+- **How it's worked out** lists the steps from top to bottom: **Start with** a value, then **Add**, **Subtract**, **Multiply by**, **Divide by**, **Take off %** or **Add %**. Each step picks a box or saved value from its menu, or **A number I type**. For a percentage, type the number: 1.5 means 1.5%.
+- **Add a step** puts a new step at the end. The bin beside a step removes it. Steps work on everything above them: "Subtract the saving, then Take off 10%" takes 10% off the price after the saving.
+- **How should the number look?** shows the answer with 2 decimals, 1 decimal and as a whole number. Click the one you want.
+- **Type the formula yourself** shows the formula as text, for anyone who prefers it. Changes there show in the steps.
+- Click **Save**, or **Cancel** to leave it as it was. **New formula instead** keeps it and goes back to adding a new one. After a save, **Undo** under the body takes it back.
+
+A formula the steps can't show, such as one using `datespan`, opens as a box with the formula in it instead: change it and click **Save**. If it can't work, for example a bracket is never closed, the box says what to fix. An Interest formula has no **Edit**, because its answers only work together: remove it and add it again.
+
+**Remove** takes a formula out, and **Undo** under the list puts it back. Removing a saved value that another line still reads asks first: **Remove anyway** or **Keep it**.
 
 ## Show or hide
 
@@ -84,6 +97,7 @@ The checks:
 
 - Capitals don't matter: `annual` matches `Annual`.
 - A Number field compares as a number, so `1.200,50` is greater than 1000. An empty Number counts as 0.
+- The value you compare with reads the same way: `1.500` means fifteen hundred.
 - On a Choice field you pick the value from its options. On a multiple choice, **Contains** checks whether that option was ticked.
 - Date and time fields can't be checked.
 - **In plain words** shows the rule as one sentence before you insert it, like `IF SCORE is greater than 10 THEN hide "Section B" ELSE show it`.
@@ -133,12 +147,15 @@ Every rule in the snippet is listed in plain words at the top of the window, eac
 {if: TOTAL > 500}Delivery is free.{else}Delivery costs 15.{endif}
 ```
 
+Every condition in the snippet is listed under **Condition** in the panel, with **Edit** and **Remove**. A rule built with **Show or hide** opens in its window. One typed by hand is changed in its row: edit what has to be true, then click **Save**.
+
 ## Greeting
 
 **Greeting** inserts `{greeting}`, which prints Good morning, Good afternoon, Good evening or Good night from the clock where the snippet expands. Morning starts at 5, afternoon at 12, evening at 18 and night at 22.
 
 - It follows the snippet's language: English, Italian, Spanish or French. Force one with `{greeting: lang=ES}`.
 - Replace a wording with your own: `{greeting: morning=Hi there}`.
+- The greetings in the snippet are listed under **Greeting** in the panel. **Edit** changes the settings in the row, for example to `greeting: lang=ES`, and **Remove** takes it out.
 
 ## Writing formulas by hand
 

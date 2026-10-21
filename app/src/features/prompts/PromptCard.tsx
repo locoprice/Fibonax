@@ -1,6 +1,7 @@
 import { memo, useMemo, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Brain, Loader2, Pin, PinOff, Send, Trash2, Zap } from 'lucide-react';
+import { Loader2, Pin, PinOff, Send, Trash2, Zap } from 'lucide-react';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import { ActionMenu, ActionMenuItem, ActionMenuSeparator } from '@/components/ui/action-menu';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -164,7 +165,7 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-light text-primary">
-            <Brain className="h-4 w-4" />
+            <PromptIcon className="h-4 w-4" />
           </div>
           <h3 className="truncate text-sm font-semibold text-ink">{prompt.name}</h3>
           <ReviewStatusBadge status={prompt.review_status} />

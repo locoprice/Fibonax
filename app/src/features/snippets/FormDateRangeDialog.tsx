@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -56,6 +56,8 @@ interface FormDateRangeDialogProps {
    * dates in it, so its sample in the format list does too.
    */
   lang?: string;
+  /** The date ranges already in the snippet, listed above the form. */
+  list?: ReactNode;
   onInsert: (token: string) => void;
 }
 
@@ -76,6 +78,7 @@ export function FormDateRangeDialog({
   onOpenChange,
   body,
   lang = '',
+  list,
   onInsert,
 }: FormDateRangeDialogProps) {
   const [mode, setMode] = useState<RangeMode>(DEFAULT_RANGE_MODE);
@@ -200,6 +203,8 @@ export function FormDateRangeDialog({
             Two dates, and how long the span between them is.
           </DialogDescription>
         </DialogHeader>
+
+        {list && <div className="min-w-0 px-6 pb-3">{list}</div>}
 
         {/* Two columns: the dates on the left, what to print on the right. They
             are independent decisions, and stacking them made the second read as

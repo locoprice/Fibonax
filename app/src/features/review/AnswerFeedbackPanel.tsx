@@ -1,7 +1,9 @@
+import { BrainIcon } from '@/components/shared/BrainIcon';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Brain, MessageCircleQuestion, Type } from 'lucide-react';
+import { MessageCircleQuestion } from 'lucide-react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Segmented } from '@/components/ui/segmented';
 import { askApi, type FeedbackRow } from '@/lib/api/askApi';
@@ -148,7 +150,7 @@ export function AnswerFeedbackPanel() {
                 {row.sources.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
                     {row.sources.map((source) => {
-                      const Icon = source.kind === 'snippet' ? Type : Brain;
+                      const Icon = source.kind === 'snippet' ? SnippetIcon : BrainIcon;
                       return (
                         <button
                           key={`${source.kind}-${source.id}`}

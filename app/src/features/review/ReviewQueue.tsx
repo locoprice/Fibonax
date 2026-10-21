@@ -1,7 +1,10 @@
+import { BrainIcon } from '@/components/shared/BrainIcon';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import { Brain, Check, Sparkles, Type } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
+import { PromptIcon } from '@/components/shared/PromptIcon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
 import { ReviewStatusMenu } from '@/components/shared/ReviewStatusMenu';
@@ -36,7 +39,7 @@ const KIND_CHIPS: Array<{ value: KindChip; label: string }> = [
   { value: 'memory', label: 'Brains' },
 ];
 
-const KIND_ICON = { snippet: Type, prompt: Sparkles, memory: Brain } as const;
+const KIND_ICON = { snippet: SnippetIcon, prompt: PromptIcon, memory: BrainIcon } as const;
 const KIND_NOUN = { snippet: 'snippet', prompt: 'prompt', memory: 'item' } as const;
 
 function matchesStatus(status: ReviewStatus, chip: StatusChip): boolean {

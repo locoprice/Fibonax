@@ -43,6 +43,11 @@ const cases = [
     vals: { R: 'B' }, expect: 'Hi\nb\nBye' },
   { name: 'quiet menu last line', body: 'Hi\n{formmenu: A,B; name=R; print=no}', vals: { R: 'A' }, expect: 'Hi' },
   { name: 'quiet menu still read', body: '{formmenu: A,B; name=R; print=no}You picked {R}', vals: { R: 'A' }, expect: 'You picked A' },
+  // other=: the Other choice's typed answer is the value. It prints, {R}
+  // repeats it, and a rule compares against it; the label never prints.
+  { name: 'other prints typed', body: 'Via {formmenu: Email,Phone; name=R; other=Other}.', vals: { R: 'Fax' }, expect: 'Via Fax.' },
+  { name: 'other in a rule',    body: '{formmenu: Email,Phone; name=R; other=Other}{if: R = "Fax"} by fax{endif}', vals: { R: 'Fax' }, expect: 'Fax by fax' },
+  { name: 'other picks option', body: '{formmenu: Email,Phone; name=R; other=Other} {R}', vals: { R: 'Phone' }, expect: 'Phone Phone' },
 ];
 
 let ok = 0;
@@ -359,6 +364,12 @@ const MENU_WRITE_CASES = [
   // A choice that only decides what shows: print=no is a setting, not an option.
   [{ options: ['REFUNDABLE', 'NOT REFUNDABLE'], selected: ['REFUNDABLE'], name: 'RATE', multiple: false, cols: null, print: false },
     '{formmenu: REFUNDABLE,NOT REFUNDABLE; name=RATE; default=REFUNDABLE; print=no}', 'REFUNDABLE\nNOT REFUNDABLE'],
+  // Display Other option: other= is a setting, not an option. An emptied label
+  // still asks for the choice, under the default word.
+  [{ options: ['Email', 'Phone'], selected: ['Phone'], name: 'CH', multiple: false, cols: null, other: 'Other...' },
+    '{formmenu: Email,Phone; name=CH; default=Phone; other=Other...}', 'Email\nPhone'],
+  [{ options: ['A', 'B'], selected: [], name: 'M', multiple: true, cols: null, other: ' ; ' },
+    '{formmenu: A,B; name=M; multiple=yes; other=Other}', 'A\nB'],
 ];
 
 if (typeof engine.buildFormMenuToken !== 'function') {
@@ -438,13 +449,19 @@ const formulaCases = [
   ['(NUM_2 - NUM_1) / NUM_1 * 100', { NUM_1: '100', NUM_2: '80' }, -20],
   ['(NUM_2 - NUM_1) / NUM_1 * 100', { NUM_1: '0', NUM_2: '80' }, null],
   ['round(NUM_1)', { NUM_1: '2.4' }, 2],
-  ['round(NUM_1, 1)', { NUM_1: '2.456' }, 2.5],
+  // Not '2.456': one mark followed by exactly three digits reads as thousands.
+  ['round(NUM_1, 1)', { NUM_1: '2.4567' }, 2.5],
   ['round(NUM_1, 0)', { NUM_1: '2.5' }, 3],
   ['round(NUM_1, -2)', { NUM_1: '1234' }, 1200],
   ['round(avg(NUM_1, NUM_2), 1)', { NUM_1: '1', NUM_2: '2.26' }, 1.6],
   // A negative value inside a subtraction, typed without brackets.
   ['NUM_1-NUM_2', { NUM_1: '10', NUM_2: '-5' }, 15],
   ['NUM_1 + NUM_2', { NUM_1: '1.200,50', NUM_2: '1' }, 1201.5],
+  // One mark followed by exactly three digits is thousands. The quote that
+  // showed the defect: 1.500 read as 1.5 made "save" negative.
+  ['ORIG - PRICE', { ORIG: '1.500', PRICE: '1.234,57' }, 265.43],
+  ['round((ORIG - PRICE) / ORIG * 100)', { ORIG: '2.400', PRICE: '1.500' }, 38],
+  ['NUM_1 + NUM_2', { NUM_1: '2,400', NUM_2: '0,5' }, 2400.5],
   ['NUM_1 + NUM_2', { NUM_1: '', NUM_2: '3' }, 3],
   ['NUM_1 + NUM_2', { NUM_1: 'abc', NUM_2: '3' }, null],
   // What "Adjust a price" writes.
@@ -501,6 +518,7 @@ const conditionCases = [
   ['NOTE contains "x > y"', { NOTE: 'if x > y then' }, 1],
   ['SCORE > 10', { SCORE: '12' }, 1],
   ['SCORE > 10', { SCORE: '1.200,50' }, 1],
+  ['SCORE > 1000', { SCORE: '1.500' }, 1],
   ['SCORE < 10', { SCORE: '12' }, 0],
   ['SCORE < 10', { SCORE: 'abc' }, 0],
   ['SCORE == 2.5', { SCORE: '2,5' }, 1],
@@ -574,6 +592,9 @@ const expansionCases = [
   ['{formmenu: A,B; name=R; print=no} and {R}', { R: 'B' }],
   ['{formmenu: A,B; name=R; print=yes}', { R: 'B' }],
   ['{formmenu: A,B; name=R}\n' + RATE_RULE, { R: 'A' }],
+  ['Via {formmenu: Email,Phone; name=R; other=Other}.', { R: 'Fax' }],
+  ['{formmenu: Email,Phone; name=R; other=Other; multiple=yes} and {R}', { R: 'Email, Fax' }],
+  ['{formmenu: REFUNDABLE,NOT REFUNDABLE; name=R; other=Other}\n' + RATE_RULE, { R: 'Partial' }],
 ];
 let expOk = 0;
 for (const [body, vals] of expansionCases) {
@@ -587,11 +608,14 @@ for (const [body, vals] of expansionCases) {
 }
 // Switching print never renames an unnamed menu: a rule checking it would stop
 // matching the moment the author ticked the box.
+// Display Other option is held to the same rule.
 for (const [plain, quiet] of [['{formmenu: A,B}', '{formmenu: A,B; print=no}'],
-                              ['{formmenu: A; B}', '{formmenu: print=no; A; B}']]) {
+                              ['{formmenu: A; B}', '{formmenu: print=no; A; B}'],
+                              ['{formmenu: A,B}', '{formmenu: A,B; other=Other}'],
+                              ['{formmenu: A; B}', '{formmenu: other=Something else; A; B}']]) {
   const kp = engine.extractFields(plain)[0];
   if (engine.extractFields(quiet)[0] !== kp || mobile.sbMenuSpec(quiet.slice(10, -1)).name !== kp) {
-    fail('print=no renamed the unnamed menu ' + plain);
+    fail('print=no or other= renamed the unnamed menu ' + plain);
   }
 }
 console.log('OK Expansion parity (engine = mobile) passed all ' + expOk + ' cases');
@@ -630,6 +654,11 @@ const fieldCfgCases = [
   '{formmenu: A,B; name=M; print=no}',
   '{formmenu: A,B; print=no}',
   '{formmenu: print=no; A; B}',
+  // other= is a setting with a free-text label, never one more option.
+  '{formmenu: A,B; name=M; other=Other}',
+  '{formmenu: A,B; name=M; other=Something else; multiple=yes}',
+  '{formmenu: A,B; name=M; other=}',
+  '{formmenu: other=Other...; A; B}',
   '{formtext: name=T; link=after:Customer}',
   '{formtext: name=N; type=number; default=0; link=before:Boxes|Box}',
   '{formtext: name=N; type=number; link=BEFORE: Boxes | Box | Boxes}',
@@ -670,10 +699,11 @@ const fieldCfgCases = [
   // An unknown type is not a field type the product has: it stays text.
   '{formtext: name=N; type=numbr}',
   '{formtext: name=N; type=text}',
-  // A declared default has to reach an <input type="number"> intact, whichever
+  // A declared default has to reach every fill box intact, whichever
   // way round the operator wrote the separators.
   '{formtext: name=N; type=number; default=1.200,50}',
   '{formtext: name=N; type=number; default=1,200.50}',
+  '{formtext: name=N; type=number; default=1.500}',
   '{formtext: name=N; type=number; default=1200.5}',
   '{formtext: name=N; type=number; default=-40}',
   // Zero is an answer; a default that is not a number is not one.
@@ -757,7 +787,7 @@ for (const fn of ['sbFormatNumber', 'sbToNumber', 'sbFieldFormatMap']) {
 
 const FMT_CASES = [];
 for (const cur of Object.keys(engine.CURRENCIES)) {
-  for (const raw of ['1200.5', '1.200,50', '1,200.50', '0', '-40', '1000000', '', 'about 300']) {
+  for (const raw of ['1200.5', '1.200,50', '1,200.50', '1.500', '1,500', '12,5', '0', '-40', '1000000', '', 'about 300']) {
     FMT_CASES.push([raw, 'currency', cur]);
   }
 }
@@ -786,6 +816,28 @@ if (engine.sbFormatNumber('about 300', 'currency', 'EUR') !== 'about 300') {
   fail('unreadable input is being formatted instead of printed back');
 }
 console.log('OK Number formatting parity passed all ' + fok + ' cases');
+
+// ── NUMBER READING ──────────────────────────────────────────────────
+// How a typed answer becomes a number, on both sides. One mark followed by
+// exactly three digits is thousands ("1.500" in Madrid, "1,500" in London);
+// any other single mark is a decimal point. Before v3.70.5 "1.500" read as 1.5,
+// which turned a quote's "save 900€" into a negative number.
+const READ_CASES = [
+  ['1.500', 1500], ['1,500', 1500], ['2.400', 2400], ['999.999', 999999], ['-12.500', -12500],
+  ['1.234,57', 1234.57], ['1,234.57', 1234.57], ['1.200.000', 1200000], ['1 500', 1500],
+  ['1,5', 1.5], ['1.5', 1.5], ['12,50', 12.5], ['1.2345', 1.2345], ['1.1250', 1.125],
+  ['0.125', 0.125], ['0,500', 0.5], ['1234.567', 1234.567], ['.500', 0.5],
+  ['', 0], ['€1.500', null], ['abc', null],
+];
+let rok = 0;
+for (const [raw, want] of READ_CASES) {
+  const gotE = engine.sbToNumber(raw);
+  const gotM = mobile.sbToNumber(raw);
+  if (gotE !== want) fail('reading ' + JSON.stringify(raw) + ' -> engine ' + gotE + ', expected ' + want);
+  if (gotM !== gotE) fail('number reading drift for ' + JSON.stringify(raw) + '\n  engine: ' + gotE + '\n  mobile: ' + gotM);
+  rok++;
+}
+console.log('OK Number reading (engine = mobile) passed all ' + rok + ' cases');
 
 // ── DATE / TIME FORMATTING PARITY ───────────────────────────────────
 // Same stake as the number formatting above: the phone and the engine printing

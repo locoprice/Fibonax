@@ -76,9 +76,7 @@ html,body{
 .mode-tab:focus-visible{outline:2px solid var(--sb-azure);outline-offset:-2px;border-radius:var(--sb-r-md)}
 .mode-ico{font-family:var(--sb-mono);font-size:var(--sb-fs-10);font-weight:700;opacity:.55;letter-spacing:-1px}
 .mode-tab.on .mode-ico{opacity:1}
-/* Brains have no trigger to show, so their tab carries the Brain glyph the
-   dashboard and the phone use, drawn at the size of the trigger glyphs. */
-.mode-ico svg{display:block;width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.mode-snippet-icon,.mode-prompt-icon,.mode-brain-icon{width:14px;height:14px;flex-shrink:0}
 .mc{font-size:var(--sb-fs-10);font-weight:700;padding:1px 7px;border-radius:var(--sb-r-pill);background:var(--sb-line);color:var(--sb-ink-muted);font-variant-numeric:tabular-nums}
 .mode-tab.on .mc{background:var(--sb-azure-bg);color:var(--sb-azure)}
 
@@ -237,7 +235,8 @@ html,body{
    snippet's own words around it, which stay muted and regular. The hint stays
    regular, so an empty box never looks filled. [data-fkey] keeps the Adjust
    panel's own number box out of it. Same on all four fill surfaces. */
-.d-frow input[data-fkey][type=text],.d-frow input[data-fkey][type=number]{font-weight:700}
+.d-frow input[data-fkey][type=text]{font-weight:700}
+.d-frow input.d-othertxt{font-weight:700}
 .d-frow input::placeholder{font-weight:400}
 /* Inline sentence: the control sits inside the prose that surrounds it in the
    body. */
@@ -633,13 +632,13 @@ html,body{
     <div class="seg" id="mode-seg" role="tablist" aria-label="Snippets, Prompts or Brains">
       <span class="seg-thumb" aria-hidden="true"></span>
       <button class="mode-tab on" data-mode="snippets" id="mtab-snip" role="tab" aria-selected="true">
-        <span class="mode-ico" id="mglyph-snip">::</span>Snippets<span class="mc" id="mct-snip">0</span>
+        <svg class="mode-snippet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>Snippets<span class="mode-ico" id="mglyph-snip">::</span><span class="mc" id="mct-snip">0</span>
       </button>
       <button class="mode-tab" data-mode="prompts" id="mtab-prmpt" role="tab" aria-selected="false">
-        <span class="mode-ico" id="mglyph-prmpt">"""</span>Prompts<span class="mc" id="mct-prmpt">0</span>
+        <svg class="mode-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>Prompts<span class="mode-ico" id="mglyph-prmpt">"""</span><span class="mc" id="mct-prmpt">0</span>
       </button>
       <button class="mode-tab" data-mode="brains" id="mtab-brain" role="tab" aria-selected="false">
-        <span class="mode-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/></svg></span>Brains<span class="mc" id="mct-brain">0</span>
+        <svg class="mode-brain-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>Brains<span class="mc" id="mct-brain">0</span>
       </button>
     </div>
   </div>
@@ -786,6 +785,9 @@ html,body{
       <div style="font-size:11px;color:var(--sb-ink-subtle);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sb-signed-as">Signed in</div>
       <button class="btn" id="sb-signout-btn" style="border-color:var(--sb-danger-bdr);color:var(--sb-danger);background:var(--sb-danger-bg)">Sign out</button>
     </div>
+    <div style="text-align:right;margin-top:6px">
+      <button type="button" class="sb-auth-link" id="sb-delete-account-btn" title="Opens your account settings in the dashboard" style="margin-top:0;font-size:var(--sb-fs-10);color:var(--sb-danger)">Delete account</button>
+    </div>
   </div>
 </div>
 
@@ -798,6 +800,8 @@ html,body{
 <script src="sync-deletion.js"></script>
 <script src="../formula-engine.js"></script>
 <script src="../shared/fill-form.js"></script>
+<script src="../shared/fill-form-ui.js"></script>
+<link rel="stylesheet" href="../shared/fill-form-ui.css">
 <script src="../shared/inactivity.js"></script>
 <script src="../shared/interactive-steps.js"></script>
 <script src="../shared/saint-of-day.js"></script>
