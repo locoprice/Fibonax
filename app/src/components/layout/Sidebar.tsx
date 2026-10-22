@@ -41,6 +41,11 @@ interface NavItem {
   end?: boolean;
   /** When provided, renders a count pill — filled (primary) when active, muted otherwise. */
   count?: number;
+  /**
+   * What the count stands for, shown on hover and read by screen readers.
+   * Left out where the row name already says it.
+   */
+  countLabel?: string;
   /** Renders a hairline above this item, splitting the content trio from the rest. */
   dividerBefore?: boolean;
 }
@@ -58,17 +63,30 @@ function navClass({ isActive, collapsed }: { isActive: boolean; collapsed: boole
   );
 }
 
-/** Filled count pill (active) or muted bg-alt pill (inactive). Used on nav rows. */
-function NavCountPill({ count, active }: { count: number; active: boolean }) {
+/**
+ * Filled count pill (active) or muted bg-alt pill (inactive). Used on nav rows.
+ * With a label, hovering the pill names what it counts, and screen readers get
+ * that phrase in place of the bare digits.
+ */
+function NavCountPill({
+  count,
+  active,
+  label,
+}: {
+  count: number;
+  active: boolean;
+  label?: string;
+}) {
+  const className = cn(
+    'ml-auto inline-flex min-w-[20px] items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums',
+    active ? 'bg-primary text-white' : 'bg-bg-alt text-ink-subtle',
+  );
+  if (label === undefined) return <span className={className}>{count}</span>;
   return (
-    <span
-      className={cn(
-        'ml-auto inline-flex min-w-[20px] items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums',
-        active ? 'bg-primary text-white' : 'bg-bg-alt text-ink-subtle',
-      )}
-    >
-      {count}
-    </span>
+    <Tooltip label={label} placement="right" className={className}>
+      <span aria-hidden="true">{count}</span>
+      <span className="sr-only">{label}</span>
+    </Tooltip>
   );
 }
 
@@ -138,7 +156,14 @@ export function Sidebar() {
     // No count pill: the spaces list is loaded by the Memory page itself, and
     // pulling that store into the sidebar would make every page fetch it.
     { to: '/memory', label: 'Brains', icon: BrainIcon },
-    { to: '/team', label: 'Team', icon: Users, count: sharedFolderCount, dividerBefore: true },
+    {
+      to: '/team',
+      label: 'Team',
+      icon: Users,
+      count: sharedFolderCount,
+      countLabel: `${sharedFolderCount} shared folder${sharedFolderCount === 1 ? '' : 's'}`,
+      dividerBefore: true,
+    },
     // What waits for a person, across snippets, prompts and Brains.
     { to: '/review', label: 'Review', icon: ShieldCheck, count: waitingCount },
     { to: '/analytics', label: 'Analytics', icon: BarChart3 },
@@ -230,7 +255,11 @@ export function Sidebar() {
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.label}</span>
                       {typeof item.count === 'number' && item.count > 0 ? (
-                        <NavCountPill count={item.count} active={isActive} />
+                        <NavCountPill
+                          count={item.count}
+                          active={isActive}
+                          label={item.countLabel}
+                        />
                       ) : null}
                     </>
                   )}
