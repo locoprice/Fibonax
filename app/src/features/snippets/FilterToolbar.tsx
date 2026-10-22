@@ -1,19 +1,10 @@
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import {
-  AssetFilterBar,
-  ClearFiltersButton,
-  FilterChip,
-  FilterChipGroup,
-  FilterDivider,
-  SortControl,
-} from '@/components/shared/AssetFilterBar';
+import { ArrowDown, ArrowUp, ArrowUpDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { LabelFilter } from '@/features/labels/LabelFilter';
-import { normalizeQuery } from '@/lib/searchIndex';
-import { useSearchStore } from '@/stores/searchStore';
 import { useSnippetStore } from '@/stores/snippetStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { SortColumn } from '@/stores/snippetStore';
 import type { Snippet } from '@/types/database';
+import { cn } from '@/lib/utils';
 
 const LANGUAGE_CHIPS: Array<{ value: Snippet['language']; label: string }> = [
   { value: 'EN',    label: 'EN' },
@@ -41,41 +32,16 @@ export function FilterToolbar() {
   // it was a lone button on an otherwise empty row.
   const railOpen = useUiStore((s) => s.foldersRailOpen);
   const setRailOpen = useUiStore((s) => s.setFoldersRailOpen);
-  // The search text lives in the header bar, but it narrows this list, so it
-  // counts as a filter and "Clear" empties it too, as on Prompts.
-  const searching = useSearchStore((s) => normalizeQuery(s.query) !== '');
-  const clearSearch = useSearchStore((s) => s.clear);
-  const activeCount =
-    (languageFilter !== null ? 1 : 0) + (labelFilter.length > 0 ? 1 : 0) + (searching ? 1 : 0);
 
   return (
-    <AssetFilterBar
-      end={
-        <>
-          <ClearFiltersButton
-            count={activeCount}
-            onClear={() => {
-              setLanguageFilter(null);
-              setLabelFilter([]);
-              clearSearch();
-            }}
-          />
-          <SortControl
-            options={SORT_COLUMNS}
-            sortBy={sortBy}
-            sortDir={sortDir}
-            onSort={setSortBy}
-          />
-        </>
-      }
-    >
+    <div className="flex flex-wrap items-center gap-2 rounded-[10px] border border-line bg-card px-3 py-2">
       <button
         type="button"
         onClick={() => setRailOpen(!railOpen)}
         aria-pressed={railOpen}
         title={railOpen ? 'Hide folders' : 'Show folders'}
         aria-label={railOpen ? 'Hide folders' : 'Show folders'}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] text-ink-muted transition-colors hover:bg-bg-alt hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] text-ink-muted transition-colors hover:bg-bg-alt hover:text-primary"
       >
         {railOpen ? (
           <PanelLeftClose className="h-4 w-4" aria-hidden />
@@ -84,29 +50,78 @@ export function FilterToolbar() {
         )}
       </button>
 
-      <FilterDivider />
+      <span className="h-5 w-px shrink-0 bg-line" aria-hidden="true" />
 
-      <FilterChipGroup label="Filter by language">
-        <FilterChip
-          label="All"
-          active={languageFilter === null}
+      {/* Language filter chips */}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
           onClick={() => setLanguageFilter(null)}
-        />
+          className={cn(
+            'rounded-[6px] px-2.5 py-1 text-xs font-medium transition-colors',
+            languageFilter === null
+              ? 'bg-primary text-white'
+              : 'text-ink-muted hover:bg-bg-alt',
+          )}
+        >
+          All
+        </button>
         {LANGUAGE_CHIPS.map((chip) => (
-          <FilterChip
+          <button
             key={chip.value}
-            label={chip.label}
-            active={languageFilter === chip.value}
-            onClick={() => setLanguageFilter(chip.value === languageFilter ? null : chip.value)}
-          />
+            type="button"
+            onClick={() =>
+              setLanguageFilter(chip.value === languageFilter ? null : chip.value)
+            }
+            className={cn(
+              'rounded-[6px] px-2.5 py-1 text-xs font-medium transition-colors',
+              languageFilter === chip.value
+                ? 'bg-primary text-white'
+                : 'text-ink-muted hover:bg-bg-alt',
+            )}
+          >
+            {chip.label}
+          </button>
         ))}
-      </FilterChipGroup>
+      </div>
+
+      <span className="h-5 w-px shrink-0 bg-line" aria-hidden="true" />
 
       <LabelFilter
         selected={labelFilter}
         onChange={setLabelFilter}
         onManage={openLabelManager}
       />
-    </AssetFilterBar>
+
+      <div className="ml-auto flex items-center gap-0.5">
+        <span className="mr-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+          Sort
+        </span>
+        {SORT_COLUMNS.map((col) => {
+          const isActive = sortBy === col.value;
+          const Icon = isActive
+            ? sortDir === 'asc'
+              ? ArrowUp
+              : ArrowDown
+            : ArrowUpDown;
+          return (
+            <button
+              key={col.value}
+              type="button"
+              onClick={() => setSortBy(col.value)}
+              className={cn(
+                'flex items-center gap-1 rounded-[6px] px-2 py-1 text-xs transition-colors',
+                isActive
+                  ? 'bg-primary-light font-medium text-primary'
+                  : 'text-ink-muted hover:bg-bg-alt',
+              )}
+            >
+              {col.label}
+              <Icon className="h-3 w-3" />
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
