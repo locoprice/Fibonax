@@ -165,10 +165,10 @@ export function ItemEditor({ target, spaceId, onClose, onSave, onOpenHistory, on
 
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <div className="flex items-start justify-between gap-3 pr-8">
-            <div className="flex flex-col gap-1.5">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-2xl flex-col gap-0 p-0">
+        <DialogHeader className="shrink-0 px-6 pb-4 pt-6">
+          <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
+            <div className="flex min-w-[12rem] flex-1 flex-col gap-1.5">
               <DialogTitle>{editing ? 'Edit item' : 'Add text'}</DialogTitle>
               <DialogDescription>
                 One item, one fact. The summary is what gets listed when an agent decides
@@ -207,115 +207,117 @@ export function ItemEditor({ target, spaceId, onClose, onSave, onOpenHistory, on
           </div>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          {draftNotice ? (
-            <DraftNotice
-              notice={draftNotice}
-              kind="memory"
-              onOpen={onOpenItem}
-              onDismiss={() => setDraftNotice(null)}
-            />
-          ) : null}
-          <div className="grid grid-cols-[1fr_auto] gap-3">
+        <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-4 pt-1">
+            {draftNotice ? (
+              <DraftNotice
+                notice={draftNotice}
+                kind="memory"
+                onOpen={onOpenItem}
+                onDismiss={() => setDraftNotice(null)}
+              />
+            ) : null}
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="item-name" className="text-xs font-medium text-ink-muted">
+                  Name
+                </label>
+                <Input
+                  id="item-name"
+                  value={name}
+                  maxLength={NAME_MAX}
+                  autoFocus
+                  placeholder="house-style"
+                  onChange={(event) => setName(sanitizeName(event.target.value))}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="item-kind" className="text-xs font-medium text-ink-muted">
+                  Kind
+                </label>
+                <select
+                  id="item-kind"
+                  value={kind}
+                  onChange={(event) => setKind(event.target.value as MemoryItemKind)}
+                  className="h-10 rounded-[12px] border border-line bg-card px-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  {AUTHORABLE_KINDS.map((value) => (
+                    <option key={value} value={value}>
+                      {KIND_LABELS[value]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="item-name" className="text-xs font-medium text-ink-muted">
-                Name
+              <label htmlFor="item-summary" className="text-xs font-medium text-ink-muted">
+                Summary <span className="text-ink-subtle">(one line)</span>
               </label>
               <Input
-                id="item-name"
-                value={name}
-                maxLength={NAME_MAX}
-                autoFocus
-                placeholder="house-style"
-                onChange={(event) => setName(sanitizeName(event.target.value))}
+                id="item-summary"
+                value={summary}
+                maxLength={SUMMARY_MAX}
+                placeholder="How output should be written"
+                onChange={(event) => setSummary(event.target.value)}
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="item-kind" className="text-xs font-medium text-ink-muted">
-                Kind
-              </label>
-              <select
-                id="item-kind"
-                value={kind}
-                onChange={(event) => setKind(event.target.value as MemoryItemKind)}
-                className="h-10 rounded-[12px] border border-line bg-card px-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                {AUTHORABLE_KINDS.map((value) => (
-                  <option key={value} value={value}>
-                    {KIND_LABELS[value]}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-baseline justify-between">
+                <label htmlFor="item-body" className="text-xs font-medium text-ink-muted">
+                  Body
+                </label>
+                <span
+                  className={cn(
+                    'font-mono text-[11px] tabular-nums',
+                    overLength ? 'text-danger' : 'text-ink-subtle',
+                  )}
+                >
+                  {tokens} tokens · {body.length}/{BODY_MAX}
+                </span>
+              </div>
+              <textarea
+                id="item-body"
+                value={body}
+                rows={10}
+                placeholder="Short sentences. No filler."
+                onChange={(event) => setBody(event.target.value)}
+                className="w-full resize-y rounded-[12px] border border-line bg-card px-3 py-2 font-mono text-sm leading-relaxed text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              {overLength ? (
+                <p className="text-xs text-danger">
+                  Over the limit by {body.length - BODY_MAX} characters. Something this long
+                  is a document: split it into separate items so a budget can still hold one.
+                </p>
+              ) : null}
             </div>
-          </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="item-summary" className="text-xs font-medium text-ink-muted">
-              Summary <span className="text-ink-subtle">(one line)</span>
-            </label>
-            <Input
-              id="item-summary"
-              value={summary}
-              maxLength={SUMMARY_MAX}
-              placeholder="How output should be written"
-              onChange={(event) => setSummary(event.target.value)}
-            />
+            <button
+              type="button"
+              onClick={() => setPinned((value) => !value)}
+              aria-pressed={pinned}
+              className={cn(
+                'flex items-center gap-2 self-start rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors',
+                pinned
+                  ? 'border-primary-bdr bg-primary-bg text-primary'
+                  : 'border-line bg-card text-ink-muted hover:bg-bg-alt',
+              )}
+            >
+              <Pin className={cn('h-3.5 w-3.5', pinned && 'fill-current')} />
+              {pinned ? 'Always attached' : 'Attach only when a step asks'}
+            </button>
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between">
-              <label htmlFor="item-body" className="text-xs font-medium text-ink-muted">
-                Body
-              </label>
-              <span
-                className={cn(
-                  'font-mono text-[11px] tabular-nums',
-                  overLength ? 'text-danger' : 'text-ink-subtle',
-                )}
-              >
-                {tokens} tokens · {body.length}/{BODY_MAX}
-              </span>
-            </div>
-            <textarea
-              id="item-body"
-              value={body}
-              rows={10}
-              placeholder="Short sentences. No filler."
-              onChange={(event) => setBody(event.target.value)}
-              className="w-full resize-y rounded-[12px] border border-line bg-card px-3 py-2 font-mono text-sm leading-relaxed text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-            {overLength ? (
-              <p className="text-xs text-danger">
-                Over the limit by {body.length - BODY_MAX} characters. Something this long
-                is a document: split it into separate items so a budget can still hold one.
-              </p>
-            ) : null}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setPinned((value) => !value)}
-            aria-pressed={pinned}
-            className={cn(
-              'flex items-center gap-2 self-start rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors',
-              pinned
-                ? 'border-primary-bdr bg-primary-bg text-primary'
-                : 'border-line bg-card text-ink-muted hover:bg-bg-alt',
-            )}
-          >
-            <Pin className={cn('h-3.5 w-3.5', pinned && 'fill-current')} />
-            {pinned ? 'Always attached' : 'Attach only when a step asks'}
-          </button>
 
           {error ? (
-            <div className="flex items-start gap-2 rounded-[10px] bg-danger-bg px-3 py-2 text-sm text-danger">
+            <div className="mx-6 mb-4 flex items-start gap-2 rounded-[10px] bg-danger-bg px-3 py-2 text-sm text-danger">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           ) : null}
 
-          <div className="flex justify-end gap-2">
+          <div className="flex shrink-0 justify-end gap-2 border-t border-line px-6 py-4">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>

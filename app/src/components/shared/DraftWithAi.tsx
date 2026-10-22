@@ -93,7 +93,7 @@ export function DraftFromTextButton(props: DraftFromTextButtonProps) {
 /** The button where it will live, dimmed and inert, with the lock and its tooltip. */
 function LockedDraftButton({ tone = 'light' }: { tone?: Tone }) {
   return (
-    <ProSoon className="self-center">
+    <ProSoon className="shrink-0 self-center">
       <button
         type="button"
         aria-disabled="true"
