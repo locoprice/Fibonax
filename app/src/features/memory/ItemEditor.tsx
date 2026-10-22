@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { AlertCircle, ChevronDown, Clock, Pin } from 'lucide-react';
-import { BrainIcon } from '@/components/shared/BrainIcon';
+import { AlertCircle, Clock, Pin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { estimateTokens } from '@/lib/memory/engine';
 import { sanitizeName } from '@/lib/nameText';
@@ -27,14 +25,6 @@ import { findSimilar, memoryCandidates } from '@/lib/draftSimilar';
 import { useDraftStore } from '@/stores/draftStore';
 import { useReviewApprover } from '@/lib/useReviewApprover';
 import { useMemoryStore } from '@/stores/memoryStore';
-import {
-  BODY_MAX,
-  KIND_LABELS,
-  NAME_MAX,
-  SUMMARY_MAX,
-  bodyUsage,
-  kindOptions,
-} from '@/features/memory/itemForm';
 
 // Create or edit one memory item.
 //
@@ -43,11 +33,23 @@ import {
 // number a budget is measured against, so a number shown here has to come from
 // that function or it is a fourth implementation of a rule that already exists
 // three times.
-//
-// The header and the footer stay put while the form scrolls, so the title, the
-// review status and the Save button are in view on any screen height.
 
-const BAR_TONE = { ok: 'bg-primary', warn: 'bg-warning', over: 'bg-danger' } as const;
+/** Mirrors the memory_shards_name_length CHECK. */
+const NAME_MAX = 64;
+/** Mirrors memory_shards_summary_length. */
+const SUMMARY_MAX = 280;
+/** Mirrors memory_shards_body_length. Anything larger is a document, not a fact. */
+const BODY_MAX = 20000;
+
+const KIND_LABELS: Record<MemoryItemKind, string> = {
+  fact: 'Fact',
+  note: 'Note',
+  document: 'Document',
+  conversation: 'Conversation',
+};
+
+/** Document chunks are produced by an upload, so the editor does not offer that kind. */
+const AUTHORABLE_KINDS: MemoryItemKind[] = ['fact', 'note', 'conversation'];
 
 interface ItemEditorProps {
   /** 'new' creates in `spaceId`; an item edits it; null is closed. */
@@ -133,9 +135,8 @@ export function ItemEditor({ target, spaceId, onClose, onSave, onOpenHistory, on
   }
 
   const tokens = useMemo(() => estimateTokens(body), [body]);
-  const usage = useMemo(() => bodyUsage(body.length), [body]);
   const trimmedName = name.trim();
-  const overLength = usage.tone === 'over';
+  const overLength = body.length > BODY_MAX;
   const canSave = trimmedName.length > 0 && body.length > 0 && !overLength && !saving;
 
   async function onSubmit(event: FormEvent) {
@@ -165,56 +166,49 @@ export function ItemEditor({ target, spaceId, onClose, onSave, onOpenHistory, on
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-2xl flex-col gap-0 p-0">
-        <DialogHeader className="shrink-0 border-b border-line px-6 pb-4 pt-5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-3 pr-8">
-            <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">
-              <span
-                aria-hidden
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-primary-light text-primary"
+        <DialogHeader className="shrink-0 px-6 pb-4 pt-6">
+          <div className="flex flex-wrap items-start justify-between gap-3 pr-8">
+            <div className="flex min-w-[12rem] flex-1 flex-col gap-1.5">
+              <DialogTitle>{editing ? 'Edit item' : 'Add text'}</DialogTitle>
+              <DialogDescription>
+                One item, one fact. The summary is what gets listed when an agent decides
+                what is worth reading, so it earns its place more than the body does.
+              </DialogDescription>
+            </div>
+            {!editing ? (
+              <DraftFromTextButton
+                kind="memory"
+                noun="Brain item"
+                disabled={saving}
+                onDrafted={applyDraft}
+              />
+            ) : null}
+            {live ? (
+              <ReviewStatusMenu
+                noun="item"
+                status={live.review_status}
+                reviewedBy={live.reviewed_by}
+                reviewedAt={live.reviewed_at}
+                approver={isApprover(null, live.user_id)}
+                onChange={(next) => setReviewStatus(live.id, next)}
+              />
+            ) : null}
+            {/* Only an existing item has anything behind it to look at. */}
+            {editing && onOpenHistory ? (
+              <button
+                type="button"
+                onClick={() => onOpenHistory(editing)}
+                className="flex shrink-0 items-center gap-1.5 rounded-[10px] border border-line bg-card px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-bg-alt hover:text-ink"
               >
-                <BrainIcon className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <DialogTitle>{editing ? 'Edit item' : 'Add text'}</DialogTitle>
-                <DialogDescription>One item, one fact.</DialogDescription>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              {!editing ? (
-                <DraftFromTextButton
-                  kind="memory"
-                  noun="Brain item"
-                  disabled={saving}
-                  onDrafted={applyDraft}
-                />
-              ) : null}
-              {live ? (
-                <ReviewStatusMenu
-                  noun="item"
-                  status={live.review_status}
-                  reviewedBy={live.reviewed_by}
-                  reviewedAt={live.reviewed_at}
-                  approver={isApprover(null, live.user_id)}
-                  onChange={(next) => setReviewStatus(live.id, next)}
-                />
-              ) : null}
-              {/* Only an existing item has anything behind it to look at. */}
-              {editing && onOpenHistory ? (
-                <button
-                  type="button"
-                  onClick={() => onOpenHistory(editing)}
-                  className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[8px] border border-line bg-card px-2.5 text-xs font-medium text-ink-muted transition-colors hover:bg-bg-alt hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
-                  <Clock className="h-3.5 w-3.5" aria-hidden />
-                  History
-                </button>
-              ) : null}
-            </div>
+                <Clock className="h-3.5 w-3.5" />
+                History
+              </button>
+            ) : null}
           </div>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-4 pt-1">
             {draftNotice ? (
               <DraftNotice
                 notice={draftNotice}
@@ -223,8 +217,7 @@ export function ItemEditor({ target, spaceId, onClose, onSave, onOpenHistory, on
                 onDismiss={() => setDraftNotice(null)}
               />
             ) : null}
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_11rem]">
+            <div className="grid grid-cols-[1fr_auto] gap-3">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="item-name" className="text-xs font-medium text-ink-muted">
                   Name
@@ -243,163 +236,94 @@ export function ItemEditor({ target, spaceId, onClose, onSave, onOpenHistory, on
                 <label htmlFor="item-kind" className="text-xs font-medium text-ink-muted">
                   Kind
                 </label>
-                <div className="relative">
-                  <select
-                    id="item-kind"
-                    value={kind}
-                    onChange={(event) => setKind(event.target.value as MemoryItemKind)}
-                    className="h-10 w-full appearance-none rounded-[12px] border border-line bg-card pl-3 pr-9 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    {kindOptions(kind).map((value) => (
-                      <option key={value} value={value}>
-                        {KIND_LABELS[value]}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle"
-                    aria-hidden
-                  />
-                </div>
+                <select
+                  id="item-kind"
+                  value={kind}
+                  onChange={(event) => setKind(event.target.value as MemoryItemKind)}
+                  className="h-10 rounded-[12px] border border-line bg-card px-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  {AUTHORABLE_KINDS.map((value) => (
+                    <option key={value} value={value}>
+                      {KIND_LABELS[value]}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-baseline justify-between gap-3">
-                <label htmlFor="item-summary" className="text-xs font-medium text-ink-muted">
-                  Summary
-                </label>
-                {summary.length > 0 ? (
-                  <span className="text-[11px] tabular-nums text-ink-subtle">
-                    {summary.length}/{SUMMARY_MAX}
-                  </span>
-                ) : null}
-              </div>
+              <label htmlFor="item-summary" className="text-xs font-medium text-ink-muted">
+                Summary <span className="text-ink-subtle">(one line)</span>
+              </label>
               <Input
                 id="item-summary"
                 value={summary}
                 maxLength={SUMMARY_MAX}
                 placeholder="How output should be written"
-                aria-describedby="item-summary-hint"
                 onChange={(event) => setSummary(event.target.value)}
               />
-              <p id="item-summary-hint" className="text-xs leading-relaxed text-ink-subtle">
-                One line. Assistants read it first to decide what is worth opening, so it matters
-                more than the body.
-              </p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-baseline justify-between gap-3">
+              <div className="flex items-baseline justify-between">
                 <label htmlFor="item-body" className="text-xs font-medium text-ink-muted">
                   Body
                 </label>
-                <span className="text-[11px] tabular-nums text-ink-subtle">
-                  {tokens.toLocaleString()} tokens
+                <span
+                  className={cn(
+                    'font-mono text-[11px] tabular-nums',
+                    overLength ? 'text-danger' : 'text-ink-subtle',
+                  )}
+                >
+                  {tokens} tokens · {body.length}/{BODY_MAX}
                 </span>
               </div>
               <textarea
                 id="item-body"
                 value={body}
-                rows={9}
+                rows={10}
                 placeholder="Short sentences. No filler."
-                aria-invalid={overLength || undefined}
                 onChange={(event) => setBody(event.target.value)}
-                className={cn(
-                  'w-full resize-y rounded-[12px] border bg-card px-3.5 py-3 font-mono text-[13px] leading-relaxed text-ink placeholder:text-ink-subtle focus:outline-none focus:ring-2',
-                  overLength
-                    ? 'border-danger focus:border-danger focus:ring-danger/20'
-                    : 'border-line focus:border-primary focus:ring-primary/20',
-                )}
+                className="w-full resize-y rounded-[12px] border border-line bg-card px-3 py-2 font-mono text-sm leading-relaxed text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
-              <div className="flex items-center gap-3">
-                <div
-                  role="progressbar"
-                  aria-label="Characters used"
-                  aria-valuemin={0}
-                  aria-valuemax={BODY_MAX}
-                  aria-valuenow={Math.min(body.length, BODY_MAX)}
-                  className="h-1 flex-1 overflow-hidden rounded-full bg-bg-alt"
-                >
-                  <div
-                    className={cn(
-                      'h-full rounded-full transition-[width] duration-200',
-                      BAR_TONE[usage.tone],
-                    )}
-                    style={{ width: `${usage.percent}%` }}
-                  />
-                </div>
-                <span
-                  className={cn(
-                    'shrink-0 text-[11px] tabular-nums',
-                    overLength ? 'font-medium text-danger' : 'text-ink-subtle',
-                  )}
-                >
-                  {body.length.toLocaleString()} / {BODY_MAX.toLocaleString()}
-                </span>
-              </div>
               {overLength ? (
-                <p role="alert" className="text-xs leading-relaxed text-danger">
-                  Over the limit by {usage.over.toLocaleString()} characters. Something this long
+                <p className="text-xs text-danger">
+                  Over the limit by {body.length - BODY_MAX} characters. Something this long
                   is a document: split it into separate items so a budget can still hold one.
                 </p>
               ) : null}
             </div>
 
-            <div className="flex items-center justify-between gap-4 rounded-[12px] border border-line bg-bg-alt/50 px-4 py-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <span
-                  aria-hidden
-                  className={cn(
-                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border transition-colors',
-                    pinned
-                      ? 'border-primary/30 bg-primary-light text-primary'
-                      : 'border-line bg-card text-ink-subtle',
-                  )}
-                >
-                  <Pin className={cn('h-4 w-4', pinned && 'fill-current')} />
-                </span>
-                <div className="min-w-0">
-                  <label
-                    htmlFor="item-pinned"
-                    className="block cursor-pointer text-sm font-medium text-ink"
-                  >
-                    Always attached
-                  </label>
-                  <p id="item-pinned-hint" className="text-xs text-ink-muted">
-                    {pinned
-                      ? 'Added to every context, even when no step asks for it.'
-                      : 'Added only when a step asks for it.'}
-                  </p>
-                </div>
-              </div>
-              <Switch
-                id="item-pinned"
-                checked={pinned}
-                onChange={setPinned}
-                aria-describedby="item-pinned-hint"
-              />
-            </div>
+            <button
+              type="button"
+              onClick={() => setPinned((value) => !value)}
+              aria-pressed={pinned}
+              className={cn(
+                'flex items-center gap-2 self-start rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors',
+                pinned
+                  ? 'border-primary-bdr bg-primary-bg text-primary'
+                  : 'border-line bg-card text-ink-muted hover:bg-bg-alt',
+              )}
+            >
+              <Pin className={cn('h-3.5 w-3.5', pinned && 'fill-current')} />
+              {pinned ? 'Always attached' : 'Attach only when a step asks'}
+            </button>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-3 rounded-b-[16px] border-t border-line bg-bg-alt/40 px-6 py-4">
-            {error ? (
-              <div
-                role="alert"
-                className="flex items-start gap-2 rounded-[10px] bg-danger-bg px-3 py-2 text-sm text-danger"
-              >
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                <span>{error}</span>
-              </div>
-            ) : null}
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!canSave}>
-                {saving ? 'Saving…' : editing ? 'Save changes' : 'Add item'}
-              </Button>
+          {error ? (
+            <div className="mx-6 mb-4 flex items-start gap-2 rounded-[10px] bg-danger-bg px-3 py-2 text-sm text-danger">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
             </div>
+          ) : null}
+
+          <div className="flex shrink-0 justify-end gap-2 border-t border-line px-6 py-4">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!canSave}>
+              {saving ? 'Saving…' : editing ? 'Save changes' : 'Add item'}
+            </Button>
           </div>
         </form>
       </DialogContent>
