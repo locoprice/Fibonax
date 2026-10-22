@@ -448,3 +448,15 @@ The card under the page header of Prompts and Brains is one component, `app/src/
 - The left side wraps onto further lines when it runs out of room; the right side stays beside the first line, so Sort never drops to a row of its own and never moves when a filter is applied. Every control has a visible keyboard focus ring.
 - Sort is the same three buttons as on Snippets (Name, Updated, and Usage or Items) with the same click rule (`app/src/lib/sortToggle.ts`). Pinned prompts and the default Brain stay first whichever column is chosen.
 - When filters hide everything, the empty state offers **Clear filters**. The gap between the bar and the content is 16 px (`gap-4`). Dashboard only: the phone and the extension keep their own surface conventions.
+
+
+### Language check in the snippet editor
+
+When a save would edit one language and leave the others with the old text, the editor says so while the text is being changed. No new tokens.
+
+| Part | Value |
+| --- | --- |
+| Language button | A 6 px `warning-deep` dot with a `card` ring replaces the blue dot on each language left behind. The button says why when pointed at, and its name carries it for screen readers: colour is never the only signal |
+| Notice | In the footer beside History and Delete: `warning-bg` fill, a 1 px `warning-deep` border at 30%, 12 px `ink` text, a `warning-deep` triangle. `ink` carries the sentence because `warning-deep` on `warning-bg` is too light for text. One line, cut with an ellipsis, the full sentence on hover |
+| Update link | `primary`, medium weight, for the first language that can be changed from this editor |
+| Save | The first click pauses and the button reads **Save anyway**; the notice border goes to 60% and the sentence ends "Save anyway to keep it." The second click saves. The pause resets when the languages left behind change |

@@ -27,6 +27,18 @@ One snippet can hold a body for each language. They share the name, the trigger 
 - **Clear** removes the language on screen. The snippet is saved without it.
 - If the text doesn't read like the language you picked, the editor says so and won't save until you fix the text or pick the right language.
 
+## Keep the languages in step
+
+Change the text of one language and the others still say the old thing. The editor tells you while you work:
+
+- The buttons of the languages left behind get an **amber dot**. The blue dot still marks a language that has text.
+- A line at the bottom names them: **Italian and Spanish still have the old text.** Click **Update Italian** to jump to that language.
+- Point at a language button to see when that language was last updated. The dates come from the snippet's [version history](/text-snippets/version-history).
+
+When you click **Save changes** with a language left behind, the first click pauses and the button reads **Save anyway**. Click it again to save as it is, or update the other languages first.
+
+Only a change to text that already exists counts. Adding a language, removing one and editing **Multi** never start the check, and a snippet with one language has nothing to compare. The check runs in the dashboard editor.
+
 ## See available languages
 
 Open **Details** beside a snippet in the dashboard. The **Languages** section shows each available language by name, alongside separate sections for labels and search keywords. Select a language to switch the row to that version; the selected language is outlined. The panel stays open, so you can check its labels and keywords before editing. **Updated** names the language the date applies to, for example “22 days ago · English”. When translations are saved together, it says **All languages**; those translations share one update date.
