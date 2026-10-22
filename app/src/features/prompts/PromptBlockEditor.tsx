@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Check, ChevronDown, Clock, Eye, Loader2, Sparkles, Trash2, X, Zap } from 'lucide-react';
 import { HistoryPanel, type HistoryEntry } from '@/features/history/HistoryPanel';
@@ -8,6 +8,7 @@ import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { DEFAULT_TRIGGER_CONFIG, sanitizeTriggerInput } from '@/lib/triggerUtils';
 import { classifyPrompt } from '@/lib/intentEngine';
+import { placeMenu } from '@/lib/menuPlacement';
 import { assembleBlocks, foldReasoningIntoConstraints } from '@/lib/promptUtils';
 import { loadInteractiveSteps, saveInteractiveSteps } from '@/lib/interactiveSteps';
 import {
@@ -133,10 +134,11 @@ function DarkSelect<T extends string>({
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number; width: number }>({
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number }>({
     top: 0,
     left: 0,
     width: 0,
+    maxHeight: 288,
   });
 
   const selectedLabel = options.find((o) => o.value === value)?.label ?? null;
@@ -144,10 +146,33 @@ function DarkSelect<T extends string>({
   const handleOpen = () => {
     if (triggerRef.current) {
       const r = triggerRef.current.getBoundingClientRect();
-      setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+      setPos((prev) => ({ ...prev, top: r.bottom + 4, left: r.left, width: r.width }));
     }
     setOpen(true);
   };
+
+  // Placed before paint, once the menu has rendered and can be measured. This
+  // field sits low in a tall panel, where a menu pinned under it ran off the
+  // bottom of the screen with its last options out of reach. The menu opens
+  // above when there is more room there, and a long list (every folder) is
+  // capped to the room it has and scrolls inside the menu. Same idea as the
+  // label picker's menu, which already behaved.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const trigger = triggerRef.current;
+    const menu = menuRef.current;
+    if (!trigger || !menu) return;
+    const r = trigger.getBoundingClientRect();
+    // Full height with every option showing: scrollHeight leaves the border out.
+    const contentHeight = menu.scrollHeight + (menu.offsetHeight - menu.clientHeight);
+    const placed = placeMenu({
+      triggerTop: r.top,
+      triggerBottom: r.bottom,
+      contentHeight,
+      viewportHeight: window.innerHeight,
+    });
+    setPos({ top: placed.top, left: r.left, width: r.width, maxHeight: placed.maxHeight });
+  }, [open, options.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -157,8 +182,31 @@ function DarkSelect<T extends string>({
         setOpen(false);
       }
     };
+    // The panel scrolls and the menu is fixed to the screen, so a menu left open
+    // while the panel moves would be hanging in the wrong place: close it, as a
+    // native menu does. Scrolling the menu's own list is left alone.
+    const onMove = (e: Event) => {
+      if (e.target instanceof Node && menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    // Escape closes this menu and nothing else. Without this the key reached the
+    // editor's own Escape handler and closed the whole panel, unsaved text and
+    // all. Capture phase and stopPropagation, as the label picker does.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      setOpen(false);
+    };
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    window.addEventListener('resize', onMove);
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('resize', onMove);
+      window.removeEventListener('scroll', onMove, true);
+      window.removeEventListener('keydown', onKey, true);
+    };
   }, [open]);
 
   return (
@@ -181,8 +229,8 @@ function DarkSelect<T extends string>({
         createPortal(
           <div
             ref={menuRef}
-            style={{ top: pos.top, left: pos.left, width: pos.width }}
-            className="fixed z-[9999] overflow-hidden rounded-[10px] border border-[#3A3A42] bg-[#24242B] p-1 shadow-[0_12px_40px_rgba(0,0,0,0.7),0_2px_8px_rgba(0,0,0,0.4)]"
+            style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
+            className="fixed z-[9999] overflow-y-auto overscroll-contain rounded-[10px] border border-[#3A3A42] bg-[#24242B] p-1 shadow-[0_12px_40px_rgba(0,0,0,0.7),0_2px_8px_rgba(0,0,0,0.4)]"
           >
             <button
               type="button"
