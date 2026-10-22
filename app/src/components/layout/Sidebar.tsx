@@ -26,6 +26,7 @@ import { pickHttpsUrl } from '@/lib/branding';
 import { RESOURCE_LINKS } from '@/lib/links';
 import { useGettingStartedVisible } from '@/lib/useGettingStartedVisible';
 import { JotFormModal } from '@/components/layout/JotFormModal';
+import { NavCountPill } from '@/components/layout/NavCountPill';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/stores/authStore';
@@ -62,33 +63,6 @@ function navClass({ isActive, collapsed }: { isActive: boolean; collapsed: boole
     isActive
       ? 'bg-primary-light text-primary before:bg-primary'
       : 'text-ink-muted before:bg-transparent hover:bg-bg-alt hover:text-ink',
-  );
-}
-
-/**
- * Filled count pill (active) or muted bg-alt pill (inactive). Used on nav rows.
- * With a label, hovering the pill names what it counts, and screen readers get
- * that phrase in place of the bare digits.
- */
-function NavCountPill({
-  count,
-  active,
-  label,
-}: {
-  count: number;
-  active: boolean;
-  label?: string;
-}) {
-  const className = cn(
-    'ml-auto inline-flex min-w-[20px] items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums',
-    active ? 'bg-primary text-white' : 'bg-bg-alt text-ink-subtle',
-  );
-  if (label === undefined) return <span className={className}>{count}</span>;
-  return (
-    <Tooltip label={label} placement="right" className={className}>
-      <span aria-hidden="true">{count}</span>
-      <span className="sr-only">{label}</span>
-    </Tooltip>
   );
 }
 

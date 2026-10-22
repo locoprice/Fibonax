@@ -59,6 +59,8 @@ const config: Config = {
       boxShadow: {
         sm: '0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04)',
         md: '0 4px 20px rgba(27,79,216,.12), 0 1px 3px rgba(0,0,0,.06)',
+        // Count pill on the page in view: an azure glow and a 1px highlight on its top edge.
+        pill: '0 1px 2px rgba(20,64,176,.35), 0 3px 8px rgba(27,79,216,.28), inset 0 1px 0 rgba(255,255,255,.28)',
       },
       borderRadius: {
         DEFAULT: '12px',
@@ -88,12 +90,19 @@ const config: Config = {
           '30%': { transform: 'scale(1.18) rotate(-10deg)' },
           '65%': { transform: 'scale(1.18) rotate(10deg)' },
         },
+        // Count pill: one soft band of light crossing the pill that has just become current.
+        'count-sheen': {
+          '0%': { opacity: '0', transform: 'translateX(-140%) skewX(-20deg)' },
+          '25%': { opacity: '1' },
+          '100%': { opacity: '0', transform: 'translateX(340%) skewX(-20deg)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 200ms ease-out',
         'status-pop': 'status-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
         'status-wobble': 'status-wobble 2400ms cubic-bezier(0.4, 0, 0.2, 1) infinite',
         'status-cheer': 'status-cheer 520ms cubic-bezier(0.4, 0, 0.2, 1)',
+        'count-sheen': 'count-sheen 800ms cubic-bezier(0.4, 0, 0.2, 1) 350ms both',
       },
     },
   },

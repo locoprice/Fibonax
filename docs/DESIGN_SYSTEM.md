@@ -179,6 +179,7 @@ automatic motion, interactive affordances or keyboard stops.
 | ----------- | ---------------------------------------------------------------- |
 | `shadow-sm` | `0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04)`           |
 | `shadow-md` | `0 4px 20px rgba(27,79,216,.12), 0 1px 3px rgba(0,0,0,.06)`       |
+| `shadow-pill` | `0 1px 2px rgba(20,64,176,.35), 0 3px 8px rgba(27,79,216,.28), inset 0 1px 0 rgba(255,255,255,.28)` |
 
 ### Motion & overlay (added v2.97.0)
 
@@ -257,11 +258,29 @@ node scripts/sync-tooltip.js
 
 Keep the text short. Avada centres it inside 200 px, so a sentence or two reads well and a paragraph does not.
 
+### Count pill (dashboard sidebar)
+
+The number beside Snippets, Prompts, Brains, Team and Review: one component for every row, `app/src/components/layout/NavCountPill.tsx`. Shown while the count is above 0.
+
+| Part | Value |
+| --- | --- |
+| Size | 20 px tall (the status badge's height), 20 px wide at least, `r-pill`, 6 px side padding |
+| Type | 11 px semibold, tabular figures |
+| Page in view | `primary` to `primary-dark` gradient, top to bottom, white digits, `shadow-pill` |
+| Other pages | `card` fill, 1 px inset `line` ring, `ink-subtle` digits. While the row is hovered: `primary` digits and a `primary` ring at 40% |
+| Digits | Each digit is a strip of 0 to 9 that slides in a 14 px window: 600 ms, `cubic-bezier(.22,1,.36,1)`, each digit 45 ms after the one on its left. A number rolls up from 0 when its pill first appears, and slides again on every change |
+| Entrance | `fade-in`, 200 ms |
+| Light sweep | One pass of a soft white band over the pill, 800 ms, starting 350 ms after the row becomes the page in view (`count-sheen`) |
+| Reduced motion | No roll, no sweep, no entrance: the number shows at once, in the same box |
+| Screen readers | The digits are hidden and one line of text gives the number. A pill the row name does not explain says what it counts (Team: "6 shared folders"), and that line is also the shared Tooltip on hover, placed right |
+
+Motion is transform and opacity only, like the status badges.
+
 ## Surface-specific rules (v1.1)
 
 - **Dashboard topbar** spans the full width (60 px) above sidebar + main. Brand square (28 px, `--primary` solid) on the left.
 - **Master search bar** (SEARCH-001): the one text search on the dashboard, in the topbar between the brand and the status pill. `r-in` (10 px), 36 px tall, `bg-alt` at rest and `--card` on focus, capped at 360 px and allowed to shrink so a long company name never pushes the right-hand cluster off a 1024 px screen. It carries a ⌘K badge at rest and a clear cross once there is text. Typing filters the page in view; Enter or ⌘K opens the aggregated panel (560 px, `r-card`, `shadow-md`, results grouped Snippets / Prompts / Memory). The panel carries one control row under the input: **type chips** (`All`, the default, then `Snippets` / `Prompts` / `Brains`). There is no separate scope switch: a `<Section> only` scope gave the same answer as that section's chip, and the header bar already filters the page (or Brain) in view. The chips narrow what has already matched; they never change the matching rules, which live once in `searchIndex.ts`. Snippets, prompts and memory carry **no search box of their own**. A second one on a page is a defect, not a feature.
-- **Dashboard sidebar** active nav: `bg-primary-light` + 3 px primary left bar (painted via `::before`, reserved track so the row doesn't shift on toggle) + filled count pill (`bg-primary` + white text) when count > 0. Inactive count pill: `bg-bg-alt` + `ink-subtle`. A pill the row name does not explain (Team, which counts shared folders) carries a label: the shared Tooltip on hover, placed right, and the same words for screen readers in place of the digits.
+- **Dashboard sidebar** active nav: `bg-primary-light` + 3 px primary left bar (painted via `::before`, reserved track so the row doesn't shift on toggle) + count pill when count > 0 (see Count pill).
 - **Dashboard sidebar, collapsed** (v3.29.0): the panel control on the WORKSPACE row folds the sidebar into a 64 px icon rail (65 px with its border), cloned from DeepL's. Rows keep their size and place: the label and count pill are clipped, not removed, so no icon moves on toggle and screen readers still read the label. Each icon names itself in a right-side tooltip, the company watermark hides, and the account menu keeps its open width over the canvas. The switch is instant and remembered per browser. It replaces the v3.8.0 hide and the v3.13.0 edge peek.
 - **Mobile home** is a single-scroll canvas. Gradient hero (`linear-gradient(160deg, #1B4FD8, #1440B0)`) → floating quick-action grid (overlaps hero by `-22 px`) → search → "All snippets" + Uber-style chips (white default, `#1C1C1E` bg when active) → snippet cards (`r-card-lg`, 14 px padding, 46 × 46 colored icon well per language family) → floating Apple/Revolut tab bar (`rgba(28,28,30,.92)` + blur 20).
 - **Extension popup** active folder: light-primary bg + 2 px primary left bar + **filled** azure count pill (not tinted). All Iris purples replaced with `#1B4FD8`.
