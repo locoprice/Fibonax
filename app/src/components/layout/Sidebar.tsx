@@ -30,6 +30,7 @@ import { Tooltip } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/stores/authStore';
 import { useSnippetStore } from '@/stores/snippetStore';
 import { usePromptStore } from '@/stores/promptStore';
+import { useMemoryStore } from '@/stores/memoryStore';
 import { countWaiting, useReviewStore } from '@/stores/reviewStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -130,6 +131,7 @@ export function Sidebar() {
   const signOut = useAuthStore((s) => s.signOut);
   const snippetCount = useSnippetStore((s) => s.snippets.length);
   const promptCount = usePromptStore((s) => s.prompts.length);
+  const brainCount = useMemoryStore((s) => s.spaces.length);
   const sharedFolderCount = useSnippetStore((s) => s.folderShares.size);
   const waitingCount = useReviewStore((s) => countWaiting(s.items));
   const loadReview = useReviewStore((s) => s.load);
@@ -153,9 +155,7 @@ export function Sidebar() {
   const PRIMARY: NavItem[] = [
     { to: '/', label: 'Snippets', icon: SnippetIcon, end: true, count: snippetCount },
     { to: '/prompts', label: 'Prompts', icon: PromptIcon, count: promptCount },
-    // No count pill: the spaces list is loaded by the Memory page itself, and
-    // pulling that store into the sidebar would make every page fetch it.
-    { to: '/memory', label: 'Brains', icon: BrainIcon },
+    { to: '/memory', label: 'Brains', icon: BrainIcon, count: brainCount },
     {
       to: '/team',
       label: 'Team',
