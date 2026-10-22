@@ -428,3 +428,8 @@ The card under the page header is one component, `app/src/components/shared/Asse
 - Chip rows wrap onto a second line rather than widening the bar. Every control has a visible keyboard focus ring.
 - Sort is the same three buttons everywhere (Name, Updated, and Usage or Items) with the same click rule (`app/src/lib/sortToggle.ts`). Pinned snippets and prompts, and the default Brain, stay first whichever column is chosen.
 - The gap between the bar and the content is 16 px (`gap-4`) on all three pages. Dashboard only: the phone and the extension keep their own surface conventions.
+
+### Brain item window (v3.76.1)
+
+The **Add text** / **Edit item** window stays a centered dialog. Its header (icon tile, title, review status, History) and its footer (Cancel, Save) stay in view while the form scrolls, on any screen height. The size of the Body is a thin bar plus the count, amber from 80% of the limit and red past it. **Always attached** is the shared `Switch` in a quiet row, not a chip. Name and Kind stack on narrow screens.
+
