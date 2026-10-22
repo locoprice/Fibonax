@@ -24,6 +24,7 @@ import { PromptIcon } from '@/components/shared/PromptIcon';
 import { cn } from '@/lib/utils';
 import { pickHttpsUrl } from '@/lib/branding';
 import { RESOURCE_LINKS } from '@/lib/links';
+import { useGettingStartedVisible } from '@/lib/useGettingStartedVisible';
 import { JotFormModal } from '@/components/layout/JotFormModal';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -137,6 +138,7 @@ export function Sidebar() {
   const loadReview = useReviewStore((s) => s.load);
   const companyLogoUrl = useSettingsStore((s) => s.profile?.company_logo_url ?? null);
   const openOnboarding = useUiStore((s) => s.openOnboarding);
+  const showGettingStarted = useGettingStartedVisible(user?.id ?? null);
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useUiStore((s) => s.setSidebarCollapsed);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -268,17 +270,20 @@ export function Sidebar() {
             </Fragment>
           ))}
 
-          {/* Getting Started — replays the onboarding animation on demand */}
-          <RailTooltip collapsed={collapsed} label="Getting Started">
-            <button
-              type="button"
-              onClick={openOnboarding}
-              className={cn(navClass({ isActive: false, collapsed }), 'w-full text-left')}
-            >
-              <PlayCircle className="h-4 w-4 shrink-0" />
-              <span>Getting Started</span>
-            </button>
-          </RailTooltip>
+          {/* Getting Started replays the onboarding animation. It stays for the
+              first few visits and then goes, so a familiar sidebar is not noisy. */}
+          {showGettingStarted && (
+            <RailTooltip collapsed={collapsed} label="Getting Started">
+              <button
+                type="button"
+                onClick={openOnboarding}
+                className={cn(navClass({ isActive: false, collapsed }), 'w-full text-left')}
+              >
+                <PlayCircle className="h-4 w-4 shrink-0" />
+                <span>Getting Started</span>
+              </button>
+            </RailTooltip>
+          )}
         </div>
       </nav>
 

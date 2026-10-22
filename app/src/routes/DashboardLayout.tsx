@@ -46,7 +46,7 @@ export function DashboardLayout() {
   }, [loadSettings, profile]);
 
   // Auto-show the onboarding once per browser. The sidebar's "Getting Started"
-  // button replays it any time afterward.
+  // button replays it for the first few visits (lib/gettingStarted.ts).
   useEffect(() => {
     let seen = false;
     try {
