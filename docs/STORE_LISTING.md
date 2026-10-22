@@ -109,7 +109,6 @@ HOW IT WORKS
 3. Insert your text in whichever way suits the moment:
    • Type your trigger plus the shortcut in any text field and press Tab. The trigger disappears and the finished text takes its place.
    • Right-click the field and pick from a context menu that mirrors your folders, with a submenu per language.
-   • Select a few words in a field and Fibonax suggests matching snippets in a small menu anchored to the selection. Pick one and it replaces the selection.
    • Open the extension popup, search, fill the fields, and copy the finished text.
 
 
@@ -203,7 +202,6 @@ Rules applied:
 | `{if:}` / `{elseif:}` / `{else}` / `{endif}`, text and numeric comparisons | `formula-engine.js:542,565`; numeric comparisons v2.63.9 | ✅ Extension and dashboard only. **Not** claimed for mobile — the mobile resolver has no `elseif` branch (audit §5.3) |
 | Gendered greetings agreeing with the name | `sbNameGender()` at `formula-engine.js:231`, applied at `:294,:320`; shipped v2.116.0 | ✅ |
 | Text Blaze JSON import, grouped or flat, plus Fibonax export | `snippetIo.ts:72,129,152` accepts `{groups:[{snippets:[]}]}`, flat arrays, and Fibonax envelopes; export at `:43` | ✅ |
-| Selection-triggered suggestions | `content.js:142` block, toggle `triggerCfg.selectionSuggestions`; shipped v2.56.0 | ✅ |
 | Contribution heatmap, top triggers, usage charts | `ActivityHeatmap.tsx`, `TopTriggersTable.tsx`, `UsageChart.tsx`, `ContributionActivity.tsx`; `analyticsApi.ts` aggregates live over `public.snippet_events` | ✅ ANALYTICS-001 is shipped in production despite `app/CLAUDE.md` §7 listing it open (audit §6.1) |
 | Version history with diff and restore | `revisionsApi.ts`, `VersionHistoryPanel.tsx`, `diffUtils.ts`; shipped v2.54.0 | ✅ |
 | Six-digit code or magic link sign-in | `OtpInput.tsx` + `supabase.auth.verifyOtp` at `LoginPage.tsx:109` | ✅ |
