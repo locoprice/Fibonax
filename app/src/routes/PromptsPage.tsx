@@ -112,7 +112,7 @@ export function PromptsPage() {
         onDelete={(id) => void removePrompt(id)}
       />
 
-      <div className="flex min-w-0 flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-4">
         <PromptFilters onManageLabels={openLabelManager} />
 
         {loading && prompts.length === 0 ? (

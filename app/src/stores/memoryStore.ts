@@ -14,6 +14,8 @@ import {
 } from '@/lib/api/memoryApi';
 import { reviewApi } from '@/lib/api/reviewApi';
 import type { ReviewStatus } from '@/lib/reviewStatus';
+import type { SpaceSortColumn } from '@/lib/spaceSort';
+import { nextSort, type SortDir } from '@/lib/sortToggle';
 
 // Memory spaces and their items (MEMORY-002).
 //
@@ -59,6 +61,11 @@ interface MemoryStore {
   /** True once `loadAllItems` has completed, so searching again does not refetch. */
   allItemsLoaded: boolean;
   activeSpaceId: string | null;
+
+  /** How the Brains index is ordered; the default Brain stays on top whichever column is chosen. */
+  spaceSortBy: SpaceSortColumn;
+  spaceSortDir: SortDir;
+  setSpaceSort: (column: SpaceSortColumn) => void;
 
   loadingSpaces: boolean;
   loadingItems: boolean;
@@ -211,6 +218,14 @@ export const useMemoryStore = create<MemoryStore>((set, get) => ({
   allItems: [],
   allItemsLoaded: false,
   activeSpaceId: null,
+
+  spaceSortBy: 'name',
+  spaceSortDir: 'asc',
+  setSpaceSort: (column) =>
+    set((s) => {
+      const next = nextSort({ sortBy: s.spaceSortBy, sortDir: s.spaceSortDir }, column);
+      return { spaceSortBy: next.sortBy, spaceSortDir: next.sortDir };
+    }),
 
   loadingSpaces: false,
   loadingItems: false,

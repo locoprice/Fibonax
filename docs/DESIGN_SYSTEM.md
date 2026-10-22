@@ -418,3 +418,13 @@ Date/time adjustment is named Options. The popup adapts the split to 320 px
 scroll panels; the dashboard preview can expand within its editor. Mobile has
 Fill in / Preview views and an untruncated result. Shared vanilla presentation
 is extension/shared/fill-form-ui.{js,css}; mobile copies are generated.
+
+
+### One filter bar for Snippets, Prompts and Brains (v3.76.0)
+
+The card under the page header is one component, `app/src/components/shared/AssetFilterBar.tsx`, with its chips, menus, Clear and Sort. Scope chips and filter menus sit on the left; **Clear N filters**, **Sort** and anything only one page has (the Brains **Trash**) sit on the right. A page fills the slots it has something for and leaves the rest out: Snippets adds the folders toggle and language chips, Prompts the folder chips and Strategy / Intent, Brains the count. Nothing is restyled per page.
+
+- Chips are pills (`rounded-full`, 32 px); menus and quiet actions are `FilterButton` (`rounded-[10px]`, 32 px). The active state is the same `primary-light` fill on both.
+- Chip rows wrap onto a second line rather than widening the bar. Every control has a visible keyboard focus ring.
+- Sort is the same three buttons everywhere (Name, Updated, and Usage or Items) with the same click rule (`app/src/lib/sortToggle.ts`). Pinned snippets and prompts, and the default Brain, stay first whichever column is chosen.
+- The gap between the bar and the content is 16 px (`gap-4`) on all three pages. Dashboard only: the phone and the extension keep their own surface conventions.

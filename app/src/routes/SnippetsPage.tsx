@@ -153,7 +153,7 @@ export function SnippetsPage() {
       <div className="flex gap-8">
         {railOpen && <SnippetFolderTree />}
 
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
           <FilterToolbar />
           <BulkActionsBar />
           <SnippetsTable />

@@ -12,12 +12,12 @@ import { buildFolderShares } from '@/lib/folderShares';
 import { matchesLabelFilter } from '@/lib/labelUtils';
 import { subtreeIds } from '@/lib/folderTree';
 import { snippetGroupKey } from '@/lib/snippetGrouping';
+import { nextSort, type SortDir } from '@/lib/sortToggle';
 import { expandWithDescendants } from '@/lib/labelTree';
 import { reviewApi } from '@/lib/api/reviewApi';
 import type { NewItemOptions, ReviewStatus } from '@/lib/reviewStatus';
 
 export type SortColumn = 'updated_at' | 'usage_count' | 'name';
-export type SortDir = 'asc' | 'desc';
 
 export interface ImportBatchResult {
   imported: number;
@@ -192,20 +192,7 @@ export const useSnippetStore = create<SnippetStore>((set, get) => ({
 
   clearSelection: () => set({ selectedIds: new Set<string>() }),
 
-  setSortBy: (col) =>
-    set((s) => ({
-      sortBy: col,
-      // Toggle direction on repeated click; default to desc (most recent/most-used first)
-      // except for name where asc (A-Z) is the natural default.
-      sortDir:
-        s.sortBy === col
-          ? s.sortDir === 'asc'
-            ? 'desc'
-            : 'asc'
-          : col === 'name'
-            ? 'asc'
-            : 'desc',
-    })),
+  setSortBy: (col) => set((s) => nextSort(s, col)),
 
   setLanguageFilter: (lang) => set({ languageFilter: lang }),
 
