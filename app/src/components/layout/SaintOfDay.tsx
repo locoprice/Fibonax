@@ -14,7 +14,7 @@ export function SaintOfDay() {
   if (!name) return null;
   return (
     <>
-      <span lang="it" className="min-w-0 truncate font-mono text-[10px] text-ink-subtle">
+      <span lang="it" className="min-w-0 truncate text-[10px] text-ink-subtle">
         {saintLabel(name)}
       </span>
       {/* Divides the saint from the Christmas line; there only while the saint is. */}
