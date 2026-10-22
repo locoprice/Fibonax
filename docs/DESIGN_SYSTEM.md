@@ -420,11 +420,12 @@ Fill in / Preview views and an untruncated result. Shared vanilla presentation
 is extension/shared/fill-form-ui.{js,css}; mobile copies are generated.
 
 
-### One filter bar for Snippets, Prompts and Brains (v3.76.0)
+### One filter bar for Prompts and Brains (v3.77.0)
 
-The card under the page header is one component, `app/src/components/shared/AssetFilterBar.tsx`, with its chips, menus, Clear and Sort. Scope chips and filter menus sit on the left; **Clear N filters**, **Sort** and anything only one page has (the Brains **Trash**) sit on the right. A page fills the slots it has something for and leaves the rest out: Snippets adds the folders toggle and language chips, Prompts the folder chips and Strategy / Intent, Brains the count. Nothing is restyled per page.
+The card under the page header of Prompts and Brains is one component, `app/src/components/shared/AssetFilterBar.tsx`, with its chips, menus, Clear and Sort. Scope chips, filter menus and **Clear N filters** sit on the left; **Sort** and anything only one page has (the Brains **Trash**) sit on the right. A page fills the slots it has something for and leaves the rest out: Prompts has the folder chips and Strategy / Intent / Labels, Brains has the count and Contents / Updated. Nothing is restyled per page. The Snippets header keeps its own bar, by the owners' decision.
 
-- Chips are pills (`rounded-full`, 32 px); menus and quiet actions are `FilterButton` (`rounded-[10px]`, 32 px). The active state is the same `primary-light` fill on both.
-- Chip rows wrap onto a second line rather than widening the bar. Every control has a visible keyboard focus ring.
-- Sort is the same three buttons everywhere (Name, Updated, and Usage or Items) with the same click rule (`app/src/lib/sortToggle.ts`). Pinned snippets and prompts, and the default Brain, stay first whichever column is chosen.
-- The gap between the bar and the content is 16 px (`gap-4`) on all three pages. Dashboard only: the phone and the extension keep their own surface conventions.
+- Chips are pills (`rounded-full`, 32 px) with the count in a small badge; menus and quiet actions are `FilterButton` (`rounded-[10px]`, 32 px). The active state is the same `primary-light` fill on both.
+- Every menu carries an icon, and a lit one names its filter and its value: **Strategy: CoT**, **Updated: Last 7 days**. The arrow keys walk a menu, Enter chooses, Esc closes it and puts focus back on its button.
+- The left side wraps onto further lines when it runs out of room; the right side stays beside the first line, so Sort never drops to a row of its own and never moves when a filter is applied. Every control has a visible keyboard focus ring.
+- Sort is the same three buttons as on Snippets (Name, Updated, and Usage or Items) with the same click rule (`app/src/lib/sortToggle.ts`). Pinned prompts and the default Brain stay first whichever column is chosen.
+- When filters hide everything, the empty state offers **Clear filters**. The gap between the bar and the content is 16 px (`gap-4`). Dashboard only: the phone and the extension keep their own surface conventions.

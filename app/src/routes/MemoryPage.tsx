@@ -17,6 +17,7 @@ import { TrashPanel, type TrashPanelRow } from '@/features/memory/TrashPanel';
 import { useMemoryStore } from '@/stores/memoryStore';
 import { useSearchStore } from '@/stores/searchStore';
 import { normalizeQuery, scoreSpace } from '@/lib/searchIndex';
+import { filterSpaces } from '@/lib/spaceFilter';
 import { sortSpaces } from '@/lib/spaceSort';
 import { useUiStore } from '@/stores/uiStore';
 import type { MemorySpace } from '@/types/database';
@@ -123,6 +124,8 @@ export function MemoryPage() {
   const trashedSpaces = useMemoryStore((s) => s.trashedSpaces);
   const restoreSpace = useMemoryStore((s) => s.restoreSpace);
   const deleteSpaceForever = useMemoryStore((s) => s.deleteSpaceForever);
+  const filters = useMemoryStore((s) => s.spaceFilters);
+  const resetSpaceFilters = useMemoryStore((s) => s.resetSpaceFilters);
   const sortBy = useMemoryStore((s) => s.spaceSortBy);
   const sortDir = useMemoryStore((s) => s.spaceSortDir);
   const showToast = useUiStore((s) => s.showToast);
@@ -131,6 +134,7 @@ export function MemoryPage() {
   const [trashOpen, setTrashOpen] = useState(false);
   // The one search bar in the header owns the text (SEARCH-001).
   const query = useSearchStore((s) => s.query);
+  const clearSearch = useSearchStore((s) => s.clear);
 
   useEffect(() => {
     if (!loaded) void loadSpaces();
@@ -139,8 +143,14 @@ export function MemoryPage() {
   const filtered = useMemo(() => {
     const needle = normalizeQuery(query);
     const matching = needle ? spaces.filter((space) => scoreSpace(space, needle) > 0) : spaces;
-    return sortSpaces(matching, totals, sortBy, sortDir);
-  }, [spaces, totals, query, sortBy, sortDir]);
+    return sortSpaces(filterSpaces(matching, totals, filters), totals, sortBy, sortDir);
+  }, [spaces, totals, query, filters, sortBy, sortDir]);
+
+  /** Empties the filter menus and the search box together, as the bar's Clear does. */
+  function clearFilters() {
+    resetSpaceFilters();
+    clearSearch();
+  }
 
   const trashPanelRows = useMemo<TrashPanelRow[]>(
     () =>
@@ -246,7 +256,7 @@ export function MemoryPage() {
             description={
               spaces.length === 0
                 ? 'A Brain holds the facts one kind of work needs. Create one and add your first note.'
-                : 'Try a different search, or clear the search box in the header.'
+                : 'Try a different search, or clear the filters.'
             }
             action={
               spaces.length === 0 ? (
@@ -254,7 +264,11 @@ export function MemoryPage() {
                   <Plus className="h-4 w-4" />
                   New Brain
                 </Button>
-              ) : null
+              ) : (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              )
             }
           />
         ) : (

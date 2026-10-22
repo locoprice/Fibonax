@@ -1,8 +1,10 @@
 import {
+  forwardRef,
   useEffect,
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, X } from 'lucide-react';
@@ -16,7 +18,11 @@ import { cn } from '@/lib/utils';
 // fills the slots it has something for and leaves the rest out; it never
 // restyles a piece.
 //
-//   [ scope chips ] | [ filter menus ]                 [ Clear ] [ Sort ] [ extras ]
+//   [ scope chips ] [ filter menus ] [ Clear ]                    [ Sort ] [ extras ]
+//
+// The left side wraps onto a second line when it runs out of room; the right
+// side stays on the first line, so Sort never drops to a row of its own and
+// never moves when a filter is applied.
 //
 // This module stays free of stores so a pure-logic test can import a page's
 // filters without dragging in uiStore's localStorage bootstrap.
@@ -25,9 +31,9 @@ const FOCUS_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
 
 interface AssetFilterBarProps {
-  /** Left side: scope chips, then filter menus. */
+  /** Left side: scope chips, filter menus, then Clear. */
   children: ReactNode;
-  /** Right side: Clear, Sort and anything only this page has. */
+  /** Right side: Sort and anything only this page has. */
   end?: ReactNode;
 }
 
@@ -36,10 +42,14 @@ export function AssetFilterBar({ children, end }: AssetFilterBarProps) {
     <div
       role="group"
       aria-label="Filter and sort"
-      className="flex flex-wrap items-center gap-2 rounded-[10px] border border-line bg-card px-3 py-2"
+      className={cn(
+        'grid items-start gap-x-4 gap-y-2 rounded-[10px] border border-line bg-card px-3 py-2',
+        end ? 'grid-cols-[minmax(0,1fr)_auto]' : 'grid-cols-1',
+      )}
     >
-      {children}
-      {end ? <div className="ml-auto flex flex-wrap items-center gap-2">{end}</div> : null}
+      <div className="flex min-w-0 flex-wrap items-center gap-2">{children}</div>
+      {/* h-8 is the height of a chip, so the right side lines up with the first row. */}
+      {end ? <div className="flex h-8 shrink-0 items-center gap-2">{end}</div> : null}
     </div>
   );
 }
@@ -55,14 +65,10 @@ interface FilterButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /** The look every menu trigger and quiet action in the bar shares. */
-export function FilterButton({
-  active = false,
-  className,
-  type = 'button',
-  ...props
-}: FilterButtonProps) {
-  return (
+export const FilterButton = forwardRef<HTMLButtonElement, FilterButtonProps>(
+  ({ active = false, className, type = 'button', ...props }, ref) => (
     <button
+      ref={ref}
       type={type}
       className={cn(
         'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[10px] border px-3 text-xs font-medium transition-colors',
@@ -74,8 +80,9 @@ export function FilterButton({
       )}
       {...props}
     />
-  );
-}
+  ),
+);
+FilterButton.displayName = 'FilterButton';
 
 interface FilterChipProps {
   label: string;
@@ -110,8 +117,8 @@ export function FilterChip({
       {count === undefined ? null : (
         <span
           className={cn(
-            'text-[11px] font-semibold tabular-nums',
-            active ? 'text-primary/70' : 'text-ink-subtle',
+            'rounded-full px-1.5 text-[11px] font-semibold leading-5 tabular-nums',
+            active ? 'bg-primary/10 text-primary' : 'bg-bg-alt text-ink-subtle',
           )}
         >
           {count}
@@ -149,80 +156,148 @@ export function FilterChipGroup({ label, children }: { label: string; children: 
   );
 }
 
+export interface FilterOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+/** Options whose label is the value itself, like Strategy. */
+export function plainOptions<T extends string>(values: readonly T[]): Array<FilterOption<T>> {
+  return values.map((value) => ({ value, label: value }));
+}
+
 interface FilterDropdownProps<T extends string> {
   label: string;
+  /** Sits before the label, so every menu in the bar carries one. */
+  icon?: ReactNode;
   value: T | null;
-  options: readonly T[];
+  options: ReadonlyArray<FilterOption<T>>;
   onSelect: (value: T | null) => void;
 }
 
-/** A pick-one menu. Choosing the chosen option again clears it. */
+/**
+ * A pick-one menu. Choosing the chosen option again clears it, and the button
+ * names both the filter and its value ("Strategy: CoT"), so a lit button never
+ * leaves anyone wondering what it is filtering. The arrow keys walk the options.
+ */
 export function FilterDropdown<T extends string>({
   label,
+  icon,
   value,
   options,
   onSelect,
 }: FilterDropdownProps<T>) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const chosen = options.find((option) => option.value === value) ?? null;
 
   useEffect(() => {
     if (!open) return;
     function onPointerDown(e: PointerEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
     window.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('keydown', onKeyDown);
-    };
+    return () => window.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
-  function pick(option: T) {
-    onSelect(option === value ? null : option);
+  // The chosen row, or the first, takes focus: the arrow keys start from where
+  // the value is. Only when the menu opens; picking a row closes it.
+  useEffect(() => {
+    if (!open) return;
+    const index = Math.max(0, options.findIndex((option) => option.value === value));
+    itemRefs.current[index]?.focus({ preventScroll: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function close(returnFocus: boolean) {
     setOpen(false);
+    if (returnFocus) triggerRef.current?.focus({ preventScroll: true });
+  }
+
+  function pick(option: FilterOption<T>) {
+    onSelect(option.value === value ? null : option.value);
+    close(true);
+  }
+
+  function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!open) {
+      if (event.target === triggerRef.current && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+        event.preventDefault();
+        setOpen(true);
+      }
+      return;
+    }
+    const items = itemRefs.current;
+    const current = items.findIndex((el) => el === document.activeElement);
+    const last = options.length - 1;
+    let next: number | null = null;
+    if (event.key === 'ArrowDown') next = current < last ? current + 1 : 0;
+    else if (event.key === 'ArrowUp') next = current > 0 ? current - 1 : last;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = last;
+    if (next !== null) {
+      event.preventDefault();
+      items[next]?.focus();
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      // The key stops here, so a panel open on the page is not closed by it too.
+      event.stopPropagation();
+      close(true);
+    } else if (event.key === 'Tab') {
+      close(false);
+    }
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative" onKeyDown={onKeyDown}>
       <FilterButton
+        ref={triggerRef}
         aria-haspopup="menu"
         aria-expanded={open}
-        active={value !== null}
+        active={chosen !== null}
+        className={cn(open && chosen === null && 'border-primary/30 text-ink')}
         onClick={() => setOpen((v) => !v)}
       >
-        {value ?? label}
-        <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
+        {icon}
+        <span>{chosen ? `${label}:` : label}</span>
+        {chosen ? <span className="font-semibold">{chosen.label}</span> : null}
+        <ChevronDown
+          className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')}
+          aria-hidden
+        />
       </FilterButton>
 
       {open && (
         <div
           role="menu"
-          className="absolute left-0 top-full z-40 mt-2 w-44 animate-fade-in rounded-[12px] border border-line bg-card p-1.5 shadow-md"
+          aria-label={label}
+          className="absolute left-0 top-full z-40 mt-2 min-w-[11rem] animate-fade-in rounded-[12px] border border-line bg-card p-1.5 shadow-md"
         >
-          {options.map((option) => {
-            const on = option === value;
+          {options.map((option, index) => {
+            const on = option.value === value;
             return (
               <button
-                key={option}
+                key={option.value}
+                ref={(el) => {
+                  itemRefs.current[index] = el;
+                }}
                 role="menuitemradio"
                 aria-checked={on}
                 type="button"
+                tabIndex={-1}
                 onClick={() => pick(option)}
                 className={cn(
-                  'flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-xs font-medium hover:bg-bg-alt',
+                  'flex w-full items-center justify-between gap-3 whitespace-nowrap rounded-[8px] px-3 py-2 text-xs font-medium hover:bg-bg-alt focus:bg-bg-alt',
                   FOCUS_RING,
                   on ? 'text-primary' : 'text-ink',
                 )}
               >
-                {option}
-                {on && <Check className="h-3.5 w-3.5" />}
+                {option.label}
+                {on && <Check className="h-3.5 w-3.5" aria-hidden />}
               </button>
             );
           })}

@@ -15,6 +15,7 @@ import {
 import { reviewApi } from '@/lib/api/reviewApi';
 import type { ReviewStatus } from '@/lib/reviewStatus';
 import type { SpaceSortColumn } from '@/lib/spaceSort';
+import { NO_SPACE_FILTERS, type SpaceFilters } from '@/lib/spaceFilter';
 import { nextSort, type SortDir } from '@/lib/sortToggle';
 
 // Memory spaces and their items (MEMORY-002).
@@ -66,6 +67,10 @@ interface MemoryStore {
   spaceSortBy: SpaceSortColumn;
   spaceSortDir: SortDir;
   setSpaceSort: (column: SpaceSortColumn) => void;
+  /** The Contents and Updated menus on the Brains index. The search box in the header narrows it further. */
+  spaceFilters: SpaceFilters;
+  setSpaceFilters: (patch: Partial<SpaceFilters>) => void;
+  resetSpaceFilters: () => void;
 
   loadingSpaces: boolean;
   loadingItems: boolean;
@@ -226,6 +231,9 @@ export const useMemoryStore = create<MemoryStore>((set, get) => ({
       const next = nextSort({ sortBy: s.spaceSortBy, sortDir: s.spaceSortDir }, column);
       return { spaceSortBy: next.sortBy, spaceSortDir: next.sortDir };
     }),
+  spaceFilters: NO_SPACE_FILTERS,
+  setSpaceFilters: (patch) => set((s) => ({ spaceFilters: { ...s.spaceFilters, ...patch } })),
+  resetSpaceFilters: () => set({ spaceFilters: NO_SPACE_FILTERS }),
 
   loadingSpaces: false,
   loadingItems: false,

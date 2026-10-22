@@ -18,6 +18,7 @@ import { PromptIcon } from '@/components/shared/PromptIcon';
 import { cn } from '@/lib/utils';
 import { useFilteredPrompts, usePromptStore } from '@/stores/promptStore';
 import { useLabelStore } from '@/stores/labelStore';
+import { useSearchStore } from '@/stores/searchStore';
 import { useUiStore } from '@/stores/uiStore';
 
 export function PromptsPage() {
@@ -28,6 +29,9 @@ export function PromptsPage() {
   const loading = usePromptStore((s) => s.loading);
   const error = usePromptStore((s) => s.error);
   const clearError = usePromptStore((s) => s.clearError);
+  const resetFilters = usePromptStore((s) => s.resetFilters);
+  // The search text lives in the header bar, so emptying the filters reaches across to it.
+  const clearSearch = useSearchStore((s) => s.clear);
   const filtered = useFilteredPrompts();
   const openNewPrompt = useUiStore((s) => s.openNewPrompt);
   // Stable across renders (zustand action), so PromptFilters stays memoized.
@@ -124,7 +128,7 @@ export function PromptsPage() {
             description={
               prompts.length === 0
                 ? 'A prompt holds a reusable instruction for your assistant. Create one to get started.'
-                : 'Try a different search, or clear the search box in the header.'
+                : 'Try a different search, or clear the filters.'
             }
             action={
               prompts.length === 0 ? (
@@ -132,7 +136,18 @@ export function PromptsPage() {
                   <Plus className="h-4 w-4" />
                   New prompt
                 </Button>
-              ) : null
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    resetFilters();
+                    clearSearch();
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )
             }
           />
         ) : (
