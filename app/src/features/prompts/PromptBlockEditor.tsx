@@ -1044,12 +1044,16 @@ export function PromptBlockEditor() {
             {submitError}
           </div>
         )}
-        <div className="flex items-center gap-2">
+        {/* Every button keeps its words on one line (shrink-0, nowrap). On the
+            420px panel History is an icon, so the four buttons fit with room to
+            spare; the row may still wrap whole as a last resort, but a button is
+            never squeezed until its label breaks in two. */}
+        <div className="flex flex-wrap items-center gap-2">
           {mode === 'edit' && editingPrompt && (
             <button
               type="button"
               onClick={handleUsePrompt}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-[#1B4FD8]/30 px-3 text-sm font-medium text-[#1B4FD8] transition-colors hover:bg-[#1B4FD8]/10"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#1B4FD8]/30 px-3 text-sm font-medium text-[#1B4FD8] transition-colors hover:bg-[#1B4FD8]/10"
             >
               <Zap className="h-3.5 w-3.5" />
               Use
@@ -1059,7 +1063,7 @@ export function PromptBlockEditor() {
             <button
               type="button"
               onClick={handlePreviewDraft}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-[#34343C] px-3 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8]"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#34343C] px-3 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8]"
             >
               <Eye className="h-3.5 w-3.5" />
               Preview
@@ -1073,10 +1077,12 @@ export function PromptBlockEditor() {
                 setHistoryOpen(true);
                 void loadPromptVersions(editingPrompt.id);
               }}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-[#34343C] px-3 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8]"
+              aria-label="History"
+              title="History"
+              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#34343C] px-2.5 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8] 2xl:px-3"
             >
               <Clock className="h-3.5 w-3.5" />
-              History
+              <span className="hidden 2xl:inline">History</span>
             </button>
           )}
           {mode === 'edit' && (
@@ -1084,7 +1090,7 @@ export function PromptBlockEditor() {
               type="button"
               onClick={handleDelete}
               disabled={saving}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-[#FF5F57]/20 px-3 text-sm font-medium text-[#FF5F57] transition-colors hover:bg-[#FF5F57]/10 disabled:opacity-40"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#FF5F57]/20 px-3 text-sm font-medium text-[#FF5F57] transition-colors hover:bg-[#FF5F57]/10 disabled:opacity-40"
             >
               <Trash2 className="h-3.5 w-3.5" />
               {confirmDelete ? 'Confirm?' : 'Delete'}
@@ -1094,7 +1100,7 @@ export function PromptBlockEditor() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex h-9 items-center gap-2 rounded-[10px] bg-[#1B4FD8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1440B0] disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-[10px] bg-[#1B4FD8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1440B0] disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
             {saving ? 'Saving…' : mode === 'edit' ? 'Save changes' : 'Create prompt'}
