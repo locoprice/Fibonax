@@ -9,5 +9,5 @@ import { useDaysToChristmas } from '@/lib/useDaysToChristmas';
  */
 export function ChristmasCountdown() {
   const days = useDaysToChristmas();
-  return <span className="shrink-0 font-mono text-[10px] text-ink-subtle">{christmasLabel(days)}</span>;
+  return <span className="shrink-0 text-[10px] text-ink-subtle">{christmasLabel(days)}</span>;
 }

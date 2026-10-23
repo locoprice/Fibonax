@@ -27,6 +27,8 @@ export const mockProfile: Profile = {
   trigger_prompt_seq: '"""',
   trigger_snippet_key: 'Tab',
   trigger_prompt_key: 'Tab',
+  trigger_auto_insert: false,
+  trigger_auto_insert_seconds: 2,
   company_name: 'LeibTour',
   company_logo_url: null,
   avatar_url: null,

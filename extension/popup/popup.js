@@ -272,7 +272,10 @@ var inaState    = null;   // null until storage resolves; the notice stays hidde
 var inaIndex    = 0;      // which stale asset the strip is showing
 
 // TRIGGER CONFIGURATION — cached in chrome.storage.local, owned by user_metadata
-var triggerCfg = { snippetTrigger: '::', promptTrigger: '"""', snippetActivationKey: 'Tab', promptActivationKey: 'Tab', selectionSuggestions: true, autoCapitalize: true };
+// autoInsert / autoInsertSeconds are owned by the dashboard (AUTO-INSERT-001); the
+// popup carries them only so saveTriggerCfg, which writes this whole object, never
+// drops them from the cache content.js reads.
+var triggerCfg = { snippetTrigger: '::', promptTrigger: '"""', snippetActivationKey: 'Tab', promptActivationKey: 'Tab', autoCapitalize: true, autoInsert: false, autoInsertSeconds: 2 };
 
 function loadTriggerCfg(cb) {
   try {
@@ -282,8 +285,9 @@ function loadTriggerCfg(cb) {
         if (d.triggerCfg.promptTrigger) triggerCfg.promptTrigger = d.triggerCfg.promptTrigger;
         if (d.triggerCfg.snippetActivationKey) triggerCfg.snippetActivationKey = d.triggerCfg.snippetActivationKey;
         if (d.triggerCfg.promptActivationKey) triggerCfg.promptActivationKey = d.triggerCfg.promptActivationKey;
-        if (typeof d.triggerCfg.selectionSuggestions === 'boolean') triggerCfg.selectionSuggestions = d.triggerCfg.selectionSuggestions;
         if (typeof d.triggerCfg.autoCapitalize === 'boolean') triggerCfg.autoCapitalize = d.triggerCfg.autoCapitalize;
+        if (typeof d.triggerCfg.autoInsert === 'boolean') triggerCfg.autoInsert = d.triggerCfg.autoInsert;
+        if (typeof d.triggerCfg.autoInsertSeconds === 'number') triggerCfg.autoInsertSeconds = d.triggerCfg.autoInsertSeconds;
       }
       if (cb) cb();
     });
@@ -298,7 +302,6 @@ function applyTriggerCfgToInputs() {
   var ti = gi('itrig');   if (ti) ti.textContent = triggerCfg.snippetTrigger;
   var pi = gi('iprompt'); if (pi) pi.textContent = triggerCfg.promptTrigger;
   var ie = gi('iex');     if (ie) ie.textContent = triggerCfg.snippetTrigger + 'quoteEN';
-  var ss = gi('tcfg-sel-suggest'); if (ss) ss.checked = triggerCfg.selectionSuggestions !== false;
   var ac = gi('tcfg-autocap');     if (ac) ac.checked = triggerCfg.autoCapitalize !== false;
   // Segmented-control glyphs mirror the live triggers (never hardcoded).
   var mgs = gi('mglyph-snip');  if (mgs) mgs.textContent = triggerCfg.snippetTrigger;
@@ -1048,13 +1051,6 @@ function boot() {
     loadTriggerCfg(function () {
           applyTriggerCfgToInputs();
           refreshUI();
-          var ss = gi('tcfg-sel-suggest');
-          if (ss) {
-            ss.addEventListener('change', function () {
-              triggerCfg.selectionSuggestions = ss.checked;
-              saveTriggerCfg();
-            });
-          }
           var ac = gi('tcfg-autocap');
           if (ac) {
             ac.addEventListener('change', function () {

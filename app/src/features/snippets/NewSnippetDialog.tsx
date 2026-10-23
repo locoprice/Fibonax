@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
   AlertCircle,
+  AlertTriangle,
   CalendarClock,
   CalendarRange,
   Eye,
@@ -92,7 +93,7 @@ import {
   linkFromDraft,
   type LinkRuleDraft,
 } from '@/lib/linkRule';
-import { clearBodySlot, setBodySlot } from '@/lib/snippetBodies';
+import { clearBodySlot, rowBodies, setBodySlot } from '@/lib/snippetBodies';
 import { translateApi, type TranslateTarget } from '@/lib/api/translateApi';
 import {
   DEFAULT_TRIGGER_CONFIG,
@@ -100,11 +101,23 @@ import {
   sanitizeTriggerInput,
 } from '@/lib/triggerUtils';
 import { slotMismatchMessage, snippetMismatch } from '@/lib/languageDetect';
+import {
+  checkLanguageSync,
+  languageName,
+  languageStatusLabel,
+  languageSyncNotice,
+  languageUpdateTimes,
+  siblingLanguages,
+  TRANSLATION_LANGUAGES,
+  type LanguageTimes,
+} from '@/lib/languageSync';
+import { useLanguageHistory } from '@/lib/useLanguageHistory';
 import { useSnippetStore } from '@/stores/snippetStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useMinWidth } from '@/lib/useViewportGate';
 import { useLabelStore } from '@/stores/labelStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import type { SnippetBodies } from '@/types/database';
 import {
   snippetFormSchema,
   type SnippetFormValues,
@@ -537,6 +550,9 @@ export function NewSnippetDialog() {
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState<string | null>(null);
   const [confirmTranslate, setConfirmTranslate] = useState(false);
+  // Save pauses once when it would leave a language with the old text, and goes
+  // through on the next click: the same two steps Clear and Delete use.
+  const [syncArmed, setSyncArmed] = useState(false);
   // Dropdown-menu field builder — writes a {formmenu:} token at the cursor.
   const [menuFieldOpen, setMenuFieldOpen] = useState(false);
   // Body caret, tracked so the menu chip can offer Edit when it sits inside a
@@ -640,21 +656,17 @@ export function NewSnippetDialog() {
     setSubmitError(null);
     setConfirmDelete(false);
     setConfirmClear(false);
+    setSyncArmed(false);
     setAltQueryDraft('');
     setDraftNotice(null);
     setAiDrafted(false);
     // A new form starts with the trigger unclaimed, so the name may fill it.
     autoTriggerRef.current = '';
     if (editingSnippet) {
-      // Bodies map drives the textarea — start by trusting the snippet's
-      // per-language map, with a fallback so legacy rows (no `bodies` yet)
-      // still surface their existing single body under the active language.
-      const initialBodies: SnippetFormValues['bodies'] = { ...editingSnippet.bodies };
-      // Guarded on a non-empty body: a row whose active language is blank must
-      // open with that slot absent, not seeded with an empty string.
-      if (!initialBodies[editingSnippet.language] && editingSnippet.content.length > 0) {
-        initialBodies[editingSnippet.language] = editingSnippet.content;
-      }
+      // The bodies map drives the textarea: the snippet's per-language map, with
+      // a legacy row (no `bodies` yet) surfacing its single body under the
+      // active language.
+      const initialBodies: SnippetFormValues['bodies'] = rowBodies(editingSnippet);
       setForm({
         name:                 editingSnippet.name,
         trigger:              sanitizeTriggerInput(editingSnippet.triggers[0] ?? ''),
@@ -719,6 +731,52 @@ export function NewSnippetDialog() {
   // none pending, the live verdict speaks. Both render the same — a wrong
   // language blocks the save whether it was noticed while typing or at submit.
   const contentError = errors.content ?? liveLanguageError;
+
+  // Keeping the language versions in step. What is saved is compared with what
+  // the draft would save, so a language edited alone shows at once, before Save.
+  // Older snippets keep one language per row. Those rows cannot change from
+  // here, so their text counts as it stands.
+  const savedBodies = useMemo<SnippetBodies>(
+    () => (editingSnippet ? rowBodies(editingSnippet) : {}),
+    [editingSnippet],
+  );
+  const siblings = useMemo(
+    () => (editingSnippet ? siblingLanguages(editingSnippet, snippets) : []),
+    [editingSnippet, snippets],
+  );
+  const languageSync = useMemo(() => {
+    if (!editingSnippet) return null;
+    const elsewhere: SnippetBodies = Object.fromEntries(siblings.map((s) => [s.language, s.text]));
+    const draft = setBodySlot(form.bodies, form.language, form.content);
+    return checkLanguageSync({ ...elsewhere, ...savedBodies }, { ...elsewhere, ...draft });
+  }, [editingSnippet, siblings, savedBodies, form.bodies, form.language, form.content]);
+  const behind = languageSync?.behind ?? [];
+  const syncKey = behind.join(',');
+  // A pause the person confirmed belongs to the languages it named. When they
+  // change, so do the stakes, and Save asks again.
+  useEffect(() => {
+    setSyncArmed(false);
+  }, [syncKey]);
+  const syncNotice = languageSync ? languageSyncNotice(languageSync) : null;
+  const syncText =
+    syncNotice !== null && syncArmed ? `${syncNotice} Save anyway to keep it.` : syncNotice;
+  // The first language behind that can be changed from this editor. One in
+  // another row needs that row opened, and one already on screen needs no button.
+  const updateTarget = behind.find(
+    (language) => language !== form.language && (savedBodies[language] ?? '').trim() !== '',
+  );
+  const savedLanguageCount = TRANSLATION_LANGUAGES.filter(
+    (language) => (savedBodies[language] ?? '').trim() !== '',
+  ).length;
+  // When each language was last updated. It needs the saved versions, which a
+  // snippet with a single language has no use for.
+  const history = useLanguageHistory(editingSnippetId, mode === 'edit' && savedLanguageCount > 1);
+  const languageTimes = useMemo<LanguageTimes>(() => {
+    const times: LanguageTimes =
+      history && editingSnippet ? languageUpdateTimes(history, editingSnippet) : {};
+    for (const sibling of siblings) times[sibling.language] = sibling.updatedAt;
+    return times;
+  }, [history, editingSnippet, siblings]);
 
   // Derived, not state: recomputing a split on every keystroke is cheaper than
   // keeping a second copy of the body in sync with it. Counts the active
@@ -1155,6 +1213,13 @@ export function NewSnippetDialog() {
       // an error about text they cannot see is not an error they can fix.
       if (mismatch.slot !== form.language) changeLanguage(mismatch.slot);
       setErrors({ content: mismatch.message });
+      return;
+    }
+
+    // A save that edits one language and leaves the others as they were pauses
+    // once, so old text in the other languages is a choice and not an oversight.
+    if (mode === 'edit' && behind.length > 0 && !syncArmed) {
+      setSyncArmed(true);
       return;
     }
 
@@ -2166,13 +2231,26 @@ export function NewSnippetDialog() {
                     // body text saved (and it isn't the one currently being
                     // edited), so it's visible at a glance which slots are filled.
                     const hasContent = (form.bodies[lang] ?? '').length > 0;
-                    const showDot = hasContent && !isActive;
+                    // A language the save would leave behind wears an amber dot in
+                    // place of the blue one, and says why when pointed at.
+                    const isBehind = lang !== 'MULTI' && behind.includes(lang);
+                    const showDot = hasContent && !isActive && !isBehind;
+                    const status =
+                      mode === 'edit' && lang !== 'MULTI' && hasContent
+                        ? languageStatusLabel({
+                            language: lang,
+                            behind: isBehind,
+                            updatedAt: languageTimes[lang],
+                          })
+                        : undefined;
                     return (
                       <button
                         key={lang}
                         type="button"
                         disabled={saving}
                         onClick={() => changeLanguage(lang)}
+                        title={status}
+                        aria-label={isBehind ? `${cfg.label}, still has the old text` : undefined}
                         style={
                           isActive
                             ? { background: cfg.bg, color: cfg.fg, borderColor: cfg.bdr }
@@ -2201,6 +2279,12 @@ export function NewSnippetDialog() {
                           <span
                             aria-hidden
                             className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary"
+                          />
+                        )}
+                        {isBehind && (
+                          <span
+                            aria-hidden
+                            className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-warning-deep ring-1 ring-card"
                           />
                         )}
                       </button>
@@ -2502,6 +2586,32 @@ export function NewSnippetDialog() {
                 <span className="truncate">{submitError}</span>
               </div>
             )}
+            {/* Live, so the old text in another language is seen while the
+                edit is made and not only when Save is pressed. Once Save has
+                paused on it, the notice says what the next click does. */}
+            {!submitError && syncText !== null && (
+              <div
+                role="status"
+                title={syncText}
+                className={cn(
+                  'flex min-w-0 items-center gap-1.5 rounded-[8px] border bg-warning-bg px-2.5 py-1.5 text-xs text-ink',
+                  syncArmed ? 'border-warning-deep/60 font-medium' : 'border-warning-deep/30',
+                )}
+              >
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-warning-deep" aria-hidden />
+                <span className="truncate">{syncText}</span>
+                {updateTarget !== undefined && (
+                  <button
+                    type="button"
+                    onClick={() => changeLanguage(updateTarget)}
+                    disabled={saving}
+                    className="shrink-0 font-medium text-primary hover:underline disabled:opacity-50"
+                  >
+                    Update {languageName(updateTarget)}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -2515,7 +2625,13 @@ export function NewSnippetDialog() {
             </Button>
             {/* form= links this button to <form id="snippet-form"> above */}
             <Button type="submit" form="snippet-form" variant="primary" disabled={saving}>
-              {saving ? 'Saving…' : mode === 'edit' ? 'Save changes' : 'Create snippet'}
+              {saving
+                ? 'Saving…'
+                : mode === 'edit'
+                  ? syncArmed
+                    ? 'Save anyway'
+                    : 'Save changes'
+                  : 'Create snippet'}
             </Button>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountPanel } from '@/features/settings/AccountPanel';
+import { AutoInsertPanel } from '@/features/settings/AutoInsertPanel';
 import { BrandingPanel } from '@/features/settings/BrandingPanel';
 import { DeleteAccountPanel } from '@/features/settings/DeleteAccountPanel';
 import { InactivityPanel } from '@/features/settings/InactivityPanel';
@@ -49,6 +50,7 @@ export function SettingsPage() {
           <AccountPanel />
           <BrandingPanel />
           <InlineTriggerPanel />
+          <AutoInsertPanel />
           <InactivityPanel />
           <SaintOfDayPanel />
           <DeleteAccountPanel />

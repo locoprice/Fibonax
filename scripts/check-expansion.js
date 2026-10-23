@@ -211,15 +211,11 @@ const cases = [
     },
     expect: { id: 'time', span: 6, result: '<time>' } },
 
-  // Unique-prefix expansion — the operator should not have to type a shortcut
-  // in full when only one snippet can still be meant.
-  { name: 'prefix "::neo" expands NEO BOOKING',
+  // A prefix that is not a whole shortcut expands nothing on its own. Inserting
+  // it is the opt-in "Insert automatically" setting, pinned in runAutoInsertCases.
+  { name: 'prefix "::neo" expands nothing by default (the menu opens instead)',
     run: async () => { await typeText('::neo', FAST); await wait(SETTLE); },
-    expect: { id: 'neob', span: 5, result: '<neob>' } },
-
-  { name: 'prefix keeps the text before it intact',
-    run: async () => { setField('hola '); await typeText('::neo', FAST); await wait(SETTLE); },
-    expect: { id: 'neob', span: 5, result: 'hola <neob>' } },
+    expect: null },
 
   { name: 'ambiguous prefix "::for" expands nothing (form vs forms)',
     run: async () => { await typeText('::for', FAST); await wait(SETTLE); },
@@ -237,9 +233,9 @@ const cases = [
     run: async () => { await typeText('::ne', 260); await wait(SETTLE); },
     expect: null },
 
-  { name: 'space confirms a prefix too, and is consumed with it',
+  { name: 'space after a prefix closes the menu and keeps the text',
     run: async () => { await typeText('::neo ', FAST); await wait(200); },
-    expect: { id: 'neob', span: 6, result: '<neob>' } },
+    expect: null },
 
   { name: 'a trigger sitting inside a word expands nothing',
     run: async () => { await typeText('ratio::xyz', FAST); await wait(SETTLE); },
@@ -294,6 +290,129 @@ async function runPickerEnterCase() {
     fail('picker case: Enter on the menu -> ' + JSON.stringify(fired) + ', expected the 4-character "::ti" removed');
   }
   return 1;
+}
+
+// "Insert automatically" (AUTO-INSERT-001). Off by default. When on, the trigger
+// plus letters that leave one snippet standing inserts it after the wait the
+// person chose, with the menu open the whole time; Esc, Backspace and the arrow
+// keys stop it, Tab inserts at once. The user complaint this pins: "::tim" used
+// to insert before the list could be read.
+async function runAutoInsertCases() {
+  sandbox.showCelebration = noop;   // the menu path celebrates directly
+  const cfg = sandbox.triggerCfg;
+  let n = 0;
+  const WAIT = 1500;   // outlasts the 1 second wait below plus the menu's own delay
+
+  function menuOpen(label) {
+    if (!sandbox.triggerPickerEl) fail('auto-insert case "' + label + '": the menu is not open');
+  }
+  function nothingFired(label) {
+    if (fired) fail('auto-insert case "' + label + '" -> inserted (span ' + fired.span + '), expected nothing');
+  }
+  function inserted(label, span, result) {
+    if (!fired) fail('auto-insert case "' + label + '" -> nothing inserted');
+    if (fired.span !== span || fired.result !== result) {
+      fail('auto-insert case "' + label + '" -> span ' + fired.span + ' / field ' + JSON.stringify(fired.result) +
+        ', expected span ' + span + ' / field ' + JSON.stringify(result));
+    }
+    if (sandbox.triggerPickerEl) fail('auto-insert case "' + label + '": the menu stayed open after inserting');
+  }
+
+  try {
+    cfg.autoInsert = false;
+    cfg.autoInsertSeconds = 1;
+    await reset();
+    await typeText('::neo', FAST);
+    await wait(WAIT + SETTLE);
+    nothingFired('off by default');
+    menuOpen('off by default');
+    n++;
+
+    cfg.autoInsert = true;
+
+    await reset();
+    await typeText('::neo', FAST);
+    await wait(500);
+    nothingFired('menu is readable before the wait ends');
+    menuOpen('menu is readable before the wait ends');
+    await wait(WAIT);
+    inserted('on, one match', 5, '');
+    n++;
+
+    await reset();
+    setField('hola ');
+    await typeText('::neo', FAST);
+    await wait(500 + WAIT);
+    inserted('text before the trigger stays', 5, 'hola ');
+    n++;
+
+    await reset();
+    await typeText('::neo', 260);   // letters arrive through the open menu
+    await wait(WAIT);
+    inserted('slow typing', 5, '');
+    n++;
+
+    await reset();
+    await typeText('::boo', FAST);   // an alternative query of NEO BOOKING
+    await wait(500 + WAIT);
+    inserted('alternative query', 5, '');
+    n++;
+
+    await reset();
+    await typeText('::for', FAST);
+    await wait(500 + WAIT);
+    nothingFired('ambiguous prefix');
+    menuOpen('ambiguous prefix');
+    n++;
+
+    await reset();
+    await typeText('::ne', FAST);
+    await wait(500 + WAIT);
+    nothingFired('below the three-letter floor');
+    n++;
+
+    await reset();
+    await typeText('::neo', FAST);
+    await wait(400);
+    menuOpen('Tab');
+    key('Tab');
+    await wait(60);
+    inserted('Tab inserts at once', 5, '');
+    n++;
+
+    for (const [label, k] of [['Esc', 'Escape'], ['Backspace', 'Backspace'], ['arrow key', 'ArrowDown']]) {
+      await reset();
+      await typeText('::neo', FAST);
+      await wait(400);
+      menuOpen(label);
+      key(k);
+      await wait(WAIT);
+      nothingFired(label + ' cancels the wait');
+      n++;
+    }
+
+    cfg.autoInsertSeconds = 3;
+    await reset();
+    await typeText('::neo', FAST);
+    await wait(2000);
+    nothingFired('a 3 second wait is respected');
+    menuOpen('a 3 second wait is respected');
+    await wait(WAIT);
+    inserted('a 3 second wait ends', 5, '');
+    n++;
+
+    for (const [value, want] of [[0, 1], [-4, 1], [999, 10], [2.6, 3], ['x', 2], [undefined, 2]]) {
+      cfg.autoInsertSeconds = value;
+      if (sandbox._autoInsertSeconds() !== want) {
+        fail('auto-insert wait ' + JSON.stringify(value) + ' -> ' + sandbox._autoInsertSeconds() + ' seconds, expected ' + want);
+      }
+      n++;
+    }
+  } finally {
+    cfg.autoInsert = false;
+    cfg.autoInsertSeconds = 2;
+  }
+  return n;
 }
 
 // A {{name}} body opens the fill-in box first. The box takes focus, and on a
@@ -552,6 +671,6 @@ function runFormInsertionCases() {
       '  Confirming from the suggestion menu would clip the wrong characters and\n' +
       '  leave part of the trigger in the message.');
   }
-  const extra = runFormInsertionCases() + (await runPickerEnterCase()) + (await runPlaceholderCases()) + (await runLexicalDeleteCases());
+  const extra = runFormInsertionCases() + (await runPickerEnterCase()) + (await runAutoInsertCases()) + (await runPlaceholderCases()) + (await runLexicalDeleteCases());
   console.log('OK Trigger expansion passed all ' + (cases.length + spanCases.length + 1 + extra) + ' cases');
 })();

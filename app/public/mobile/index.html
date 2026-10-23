@@ -7,7 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Fibonax">
-<meta name="theme-color" content="#1B4FD8">
+<meta name="theme-color" content="#101C39">
+<meta name="color-scheme" content="light">
 <!-- Installed from the browser menu, the page becomes an app, and on Android
      that app is listed in every Share menu: the manifest's share_target opens
      /mobile/?title=…&text=…&url=…, which lands in Save to Brain. Its scope is
@@ -16,14 +17,18 @@
 <link rel="apple-touch-icon" href="/mobile/apple-touch-icon.png">
 <title>Fibonax</title>
 <style>
-/* ── DESIGN SYSTEM v1.1 — canonical tokens (mirrors harmonized-final.html) ── */
+/* ── CONCEPT B — light page, navy home band (see docs/DESIGN_SYSTEM.md) ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#FAFAFA;--bg-alt:#F2F2F7;--card:#FFFFFF;
+  color-scheme:light;
+  --bg:#F8F9FC;--bg-alt:#F2F2F7;--card:#FFFFFF;
   --primary:#1B4FD8;--primary-dk:#1440B0;--primary-lt:#EEF2FF;--primary-grad:#4F7FE8;
-  --text:#1C1C1E;--text2:#6E6E73;--text3:#8E8E93;
-  --border:#E5E5EA;--success:#34C759;--danger:#E74C3C;
-  --warn-deep:#D97706;--warn-bg:#FFFBEB;--danger-bg:#FEF2F2;
+  --primary-copy:#1B4FD8;--primary-border:#1B4FD8;
+  --navy:#101C39;--navy-soft:#203151;--navy-line:#6B7C9C;--navy-copy:#C1CBE0;
+  --text:#1C1C1E;--text2:#596478;--text3:#6B6B70;
+  --border:#D7DCE8;--success:#34C759;--danger:#B42318;
+  --warn-deep:#D97706;--warn-bg:#FFFBEB;--warn-badge-bg:#FFFBEB;--warn-badge-ink:#D97706;
+  --danger-bg:#FEF2F2;
   --r:16px;--r-card:18px;--r-btn:14px;--r-in:10px;
   --shadow-sm:0 1px 3px rgba(0,0,0,.04),0 4px 14px rgba(0,0,0,.04);
   --shadow-md:0 8px 24px rgba(0,0,0,.10),0 1px 3px rgba(0,0,0,.04);
@@ -31,7 +36,7 @@
 }
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
-  background:var(--bg-alt);color:var(--text);
+  background:var(--bg);color:var(--text);
   -webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
   overflow-x:hidden;min-height:100dvh;line-height:1.5
 }
@@ -40,7 +45,7 @@ body{
 #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;
   height:100dvh;gap:16px}
 .spinner{width:36px;height:36px;border:3px solid var(--border);
-  border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+  border-top-color:var(--primary-copy);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #loading p{font-size:14px;color:var(--text2)}
 
@@ -48,9 +53,113 @@ body{
 .view{display:none}
 .view.active{display:flex;flex-direction:column;min-height:100dvh}
 
-/* The home view scrolls as one continuous canvas (Apple Music pattern). */
-#view-list{overflow-y:auto;-webkit-overflow-scrolling:touch;
+/* Home and library pages scroll as a single mobile canvas. */
+#view-home,#view-list{overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+
+/* Task-first home (Concept B): a navy band with the brand, the workspace and
+   three starting points, then the user's pinned work on the light page. */
+.home-main{display:flex;flex-direction:column}
+.home-band{position:relative;overflow:hidden;background:var(--navy);color:#fff;
+  padding:calc(18px + env(safe-area-inset-top)) 24px 26px}
+.home-top{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1}
+.home-wordmark{display:flex;align-items:center;gap:9px;font-size:21px;font-weight:750;letter-spacing:-.8px}
+.home-brandmark{width:24px;height:26px;flex:none;color:#B4C9FF;stroke:currentColor;fill:none;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-account{width:44px;height:44px;flex:none;border-radius:50%;border:1px solid #566784;background:#223251;
+  color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.home-account:active{background:var(--navy-soft)}
+.home-hero{position:relative;margin-top:30px}
+.home-orbit{position:absolute;width:122px;height:122px;right:-38px;top:-17px;opacity:.32;pointer-events:none;
+  stroke:#829BDD;stroke-width:1;fill:none}
+.home-title{position:relative;z-index:1;font-size:38px;font-weight:700;letter-spacing:-1.25px;line-height:1.08;color:#fff}
+/* One obvious first step: a single white card. The other two starts are quiet
+   links under it, so the band offers a choice without asking for one. */
+.home-tasks{margin-top:24px;position:relative;z-index:1}
+.home-task{display:flex;align-items:center;gap:13px;width:100%;min-height:76px;padding:14px 16px;
+  border:1px solid #fff;border-radius:14px;background:#fff;color:var(--navy);
+  text-align:left;font-family:inherit;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:transform .12s,background .15s}
+.home-task:active{transform:scale(.985);background:var(--primary-lt)}
+.home-task-icon{width:36px;height:36px;flex:0 0 36px;display:flex;align-items:center;justify-content:center;color:var(--primary)}
+.home-task-icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-task-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.home-task-copy strong{font-size:16px;font-weight:650;letter-spacing:-.2px;line-height:1.3}
+.home-task-copy small{font-size:12px;line-height:1.4;color:var(--text2)}
+.home-task-arrow{width:18px;height:18px;flex:0 0 18px;margin-left:auto}
+.home-links{display:flex;flex-direction:column;margin-top:8px}
+.home-link{display:flex;align-items:center;gap:13px;width:100%;min-height:44px;padding:6px 24px;
+  border:0;border-radius:10px;background:none;color:#D4DBE9;font-family:inherit;font-size:15px;font-weight:600;
+  text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.home-link:active{background:var(--navy-soft)}
+.home-link svg{width:20px;height:20px;flex:0 0 20px;color:#B9CCFF;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:10px;padding:0 24px;position:relative;z-index:1}
+.home-meta-badge{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:4px 12px;border:1px solid var(--navy-line);border-radius:9999px;background:var(--navy-soft)}
+.home-meta-dot{width:7px;height:7px;flex:none;border-radius:50%;background:#22C55E}
+.home-meta-ver{font-size:13px;font-weight:700;letter-spacing:.2px;color:#D8E3FF}
+.home-meta-date{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.4;letter-spacing:.15px;color:var(--navy-copy)}
+.home-band :focus-visible{outline:2px solid #D8E3FF;outline-offset:2px}
+.home-body{padding:25px 24px 0}
+.home-body :focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
+.home-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.home-section-head h2{font-size:20px;font-weight:700;letter-spacing:-.5px;line-height:1.3;color:var(--text)}
+.home-browse{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:8px 0;border:0;background:none;
+  color:var(--primary);font-family:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.home-browse svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-pin-list{display:grid;gap:12px;margin-top:14px}
+.home-pin-card{display:flex;flex-direction:column;border:1px solid #C8D3F0;border-radius:16px;background:var(--primary-lt);overflow:hidden}
+.home-pin-body{display:block;width:100%;min-height:144px;padding:16px 20px 10px;border:0;background:none;
+  color:var(--text);text-align:left;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.home-pin-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.home-pin-eyebrow{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--primary-dk)}
+.home-pin-icons{display:flex;align-items:center;gap:5px}
+.home-pin-icon{position:relative;width:42px;height:44px;flex:none;border-radius:12px;background:#EBF0FD;color:var(--primary);
+  display:flex;align-items:center;justify-content:center}
+.home-pin-icon svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.home-pin-flag{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;color:var(--primary-dk)}
+.home-pin-flag svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.home-pin-title{display:block;font-size:19px;font-weight:700;letter-spacing:-.35px;line-height:1.4;overflow-wrap:anywhere}
+.home-pin-text{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  margin:7px 0 12px;font-size:14px;line-height:1.55;color:var(--text2);overflow-wrap:anywhere}
+.home-pin-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:3px 10px 8px 20px;border-top:1px solid #ECEDF2;background:#F9FAFF}
+.home-pin-action{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 0;border:0;background:none;
+  color:var(--primary);font-family:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.home-pin-action svg,.home-pin-more svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-pin-more{min-width:44px;min-height:44px;border:0;border-radius:12px;background:none;color:var(--text2);
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.home-pin-more svg{width:22px;height:22px}
+.home-pin-more:active{background:#E4E8F4}
+.home-empty{padding:16px;border:1px dashed var(--border);border-radius:14px;color:var(--text2);font-size:13px;line-height:1.5;background:var(--card)}
+.home-empty button{display:block;margin:6px auto 0;border:0;background:none;color:var(--primary);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:44px}
+.home-status{padding:12px 0;text-align:center;color:var(--text2);font-size:13px}
+.home-search{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:50px;margin-top:22px;
+  padding:12px 15px;border:1px solid #9AA6BA;border-radius:12px;background:var(--card);color:var(--text2);
+  font-family:inherit;font-size:14px;text-align:left;cursor:pointer}
+.home-search span{display:flex;align-items:center;gap:10px}
+.home-search svg{width:19px;height:19px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-brains{display:flex;align-items:center;gap:12px;width:100%;min-height:76px;margin-top:18px;padding:16px;
+  border:0;border-radius:14px;background:var(--primary-lt);color:var(--navy);font-family:inherit;text-align:left;cursor:pointer}
+.home-brains svg{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-brains strong{display:block;font-size:15px;font-weight:700}
+.home-brains small{display:block;margin-top:3px;font-size:12px;color:var(--text2)}
+.home-brains .home-brains-arrow{width:18px;height:18px;margin-left:auto}
+@media(min-width:700px){
+  .home-band{padding-left:40px;padding-right:40px}
+  .home-title{font-size:44px}
+  .home-orbit{width:170px;height:170px;right:30px;top:-13px}
+  .home-body{padding:30px 40px 0}
+  .home-pin-list{grid-template-columns:1fr 1fr}
+}
+@media(max-width:350px){
+  .home-band{padding-left:18px;padding-right:18px}
+  .home-body{padding-left:18px;padding-right:18px}
+  .home-title{font-size:34px}
+  .home-task{padding:12px;gap:9px}
+  .home-task-copy strong{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){.home-task{transition:none}.home-task:active{transform:none}}
 
 /* ── GRADIENT HERO ───────────────────────────── */
 .mhero{
@@ -124,7 +233,7 @@ body{
   position:relative;z-index:1;
   display:grid;grid-template-rows:0fr;
   margin:0 -20px 12px;
-  background:linear-gradient(180deg,#E7E7EE 0%,var(--bg-alt) 42%);
+  background:linear-gradient(180deg,var(--card) 0%,var(--bg-alt) 42%);
   transition:grid-template-rows .28s ease
 }
 .mfilters-panel.open{grid-template-rows:1fr}
@@ -158,7 +267,7 @@ body{
 .mfacet-t{font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
   color:var(--text3)}
 .mfacet-clr{border:none;background:none;font-family:inherit;padding:0;
-  font-size:11px;font-weight:700;color:var(--primary);
+  font-size:11px;font-weight:700;color:var(--primary-copy);
   cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mfacet-clr.sb-hidden{display:none}
 .mfilters-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -201,7 +310,7 @@ body{
 .mlabel-seg button{border:none;background:none;font-family:inherit;cursor:pointer;
   padding:4px 12px;font-size:11.5px;font-weight:700;color:var(--text2);
   -webkit-tap-highlight-color:transparent}
-.mlabel-seg button.on{background:var(--text);color:#fff}
+.mlabel-seg button.on{background:var(--text);color:var(--bg)}
 .mfacet-empty{font-size:12.5px;font-weight:500;color:var(--text2);line-height:1.5}
 .mfilters[aria-expanded="true"] .mfilters-caret{transform:rotate(180deg)}
 /* Every hero gives its top padding to the strip, which carries the notch inset
@@ -216,35 +325,19 @@ body{
 /* ── PAGE FOOTER ─────────────────────────────── */
 .mpage-footer{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:6px;padding:28px 20px 12px;
-}
-.mpage-footer-badge{
-  display:inline-flex;align-items:center;gap:7px;
-  background:var(--card);border:1px solid var(--border);border-radius:9999px;
-  padding:5px 14px;box-shadow:var(--shadow-sm)
-}
-.mpage-footer-dot{
-  width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0
+  gap:8px;padding:30px 20px 24px;
 }
 .mpage-footer-label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.05px}
-.mpage-footer-ver{
-  font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.2px;
-  background:var(--primary-lt);padding:2px 7px;border-radius:4px
-}
-.mpage-footer-date{
-  font-size:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  color:var(--text3);letter-spacing:.2px
-}
 /* Company co-brand — mirrors the dashboard topbar source (Settings → Company
-   branding): logo in a white pill (matches the version badge) + company name,
-   on one symmetric centered row with the version badge. Hidden when unset. */
+   branding): logo in a white pill, or the company name, centered. Hidden when
+   unset. */
 .mpage-footer-row{display:flex;align-items:center;justify-content:center;
   gap:8px;flex-wrap:wrap;max-width:100%}
 .mpage-footer-brand{display:flex;align-items:center;gap:8px;min-width:0}
-.mpage-footer-logo-chip{display:inline-flex;align-items:center;flex-shrink:0;
+.mpage-footer-logo-chip{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;min-height:42px;
   background:var(--card);border:1px solid var(--border);border-radius:9999px;
-  padding:4px 12px;box-shadow:var(--shadow-sm)}
-.mpage-footer-logo{max-height:18px;max-width:120px;display:block;object-fit:contain}
+  padding:6px 14px;box-shadow:0 3px 12px rgba(20,33,62,.07)}
+.mpage-footer-logo{max-height:24px;max-width:130px;display:block;object-fit:contain}
 .mpage-footer-company{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.05px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 
@@ -269,8 +362,8 @@ body{
    narrow phone, and it gives the second line somewhere to sit. */
 .mqa-ico{
   flex:1;min-height:64px;border-radius:14px;padding:8px 4px;
-  background:linear-gradient(158deg,#FFFFFF 0%,var(--primary-lt) 100%);
-  color:var(--primary);
+  background:linear-gradient(158deg,var(--card) 0%,var(--primary-lt) 100%);
+  color:var(--primary-copy);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
   border:1px solid rgba(27,79,216,.10);
   box-shadow:0 4px 8px rgba(27,79,216,.16),
@@ -300,11 +393,11 @@ body{
   width:100%;background:var(--card);border:1px solid var(--border);
   border-radius:12px;padding:10px 14px 10px 38px;font-size:15px;
   color:var(--text);outline:none;font-family:inherit;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='2.2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23596478' stroke-width='2.2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:12px center;
   transition:border-color .15s
 }
-.search-bar input:focus{border-color:var(--primary)}
+.search-bar input:focus{border-color:var(--primary-border)}
 .search-bar input::placeholder{color:var(--text2)}
 /* On the hero the field floats on the gradient: the grey hairline reads as dirt
    on blue, so it becomes a soft shadow. z-index clears the hero's glow circles. */
@@ -315,7 +408,7 @@ body{
 /* ── SECTION HEADING ─────────────────────────── */
 .msec{padding:14px 16px 6px;display:flex;align-items:flex-end;justify-content:space-between}
 .msec-t{font-size:19px;font-weight:800;letter-spacing:-.5px;color:var(--text)}
-.msec-a{font-size:13px;color:var(--primary);font-weight:600}
+.msec-a{font-size:13px;color:var(--primary-copy);font-weight:600}
 
 /* ── UBER-STYLE CHIPS (folder + lang) ────────── */
 .folder-tabs,.lang-tabs{
@@ -332,7 +425,7 @@ body{
   -webkit-tap-highlight-color:transparent;transition:all .15s;min-height:30px
 }
 .folder-pill:active,.lang-pill:active,.mlabel-pill:active{transform:scale(.96)}
-.folder-pill.on,.lang-pill.on,.mlabel-pill.on{background:var(--text);color:#fff;border-color:var(--text)}
+.folder-pill.on,.lang-pill.on,.mlabel-pill.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .folder-pill-ico{font-size:14px;line-height:1}
 .folder-pill-cnt,.mlabel-cnt{
   font-size:11px;font-weight:700;background:var(--bg-alt);
@@ -361,7 +454,7 @@ body{
   position:absolute;top:calc(50% - 1px);transform:translateY(-50%);z-index:3;
   display:none;align-items:center;justify-content:center;
   width:30px;height:30px;padding:0;border-radius:9999px;
-  border:1px solid var(--border);background:var(--card);color:var(--primary);
+  border:1px solid var(--border);background:var(--card);color:var(--primary-copy);
   cursor:pointer;box-shadow:var(--shadow-sm);
   -webkit-tap-highlight-color:transparent
 }
@@ -379,7 +472,7 @@ body{
   display:flex;align-items:center;justify-content:center;gap:9px;
   padding:15px 14px;
   background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);
-  box-shadow:var(--shadow-sm);color:var(--primary);
+  box-shadow:var(--shadow-sm);color:var(--primary-copy);
   font-family:inherit;font-size:14.5px;font-weight:700;letter-spacing:-.2px;
   cursor:pointer;-webkit-tap-highlight-color:transparent;
   transition:transform .1s,background .15s
@@ -397,6 +490,15 @@ body{
   transition:transform .1s,opacity .1s
 }
 .snip-card:active{transform:scale(.98);opacity:.85}
+.snip-icon-well,.prompt-icon{position:relative}
+.snip-icon-well{width:44px;height:44px;flex:0 0 44px;border-radius:13px;background:var(--primary-lt);color:var(--primary-copy);
+  display:flex;align-items:center;justify-content:center;font-size:20px}
+.snip-icon-well svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.musage-count{position:absolute;top:-7px;right:-9px;z-index:1;min-width:22px;height:22px;padding:0 5px;
+  display:inline-flex;align-items:center;justify-content:center;border:2px solid var(--card);border-radius:9999px;
+  background:var(--primary);color:#fff;font-size:12px;font-weight:700;line-height:1;white-space:nowrap;
+  font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.16)}
+.home-pin-icon .musage-count{border-color:var(--card)}
 /* Extra right gutter only when the pinned flag occupies it. */
 .snip-card.is-pinned{padding-right:80px}
 .snip-info{flex:1;min-width:0}
@@ -405,7 +507,7 @@ body{
 .search-details{min-height:44px;min-width:60px;padding:6px;border:0;border-radius:6px;
   background:transparent;color:var(--text2);font:inherit;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0}
 .search-details:active{background:var(--bg-alt)}
-.search-details:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.search-details:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .search-match{font-size:12px;color:var(--text2);overflow-wrap:anywhere;margin-top:4px}
 .sb-info-row.is-list{display:block}
 .sb-info-row.is-list .sb-info-v{display:block;white-space:pre-wrap;text-align:left;
@@ -422,7 +524,7 @@ body{
   flex-wrap:nowrap;overflow:hidden;min-width:0}
 .snip-meta>.snip-sc,.snip-meta>.share-badge{flex-shrink:0}
 .snip-meta>.fbadge{min-width:0;flex-shrink:1}
-.snip-sc{font-family:var(--mono);font-size:12px;color:var(--primary);font-weight:600}
+.snip-sc{font-family:var(--mono);font-size:12px;color:var(--primary-copy);font-weight:600}
 /* Language badges + interactive pills (shared with mockup) */
 .lbadge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;
   text-transform:uppercase;letter-spacing:.3px;display:inline-block}
@@ -455,7 +557,7 @@ body{
   transition:background .15s;user-select:none
 }
 .snip-menu:active{background:rgba(0,0,0,.06)}
-.snip-menu:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.snip-menu:focus-visible{outline:2px solid var(--primary-border);outline-offset:-2px}
 
 /* Pinned flag — a marker, not a control: rendered only on pinned rows, azure
    stroke + primary-lt fill (same accent pairing as badges). Pinning itself
@@ -463,7 +565,7 @@ body{
 .snip-pin-flag,.prompt-pin-flag{
   position:absolute;width:24px;height:24px;
   display:flex;align-items:center;justify-content:center;
-  color:var(--primary);pointer-events:none
+  color:var(--primary-copy);pointer-events:none
 }
 .snip-pin-flag{top:50%;right:50px;transform:translateY(-50%)}
 .snip-pin-flag svg,.prompt-pin-flag svg{width:17px;height:17px;display:block;
@@ -485,32 +587,52 @@ body{
   bottom:calc(20px + env(safe-area-inset-bottom));
   left:50%;transform:translateX(-50%);
   display:flex;
-  background:rgba(16,16,18,.9);
+  width:min(430px,calc(100% - 24px));
+  background:rgba(255,255,255,.98);
   backdrop-filter:blur(28px) saturate(180%);
   -webkit-backdrop-filter:blur(28px) saturate(180%);
-  border-radius:9999px;padding:7px;gap:0;
-  box-shadow:0 8px 32px rgba(0,0,0,.36),0 0 0 0.5px rgba(255,255,255,.08);
-  z-index:51;align-items:center
+  border:1px solid var(--border);
+  border-radius:22px;padding:6px 7px;gap:2px;
+  box-shadow:0 8px 32px rgba(16,28,57,.12);
+  z-index:51;align-items:center;justify-content:space-between
 }
 .mtab-item{
-  width:48px;height:48px;border-radius:9999px;
-  display:flex;align-items:center;justify-content:center;
-  color:rgba(255,255,255,.38);cursor:pointer;
+  position:relative;min-width:0;flex:1;height:50px;border-radius:15px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  color:var(--text2);cursor:pointer;
   -webkit-tap-highlight-color:transparent;border:none;background:transparent;
   font-family:inherit;transition:color .2s,background .2s
 }
-.mtab-item.on{background:rgba(255,255,255,.12);color:#fff}
+/* The active tab is blue with a short bar under it: the mockup's marker, so
+   the current page never rests on colour alone. */
+.mtab-item.on{color:var(--primary);font-weight:700}
+.mtab-item.on::after{content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+  width:20px;height:3px;border-radius:4px;background:var(--primary)}
 .mtab-item:active{opacity:.6}
-.mtab-brand{
-  width:48px;height:48px;border-radius:9999px;
-  background:#fff;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 10px rgba(0,0,0,.22),0 0 0 0.5px rgba(0,0,0,.06);
-  margin:0 3px;flex-shrink:0;pointer-events:none;user-select:none
+.mtab-item:focus-visible,.mtab-home:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
+.mtab-item svg{width:18px;height:18px;display:block;flex:0 0 18px}
+.mtab-label{font-size:10px;font-weight:600;line-height:1.1;white-space:nowrap;letter-spacing:.05px}
+.mtab-home{
+  width:48px;height:50px;flex:0 0 48px;border:0;border-radius:15px;background:transparent;color:var(--text2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;
+  font-family:inherit;-webkit-tap-highlight-color:transparent
 }
+.mtab-home.on{background:var(--primary-lt);color:var(--primary)}
+.mtab-home:active{opacity:.75}
 .mtab-brand-img{
-  width:30px;height:30px;object-fit:contain;display:block;
+  width:22px;height:22px;object-fit:contain;display:block;
   pointer-events:none;-webkit-user-drag:none
 }
+.mtab-home .mtab-label{font-size:9px}
+.mobile-more-menu{position:fixed;right:14px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:52;
+  width:min(230px,calc(100vw - 28px));padding:8px;background:var(--card);border:1px solid var(--border);
+  border-radius:16px;box-shadow:var(--shadow-md)}
+.mobile-more-menu[hidden]{display:none}
+.mobile-more-menu button{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 12px;
+  border:0;border-radius:10px;background:transparent;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;line-height:1.2;text-align:left;cursor:pointer}
+.mobile-more-menu button:active{background:var(--bg-alt)}
+.mobile-more-menu button:focus-visible{outline:2px solid var(--primary-border);outline-offset:-2px}
+.mobile-more-menu svg{width:18px;height:18px;flex:0 0 18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:var(--primary-copy)}
 
 /* ── DETAIL VIEW ─────────────────────────────── */
 /* A Brain item opens in the same detail page as a snippet: same header, same
@@ -581,14 +703,14 @@ body{
   background:var(--card);border:1px solid var(--border);border-radius:var(--r-in);
   color:var(--text);font-family:inherit;outline:none;
   -webkit-appearance:none;appearance:none;transition:border-color .15s}
-.link-in::placeholder{color:#C7C7CC}
-.link-in:focus{border-color:var(--primary)}
+.link-in::placeholder{color:var(--text3)}
+.link-in:focus{border-color:var(--primary-border)}
 .link-btn{flex:none;min-width:72px;height:48px;padding:0 18px;border:none;
   border-radius:var(--r-in);background:var(--primary);color:#fff;
   font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;
   -webkit-tap-highlight-color:transparent;transition:transform .1s,opacity .15s}
 .link-btn:active{transform:scale(.97)}
-.link-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.link-btn:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .link-btn:disabled{opacity:.55;cursor:progress;transform:none}
 .link-status{margin-top:8px;padding:0 2px;font-size:13px;line-height:1.45;color:var(--text2)}
 .link-status:empty{margin-top:0}
@@ -609,7 +731,7 @@ body{
    and regular, so an empty box never looks filled. Same on all four fill
    surfaces. */
 .field-in[type=text]{font-weight:700}
-.field-in::placeholder{color:#C7C7CC;font-weight:400}
+.field-in::placeholder{color:var(--text3);font-weight:400}
 .field-in[type=date],.field-in[type=time],.field-in[type=datetime-local]{
   color:#C2410C;font-weight:600}
 
@@ -634,14 +756,14 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .field-opt{display:flex;align-items:center;gap:10px;cursor:pointer;
   font-size:16px;color:var(--text)}
 .field-opt input.field-in{width:18px;height:18px;flex:none;
-  accent-color:var(--primary)}
+  accent-color:var(--primary-copy)}
 /* The Other choice's box: what is typed here is the menu's answer. Indented
    under the choices, bold like every typed answer. */
 .field-othertxt{border:none;border-bottom:1px solid var(--border);outline:none;
   font-size:16px;font-weight:700;color:var(--text);background:transparent;
   width:calc(100% - 28px);margin-left:28px;padding:6px 0;font-family:inherit}
-.field-othertxt::placeholder{color:#C7C7CC;font-weight:400}
-.field-othertxt:focus{border-bottom-color:var(--primary)}
+.field-othertxt::placeholder{color:var(--text3);font-weight:400}
+.field-othertxt:focus{border-bottom-color:var(--primary-copy)}
 
 /* Date/Time Adjust panel — the builder's three decisions, offered again while
    the form is open. A quiet link under the picker rather than a button: it is
@@ -651,7 +773,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .field-adj{display:inline-block;margin-top:8px;padding:2px 0;background:none;
   border:none;font-family:inherit;font-size:13px;font-weight:600;
   color:var(--text2);cursor:pointer}
-.field-adj[aria-expanded=true]{color:var(--primary)}
+.field-adj[aria-expanded=true]{color:var(--primary-copy)}
 .field-adjbox{display:flex;flex-direction:column;gap:10px;margin-top:8px;
   padding:12px;background:var(--bg-alt);border-radius:10px}
 .field-adjrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -666,7 +788,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .field-adjchk{display:flex;align-items:center;gap:6px;flex:none;
   font-size:13px;color:var(--text2)}
 .field-adjchk input[type=checkbox]{flex:none;width:18px;height:18px;
-  accent-color:var(--primary)}
+  accent-color:var(--primary-copy)}
 .field-adjsep{flex:none;color:var(--text2)}
 /* Scoped inside the box on purpose: a bare .field-hh loses to
    `.field-adjbox select` on specificity, and the two clock controls then take
@@ -684,7 +806,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .field-link{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
 .field-link:empty{display:none}
 .field-from{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;
-  background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:700}
+  background:var(--primary-lt);color:var(--primary-copy);font-size:11px;font-weight:700}
 .field-note{font-size:12.5px;font-weight:600;color:var(--warn-deep)}
 .field-note.none{font-weight:500;color:var(--text2)}
 
@@ -703,7 +825,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
    phone has a Share menu, and Copy takes the whole row where it has none. */
 .copy-foot{position:fixed;bottom:0;left:0;right:0;display:flex;gap:8px;
   padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
-  background:rgba(242,242,247,.92);backdrop-filter:blur(12px);
+  background:rgba(248,249,252,.92);backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:40}
 .foot-btn{flex:1 1 0;min-width:0;background:var(--primary);color:#fff;
   border:1px solid transparent;
@@ -711,7 +833,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit;
   transition:background .2s,transform .1s;display:flex;
   align-items:center;justify-content:center;gap:8px;letter-spacing:-.2px;white-space:nowrap}
-.foot-btn.is-share{background:var(--card);color:var(--primary);border-color:var(--border)}
+.foot-btn.is-share{background:var(--card);color:var(--primary-copy);border-color:var(--border)}
 .foot-btn:active{transform:scale(.97)}
 .foot-btn.ok{background:var(--success);color:#fff;border-color:transparent}
 
@@ -756,7 +878,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 }
 .sb-sheet-actions li:first-child{border-top:none}
 .sb-sheet-actions li:active{background:var(--bg-alt)}
-.sb-sheet-actions li[data-action=use]{color:var(--primary);font-weight:700}
+.sb-sheet-actions li[data-action=use]{color:var(--primary-copy);font-weight:700}
 .sb-action-danger{color:var(--danger) !important}
 .sb-sheet-act-i{width:22px;text-align:center;font-size:16px;line-height:1}
 /* A line icon rides in the same 22px slot as the character ones, sized to fill
@@ -770,7 +892,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .sb-profile-id{display:flex;align-items:center;gap:14px;
   padding:14px 22px 16px;border-bottom:1px solid var(--bg-alt)}
 .sb-profile-avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;
-  background:var(--primary-lt);color:var(--primary);
+  background:var(--primary-lt);color:var(--primary-copy);
   display:flex;align-items:center;justify-content:center;
   font-size:16px;font-weight:800;letter-spacing:.5px}
 .sb-profile-who{min-width:0}
@@ -792,7 +914,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 /* Tap-to-copy id row: same tap feedback as the sheet action list. */
 .sb-info-row[data-copy]{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .sb-info-row[data-copy]:active{background:var(--bg-alt)}
-.sb-info-mono{font-family:var(--mono);font-size:12px;color:var(--primary)}
+.sb-info-mono{font-family:var(--mono);font-size:12px;color:var(--primary-copy)}
 
 /* ── REVIEW STATUS (AI-KNOWLEDGE P2) ───────────────
    A chip beside the name for anything not approved, and a warning line on a
@@ -801,10 +923,10 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .mrev{display:inline-flex;align-items:center;flex-shrink:0;padding:0 7px;
   border-radius:999px;border:1px solid var(--border);background:var(--bg-alt);
   color:var(--text2);font-size:11px;font-weight:700;line-height:18px;vertical-align:middle}
-.mrev.ai_generated{background:var(--primary-lt);color:var(--primary);border-color:transparent}
+.mrev.ai_generated{background:var(--primary-lt);color:var(--primary-copy);border-color:transparent}
 .mrev.under_review{gap:4px;padding:0;border:0;border-radius:0;background:transparent;color:var(--text2);font-weight:500}
 .mrev.under_review::before{content:"";width:12px;height:12px;flex-shrink:0;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6h4'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6h4'/%3E%3C/svg%3E") center/contain no-repeat}
-.mrev.deprecated{background:var(--warn-bg);color:var(--warn-deep);border-color:transparent}
+.mrev.deprecated{background:var(--warn-badge-bg);color:var(--warn-badge-ink);border-color:transparent}
 .mrevwarn{margin:0 0 12px;padding:10px 12px;border-radius:var(--r-in);background:var(--warn-bg);
   color:var(--warn-deep);font-size:13px;font-weight:600}
 
@@ -835,11 +957,11 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .ask-hint{font-size:13px;color:var(--text2);margin:4px 0 8px}
 .ask-err{font-size:14px;color:var(--danger);margin:8px 0}
 .ask-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;
-  background:var(--primary-lt);color:var(--primary);font-size:12px;font-weight:700}
+  background:var(--primary-lt);color:var(--primary-copy);font-size:12px;font-weight:700}
 .ask-answer{font-size:15px;line-height:1.5;color:var(--text);white-space:pre-wrap;
   word-break:break-word;margin:10px 0}
 .ask-n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;
-  padding:0 5px;border-radius:5px;border:none;background:var(--primary-lt);color:var(--primary);
+  padding:0 5px;border-radius:5px;border:none;background:var(--primary-lt);color:var(--primary-copy);
   font:inherit;font-size:11px;font-weight:700;flex-shrink:0}
 .ask-answer .ask-n{margin:0 2px;vertical-align:text-top;cursor:pointer}
 .ask-n.off{background:var(--bg-alt);color:var(--text2)}
@@ -863,13 +985,13 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   background:var(--primary);color:#fff;font:inherit;font-size:15px;font-weight:700;
   min-height:48px;-webkit-tap-highlight-color:transparent}
 .ask-btn:active{background:var(--primary-dk)}
-.ask-btn.ghost{background:var(--bg-alt);color:var(--primary)}
+.ask-btn.ghost{background:var(--bg-alt);color:var(--primary-copy)}
 .ask-fb-h{font-size:13px;color:var(--text2);margin:16px 0 8px}
 .ask-fb{display:flex;flex-wrap:wrap;gap:8px}
 .ask-fb button{padding:8px 12px;min-height:36px;border-radius:999px;border:1px solid var(--border);
   background:var(--card);color:var(--text);font:inherit;font-size:13px;font-weight:600;
   -webkit-tap-highlight-color:transparent}
-.ask-fb button.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.ask-fb button.on{background:var(--primary);border-color:var(--primary-copy);color:#fff}
 .ask-fb button:disabled:not(.on){opacity:.5}
 
 /* ── EDIT MODAL ──────────────────────────────── */
@@ -913,7 +1035,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   transition:border-color .15s
 }
 .sb-modal-body input:focus,
-.sb-modal-body textarea:focus{border-color:var(--primary)}
+.sb-modal-body textarea:focus{border-color:var(--primary-copy)}
 /* A picked value, styled as the inputs around it, with the chevron the fill
    form's menus carry. */
 .sb-modal-body select{
@@ -926,7 +1048,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   background-repeat:no-repeat;background-position:right 14px center;background-size:16px 16px;
   transition:border-color .15s
 }
-.sb-modal-body select:focus{border-color:var(--primary)}
+.sb-modal-body select:focus{border-color:var(--primary-copy)}
 .sb-modal-body textarea{
   flex:1;min-height:200px;resize:none;line-height:1.5
 }
@@ -954,7 +1076,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
    above is for typed fields only. */
 .sb-modal-body .psteps input[type=checkbox]{
   width:18px;height:18px;padding:0;border:none;border-radius:0;background:none;
-  -webkit-appearance:checkbox;appearance:auto;accent-color:var(--primary)}
+  -webkit-appearance:checkbox;appearance:auto;accent-color:var(--primary-copy)}
 /* Add text opens on its fields; the error line takes room only when it speaks. */
 #sb-mem-err:empty,#sb-cap-err:empty{display:none}
 /* Save to Brain: why this Brain is offered, and what saving will make. */
@@ -965,7 +1087,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
    and the tip under it says how to get the text out without it. */
 .cap-pic{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;
   padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-btn);
-  background:var(--card);color:var(--primary);font:inherit;text-align:left;
+  background:var(--card);color:var(--primary-copy);font:inherit;text-align:left;
   cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:var(--shadow-sm);
   transition:transform .1s}
 .cap-pic:active{transform:scale(.98)}
@@ -1000,7 +1122,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .sb-folder-list li{display:flex;align-items:center;gap:12px}
 .sb-folder-list li.sb-selected{background:var(--primary-lt);font-weight:600}
 .sb-folder-list li.sb-selected::after{
-  content:'✓';margin-left:auto;color:var(--primary);font-weight:700;font-size:18px
+  content:'✓';margin-left:auto;color:var(--primary-copy);font-weight:700;font-size:18px
 }
 .sb-folder-row-ico{font-size:18px;line-height:1;flex-shrink:0;width:24px;text-align:center}
 .sb-folder-row-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1015,14 +1137,14 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   border-radius:var(--r-in);color:var(--text);outline:none;font-family:inherit;
   -webkit-appearance:none;appearance:none;transition:border-color .15s
 }
-#sb-folder-search:focus{border-color:var(--primary)}
+#sb-folder-search:focus{border-color:var(--primary-copy)}
 
 /* Folder picker: New Folder inline create */
 .sb-folder-new-wrap{border-top:1px solid var(--border);padding:8px 16px 12px}
 .sb-folder-new-btn{
   width:100%;display:flex;align-items:center;gap:10px;
   background:none;border:none;padding:12px 4px;font-family:inherit;
-  color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;
+  color:var(--primary-copy);font-size:15px;font-weight:600;cursor:pointer;
   -webkit-tap-highlight-color:transparent;min-height:44px
 }
 .sb-folder-new-btn:active{opacity:.7}
@@ -1049,14 +1171,14 @@ svg.brain-type-icon{stroke-width:1.8}
   -webkit-tap-highlight-color:transparent;transition:all .15s
 }
 .sb-fico-picker .sb-fico-opt:active{transform:scale(.94)}
-.sb-fico-picker .sb-fico-opt.sel{border-color:var(--primary);background:var(--primary-lt);color:var(--primary)}
+.sb-fico-picker .sb-fico-opt.sel{border-color:var(--primary-copy);background:var(--primary-lt);color:var(--primary-copy)}
 .sb-folder-new-form input{
   flex:1;padding:10px 12px;font-size:15px;
   background:var(--bg-alt);border:1px solid var(--border);
   border-radius:var(--r-in);color:var(--text);outline:none;font-family:inherit;
   -webkit-appearance:none;appearance:none
 }
-.sb-folder-new-form input:focus{border-color:var(--primary)}
+.sb-folder-new-form input:focus{border-color:var(--primary-copy)}
 .sb-folder-new-form button{
   padding:0 16px;font-size:14px;font-weight:700;font-family:inherit;
   background:var(--primary);color:#fff;border:none;border-radius:var(--r-in);
@@ -1089,7 +1211,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .psteps-txt{flex:1;min-width:0}
 .psteps-t{display:block;font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.2px}
 .psteps-d{display:block;font-size:13px;color:var(--text2);margin-top:3px;line-height:1.4}
-.psteps input{flex:none;width:18px;height:18px;accent-color:var(--primary)}
+.psteps input{flex:none;width:18px;height:18px;accent-color:var(--primary-copy)}
 .prompt-card{
   background:var(--card);border-radius:var(--r-card);
   padding:14px;display:flex;align-items:flex-start;gap:12px;
@@ -1101,8 +1223,9 @@ svg.brain-type-icon{stroke-width:1.8}
 .prompt-icon{
   width:44px;height:44px;border-radius:13px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;font-size:22px;
-  background:var(--primary-lt);color:var(--primary)
+  background:var(--primary-lt);color:var(--primary-copy)
 }
+.prompt-icon .musage-count{top:-7px;right:-9px}
 .prompt-info{flex:1;min-width:0}
 .prompt-name{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1126,7 +1249,7 @@ svg.brain-type-icon{stroke-width:1.8}
   width:20px;height:20px;border-radius:5px;flex-shrink:0
 }
 .share-private{background:#F2F2F7;color:#8E8E93}
-.share-folder{background:var(--primary-lt);color:var(--primary)}
+.share-folder{background:var(--primary-lt);color:var(--primary-copy)}
 .share-team{background:#F0FDF4;color:#15803D}
 
 /* ── PROMPTS + MEMORY: fixed gradient hero (mirrors snippets home) ── */
@@ -1167,14 +1290,14 @@ svg.brain-type-icon{stroke-width:1.8}
   transition:background .15s;user-select:none
 }
 .prompt-menu:active{background:rgba(0,0,0,.06)}
-.prompt-menu:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.prompt-menu:focus-visible{outline:2px solid var(--primary-border);outline-offset:-2px}
 
 /* ── EMPTY-STATE SUGGESTIONS ── */
 .empty-sug{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .empty-sug-lbl{width:100%;font-size:12px;color:var(--text3);margin-bottom:2px}
 .empty-sug-chip{
   border:1px solid var(--border);background:var(--card);border-radius:9999px;
-  padding:6px 14px;font-size:13px;font-weight:600;color:var(--primary);
+  padding:6px 14px;font-size:13px;font-weight:600;color:var(--primary-copy);
   cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;
   min-height:34px;transition:transform .1s
 }
@@ -1195,7 +1318,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .mbrain-act{
   display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;
   padding:10px 8px;border-radius:var(--r-btn);
-  background:var(--card);color:var(--primary);border:1px solid var(--border);
+  background:var(--card);color:var(--primary-copy);border:1px solid var(--border);
   box-shadow:var(--shadow-sm);font-family:inherit;font-size:14px;font-weight:700;
   letter-spacing:-.2px;white-space:nowrap;cursor:pointer;
   -webkit-tap-highlight-color:transparent;transition:transform .1s,background .15s
@@ -1242,7 +1365,7 @@ svg.brain-type-icon{stroke-width:1.8}
 /* Refresh button spin animation */
 @keyframes an-spin{to{transform:rotate(360deg)}}
 #an-refresh-btn.spinning svg{animation:an-spin .7s linear infinite}
-.an-kpi.a-primary{border-left-color:var(--primary)}
+.an-kpi.a-primary{border-left-color:var(--primary-copy)}
 .an-kpi.a-orange{border-left-color:#C2410C}
 .an-kpi.a-green{border-left-color:var(--success)}
 .an-kpi.a-purple{border-left-color:#7C3AED}
@@ -1280,19 +1403,19 @@ svg.brain-type-icon{stroke-width:1.8}
   margin-top:5px;overflow:hidden}
 .an-folder-bar{height:100%;background:var(--primary);border-radius:2px;
   transition:width .5s ease}
-.an-folder-cnt{font-size:14px;font-weight:700;color:var(--primary);flex-shrink:0}
+.an-folder-cnt{font-size:14px;font-weight:700;color:var(--primary-copy);flex-shrink:0}
 .an-health-row{display:flex;flex-direction:column;gap:7px;padding:12px 0;
   border-bottom:1px solid var(--bg-alt)}
 .an-health-row:last-child{border-bottom:none}
 .an-health-top{display:flex;justify-content:space-between;align-items:center}
 .an-health-lbl{font-size:13px;font-weight:600;color:var(--text)}
-.an-health-pct{font-size:14px;font-weight:800;color:var(--primary)}
-.an-health-pct.h-warn{color:#C2410C}
+.an-health-pct{font-size:14px;font-weight:800;color:var(--primary-copy)}
+.an-health-pct.h-warn{color:var(--warn-deep)}
 .an-health-pct.h-ok{color:var(--success)}
 .an-health-bar-wrap{height:6px;background:var(--bg-alt);border-radius:3px;overflow:hidden}
 .an-health-bar{height:100%;border-radius:3px;background:var(--primary);
   transition:width .5s ease}
-.an-health-bar.h-warn{background:#C2410C}
+.an-health-bar.h-warn{background:var(--warn-deep)}
 .an-health-bar.h-ok{background:var(--success)}
 .an-recent-item{display:flex;align-items:center;gap:12px;padding:12px 0;
   border-bottom:1px solid var(--bg-alt);cursor:pointer;
@@ -1301,7 +1424,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .an-recent-item:active{background:var(--bg-alt);
   margin:0 -16px;padding-left:16px;padding-right:16px}
 .an-recent-ico{width:40px;height:40px;border-radius:12px;flex-shrink:0;
-  background:var(--primary-lt);color:var(--primary);
+  background:var(--primary-lt);color:var(--primary-copy);
   display:flex;align-items:center;justify-content:center;font-size:19px}
 .an-recent-info{flex:1;min-width:0}
 .an-recent-title{font-size:14px;font-weight:700;color:var(--text);
@@ -1316,9 +1439,82 @@ svg.brain-type-icon{stroke-width:1.8}
 <body>
 
 <div id="loading">
-  <div style="font-size:40px;color:var(--primary)"><svg class="snippet-icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></div>
+  <div style="font-size:40px;color:var(--primary-copy)"><svg class="snippet-icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></div>
   <div class="spinner"></div>
   <p>Loading snippets…</p>
+</div>
+
+<!-- TASK-FIRST HOME -->
+<div id="view-home" class="view">
+  <main class="home-main" aria-labelledby="home-title">
+    <div class="home-band">
+      <div class="home-top">
+        <span class="home-wordmark"><svg class="home-brandmark" viewBox="0 0 24 28" aria-hidden="true"><path d="M2 3h8l2 3 2-3h8M4 6h5l3 4 3-4h5M7 9h2l3 5 3-5h2M12 6v19M9 12v11M15 12v11"/></svg>Fibonax</span>
+        <button class="home-account" type="button" id="home-account" data-home-action="account" aria-label="Open your account">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        </button>
+      </div>
+
+      <div class="home-hero">
+        <svg class="home-orbit" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="55"/><circle cx="60" cy="60" r="39"/><circle cx="60" cy="60" r="23"/><path d="M5 60h110M60 5v110"/></svg>
+        <h1 class="home-title" id="home-title">What’s next?</h1>
+
+        <div class="home-tasks" role="group" aria-label="Start a task">
+          <button class="home-task" type="button" data-home-action="snippets">
+            <span class="home-task-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>
+            </span>
+            <span class="home-task-copy"><strong>Use a snippet</strong><small>Find, personalize, and copy</small></span>
+            <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="home-links">
+            <button class="home-link" type="button" data-home-action="prompts">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>Prepare a prompt
+            </button>
+            <button class="home-link" type="button" data-home-action="capture">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Capture a note
+            </button>
+          </div>
+        </div>
+        <div class="home-meta">
+          <span class="home-meta-badge"><span class="home-meta-dot" aria-hidden="true"></span><span class="home-meta-ver">{{APP_VERSION}}</span></span>
+          <span class="home-meta-date">Updated {{RELEASE_MONTH}}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-body">
+      <section aria-labelledby="home-pinned-title">
+        <div class="home-section-head">
+          <h2 id="home-pinned-title">Ready to reuse</h2>
+          <button class="home-browse" type="button" data-home-action="snippets">Browse <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>
+        </div>
+        <div class="home-pin-list" id="home-pinned-list" aria-live="polite">
+          <div class="home-status">Loading your pinned items…</div>
+        </div>
+      </section>
+
+      <button class="home-search" type="button" data-home-action="search">
+        <span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>Search snippets</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      </button>
+
+      <button class="home-brains" type="button" data-home-action="brains">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>
+        <span><strong>Your Brains</strong><small>Read, copy, or add to your context</small></span>
+        <svg class="home-brains-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      </button>
+    </div>
+  </main>
+
+  <div class="mpage-footer">
+    <div class="mpage-footer-row">
+      <div class="mpage-footer-brand sb-hidden">
+        <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
+        <span class="mpage-footer-company"></span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- LIST -->
@@ -1392,12 +1588,7 @@ svg.brain-type-icon{stroke-width:1.8}
         <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
         <span class="mpage-footer-company"></span>
       </div>
-      <div class="mpage-footer-badge">
-        <span class="mpage-footer-dot" aria-hidden="true"></span>
-        <span class="mpage-footer-ver">{{APP_VERSION}}</span>
-      </div>
     </div>
-    <span class="mpage-footer-date">Updated {{RELEASE_MONTH}}</span>
   </div>
 
 </div>
@@ -1503,12 +1694,7 @@ svg.brain-type-icon{stroke-width:1.8}
           <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
           <span class="mpage-footer-company"></span>
         </div>
-        <div class="mpage-footer-badge">
-          <span class="mpage-footer-dot" aria-hidden="true"></span>
-          <span class="mpage-footer-ver">{{APP_VERSION}}</span>
-        </div>
       </div>
-      <span class="mpage-footer-date">Updated {{RELEASE_MONTH}}</span>
     </div>
   </div>
 </div>
@@ -1557,12 +1743,7 @@ svg.brain-type-icon{stroke-width:1.8}
           <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
           <span class="mpage-footer-company"></span>
         </div>
-        <div class="mpage-footer-badge">
-          <span class="mpage-footer-dot" aria-hidden="true"></span>
-          <span class="mpage-footer-ver">{{APP_VERSION}}</span>
-        </div>
       </div>
-      <span class="mpage-footer-date">Updated {{RELEASE_MONTH}}</span>
     </div>
   </div>
 </div>
@@ -1677,33 +1858,47 @@ svg.brain-type-icon{stroke-width:1.8}
         <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
         <span class="mpage-footer-company"></span>
       </div>
-      <div class="mpage-footer-badge">
-        <span class="mpage-footer-dot" aria-hidden="true"></span>
-        <span class="mpage-footer-ver">{{APP_VERSION}}</span>
-      </div>
     </div>
-    <span class="mpage-footer-date">Updated {{RELEASE_MONTH}}</span>
   </div>
 
 </div>
 
 <!-- GLOBAL FLOATING TAB BAR (position:fixed — visible across list + analytics views) -->
 <div class="mtab-indicator" aria-hidden="true"></div>
+<div id="mobile-more-menu" class="mobile-more-menu" role="dialog" aria-label="More options" hidden>
+  <button type="button" data-more-action="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
+    <span>Search this section</span>
+  </button>
+  <button type="button" data-more-action="analytics">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m8 10V5m8 14v-7"/><path d="M2 19h20"/></svg>
+    <span>Analytics</span>
+  </button>
+  <button type="button" data-more-action="profile">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    <span>Profile</span>
+  </button>
+</div>
 <nav class="mtab" aria-label="Primary">
-  <button class="mtab-item on" type="button" aria-label="Home" aria-current="page">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/></svg>
+  <button class="mtab-item" type="button" aria-label="Snippets" data-nav="snippets">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>
+    <span class="mtab-label">Snippets</span>
   </button>
-  <button class="mtab-item" type="button" aria-label="Search">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+  <button class="mtab-item" type="button" aria-label="Prompts" data-nav="prompts">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>
+    <span class="mtab-label">Prompts</span>
   </button>
-  <div class="mtab-brand" aria-hidden="true">
-    <img class="mtab-brand-img" src="https://res.cloudinary.com/locoprice/image/upload/v1755373861/LeibTour/LOGHI%20LeibTour/T%20icon/T%20icon%20logo" alt="Fibonax" draggable="false">
-  </div>
-  <button class="mtab-item" type="button" aria-label="Analytics">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="4" width="4" height="17" rx="1"/></svg>
+  <button class="mtab-home" type="button" aria-label="Home" aria-current="page" data-nav="home">
+    <img class="mtab-brand-img" src="/icon48.png" alt="" draggable="false">
+    <span class="mtab-label">Home</span>
   </button>
-  <button class="mtab-item" type="button" aria-label="Profile">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+  <button class="mtab-item" type="button" aria-label="Brains" data-nav="brains">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 18V5a3 3 0 0 0-5.8-1.1A4 4 0 0 0 4 11.2 4 4 0 0 0 7 18h5Zm0-13a3 3 0 0 1 5.8-1.1A4 4 0 0 1 20 11.2 4 4 0 0 1 17 18h-5"/><path d="M8 8h.01M16 8h.01M8 13h.01M16 13h.01"/></svg>
+    <span class="mtab-label">Brains</span>
+  </button>
+  <button class="mtab-item" type="button" aria-label="More" data-nav="more" aria-haspopup="dialog" aria-expanded="false" aria-controls="mobile-more-menu">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+    <span class="mtab-label">More</span>
   </button>
 </nav>
 
@@ -6299,6 +6494,8 @@ window.SBFillFormEngine = {
 
 /* ── STATE ─────────────────────────────────────── */
 var allSnips=[], allFolders=[], curSnip=null, curVariants=[], curLang='ALL', curFolder='ALL', curSearch='';
+var snippetUsageMap={}, snippetUsageLoaded=false, snippetUsageAvailable=false;
+var snipsLoaded=false, snipsFailed=false;
 /* snippet_id → {used_at, used_by_name} for ORG-SHARED snippets, from the
    shared_snippet_last_use() RPC (SECURITY DEFINER — select-own RLS on
    snippet_events would otherwise hide teammates' usage). Fail-open: an empty
@@ -6315,7 +6512,7 @@ function myDisplayName(){
   var meta=u.user_metadata||{};
   return (meta.display_name||'').trim()||u.email||'';
 }
-var curView='list';   // 'list' | 'analytics'
+var curView='home';   // 'home' | 'list' | 'prompts' | 'memory' | 'analytics'
 var prevView='list';  // view we came from before entering detail
 
 /* Per-group last-picked language (mobile detail language picker). Keyed by
@@ -6406,13 +6603,13 @@ var LOCK_SVG='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke
 var TEAM_SVG='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
 
 /* ── PROMPTS STATE ──────────────────────────────── */
-var allPrompts=[], promptSearch='';
+var allPrompts=[], promptSearch='',promptsLoaded=false,promptsLoading=false,promptsFailed=false;
 var PROMPT_STRATEGY_CLASS={'CoT':'pstrat-CoT','ToT':'pstrat-ToT','Few-shot':'pstrat-Few-shot','One-shot':'pstrat-One-shot','RAG':'pstrat-RAG','Agentic':'pstrat-Agentic'};
 /* Full column set — kept in parity with the desktop promptsApi so Duplicate
    round-trips every field (blocks, thinking_mode, etc.) without data loss. */
 var PROMPT_SELECT='id,name,content,type,strategy_type,thinking_mode,preferred_model,'
   +'complexity_level,intent_category,output_type,blocks,folder_id,'
-  +'organization_id,created_at,updated_at,last_used_at,pinned,review_status';
+  +'organization_id,created_at,updated_at,last_used_at,usage_count,pinned,review_status';
 var FOLDER_SHARED_SVG='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 
 /* ── LOAD ───────────────────────────────────────── */
@@ -6427,8 +6624,11 @@ function loadSnips(){
       if(fc&&fc.length)allFolders=fc;
       if(c&&c.length){
         allSnips=c;
+        snipsLoaded=true;
+        snipsFailed=false;
         if(curView==='analytics'){renderFolderChips();renderList();renderAnalytics();}
-        else{showList();renderFolderChips();renderList();}
+        else if(curView==='home'){renderHome();}
+        else if(!otherPageActive()){showList();renderFolderChips();renderList();}
       }
     }else{
       clearLocalCaches();
@@ -6450,6 +6650,18 @@ function loadSnips(){
   var uFetch=fetch(SUPA+'/rest/v1/rpc/shared_snippet_last_use',{headers:authHeaders()})
     .then(function(r){return r.ok?r.json():[];})
     .catch(function(){return [];});
+  // Team-wide expansion totals for the count badges. This RPC is decoration:
+  // it fails open, and the library still loads if the count service is down.
+  var countFetch=fetch(SUPA+'/rest/v1/rpc/snippet_usage_counts',{
+    method:'POST',
+    headers:authHeaders({'Content-Type':'application/json'}),
+    body:'{}'
+  }).then(function(r){
+    if(handle401(r)||!r.ok)return {rows:[],available:false};
+    return r.json().then(function(rows){
+      return {rows:Array.isArray(rows)?rows:[],available:Array.isArray(rows)};
+    });
+  }).catch(function(){return {rows:[],available:false};});
   // Owner attribution (personal + org-shared) for the info sheet. Same
   // fail-open contract: an error just means the info sheet falls back to the
   // raw id instead of a name.
@@ -6466,8 +6678,8 @@ function loadSnips(){
     .then(function(r){return r.ok?r.json():[];})
     .catch(function(){return [];});
 
-  Promise.all([sFetch,fFetch,uFetch,oFetch,labFetch,slFetch]).then(function(res){
-    var d=res[0], f=res[1], uses=res[2], owners=res[3];
+  Promise.all([sFetch,fFetch,uFetch,oFetch,labFetch,slFetch,countFetch]).then(function(res){
+    var d=res[0], f=res[1], uses=res[2], owners=res[3], counts=res[6];
     allLabels=Array.isArray(res[4])?res[4]:[];
     snipLabelMap={};
     if(Array.isArray(res[5])){
@@ -6483,6 +6695,22 @@ function loadSnips(){
     if(!Array.isArray(d))throw new Error('bad');
     allSnips=d;
     allFolders=Array.isArray(f)?f:[];
+    var nextUsageMap={};
+    if(counts&&Array.isArray(counts.rows)){
+      counts.rows.forEach(function(row){
+        if(row&&row.snippet_id)nextUsageMap[row.snippet_id]=Math.max(0,Number(row.uses)||0);
+      });
+    }
+    // Counts only grow during normal use. Keep successful local events that
+    // landed while the initial aggregate was still in flight.
+    Object.keys(snippetUsageMap).forEach(function(id){
+      nextUsageMap[id]=Math.max(nextUsageMap[id]||0,Number(snippetUsageMap[id])||0);
+    });
+    snippetUsageMap=nextUsageMap;
+    snippetUsageLoaded=true;
+    snippetUsageAvailable=!!(counts&&counts.available);
+    snipsLoaded=true;
+    snipsFailed=false;
     lastUseMap={};
     if(Array.isArray(uses)){
       uses.forEach(function(u){
@@ -6502,13 +6730,19 @@ function loadSnips(){
       localStorage.setItem('sb_mob_folders',JSON.stringify(allFolders));
       localStorage.setItem('sb_mob_uid',USER_ID);
     }catch(e){}
-    if(curView==='analytics'){renderFolderChips();renderList();renderAnalytics();}
-    else{if(!otherPageActive())showList();renderFolderChips();renderList();}
+    if(curView==='home'){renderHome();}
+    else if(curView==='analytics'){renderFolderChips();renderList();renderAnalytics();}
+    else if(!otherPageActive()){showList();renderFolderChips();renderList();}
   })
   .catch(function(){
+    snipsLoaded=true;
+    snipsFailed=true;
+    snippetUsageLoaded=true;
+    snippetUsageAvailable=false;
+    if(curView==='home')renderHome();
     if(!allSnips.length){
       if(curView==='analytics')renderAnalytics();
-      else{if(!otherPageActive())showList();renderFolderChips();renderList();}
+      else if(curView!=='home'&&!otherPageActive()){showList();renderFolderChips();renderList();}
     }
   });
 }
@@ -6518,31 +6752,55 @@ function loadSnips(){
    the network then refresh their list behind it instead of taking the screen
    back, which used to leave two pages showing at once, one under the other. */
 function otherPageActive(){
-  return ['view-prompts','view-memory','view-memitem'].some(function(id){
+  return ['view-home','view-prompts','view-memory','view-memitem'].some(function(id){
     var v=document.getElementById(id);
     return !!(v&&v.classList.contains('active'));
   });
+}
+function setActivePrimaryTab(name){
+  document.querySelectorAll('.mtab [data-nav]').forEach(function(btn){
+    var on=btn.getAttribute('data-nav')===name;
+    btn.classList.toggle('on',on);
+    if(on)btn.setAttribute('aria-current','page');
+    else btn.removeAttribute('aria-current');
+  });
+}
+function showHome(){
+  curView='home';
+  setActiveQuickAction(null);
+  document.body.classList.remove('sb-detail-view');
+  document.getElementById('loading').style.display='none';
+  ['view-list','view-detail','view-analytics','view-prompts','view-memory','view-memitem'].forEach(function(id){
+    document.getElementById(id).classList.remove('active');
+  });
+  document.getElementById('view-home').classList.add('active');
+  setActivePrimaryTab('home');
+  renderHome();
+  closeMobileMore();
+  if(!promptsLoaded&&!promptsLoading)loadPrompts();
 }
 function showList(){
   curView='list';
   setActiveQuickAction('snippets');
   document.body.classList.remove('sb-detail-view');
   document.getElementById('loading').style.display='none';
+  document.getElementById('view-home').classList.remove('active');
   document.getElementById('view-list').classList.add('active');
   document.getElementById('view-detail').classList.remove('active');
   document.getElementById('view-analytics').classList.remove('active');
   document.getElementById('view-prompts').classList.remove('active');
   document.getElementById('view-memory').classList.remove('active');
   document.getElementById('view-memitem').classList.remove('active');
-  document.querySelectorAll('.mtab-item').forEach(function(x){x.classList.remove('on');x.removeAttribute('aria-current');});
-  var homeBtn=document.querySelector('.mtab-item[aria-label="Home"]');
-  if(homeBtn){homeBtn.classList.add('on');homeBtn.setAttribute('aria-current','page');}
+  setActivePrimaryTab('snippets');
+  renderFolderChips();
+  renderList();
 }
 function openDetail(snip,variants){
   prevView=curView;
   history.pushState({det:true},'');
   curSnip=snip;
   curVariants=(variants&&variants.length)?variants:[snip];
+  document.getElementById('view-home').classList.remove('active');
   document.getElementById('view-list').classList.remove('active');
   document.getElementById('view-analytics').classList.remove('active');
   document.getElementById('view-detail').classList.add('active');
@@ -6554,17 +6812,14 @@ function showAnalyticsView(){
   setActiveQuickAction(null);
   document.body.classList.remove('sb-detail-view');
   document.getElementById('loading').style.display='none';
+  document.getElementById('view-home').classList.remove('active');
   document.getElementById('view-list').classList.remove('active');
   document.getElementById('view-detail').classList.remove('active');
   document.getElementById('view-prompts').classList.remove('active');
   document.getElementById('view-memory').classList.remove('active');
   document.getElementById('view-memitem').classList.remove('active');
   document.getElementById('view-analytics').classList.add('active');
-  document.querySelectorAll('.mtab-item').forEach(function(x){
-    x.classList.remove('on');x.removeAttribute('aria-current');
-  });
-  var anlBtn=document.querySelector('.mtab-item[aria-label="Analytics"]');
-  if(anlBtn){anlBtn.classList.add('on');anlBtn.setAttribute('aria-current','page');}
+  setActivePrimaryTab(null);
   renderAnalytics();
 }
 
@@ -6577,10 +6832,99 @@ function esc(s){
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* The card's text: a prompt's opening lines, or a snippet's body with each
+   field shown as an ellipsis, since nothing is filled in yet. */
+function homePinnedPreview(kind,item){
+  var raw=kind==='snippet'
+    ?String(item.body||'').replace(/\{[^{}]*\}/g,'…')
+    :String(item.content||'').replace(/^##\s+\w+\n/gm,'');
+  var text=raw.replace(/\s+/g,' ').trim();
+  return text.length>160?text.slice(0,160)+'…':text;
+}
+var HOME_ARROW_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>';
+var HOME_COPY_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V3H3v13h5"/></svg>';
+var HOME_MORE_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
+function homePinnedCardHtml(kind,item,count,variantCount){
+  var isSnippet=kind==='snippet';
+  var title=item.title||item.name||'Untitled';
+  // A snippet that needs filling in, or a language picked, opens first.
+  var opens=isSnippet&&(variantCount>1||extractFields(item.body||'').length>0);
+  var action=!isSnippet?'Copy prompt':opens?'Fill & copy':'Copy text';
+  var label=(opens?'Fill and copy ':'Copy ')+title+', used '+formatUsageCount(count)+' times';
+  var attrs=' data-home-type="'+kind+'" data-home-id="'+esc(item.id)+'"';
+  var preview=homePinnedPreview(kind,item);
+  return '<article class="home-pin-card">'
+    +'<button type="button" class="home-pin-body"'+attrs+' aria-label="'+esc(label)+'">'
+      +'<span class="home-pin-top"><span class="home-pin-eyebrow">Pinned '+kind+'</span>'
+        +'<span class="home-pin-icons" aria-hidden="true">'
+          +'<span class="home-pin-icon">'+(isSnippet?SNIPPET_SVG:PROMPT_SVG)+usageBadgeHtml(count,kind)+'</span>'
+          +'<span class="home-pin-flag">'+PIN_SVG+'</span>'
+        +'</span></span>'
+      +'<span class="home-pin-title">'+esc(title)+'</span>'
+      +(preview?'<span class="home-pin-text">'+esc(preview)+'</span>':'')
+    +'</button>'
+    +'<div class="home-pin-foot">'
+      +'<button type="button" class="home-pin-action"'+attrs+' tabindex="-1" aria-hidden="true">'+(opens?HOME_ARROW_SVG:HOME_COPY_SVG)+esc(action)+'</button>'
+      +'<button type="button" class="home-pin-more" data-home-menu="'+kind+'" data-home-id="'+esc(item.id)+'" aria-label="More actions for '+esc(title)+'">'+HOME_MORE_SVG+'</button>'
+    +'</div>'
+  +'</article>';
+}
+function renderHome(){
+  var slot=document.getElementById('home-pinned-list');
+  if(!slot)return;
+  if(!snipsLoaded||!promptsLoaded){
+    slot.innerHTML='<div class="home-status" role="status">Loading your pinned items…</div>';
+    return;
+  }
+  var pinnedKeys=pinnedSnipKeys(),groups=buildGroups(allSnips),html=[];
+  for(var i=0;i<groups.length;i++){
+    var group=groups[i];
+    if(!pinnedKeys[group.key])continue;
+    var active=pickActiveVariant(group,'ALL','ALL');
+    html.push(homePinnedCardHtml('snippet',active,snippetGroupUsage(group),group.variants.length));
+    break;
+  }
+  var pinnedPrompt=null;
+  for(var j=0;j<allPrompts.length;j++){
+    if(allPrompts[j].pinned){pinnedPrompt=allPrompts[j];break;}
+  }
+  if(pinnedPrompt)html.push(homePinnedCardHtml('prompt',pinnedPrompt,Number(pinnedPrompt.usage_count)||0,1));
+  if(html.length){
+    slot.innerHTML=html.join('');
+  }else if(snipsFailed||promptsFailed){
+    slot.innerHTML='<div class="home-empty" role="status">Couldn’t check your pinned items.<button type="button" data-home-action="retry">Try again</button></div>';
+  }else{
+    slot.innerHTML='<div class="home-empty">Pin a snippet or prompt from its menu and it’ll be ready here next time.</div>';
+  }
+}
+
 // The product-type icon is separate from icons chosen for folders.
 var SNIPPET_SVG='<svg class="snippet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>';
 
 var PROMPT_SVG='<svg class="prompt-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>';
+
+function formatUsageCount(value){
+  var n=Math.max(0,Math.floor(Number(value)||0));
+  return n.toLocaleString();
+}
+function usageBadgeHtml(value,kind){
+  var loading=kind==='snippet'&&!snippetUsageLoaded;
+  var unavailable=kind==='snippet'&&snippetUsageLoaded&&!snippetUsageAvailable;
+  var label=loading?'Loading use count':unavailable?'Use count unavailable':'Used '+formatUsageCount(value)+' times';
+  var display=loading?'…':unavailable?'—':formatUsageCount(value);
+  return '<span class="musage-count" role="img" aria-label="'+esc(label)+'" title="'+esc(label)+'">'
+    +esc(display)+'</span>';
+}
+function snippetGroupUsage(group){
+  var total=0,seen={};
+  (group&&group.variants||[]).forEach(function(s){
+    var id=String(s&&s.id||'');
+    if(!id||seen[id])return;
+    seen[id]=1;
+    total+=Number(snippetUsageMap[id])||0;
+  });
+  return total;
+}
 
 // Canonical folder-icon SVG set — byte-identical to the extension's _FOLDER_SVGS
 // (extension/popup/popup.js) and the dashboard's lucide map (app/src/lib/folderIcons.tsx),
@@ -6785,6 +7129,8 @@ function sharingBadge(item){
 
 /* ── PROMPTS ────────────────────────────────────── */
 function loadPrompts(){
+  if(promptsLoading)return;
+  promptsLoading=true;
   // No user_id filter — prompts RLS returns the user's own prompts plus any in a
   // folder shared with them (Phase B org branch), matching the extension popup.
   // Archived prompts are kept to be restored on the dashboard, not offered here.
@@ -6795,7 +7141,11 @@ function loadPrompts(){
     .then(function(data){
       if(!Array.isArray(data))throw new Error('bad');
       allPrompts=data;
+      promptsLoaded=true;
+      promptsLoading=false;
+      promptsFailed=false;
       renderPromptList();
+      renderHome();
       // Assignments arrive separately and fail open: losing them costs the
       // facet its counts, never the prompt list.
       fetch(SUPA+'/rest/v1/prompt_labels?select=prompt_id,label_id',{headers:authHeaders()})
@@ -6813,6 +7163,10 @@ function loadPrompts(){
         });
     })
     .catch(function(){
+      promptsLoaded=true;
+      promptsLoading=false;
+      promptsFailed=!allPrompts.length;
+      renderHome();
       if(!allPrompts.length){
         document.getElementById('prompt-list').innerHTML=
           '<div class="empty"><div class="emo">😕</div><p>Could not load prompts</p></div>';
@@ -6938,11 +7292,12 @@ function renderPromptList(){
     if(cleaned.length>120)preview+='…';
     var when=p.last_used_at?('Used '+timeAgo(p.last_used_at)):'Never used';
     var isPin=!!p.pinned;
+    var usageCount=Number(p.usage_count)||0;
     var labels=assetLabelNames(p.id,promptLabelMap,false);
     var details=labels.length?'<button type="button" class="search-details" data-detail-pid="'+esc(p.id)+'" aria-label="Details for '+esc(p.name)+'">Details</button>':'';
     var reason=hiddenSearchMatch(q,[p.name,p.intent_category],labels,[]);
-    return '<div class="prompt-card'+(isPin?' is-pinned':'')+'" data-pid="'+esc(p.id)+'" role="button" tabindex="0">'
-      +'<div class="prompt-icon">'+(getFolderById(p.folder_id)?folderIcon(getFolderById(p.folder_id)):PROMPT_SVG)+'</div>'
+    return '<div class="prompt-card'+(isPin?' is-pinned':'')+'" data-pid="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Open prompt '+esc(p.name)+', used '+esc(formatUsageCount(usageCount))+' times">'
+      +'<div class="prompt-icon">'+(getFolderById(p.folder_id)?folderIcon(getFolderById(p.folder_id)):PROMPT_SVG)+usageBadgeHtml(usageCount,'prompt')+'</div>'
       +'<div class="prompt-info">'
         +'<div class="prompt-name">'+esc(p.name)+'</div>'
         +(preview?'<div class="prompt-preview">'+esc(preview)+'</div>':'')
@@ -7001,16 +7356,36 @@ function promptCopy(p){
   });
   promptMarkUsed(p);
 }
-/* Mirrors desktop promptsApi.markUsed — fire-and-forget PATCH on the owner row. */
+/* Mirrors desktop promptsApi.markUsed with the shared atomic usage counter. */
 function promptMarkUsed(p){
+  if(!p||!p.id)return;
   var now=new Date().toISOString();
+  var previousLastUsed=p.last_used_at||null;
   p.last_used_at=now;
-  fetch(SUPA+'/rest/v1/prompts?id=eq.'+encodeURIComponent(p.id)
-      +'&user_id=eq.'+encodeURIComponent(USER_ID),
-    {method:'PATCH',headers:authHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),
-     body:JSON.stringify({last_used_at:now})})
-    .then(function(r){handle401(r);})
-    .catch(function(){});
+  p.usage_count=(Number(p.usage_count)||0)+1;
+  if(document.getElementById('view-prompts').classList.contains('active'))renderPromptList();
+  if(curView==='home')renderHome();
+  fetch(SUPA+'/rest/v1/rpc/increment_prompt_usage',{
+    method:'POST',
+    headers:authHeaders({'Content-Type':'application/json'}),
+    body:JSON.stringify({p_prompt_id:p.id})
+  }).then(function(r){
+    if(handle401(r))throw new Error('401');
+    if(!r.ok)throw new Error('Usage could not be recorded');
+    return r.json();
+  }).then(function(rows){
+    var row=Array.isArray(rows)?rows[0]:rows;
+    if(!row||row.id!==p.id)throw new Error('Usage result unavailable');
+    p.usage_count=Math.max(Number(p.usage_count)||0,Number(row.usage_count)||0);
+    p.last_used_at=row.last_used_at||now;
+    if(document.getElementById('view-prompts').classList.contains('active'))renderPromptList();
+    if(curView==='home')renderHome();
+  }).catch(function(){
+    p.usage_count=Math.max(0,(Number(p.usage_count)||0)-1);
+    if(p.last_used_at===now)p.last_used_at=previousLastUsed;
+    if(document.getElementById('view-prompts').classList.contains('active'))renderPromptList();
+    if(curView==='home')renderHome();
+  });
 }
 
 /* ── PROMPT BOTTOM SHEET ─────────────────────────── */
@@ -7074,28 +7449,30 @@ function setActiveQuickAction(name){
 }
 function showPrompts(){
   if(document.getElementById('view-prompts').classList.contains('active'))return;
+  curView='prompts';
   history.pushState({prompts:true},'');
+  document.getElementById('view-home').classList.remove('active');
   document.getElementById('view-list').classList.remove('active');
   document.getElementById('view-detail').classList.remove('active');
+  document.getElementById('view-analytics').classList.remove('active');
   document.getElementById('view-memory').classList.remove('active');
+  document.getElementById('view-memitem').classList.remove('active');
   document.getElementById('view-prompts').classList.add('active');
   setActiveQuickAction('prompts');
+  setActivePrimaryTab('prompts');
   syncFilterHeader();
-  if(!allPrompts.length)loadPrompts();
+  if(!promptsLoaded&&!promptsLoading)loadPrompts();
   else renderPromptList();
 }
 function hidePrompts(){
   closePromptSheet();
   document.getElementById('view-prompts').classList.remove('active');
-  document.getElementById('view-list').classList.add('active');
-  setActiveQuickAction('snippets');
+  showHome();
 }
 // Snippets tile → the snippets home. From the Prompts or Memory page it mirrors
 // the back button; from anywhere else it just shows the list (its tile pushes
 // via showList).
 function showSnippetsHome(){
-  if(document.getElementById('view-prompts').classList.contains('active')){ hidePrompts(); return; }
-  if(document.getElementById('view-memory').classList.contains('active')){ hideMemory(); return; }
   showList();
 }
 
@@ -7406,13 +7783,18 @@ function renderMemory(){
 /* ── Memory: moving around ── */
 function showMemory(){
   if(document.getElementById('view-memory').classList.contains('active'))return;
+  curView='memory';
   history.pushState({memory:true},'');
   curBrain=null;
+  document.getElementById('view-home').classList.remove('active');
   document.getElementById('view-list').classList.remove('active');
   document.getElementById('view-detail').classList.remove('active');
+  document.getElementById('view-analytics').classList.remove('active');
   document.getElementById('view-prompts').classList.remove('active');
+  document.getElementById('view-memitem').classList.remove('active');
   document.getElementById('view-memory').classList.add('active');
   setActiveQuickAction('memory');
+  setActivePrimaryTab('brains');
   syncFilterHeader();
   if(!memLoaded)loadMemory();
   else renderMemory();
@@ -7422,8 +7804,7 @@ function hideMemory(){
   document.getElementById('view-memitem').classList.remove('active');
   document.body.classList.remove('sb-detail-view');
   document.getElementById('view-memory').classList.remove('active');
-  document.getElementById('view-list').classList.add('active');
-  setActiveQuickAction('snippets');
+  showHome();
   syncFilterHeader();
 }
 function openBrain(id){
@@ -8480,6 +8861,22 @@ function lastUseForSnippet(s){
   if(g&&g.rows&&g.rows.length)return lastUseOf(g.rows);
   return lastUseMap[s.id]||null;
 }
+function activateSnippet(s,variants){
+  if(!s)return;
+  var rows=(variants&&variants.length)?variants:[s];
+  if(rows.length>1){
+    openDetail(s,rows);
+    return;
+  }
+  if(extractFields(s.body||'').length){
+    openDetail(s,rows);
+    return;
+  }
+  copyText(resolveBody(s.body||'',{},{lang:s.lang}),function(){
+    showToast(reviewCopiedToast(s.review_status));
+  });
+  logSnipUse(s,0);
+}
 /* The list arrives a page at a time: a long library should not paint every
    card to show the first screenful. */
 var LIST_PAGE=25, listLimit=LIST_PAGE, _listSig=null;
@@ -8542,7 +8939,11 @@ function renderList(){
       }
     }
     var isPin=!!_pk[g.key];
-    return '<div class="snip-card'+(isPin?' is-pinned':'')+'" data-id="'+esc(vkey(active))+'" data-gkey="'+esc(g.key)+'" role="button" tabindex="0">'
+    var usageCount=snippetGroupUsage(g);
+    var useVerb=g.variants.length>1||extractFields(active.body||'').length?'Open ':'Copy ';
+    var cardLabel=useVerb+'snippet '+(active.title||active.id)+', used '+formatUsageCount(usageCount)+' times';
+    return '<div class="snip-card'+(isPin?' is-pinned':'')+'" data-id="'+esc(vkey(active))+'" data-gkey="'+esc(g.key)+'" role="button" tabindex="0" aria-label="'+esc(cardLabel)+'">'
+      +'<div class="snip-icon-well" aria-hidden="true">'+SNIPPET_SVG+usageBadgeHtml(usageCount,'snippet')+'</div>'
       +'<div class="snip-info">'
         +'<div class="snip-heading"><div class="snip-title">'+esc(active.title||active.id)+'</div>'+detailButton+'</div>'
         +'<div class="snip-meta">'
@@ -8569,18 +8970,7 @@ function renderList(){
   function activateCard(card){
     var variants=_groupIndex[card.getAttribute('data-gkey')];
     var active=_varIndex[card.getAttribute('data-id')];
-    if(variants&&variants.length>1){
-      openDetail(active||variants[0],variants);
-      return;
-    }
-    var s=active||(variants&&variants[0]);
-    if(!s)return;
-    if(extractFields(s.body||'').length){
-      openDetail(s,[s]);
-    }else{
-      copyText(resolveBody(s.body||'',{},{lang:s.lang}),function(){showToast(reviewCopiedToast(s.review_status));});
-      logSnipUse(s,0);
-    }
+    activateSnippet(active||(variants&&variants[0]),variants);
   }
   var moreBtn=document.getElementById('snip-more');
   if(moreBtn){
@@ -9327,14 +9717,12 @@ document.getElementById('back-btn').addEventListener('click',function(){
   curSnip=null;
   document.getElementById('view-detail').classList.remove('active');
   document.body.classList.remove('sb-detail-view');
-  if(prevView==='analytics'){
+  if(prevView==='home'){
+    showHome();
+  }else if(prevView==='analytics'){
     showAnalyticsView();
   }else{
-    document.getElementById('view-list').classList.add('active');
-    curView='list';
-    document.querySelectorAll('.mtab-item').forEach(function(x){x.classList.remove('on');x.removeAttribute('aria-current');});
-    var homeBtn=document.querySelector('.mtab-item[aria-label="Home"]');
-    if(homeBtn){homeBtn.classList.add('on');homeBtn.setAttribute('aria-current','page');}
+    showList();
   }
 });
 window.addEventListener('popstate',function(){
@@ -9871,7 +10259,12 @@ function logSnipUse(s,fieldsFilled){
       shortcut:s.shortcut||'', lang:s.lang||null,
       fields_filled:fieldsFilled||0
     })
-  }).then(function(r){handle401(r);}).catch(function(){});
+  }).then(function(r){
+    if(handle401(r)||!r.ok)return;
+    snippetUsageMap[s.id]=(Number(snippetUsageMap[s.id])||0)+1;
+    if(curView==='home')renderHome();
+    if(document.getElementById('view-list').classList.contains('active'))renderList();
+  }).catch(function(){});
   if(s.organization_id&&s.folder_id){
     lastUseMap[s.id]={used_at:new Date().toISOString(),used_by_name:myDisplayName()};
     if(document.getElementById('view-list').classList.contains('active'))renderList();
@@ -10848,63 +11241,112 @@ function mountFilterHeader(){
 }
 mountFilterHeader();
 
+function openMobileMore(){
+  var menu=document.getElementById('mobile-more-menu');
+  var trigger=document.querySelector('.mtab [data-nav="more"]');
+  if(!menu||!trigger)return;
+  menu.hidden=false;
+  trigger.setAttribute('aria-expanded','true');
+  var first=menu.querySelector('button');
+  if(first)first.focus();
+}
+function closeMobileMore(restoreFocus){
+  var menu=document.getElementById('mobile-more-menu');
+  var trigger=document.querySelector('.mtab [data-nav="more"]');
+  if(!menu||menu.hidden)return;
+  menu.hidden=true;
+  if(trigger)trigger.setAttribute('aria-expanded','false');
+  if(restoreFocus&&trigger)trigger.focus();
+}
+function focusCurrentSearch(){
+  if(curView==='home'||curView==='analytics')showList();
+  var surface=curSurface();
+  var id=surface==='prompts'?'prompt-srch':surface==='memory'?'mem-srch':'srch';
+  var field=document.getElementById(id);
+  if(!field){
+    showList();
+    field=document.getElementById('srch');
+  }
+  if(!field)return;
+  field.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(function(){field.focus();},300);
+}
 document.querySelector('.mtab').addEventListener('click',function(e){
-  var btn=e.target.closest('button');
+  var btn=e.target.closest('button[data-nav]');
   if(!btn)return;
-  var lbl=btn.getAttribute('aria-label');
-  if(lbl==='Home'){
-    curSearch='';curFolder='ALL';curLang='ALL';
-    curView='list';
-    document.body.classList.remove('sb-detail-view');
-    document.getElementById('view-analytics').classList.remove('active');
-    document.getElementById('view-detail').classList.remove('active');
-    document.getElementById('view-list').classList.add('active');
-    var si=document.getElementById('srch');if(si)si.value='';
-    syncSnipClear();
-    document.querySelectorAll('.lang-pill').forEach(function(x){
-      x.classList.toggle('on',x.getAttribute('data-l')==='ALL');
-    });
-    document.getElementById('view-prompts').classList.remove('active');
-    document.getElementById('view-memory').classList.remove('active');
-    document.getElementById('view-memitem').classList.remove('active');
-    document.getElementById('view-list').classList.add('active');
-    renderFolderChips();renderList();syncFilterHeader();
-    var vl=document.getElementById('view-list');
-    if(vl)vl.scrollTo({top:0,behavior:'smooth'});
-    document.querySelectorAll('.mtab-item').forEach(function(x){x.classList.remove('on');});
-    btn.classList.add('on');
-    btn.setAttribute('aria-current','page');
-    setActiveQuickAction('snippets');
-  }else if(lbl==='Search'){
-    // The search of the page in view: Prompts and Memory keep their own.
-    var own={prompts:'prompt-srch',memory:'mem-srch'}[curSurface()];
-    if(own&&curView==='list'){
-      var field=document.getElementById(own);
-      field.scrollIntoView({behavior:'smooth',block:'center'});
-      setTimeout(function(){field.focus();},300);
-      return;
-    }
-    if(curView!=='list'){
-      curView='list';
-      document.getElementById('view-analytics').classList.remove('active');
-      document.getElementById('view-list').classList.add('active');
-      // Restore Home as the visually active tab when switching to list via Search
-      document.querySelectorAll('.mtab-item').forEach(function(x){
-        x.classList.remove('on');x.removeAttribute('aria-current');
-      });
-      var hb=document.querySelector('.mtab-item[aria-label="Home"]');
-      if(hb){hb.classList.add('on');hb.setAttribute('aria-current','page');}
-      setActiveQuickAction('snippets');
-    }
-    var srch=document.getElementById('srch');
-    srch.scrollIntoView({behavior:'smooth',block:'center'});
-    setTimeout(function(){srch.focus();},300);
-  }else if(lbl==='Analytics'){
-    showAnalyticsView();
-  }else if(lbl==='Profile'){
-    openProfileSheet();
+  var name=btn.getAttribute('data-nav');
+  if(name==='home'){closeMobileMore();showHome();}
+  else if(name==='snippets'){closeMobileMore();showList();}
+  else if(name==='prompts'){closeMobileMore();showPrompts();}
+  else if(name==='brains'){closeMobileMore();showMemory();}
+  else if(name==='more'){
+    var menu=document.getElementById('mobile-more-menu');
+    if(menu&&menu.hidden)openMobileMore();
+    else closeMobileMore(true);
   }
 });
+document.getElementById('mobile-more-menu').addEventListener('click',function(e){
+  var action=e.target.closest('[data-more-action]');
+  if(!action)return;
+  var name=action.getAttribute('data-more-action');
+  closeMobileMore();
+  if(name==='search')focusCurrentSearch();
+  else if(name==='analytics')showAnalyticsView();
+  else if(name==='profile')openProfileSheet();
+});
+document.addEventListener('click',function(e){
+  var menu=document.getElementById('mobile-more-menu');
+  if(!menu||menu.hidden||e.target.closest('#mobile-more-menu,.mtab [data-nav="more"]'))return;
+  closeMobileMore();
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape')closeMobileMore(true);
+});
+(function(){
+  document.getElementById('view-home').addEventListener('click',function(e){
+    var action=e.target.closest('[data-home-action]');
+    if(action){
+      var name=action.getAttribute('data-home-action');
+      if(name==='snippets')showList();
+      else if(name==='prompts')showPrompts();
+      else if(name==='brains')showMemory();
+      else if(name==='account')openProfileSheet();
+      else if(name==='capture'){
+        showMemory();
+        openCapture(capFromShare('','',''));
+      }else if(name==='search'){
+        showList();
+        setTimeout(function(){focusCurrentSearch();},0);
+      }else if(name==='retry'){
+        snipsFailed=false;promptsFailed=false;
+        loadSnips();loadPrompts();renderHome();
+      }
+      return;
+    }
+    var menu=e.target.closest('[data-home-menu]');
+    if(menu){
+      if(menu.getAttribute('data-home-menu')==='prompt')openPromptSheet(menu.getAttribute('data-home-id'));
+      else openBottomSheet(menu.getAttribute('data-home-id'));
+      return;
+    }
+    var card=e.target.closest('[data-home-type]');
+    if(!card)return;
+    var type=card.getAttribute('data-home-type');
+    var id=card.getAttribute('data-home-id');
+    if(type==='prompt'){
+      var prompt=findPrompt(id);
+      if(prompt)promptCopy(prompt);
+      return;
+    }
+    var group=buildGroups(allSnips).find(function(g){
+      return g.variants.some(function(v){return String(v.id)===String(id);});
+    });
+    if(group){
+      var snippet=pickActiveVariant(group,'ALL','ALL');
+      activateSnippet(snippet,group.variants);
+    }
+  });
+})();
 
 /* ── ANALYTICS ──────────────────────────────────── */
 var LANG_COLORS={EN:'#1B4FD8',IT:'#15803D',ES:'#C2410C',MULTI:'#7C3AED'};
@@ -11153,11 +11595,42 @@ function applyCompanyBrand(){
     row.classList.remove('sb-hidden');
   });
 }
+/* Home's band: the account button carries the person's initials, from the same
+   name sources as the profile sheet. */
+function applyHomeHeader(){
+  var u=SESSION&&SESSION.user;
+  var meta=(u&&u.user_metadata)||{};
+  var email=(u&&u.email)||'';
+  var name=(meta.display_name||meta.full_name||meta.name||'').trim();
+  var initials=profileInitials(name,email);
+  var btn=document.getElementById('home-account');
+  if(btn&&initials!=='👤')btn.textContent=initials;
+}
+/* The session read from storage is a snapshot from when this phone signed in,
+   so a company name or logo chosen later in the dashboard is missing from it.
+   Ask the server for the current profile, keep it in memory only (the dashboard
+   owns the stored session), and redraw every place that shows it. Fail-open:
+   on any error the snapshot stays. Throttled to 30s like the liveness check. */
+var _profileLastCheck=0;
+function refreshAccountDetails(){
+  if(!ACCESS_TOKEN)return;
+  var now=Date.now();
+  if(now-_profileLastCheck<30000)return;
+  _profileLastCheck=now;
+  fetch(SUPA+'/auth/v1/user',{headers:authHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(u){
+      if(!u||!u.user_metadata||!SESSION||!SESSION.user)return;
+      SESSION.user.user_metadata=u.user_metadata;
+      applyHeroName();applyCompanyBrand();applyHomeHeader();
+    })
+    .catch(function(){});
+}
 if(requireAuth()){
-  applyHeroName();applyCompanyBrand();loadSnips();sbCheckAlive();
+  applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();refreshAccountDetails();
   captureResume();
   document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible')sbCheckAlive();
+    if(document.visibilityState==='visible'){sbCheckAlive();refreshAccountDetails();}
   });
 }
 </script>

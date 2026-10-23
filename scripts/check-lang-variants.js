@@ -90,12 +90,6 @@ check('DEFAULT_SNIPPETS ships empty', sandbox.DEFAULT_SNIPPETS.length, 0);
 // A body that reaches the bundle is readable by anyone who installs it, so the
 // file itself must stay free of snippet prose and of any customer's identity.
 // These markers are drawn from what the 2026-08-19 leak actually shipped.
-//
-// Scope note: this list targets snippet CONTENT, not vocabulary. SELECTION_TRIGGERS
-// still carries industry words ('presupuesto', 'minimum stay') as match keywords
-// and customer-shaped snippet ids. That is a separate industry-neutrality gap
-// (see the Industry-Neutral section of CLAUDE.md), tracked on its own, and adding
-// those words here would make this gate fail for a reason it does not test.
 const LEAK_MARKERS = ['leibtour', 'check-in:', 'ecotasa', 'airbnb'];
 const contentLower = CONTENT_SRC.toLowerCase();
 LEAK_MARKERS.forEach(function (m) {

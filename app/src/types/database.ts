@@ -21,6 +21,12 @@ export interface Profile {
   trigger_prompt_seq: string;
   trigger_snippet_key: ActivationKey;
   trigger_prompt_key: ActivationKey;
+  /**
+   * Automatic insert (AUTO-INSERT-001): insert a snippet on its own once a few
+   * letters leave only one that fits. Off by default; the wait is 1-10 seconds.
+   */
+  trigger_auto_insert: boolean;
+  trigger_auto_insert_seconds: number;
   /** Company branding (BRANDING-001) — persisted in auth.users.user_metadata. */
   company_name: string;
   company_logo_url: string | null;

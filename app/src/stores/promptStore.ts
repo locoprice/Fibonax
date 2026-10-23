@@ -20,6 +20,8 @@ import { expandWithDescendants } from '@/lib/labelTree';
 import { useLabelStore } from '@/stores/labelStore';
 import { useSearchStore } from '@/stores/searchStore';
 import { labelNameLookup, normalizeQuery, scorePrompt } from '@/lib/searchIndex';
+import { sortPrompts, type PromptSortColumn } from '@/lib/promptSort';
+import { nextSort, type SortDir } from '@/lib/sortToggle';
 import { reviewApi } from '@/lib/api/reviewApi';
 import type { NewItemOptions, ReviewStatus } from '@/lib/reviewStatus';
 import type { PromptFormValues, FolderFormValues } from '@/types/schemas';
@@ -53,6 +55,9 @@ interface PromptStore {
   loading: boolean;
   error: string | null;
   filters: PromptFilters;
+  /** How the list is ordered; pinned prompts stay on top whichever column is chosen. */
+  sortBy: PromptSortColumn;
+  sortDir: SortDir;
   /** Set of prompt IDs currently awaiting a Notion push. */
   notionPushingIds: Set<string>;
   /** Folders (shared with snippets) for grouping prompts + team sharing. */
@@ -63,6 +68,7 @@ interface PromptStore {
   selectedFolderId: string | null;
   load: () => Promise<void>;
   setFilters: (patch: Partial<PromptFilters>) => void;
+  setSortBy: (column: PromptSortColumn) => void;
   resetFilters: () => void;
   clearError: () => void;
   setSelectedFolder: (id: string | null) => void;
@@ -112,6 +118,8 @@ export const usePromptStore = create<PromptStore>((set, get) => ({
   loading: false,
   error: null,
   filters: DEFAULT_FILTERS,
+  sortBy: 'updated_at',
+  sortDir: 'desc',
   notionPushingIds: new Set<string>(),
   folders: [],
   folderShares: new Map<string, FolderShareInfo>(),
@@ -152,6 +160,8 @@ export const usePromptStore = create<PromptStore>((set, get) => ({
 
   setFilters: (patch) =>
     set((s) => ({ filters: { ...s.filters, ...patch } })),
+
+  setSortBy: (column) => set((s) => nextSort(s, column)),
 
   resetFilters: () => set({ filters: DEFAULT_FILTERS, selectedFolderId: null }),
 
@@ -364,6 +374,8 @@ export function useFilteredPrompts(): Prompt[] {
   const prompts = usePromptStore((s) => s.prompts);
   const filters = usePromptStore((s) => s.filters);
   const selectedFolderId = usePromptStore((s) => s.selectedFolderId);
+  const sortBy = usePromptStore((s) => s.sortBy);
+  const sortDir = usePromptStore((s) => s.sortDir);
   // Assignments live in labelStore because the vocabulary is shared with
   // snippets; only the active selection above is per-surface.
   const labelAssignments = useLabelStore((s) => s.promptLabels);
@@ -396,13 +408,18 @@ export function useFilteredPrompts(): Prompt[] {
       if (query !== '' && scorePrompt(p, query, labelNamesFor(p.id)) === 0) return false;
       return true;
     });
-    // Pinned prompts float to the top; the sort is stable so each half keeps
-    // its incoming order (updated_at desc from the store).
-    return [...list].sort((a, b) => {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      return 0;
-    });
-  }, [prompts, filters, selectedFolderId, labelAssignments, labelScope, query, labelNamesFor]);
+    return sortPrompts(list, sortBy, sortDir);
+  }, [
+    prompts,
+    filters,
+    selectedFolderId,
+    labelAssignments,
+    labelScope,
+    query,
+    labelNamesFor,
+    sortBy,
+    sortDir,
+  ]);
 }
 
 export function useActiveFilterCount(): number {

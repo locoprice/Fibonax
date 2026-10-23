@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Settings2, Tag } from 'lucide-react';
+import { FilterButton } from '@/components/shared/AssetFilterBar';
 import { labelSwatch } from '@/lib/labelColors';
 import { buildLabelTree, flattenLabelTree, labelPath } from '@/lib/labelTree';
 import { useLabelStore } from '@/stores/labelStore';
@@ -74,17 +75,11 @@ export function LabelFilter({ selected, onChange, onManage }: LabelFilterProps) 
 
   return (
     <div ref={ref} className="relative">
-      <button
-        type="button"
+      <FilterButton
         aria-haspopup="menu"
         aria-expanded={open}
+        active={active}
         onClick={() => setOpen((v) => !v)}
-        className={cn(
-          'inline-flex h-8 items-center gap-1.5 rounded-[10px] border px-3 text-xs font-medium transition-colors',
-          active
-            ? 'border-primary/30 bg-primary-light text-primary'
-            : 'border-line bg-card text-ink-muted hover:border-primary/20 hover:text-ink',
-        )}
       >
         <Tag className="h-3.5 w-3.5" />
         Labels
@@ -94,7 +89,7 @@ export function LabelFilter({ selected, onChange, onManage }: LabelFilterProps) 
           </span>
         )}
         <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')} />
-      </button>
+      </FilterButton>
 
       {open && (
         <div

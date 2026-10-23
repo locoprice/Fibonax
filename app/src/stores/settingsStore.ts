@@ -14,6 +14,8 @@ interface ProfilePatch {
   trigger_prompt_seq?: string;
   trigger_snippet_key?: ActivationKey;
   trigger_prompt_key?: ActivationKey;
+  trigger_auto_insert?: boolean;
+  trigger_auto_insert_seconds?: number;
   /** Unused-asset threshold in calendar months, 6-9 (INACTIVE-001). */
   inactivity_months?: number;
 }

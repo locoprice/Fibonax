@@ -31,6 +31,43 @@ When the mockup and a piece of shipped UI disagree, the mockup wins by default. 
 | `ink-muted`  | `#6E6E73` | Secondary text                               |
 | `ink-subtle` | `#6B6B70` | Tertiary text / hints (WCAG AA ≥4.5:1 on `card` / `bg` / `bg-alt`) |
 
+### Mobile Concept B: light page, navy home band (2026-10-23)
+
+Valentina chose the light Concept B mockup (`concept-b.html`, "B + A, Selected
+direction") on 2026-10-23, replacing the dark palette applied earlier that day.
+The page is light; only the home screen's top band is navy. Azure stays the one
+action color. These values apply only to `/mobile/`.
+
+| Mobile token | Hex | Usage |
+| --- | --- | --- |
+| `mobile-bg` | `#F8F9FC` | Page canvas |
+| `mobile-bg-alt` | `#F2F2F7` | Muted raised surfaces |
+| `mobile-card` | `#FFFFFF` | Cards, menus and input surfaces |
+| `mobile-line` | `#D7DCE8` | Borders and dividers |
+| `mobile-ink` | `#1C1C1E` | Primary text |
+| `mobile-muted` | `#596478` | Secondary text |
+| `mobile-subtle` | `#6B6B70` | Tertiary text and hints |
+| `mobile-primary-copy` | `#1B4FD8` | Azure text and icons |
+| `mobile-primary-border` | `#1B4FD8` | Focus rings and selected outlines |
+| `mobile-primary-bg` | `#EEF2FF` | Tinted Azure wells, chips and pinned cards |
+| `mobile-navy` | `#101C39` | Home band background |
+| `mobile-navy-soft` | `#203151` | Task cards on the home band |
+| `mobile-navy-line` | `#6B7C9C` | Task card borders on the home band |
+| `mobile-navy-copy` | `#C1CBE0` | Secondary text on the home band |
+| `mobile-warning` | `#D97706` | Warning text and indicators |
+| `mobile-warning-bg` | `#FFFBEB` | Warning surfaces |
+| `mobile-danger` | `#B42318` | Error text and indicators |
+| `mobile-danger-bg` | `#FEF2F2` | Error surfaces |
+
+The home screen follows the mockup, made quieter at Valentina's request: the
+band carries the wordmark, the account initials, **What's next?**, one white
+**Use a snippet** card and two plain links under it (**Prepare a prompt**,
+**Capture a note**). The mockup's workspace line and two-line intro are left
+out; the company shows in the footer logo. The app version and the month of the last update sit in the band under **Capture a note**, as a quiet pill and a mono date. Below the band: **Ready to reuse**
+with the first pinned snippet and prompt as cards, **Search snippets** and
+**Your Brains**. The bottom bar is white, and the active tab is Azure with a
+short bar under it.
+
 ### Primary (single — Azure)
 
 | Token          | Hex                    | Usage                                  |
@@ -179,6 +216,7 @@ automatic motion, interactive affordances or keyboard stops.
 | ----------- | ---------------------------------------------------------------- |
 | `shadow-sm` | `0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.04)`           |
 | `shadow-md` | `0 4px 20px rgba(27,79,216,.12), 0 1px 3px rgba(0,0,0,.06)`       |
+| `shadow-pill` | `0 1px 2px rgba(20,64,176,.35), 0 3px 8px rgba(27,79,216,.28), inset 0 1px 0 rgba(255,255,255,.28)` |
 
 ### Motion & overlay (added v2.97.0)
 
@@ -257,11 +295,29 @@ node scripts/sync-tooltip.js
 
 Keep the text short. Avada centres it inside 200 px, so a sentence or two reads well and a paragraph does not.
 
+### Count pill (dashboard sidebar)
+
+The number beside Snippets, Prompts, Brains, Team and Review: one component for every row, `app/src/components/layout/NavCountPill.tsx`. Shown while the count is above 0.
+
+| Part | Value |
+| --- | --- |
+| Size | 20 px tall (the status badge's height), 20 px wide at least, `r-pill`, 6 px side padding |
+| Type | 11 px semibold, tabular figures |
+| Page in view | `primary` to `primary-dark` gradient, top to bottom, white digits, `shadow-pill` |
+| Other pages | `card` fill, 1 px inset `line` ring, `ink-subtle` digits. While the row is hovered: `primary` digits and a `primary` ring at 40% |
+| Digits | Each digit is a strip of 0 to 9 that slides in a 14 px window: 600 ms, `cubic-bezier(.22,1,.36,1)`, each digit 45 ms after the one on its left. A number rolls up from 0 when its pill first appears, and slides again on every change |
+| Entrance | `fade-in`, 200 ms |
+| Light sweep | One pass of a soft white band over the pill, 800 ms, starting 350 ms after the row becomes the page in view (`count-sheen`) |
+| Reduced motion | No roll, no sweep, no entrance: the number shows at once, in the same box |
+| Screen readers | The digits are hidden and one line of text gives the number. A pill the row name does not explain says what it counts (Team: "6 shared folders"), and that line is also the shared Tooltip on hover, placed right |
+
+Motion is transform and opacity only, like the status badges.
+
 ## Surface-specific rules (v1.1)
 
 - **Dashboard topbar** spans the full width (60 px) above sidebar + main. Brand square (28 px, `--primary` solid) on the left.
 - **Master search bar** (SEARCH-001): the one text search on the dashboard, in the topbar between the brand and the status pill. `r-in` (10 px), 36 px tall, `bg-alt` at rest and `--card` on focus, capped at 360 px and allowed to shrink so a long company name never pushes the right-hand cluster off a 1024 px screen. It carries a ⌘K badge at rest and a clear cross once there is text. Typing filters the page in view; Enter or ⌘K opens the aggregated panel (560 px, `r-card`, `shadow-md`, results grouped Snippets / Prompts / Memory). The panel carries one control row under the input: **type chips** (`All`, the default, then `Snippets` / `Prompts` / `Brains`). There is no separate scope switch: a `<Section> only` scope gave the same answer as that section's chip, and the header bar already filters the page (or Brain) in view. The chips narrow what has already matched; they never change the matching rules, which live once in `searchIndex.ts`. Snippets, prompts and memory carry **no search box of their own**. A second one on a page is a defect, not a feature.
-- **Dashboard sidebar** active nav: `bg-primary-light` + 3 px primary left bar (painted via `::before`, reserved track so the row doesn't shift on toggle) + filled count pill (`bg-primary` + white text) when count > 0. Inactive count pill: `bg-bg-alt` + `ink-subtle`.
+- **Dashboard sidebar** active nav: `bg-primary-light` + 3 px primary left bar (painted via `::before`, reserved track so the row doesn't shift on toggle) + count pill when count > 0 (see Count pill).
 - **Dashboard sidebar, collapsed** (v3.29.0): the panel control on the WORKSPACE row folds the sidebar into a 64 px icon rail (65 px with its border), cloned from DeepL's. Rows keep their size and place: the label and count pill are clipped, not removed, so no icon moves on toggle and screen readers still read the label. Each icon names itself in a right-side tooltip, the company watermark hides, and the account menu keeps its open width over the canvas. The switch is instant and remembered per browser. It replaces the v3.8.0 hide and the v3.13.0 edge peek.
 - **Mobile home** is a single-scroll canvas. Gradient hero (`linear-gradient(160deg, #1B4FD8, #1440B0)`) → floating quick-action grid (overlaps hero by `-22 px`) → search → "All snippets" + Uber-style chips (white default, `#1C1C1E` bg when active) → snippet cards (`r-card-lg`, 14 px padding, 46 × 46 colored icon well per language family) → floating Apple/Revolut tab bar (`rgba(28,28,30,.92)` + blur 20).
 - **Extension popup** active folder: light-primary bg + 2 px primary left bar + **filled** azure count pill (not tinted). All Iris purples replaced with `#1B4FD8`.
@@ -343,6 +399,16 @@ The four local, content-hashed image assets live in `app/public/landing/assets/p
 
 ## Open follow-ups (intentional deviations from mockup)
 
+- **Mobile Concept B (light, chosen 2026-10-23):** `/mobile/` uses the light
+  palette and navy home band above. Only the home screen follows the mockup's
+  layout so far; the lists, the snippet page and Save to Brain keep their
+  layout in the new colors. Two mockup links point to pages mobile does not
+  have yet, so they stay honest: **All pinned** is **Browse** (pinned items
+  already sit at the top of the list), and **Find anything in your library** is
+  **Search snippets**. Keep the pinned work, bottom navigation, company logo,
+  version/update line in the Home band and Snippets/Prompts usage counts in place; Brains do
+  not show usage counts.
+
 - Mobile "Recently used" carousel: omitted from `app/public/mobile/index.html` until we track snippet `last_used_at`. Slot is reserved in the section layout.
 - Mobile bottom sheet: Use now / Copy text / Pin to top / Share… / info on snippets and prompts, the same pattern on Brains and their items. Share… goes through one `shareOut()` helper: the phone's Share menu, or a copy with a toast where there is none. On a snippet with fields it opens the snippet page first, so the text is filled in before it leaves.
 - Fill form typed values (v3.57.0): on all four fill surfaces (in-page overlay, including the `{{placeholder}}` box; popup detail; editor live preview; `/mobile/`) what the person types into a text or number box is **bold** (700) in the surface's full ink (`#18181B` overlay, `--sb-ink` popup, `text-ink` dashboard, `--text` mobile). The prose around the box stays muted and regular, and the placeholder stays regular, so an empty box never looks filled. Picked values keep their own look: dates (orange on mobile, azure in the overlay) and menu options (azure semibold when checked). On-screen only: inserted, copied and shared text is plain.
@@ -418,3 +484,26 @@ Date/time adjustment is named Options. The popup adapts the split to 320 px
 scroll panels; the dashboard preview can expand within its editor. Mobile has
 Fill in / Preview views and an untruncated result. Shared vanilla presentation
 is extension/shared/fill-form-ui.{js,css}; mobile copies are generated.
+
+
+### One filter bar for Prompts and Brains (v3.77.0)
+
+The card under the page header of Prompts and Brains is one component, `app/src/components/shared/AssetFilterBar.tsx`, with its chips, menus, Clear and Sort. Scope chips, filter menus and **Clear N filters** sit on the left; **Sort** and anything only one page has (the Brains **Trash**) sit on the right. A page fills the slots it has something for and leaves the rest out: Prompts has the folder chips and Strategy / Intent / Labels, Brains has the count and Contents / Updated. Nothing is restyled per page. The Snippets header keeps its own bar, by the owners' decision.
+
+- Chips are pills (`rounded-full`, 32 px) with the count in a small badge; menus and quiet actions are `FilterButton` (`rounded-[10px]`, 32 px). The active state is the same `primary-light` fill on both.
+- Every menu carries an icon, and a lit one names its filter and its value: **Strategy: CoT**, **Updated: Last 7 days**. The arrow keys walk a menu, Enter chooses, Esc closes it and puts focus back on its button.
+- The left side wraps onto further lines when it runs out of room; the right side stays beside the first line, so Sort never drops to a row of its own and never moves when a filter is applied. Every control has a visible keyboard focus ring.
+- Sort is the same three buttons as on Snippets (Name, Updated, and Usage or Items) with the same click rule (`app/src/lib/sortToggle.ts`). Pinned prompts and the default Brain stay first whichever column is chosen.
+- When filters hide everything, the empty state offers **Clear filters**. The gap between the bar and the content is 16 px (`gap-4`). Dashboard only: the phone and the extension keep their own surface conventions.
+
+
+### Language check in the snippet editor
+
+When a save would edit one language and leave the others with the old text, the editor says so while the text is being changed. No new tokens.
+
+| Part | Value |
+| --- | --- |
+| Language button | A 6 px `warning-deep` dot with a `card` ring replaces the blue dot on each language left behind. The button says why when pointed at, and its name carries it for screen readers: colour is never the only signal |
+| Notice | In the footer beside History and Delete: `warning-bg` fill, a 1 px `warning-deep` border at 30%, 12 px `ink` text, a `warning-deep` triangle. `ink` carries the sentence because `warning-deep` on `warning-bg` is too light for text. One line, cut with an ellipsis, the full sentence on hover |
+| Update link | `primary`, medium weight, for the first language that can be changed from this editor |
+| Save | The first click pauses and the button reads **Save anyway**; the notice border goes to 60% and the sentence ends "Save anyway to keep it." The second click saves. The pause resets when the languages left behind change |

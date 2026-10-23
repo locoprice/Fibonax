@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
+import type { BodyHistoryEntry } from '@/lib/languageSync';
 import type { SnippetBodies, SnippetRevision } from '@/types/database';
 
 // Live Supabase reads + writes for snippet revision history.
@@ -23,14 +24,20 @@ type DbRevision = {
   created_at: string;
 };
 
-function dbRevisionToRevision(r: DbRevision): SnippetRevision {
+/** The per-language texts of a stored `bodies` value, keeping only the filled slots. */
+function toBodies(raw: Record<string, unknown> | null): SnippetBodies {
   const bodies: SnippetBodies = {};
-  if (r.bodies && typeof r.bodies === 'object') {
+  if (raw && typeof raw === 'object') {
     for (const key of LANGS) {
-      const v = r.bodies[key];
+      const v = raw[key];
       if (typeof v === 'string' && v.length > 0) bodies[key] = v;
     }
   }
+  return bodies;
+}
+
+function dbRevisionToRevision(r: DbRevision): SnippetRevision {
+  const bodies = toBodies(r.bodies);
   return {
     id: r.id,
     snippet_id: r.snippet_id,
@@ -72,6 +79,11 @@ export interface RevisionsApi {
   /** Fetch all revisions for a snippet, newest first. */
   listRevisions(snippetId: string): Promise<SnippetRevision[]>;
   /**
+   * The text of every language at each save of a snippet, oldest first. Lighter
+   * than `listRevisions`: it leaves out titles, notes and editors.
+   */
+  listBodyHistory(snippetId: string): Promise<BodyHistoryEntry[]>;
+  /**
    * Atomically update the snippet and append a revision via the
    * `save_snippet_with_revision` Postgres function. Returns the new
    * version_number.
@@ -94,6 +106,17 @@ export const revisionsApi: RevisionsApi = {
       .order('version_number', { ascending: false });
     if (error) throw toApiError(error);
     return ((data ?? []) as DbRevision[]).map(dbRevisionToRevision);
+  },
+
+  async listBodyHistory(snippetId) {
+    const { data, error } = await supabase
+      .from('snippet_revisions')
+      .select('bodies, created_at')
+      .eq('snippet_id', snippetId)
+      .order('version_number', { ascending: true });
+    if (error) throw toApiError(error);
+    const rows = (data ?? []) as Array<{ bodies: Record<string, unknown> | null; created_at: string }>;
+    return rows.map((r) => ({ created_at: r.created_at, bodies: toBodies(r.bodies) }));
   },
 
   async saveWithRevision(snippetId, params, editNote) {

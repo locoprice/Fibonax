@@ -285,15 +285,23 @@ function sbApplyTriggerMetadata(meta) {
       promptTrigger:        cur.promptTrigger        || '"""',
       snippetActivationKey: cur.snippetActivationKey || 'Tab',
       promptActivationKey:  cur.promptActivationKey  || 'Tab',
-      selectionSuggestions: (typeof cur.selectionSuggestions === 'boolean') ? cur.selectionSuggestions : true,
-      autoCapitalize:       (typeof cur.autoCapitalize       === 'boolean') ? cur.autoCapitalize       : true
+      autoCapitalize:       (typeof cur.autoCapitalize       === 'boolean') ? cur.autoCapitalize       : true,
+      autoInsert:           (typeof cur.autoInsert           === 'boolean') ? cur.autoInsert           : false,
+      autoInsertSeconds:    (typeof cur.autoInsertSeconds    === 'number')  ? cur.autoInsertSeconds    : 2
     };
     if (typeof meta.trigger_snippet_seq === 'string' && meta.trigger_snippet_seq.trim()) next.snippetTrigger = meta.trigger_snippet_seq.trim();
     if (typeof meta.trigger_prompt_seq  === 'string' && meta.trigger_prompt_seq.trim())  next.promptTrigger  = meta.trigger_prompt_seq.trim();
     if (meta.trigger_snippet_key === 'Tab' || meta.trigger_snippet_key === 'Enter') next.snippetActivationKey = meta.trigger_snippet_key;
     if (meta.trigger_prompt_key  === 'Tab' || meta.trigger_prompt_key  === 'Enter') next.promptActivationKey  = meta.trigger_prompt_key;
+    // Automatic insert (AUTO-INSERT-001): off unless the account says true; the
+    // wait is whole seconds, 1-10, mirrored in app/src/lib/triggerUtils.ts.
+    if (typeof meta.trigger_auto_insert === 'boolean') next.autoInsert = meta.trigger_auto_insert;
+    if (typeof meta.trigger_auto_insert_seconds === 'number' && isFinite(meta.trigger_auto_insert_seconds)) {
+      next.autoInsertSeconds = Math.min(10, Math.max(1, Math.round(meta.trigger_auto_insert_seconds)));
+    }
     if (next.snippetTrigger !== cur.snippetTrigger || next.promptTrigger !== cur.promptTrigger ||
-        next.snippetActivationKey !== cur.snippetActivationKey || next.promptActivationKey !== cur.promptActivationKey) {
+        next.snippetActivationKey !== cur.snippetActivationKey || next.promptActivationKey !== cur.promptActivationKey ||
+        next.autoInsert !== !!cur.autoInsert || next.autoInsertSeconds !== (cur.autoInsertSeconds || 2)) {
       try { chrome.storage.local.set({ triggerCfg: next }); } catch(e) {}
     }
   });
