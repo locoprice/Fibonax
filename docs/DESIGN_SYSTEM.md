@@ -31,32 +31,39 @@ When the mockup and a piece of shipped UI disagree, the mockup wins by default. 
 | `ink-muted`  | `#6E6E73` | Secondary text                               |
 | `ink-subtle` | `#6B6B70` | Tertiary text / hints (WCAG AA ≥4.5:1 on `card` / `bg` / `bg-alt`) |
 
-### Mobile Concept B — selected dark palette (2026-10-23)
+### Mobile Concept B: light page, navy home band (2026-10-23)
 
-The approved mobile direction is Concept B in its dark presentation. It keeps the
-existing Azure brand action color and uses the dashboard's established dark
-neutral ramp. These values apply only to `/mobile/`; the harmonized mockup and
-other surfaces retain their current light defaults. Accent text and focus rings
-use the brighter activity-ramp values so they remain legible on dark surfaces.
+Valentina chose the light Concept B mockup (`concept-b.html`, "B + A, Selected
+direction") on 2026-10-23, replacing the dark palette applied earlier that day.
+The page is light; only the home screen's top band is navy. Azure stays the one
+action color. These values apply only to `/mobile/`.
 
 | Mobile token | Hex | Usage |
 | --- | --- | --- |
-| `mobile-bg` | `#1C1C1E` | Page canvas |
-| `mobile-bg-alt` | `#242428` | Muted raised surfaces |
-| `mobile-card` | `#2C2C2E` | Cards, menus and input surfaces |
-| `mobile-line` | `#3A3A3C` | Borders and dividers |
-| `mobile-ink` | `#F5F5F7` | Primary text |
-| `mobile-muted` | `#AEAEB2` | Secondary text |
-| `mobile-subtle` | `#9B9BA1` | Tertiary text and hints |
-| `mobile-primary-copy` | `#8FAEF6` | Azure text and icons on dark surfaces |
-| `mobile-primary-border` | `#6E96F0` | Focus rings and selected outlines |
-| `mobile-primary-bg` | `#1E3A6E` | Tinted Azure wells and chips |
-| `mobile-warning` | `#FBBF24` | Warning text and indicators |
-| `mobile-warning-bg` | `#3C2F15` | Warning surfaces |
-| `mobile-warning-badge` | `#FFFBEB` | Warning badge fill retained for cross-surface consistency |
-| `mobile-warning-badge-ink` | `#D97706` | Warning badge text |
-| `mobile-danger` | `#F87171` | Error text and indicators |
-| `mobile-danger-bg` | `#3B1D23` | Error surfaces |
+| `mobile-bg` | `#F8F9FC` | Page canvas |
+| `mobile-bg-alt` | `#F2F2F7` | Muted raised surfaces |
+| `mobile-card` | `#FFFFFF` | Cards, menus and input surfaces |
+| `mobile-line` | `#D7DCE8` | Borders and dividers |
+| `mobile-ink` | `#1C1C1E` | Primary text |
+| `mobile-muted` | `#596478` | Secondary text |
+| `mobile-subtle` | `#6B6B70` | Tertiary text and hints |
+| `mobile-primary-copy` | `#1B4FD8` | Azure text and icons |
+| `mobile-primary-border` | `#1B4FD8` | Focus rings and selected outlines |
+| `mobile-primary-bg` | `#EEF2FF` | Tinted Azure wells, chips and pinned cards |
+| `mobile-navy` | `#101C39` | Home band background |
+| `mobile-navy-soft` | `#203151` | Task cards on the home band |
+| `mobile-navy-line` | `#6B7C9C` | Task card borders on the home band |
+| `mobile-navy-copy` | `#C1CBE0` | Secondary text on the home band |
+| `mobile-warning` | `#D97706` | Warning text and indicators |
+| `mobile-warning-bg` | `#FFFBEB` | Warning surfaces |
+| `mobile-danger` | `#B42318` | Error text and indicators |
+| `mobile-danger-bg` | `#FEF2F2` | Error surfaces |
+
+The home screen follows the mockup: wordmark and account initials on the band,
+the company's workspace line, **What's next?** with three task cards (the first
+white), then **Ready to reuse** with the first pinned snippet and prompt as
+cards, **Search snippets** and **Your Brains**. The bottom bar is white, and the
+active tab is Azure with a short bar under it.
 
 ### Primary (single — Azure)
 
@@ -389,12 +396,15 @@ The four local, content-hashed image assets live in `app/public/landing/assets/p
 
 ## Open follow-ups (intentional deviations from mockup)
 
-- **Mobile Concept B dark palette (approved 2026-10-23):** `/mobile/` uses the
-  dark palette above, matching the user's selected Concept B. The older
-  harmonized mockup remains the light reference for other surfaces; this is a
-  mobile-only, intentional visual divergence. Keep the pinned work, bottom
-  navigation, company logo, version/update footer and Snippets/Prompts usage
-  counts in place; Brains do not show usage counts.
+- **Mobile Concept B (light, chosen 2026-10-23):** `/mobile/` uses the light
+  palette and navy home band above. Only the home screen follows the mockup's
+  layout so far; the lists, the snippet page and Save to Brain keep their
+  layout in the new colors. Two mockup links point to pages mobile does not
+  have yet, so they stay honest: **All pinned** is **Browse** (pinned items
+  already sit at the top of the list), and **Find anything in your library** is
+  **Search snippets**. Keep the pinned work, bottom navigation, company logo,
+  version/update footer and Snippets/Prompts usage counts in place; Brains do
+  not show usage counts.
 
 - Mobile "Recently used" carousel: omitted from `app/public/mobile/index.html` until we track snippet `last_used_at`. Slot is reserved in the section layout.
 - Mobile bottom sheet: Use now / Copy text / Pin to top / Share… / info on snippets and prompts, the same pattern on Brains and their items. Share… goes through one `shareOut()` helper: the phone's Share menu, or a copy with a toast where there is none. On a snippet with fields it opens the snippet page first, so the text is filled in before it leaves.

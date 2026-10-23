@@ -5,10 +5,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Fibonax">
-<meta name="theme-color" content="#1C1C1E">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#101C39">
+<meta name="color-scheme" content="light">
 <!-- Installed from the browser menu, the page becomes an app, and on Android
      that app is listed in every Share menu: the manifest's share_target opens
      /mobile/?title=…&text=…&url=…, which lands in Save to Brain. Its scope is
@@ -17,20 +17,21 @@
 <link rel="apple-touch-icon" href="/mobile/apple-touch-icon.png">
 <title>Fibonax</title>
 <style>
-/* ── CONCEPT B — approved dark mobile palette (see docs/DESIGN_SYSTEM.md) ── */
+/* ── CONCEPT B — light page, navy home band (see docs/DESIGN_SYSTEM.md) ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  color-scheme:dark;
-  --bg:#1C1C1E;--bg-alt:#242428;--card:#2C2C2E;
-  --primary:#1B4FD8;--primary-dk:#1440B0;--primary-lt:#1E3A6E;--primary-grad:#4F7FE8;
-  --primary-copy:#8FAEF6;--primary-border:#6E96F0;
-  --text:#F5F5F7;--text2:#AEAEB2;--text3:#9B9BA1;
-  --border:#3A3A3C;--success:#34C759;--danger:#F87171;
-  --warn-deep:#FBBF24;--warn-bg:#3C2F15;--warn-badge-bg:#FFFBEB;--warn-badge-ink:#D97706;
-  --danger-bg:#3B1D23;
+  color-scheme:light;
+  --bg:#F8F9FC;--bg-alt:#F2F2F7;--card:#FFFFFF;
+  --primary:#1B4FD8;--primary-dk:#1440B0;--primary-lt:#EEF2FF;--primary-grad:#4F7FE8;
+  --primary-copy:#1B4FD8;--primary-border:#1B4FD8;
+  --navy:#101C39;--navy-soft:#203151;--navy-line:#6B7C9C;--navy-copy:#C1CBE0;
+  --text:#1C1C1E;--text2:#596478;--text3:#6B6B70;
+  --border:#D7DCE8;--success:#34C759;--danger:#B42318;
+  --warn-deep:#D97706;--warn-bg:#FFFBEB;--warn-badge-bg:#FFFBEB;--warn-badge-ink:#D97706;
+  --danger-bg:#FEF2F2;
   --r:16px;--r-card:18px;--r-btn:14px;--r-in:10px;
-  --shadow-sm:0 1px 3px rgba(0,0,0,.22),0 4px 14px rgba(0,0,0,.14);
-  --shadow-md:0 8px 24px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.18);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04),0 4px 14px rgba(0,0,0,.04);
+  --shadow-md:0 8px 24px rgba(0,0,0,.10),0 1px 3px rgba(0,0,0,.04);
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace
 }
 body{
@@ -56,49 +57,105 @@ body{
 #view-home,#view-list{overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 
-/* Task-first home — three clear entry points, then the user's pinned work. */
-.home-main{padding:30px 20px 0}
-.home-kicker{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--primary-copy)}
-.home-title{margin-top:7px;font-size:30px;font-weight:750;letter-spacing:-1px;line-height:1.12;color:var(--text)}
-.home-intro{margin-top:8px;max-width:300px;font-size:14px;line-height:1.5;color:var(--text2)}
-.home-tasks{display:flex;flex-direction:column;gap:9px;margin-top:22px}
-.home-task{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 14px;
-  border:1px solid var(--border);border-radius:16px;background:var(--card);color:var(--text);
-  text-align:left;font-family:inherit;cursor:pointer;box-shadow:var(--shadow-sm);
-  -webkit-tap-highlight-color:transparent;transition:transform .12s,background .15s}
-.home-task:active{transform:scale(.985);background:var(--primary-lt)}
-.home-task:focus-visible,.home-search:focus-visible,.home-link:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
-.home-task-icon{width:40px;height:40px;flex:0 0 40px;border-radius:12px;background:var(--primary-lt);color:var(--primary-copy);
+/* Task-first home (Concept B): a navy band with the brand, the workspace and
+   three starting points, then the user's pinned work on the light page. */
+.home-main{display:flex;flex-direction:column}
+.home-band{position:relative;overflow:hidden;background:var(--navy);color:#fff;
+  padding:calc(18px + env(safe-area-inset-top)) 24px 26px}
+.home-top{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1}
+.home-wordmark{display:flex;align-items:center;gap:9px;font-size:21px;font-weight:750;letter-spacing:-.8px}
+.home-brandmark{width:24px;height:26px;flex:none;color:#B4C9FF;stroke:currentColor;fill:none;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-account{width:44px;height:44px;flex:none;border-radius:50%;border:1px solid #566784;background:#223251;
+  color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.home-account:active{background:var(--navy-soft)}
+.home-workspace{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11px;letter-spacing:.1px;
+  color:var(--navy-copy);position:relative;z-index:1}
+.home-dot{width:6px;height:6px;flex:none;border-radius:50%;background:#ADC4FF}
+.home-hero{position:relative;margin-top:29px}
+.home-orbit{position:absolute;width:122px;height:122px;right:-38px;top:-17px;opacity:.32;pointer-events:none;
+  stroke:#829BDD;stroke-width:1;fill:none}
+.home-title{position:relative;z-index:1;font-size:38px;font-weight:700;letter-spacing:-1.25px;line-height:1.08;color:#fff}
+.home-intro{position:relative;z-index:1;margin-top:10px;max-width:270px;font-size:15px;line-height:1.5;color:var(--navy-copy)}
+.home-tasks{display:grid;gap:10px;margin-top:24px;position:relative;z-index:1}
+.home-task{display:flex;align-items:center;gap:13px;width:100%;min-height:76px;padding:14px 16px;
+  border:1px solid var(--navy-line);border-radius:14px;background:var(--navy-soft);color:#fff;
+  text-align:left;font-family:inherit;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:transform .12s,background .15s,border-color .15s}
+.home-task:active{transform:scale(.985);border-color:#fff;background:#2B3E62}
+.home-task-icon{width:36px;height:36px;flex:0 0 36px;display:flex;align-items:center;justify-content:center;color:#B9CCFF}
+.home-task-icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-task-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.home-task-copy strong{font-size:16px;font-weight:650;letter-spacing:-.2px;line-height:1.3}
+.home-task-copy small{font-size:12px;line-height:1.4;color:#D4DBE9}
+.home-task-arrow{width:18px;height:18px;flex:0 0 18px;margin-left:auto}
+.home-task.is-primary{background:#fff;border-color:#fff;color:var(--navy)}
+.home-task.is-primary .home-task-icon{color:var(--primary)}
+.home-task.is-primary small{color:var(--text2)}
+.home-task.is-primary:active{background:var(--primary-lt)}
+.home-band :focus-visible{outline:2px solid #D8E3FF;outline-offset:2px}
+.home-body{padding:25px 24px 0}
+.home-body :focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
+.home-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.home-section-head h2{font-size:20px;font-weight:700;letter-spacing:-.5px;line-height:1.3;color:var(--text)}
+.home-browse{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:8px 0;border:0;background:none;
+  color:var(--primary);font-family:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.home-browse svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-pin-list{display:grid;gap:12px;margin-top:14px}
+.home-pin-card{display:flex;flex-direction:column;border:1px solid #C8D3F0;border-radius:16px;background:var(--primary-lt);overflow:hidden}
+.home-pin-body{display:block;width:100%;min-height:144px;padding:16px 20px 10px;border:0;background:none;
+  color:var(--text);text-align:left;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.home-pin-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.home-pin-eyebrow{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--primary-dk)}
+.home-pin-icons{display:flex;align-items:center;gap:5px}
+.home-pin-icon{position:relative;width:42px;height:44px;flex:none;border-radius:12px;background:#EBF0FD;color:var(--primary);
   display:flex;align-items:center;justify-content:center}
-.home-task-icon svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.home-task-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}
-.home-task-copy strong{font-size:14px;font-weight:700;line-height:1.25}
-.home-task-copy small{font-size:12px;line-height:1.3;color:var(--text2)}
-.home-task-arrow{width:16px;height:16px;flex:0 0 16px;color:var(--text3)}
-.home-section{margin-top:28px}
-.home-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-.home-section-head h2{font-size:17px;font-weight:700;letter-spacing:-.3px}
-.home-browse{border:0;background:none;color:var(--primary-copy);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:8px 0;min-height:40px}
-.home-pin-list{display:flex;flex-direction:column;gap:9px}
-.home-pin-card{display:flex;align-items:center;gap:11px;min-height:64px;padding:10px 12px;
-  border:1px solid var(--border);border-radius:16px;background:var(--card);box-shadow:var(--shadow-sm);color:var(--text);
-  text-align:left;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.home-pin-card:active{background:var(--primary-lt)}
-.home-pin-icon{position:relative;width:42px;height:42px;flex:0 0 42px;border-radius:12px;background:var(--primary-lt);color:var(--primary-copy);
-  display:flex;align-items:center;justify-content:center;font-size:19px}
-.home-pin-icon svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.home-pin-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
-.home-pin-copy strong{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.home-pin-copy small{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.home-pin-arrow{width:16px;height:16px;color:var(--text3);flex:0 0 16px}
+.home-pin-icon svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.home-pin-flag{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;color:var(--primary-dk)}
+.home-pin-flag svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.home-pin-title{display:block;font-size:19px;font-weight:700;letter-spacing:-.35px;line-height:1.4;overflow-wrap:anywhere}
+.home-pin-text{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  margin:7px 0 12px;font-size:14px;line-height:1.55;color:var(--text2);overflow-wrap:anywhere}
+.home-pin-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:3px 10px 8px 20px;border-top:1px solid #ECEDF2;background:#F9FAFF}
+.home-pin-action{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 0;border:0;background:none;
+  color:var(--primary);font-family:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.home-pin-action svg,.home-pin-more svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-pin-more{min-width:44px;min-height:44px;border:0;border-radius:12px;background:none;color:var(--text2);
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.home-pin-more svg{width:22px;height:22px}
+.home-pin-more:active{background:#E4E8F4}
 .home-empty{padding:16px;border:1px dashed var(--border);border-radius:14px;color:var(--text2);font-size:13px;line-height:1.5;background:var(--card)}
-.home-search{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;margin-top:18px;padding:0 14px;
-  border:1px solid var(--border);border-radius:14px;background:var(--card);color:var(--text2);font-family:inherit;font-size:14px;font-weight:500;
-  text-align:left;cursor:pointer;box-shadow:var(--shadow-sm)}
-.home-search svg{width:18px;height:18px;color:var(--primary-copy);stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.home-search .home-search-arrow{margin-left:auto;color:var(--text3)}
+.home-empty button{display:block;margin:6px auto 0;border:0;background:none;color:var(--primary);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:44px}
 .home-status{padding:12px 0;text-align:center;color:var(--text2);font-size:13px}
-.home-empty button{display:block;margin:6px auto 0;border:0;background:none;color:var(--primary-copy);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:44px}
+.home-search{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:50px;margin-top:22px;
+  padding:12px 15px;border:1px solid #9AA6BA;border-radius:12px;background:var(--card);color:var(--text2);
+  font-family:inherit;font-size:14px;text-align:left;cursor:pointer}
+.home-search span{display:flex;align-items:center;gap:10px}
+.home-search svg{width:19px;height:19px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-brains{display:flex;align-items:center;gap:12px;width:100%;min-height:76px;margin-top:18px;padding:16px;
+  border:0;border-radius:14px;background:var(--primary-lt);color:var(--navy);font-family:inherit;text-align:left;cursor:pointer}
+.home-brains svg{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-brains strong{display:block;font-size:15px;font-weight:700}
+.home-brains small{display:block;margin-top:3px;font-size:12px;color:var(--text2)}
+.home-brains .home-brains-arrow{width:18px;height:18px;margin-left:auto}
+@media(min-width:700px){
+  .home-band{padding-left:40px;padding-right:40px}
+  .home-title{font-size:44px}
+  .home-intro{max-width:460px}
+  .home-orbit{width:170px;height:170px;right:30px;top:-13px}
+  .home-body{padding:30px 40px 0}
+  .home-pin-list{grid-template-columns:1fr 1fr}
+}
+@media(max-width:350px){
+  .home-band{padding-left:18px;padding-right:18px}
+  .home-body{padding-left:18px;padding-right:18px}
+  .home-title{font-size:34px}
+  .home-task{padding:12px;gap:9px}
+  .home-task-copy strong{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){.home-task{transition:none}.home-task:active{transform:none}}
 
 /* ── GRADIENT HERO ───────────────────────────── */
 .mhero{
@@ -290,7 +347,7 @@ body{
   gap:8px;flex-wrap:wrap;max-width:100%}
 .mpage-footer-brand{display:flex;align-items:center;gap:8px;min-width:0}
 .mpage-footer-logo-chip{display:inline-flex;align-items:center;flex-shrink:0;
-  background:#fff;border:1px solid rgba(255,255,255,.7);border-radius:9999px;
+  background:var(--card);border:1px solid var(--border);border-radius:9999px;
   padding:4px 12px;box-shadow:var(--shadow-sm)}
 .mpage-footer-logo{max-height:18px;max-width:120px;display:block;object-fit:contain}
 .mpage-footer-company{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.05px;
@@ -320,9 +377,9 @@ body{
   background:linear-gradient(158deg,var(--card) 0%,var(--primary-lt) 100%);
   color:var(--primary-copy);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  border:1px solid var(--border);
+  border:1px solid rgba(27,79,216,.10);
   box-shadow:0 4px 8px rgba(27,79,216,.16),
-    0 1px 0 rgba(255,255,255,.08) inset,
+    0 1px 0 rgba(255,255,255,.95) inset,
     0 -3px 6px rgba(27,79,216,.08) inset;
   transition:transform .14s,box-shadow .14s,background .14s,color .14s
 }
@@ -348,7 +405,7 @@ body{
   width:100%;background:var(--card);border:1px solid var(--border);
   border-radius:12px;padding:10px 14px 10px 38px;font-size:15px;
   color:var(--text);outline:none;font-family:inherit;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23AEAEB2' stroke-width='2.2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23596478' stroke-width='2.2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:12px center;
   transition:border-color .15s
 }
@@ -511,7 +568,7 @@ body{
   -webkit-tap-highlight-color:transparent;
   transition:background .15s;user-select:none
 }
-.snip-menu:active{background:rgba(255,255,255,.08)}
+.snip-menu:active{background:rgba(0,0,0,.06)}
 .snip-menu:focus-visible{outline:2px solid var(--primary-border);outline-offset:-2px}
 
 /* Pinned flag — a marker, not a control: rendered only on pinned rows, azure
@@ -543,31 +600,36 @@ body{
   left:50%;transform:translateX(-50%);
   display:flex;
   width:min(430px,calc(100% - 24px));
-  background:rgba(16,16,18,.9);
+  background:rgba(255,255,255,.98);
   backdrop-filter:blur(28px) saturate(180%);
   -webkit-backdrop-filter:blur(28px) saturate(180%);
+  border:1px solid var(--border);
   border-radius:22px;padding:6px 7px;gap:2px;
-  box-shadow:0 8px 32px rgba(0,0,0,.36),0 0 0 0.5px rgba(255,255,255,.08);
+  box-shadow:0 8px 32px rgba(16,28,57,.12);
   z-index:51;align-items:center;justify-content:space-between
 }
 .mtab-item{
-  min-width:0;flex:1;height:50px;border-radius:15px;
+  position:relative;min-width:0;flex:1;height:50px;border-radius:15px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  color:rgba(255,255,255,.62);cursor:pointer;
+  color:var(--text2);cursor:pointer;
   -webkit-tap-highlight-color:transparent;border:none;background:transparent;
   font-family:inherit;transition:color .2s,background .2s
 }
-.mtab-item.on{background:rgba(255,255,255,.12);color:#fff}
+/* The active tab is blue with a short bar under it: the mockup's marker, so
+   the current page never rests on colour alone. */
+.mtab-item.on{color:var(--primary);font-weight:700}
+.mtab-item.on::after{content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+  width:20px;height:3px;border-radius:4px;background:var(--primary)}
 .mtab-item:active{opacity:.6}
-.mtab-item:focus-visible,.mtab-home:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.mtab-item:focus-visible,.mtab-home:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .mtab-item svg{width:18px;height:18px;display:block;flex:0 0 18px}
 .mtab-label{font-size:10px;font-weight:600;line-height:1.1;white-space:nowrap;letter-spacing:.05px}
 .mtab-home{
-  width:48px;height:50px;flex:0 0 48px;border:0;border-radius:15px;background:transparent;color:#fff;
+  width:48px;height:50px;flex:0 0 48px;border:0;border-radius:15px;background:transparent;color:var(--text2);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;
   font-family:inherit;-webkit-tap-highlight-color:transparent
 }
-.mtab-home.on{background:#fff;color:var(--primary)}
+.mtab-home.on{background:var(--primary-lt);color:var(--primary)}
 .mtab-home:active{opacity:.75}
 .mtab-brand-img{
   width:22px;height:22px;object-fit:contain;display:block;
@@ -775,7 +837,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
    phone has a Share menu, and Copy takes the whole row where it has none. */
 .copy-foot{position:fixed;bottom:0;left:0;right:0;display:flex;gap:8px;
   padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
-  background:rgba(28,28,30,.92);backdrop-filter:blur(12px);
+  background:rgba(248,249,252,.92);backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:40}
 .foot-btn{flex:1 1 0;min-width:0;background:var(--primary);color:#fff;
   border:1px solid transparent;
@@ -1214,7 +1276,7 @@ svg.brain-type-icon{stroke-width:1.8}
   display:none;align-items:center;justify-content:center;padding:0;
   -webkit-tap-highlight-color:transparent;transition:background .15s
 }
-.psearch-clear:active{background:rgba(255,255,255,.08)}
+.psearch-clear:active{background:rgba(0,0,0,.06)}
 .psearch-wrap.has-text .psearch-clear{display:flex}
 .psearch-wrap.has-text input{padding-right:40px}
 .psearch-meta{
@@ -1239,7 +1301,7 @@ svg.brain-type-icon{stroke-width:1.8}
   padding:0;border-radius:50%;-webkit-tap-highlight-color:transparent;
   transition:background .15s;user-select:none
 }
-.prompt-menu:active{background:rgba(255,255,255,.08)}
+.prompt-menu:active{background:rgba(0,0,0,.06)}
 .prompt-menu:focus-visible{outline:2px solid var(--primary-border);outline-offset:-2px}
 
 /* ── EMPTY-STATE SUGGESTIONS ── */
@@ -1397,49 +1459,68 @@ svg.brain-type-icon{stroke-width:1.8}
 <!-- TASK-FIRST HOME -->
 <div id="view-home" class="view">
   <main class="home-main" aria-labelledby="home-title">
-    <p class="home-kicker">Your workspace</p>
-    <h1 class="home-title" id="home-title">What’s next?</h1>
-    <p class="home-intro">Choose a starting point and get straight to work.</p>
+    <div class="home-band">
+      <div class="home-top">
+        <span class="home-wordmark"><svg class="home-brandmark" viewBox="0 0 24 28" aria-hidden="true"><path d="M2 3h8l2 3 2-3h8M4 6h5l3 4 3-4h5M7 9h2l3 5 3-5h2M12 6v19M9 12v11M15 12v11"/></svg>Fibonax</span>
+        <button class="home-account" type="button" id="home-account" data-home-action="account" aria-label="Open your account">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        </button>
+      </div>
+      <p class="home-workspace"><span class="home-dot" aria-hidden="true"></span><span id="home-workspace">Your workspace</span></p>
 
-    <div class="home-tasks" role="group" aria-label="Start a task">
-      <button class="home-task" type="button" data-home-action="snippets">
-        <span class="home-task-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>
-        </span>
-        <span class="home-task-copy"><strong>Use a snippet</strong><small>Find, personalize, and copy</small></span>
-        <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button class="home-task" type="button" data-home-action="prompts">
-        <span class="home-task-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>
-        </span>
-        <span class="home-task-copy"><strong>Prepare a prompt</strong><small>Copy clear instructions for any AI</small></span>
-        <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <button class="home-task" type="button" data-home-action="capture">
-        <span class="home-task-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-        </span>
-        <span class="home-task-copy"><strong>Save text to a Brain</strong><small>Keep useful context close</small></span>
-        <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <div class="home-hero">
+        <svg class="home-orbit" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="55"/><circle cx="60" cy="60" r="39"/><circle cx="60" cy="60" r="23"/><path d="M5 60h110M60 5v110"/></svg>
+        <h1 class="home-title" id="home-title">What’s next?</h1>
+        <p class="home-intro">Your words. Your context.<br>Ready for the task ahead.</p>
+
+        <div class="home-tasks" role="group" aria-label="Start a task">
+          <button class="home-task is-primary" type="button" data-home-action="snippets">
+            <span class="home-task-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>
+            </span>
+            <span class="home-task-copy"><strong>Use a snippet</strong><small>Find, personalize, and copy</small></span>
+            <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="home-task" type="button" data-home-action="prompts">
+            <span class="home-task-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>
+            </span>
+            <span class="home-task-copy"><strong>Prepare a prompt</strong><small>Take good instructions to any AI</small></span>
+            <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="home-task" type="button" data-home-action="capture">
+            <span class="home-task-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></svg>
+            </span>
+            <span class="home-task-copy"><strong>Capture a note</strong><small>Save something useful to a Brain</small></span>
+            <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <section class="home-section" aria-labelledby="home-pinned-title">
-      <div class="home-section-head">
-        <h2 id="home-pinned-title">Ready to reuse</h2>
-        <button class="home-browse" type="button" data-home-action="snippets">Browse</button>
-      </div>
-      <div class="home-pin-list" id="home-pinned-list" aria-live="polite">
-        <div class="home-status">Loading your pinned items…</div>
-      </div>
-    </section>
+    <div class="home-body">
+      <section aria-labelledby="home-pinned-title">
+        <div class="home-section-head">
+          <h2 id="home-pinned-title">Ready to reuse</h2>
+          <button class="home-browse" type="button" data-home-action="snippets">Browse <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>
+        </div>
+        <div class="home-pin-list" id="home-pinned-list" aria-live="polite">
+          <div class="home-status">Loading your pinned items…</div>
+        </div>
+      </section>
 
-    <button class="home-search" type="button" data-home-action="search">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
-      <span>Search snippets</span>
-      <svg class="home-search-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+      <button class="home-search" type="button" data-home-action="search">
+        <span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>Search snippets</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      </button>
+
+      <button class="home-brains" type="button" data-home-action="brains">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>
+        <span><strong>Your Brains</strong><small>Read, copy, or add to your context</small></span>
+        <svg class="home-brains-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      </button>
+    </div>
   </main>
 
   <div class="mpage-footer">
@@ -6792,19 +6873,42 @@ function esc(s){
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function homePinnedCardHtml(kind,item,count,groupKeyValue){
+/* The card's text: a prompt's opening lines, or a snippet's body with each
+   field shown as an ellipsis, since nothing is filled in yet. */
+function homePinnedPreview(kind,item){
+  var raw=kind==='snippet'
+    ?String(item.body||'').replace(/\{[^{}]*\}/g,'…')
+    :String(item.content||'').replace(/^##\s+\w+\n/gm,'');
+  var text=raw.replace(/\s+/g,' ').trim();
+  return text.length>160?text.slice(0,160)+'…':text;
+}
+var HOME_ARROW_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>';
+var HOME_COPY_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V3H3v13h5"/></svg>';
+var HOME_MORE_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
+function homePinnedCardHtml(kind,item,count,variantCount){
   var isSnippet=kind==='snippet';
   var title=item.title||item.name||'Untitled';
-  var detail=isSnippet?(item.shortcut||'Ready to copy'):(item.strategy_type||'Ready to copy');
-  var action=isSnippet?'Use snippet ':'Copy prompt ';
-  var icon=isSnippet?SNIPPET_SVG:PROMPT_SVG;
-  return '<button type="button" class="home-pin-card" data-home-type="'+kind+'" data-home-id="'+esc(item.id)+'"'
-    +(groupKeyValue?' data-home-group="'+esc(groupKeyValue)+'"':'')
-    +' aria-label="'+esc(action+title+', used '+formatUsageCount(count)+' times')+'">'
-    +'<span class="home-pin-icon" aria-hidden="true">'+icon+usageBadgeHtml(count,kind)+'</span>'
-    +'<span class="home-pin-copy"><strong>'+esc(title)+'</strong><small>'+esc(detail)+'</small></span>'
-    +'<svg class="home-pin-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-    +'</button>';
+  // A snippet that needs filling in, or a language picked, opens first.
+  var opens=isSnippet&&(variantCount>1||extractFields(item.body||'').length>0);
+  var action=!isSnippet?'Copy prompt':opens?'Fill & copy':'Copy text';
+  var label=(opens?'Fill and copy ':'Copy ')+title+', used '+formatUsageCount(count)+' times';
+  var attrs=' data-home-type="'+kind+'" data-home-id="'+esc(item.id)+'"';
+  var preview=homePinnedPreview(kind,item);
+  return '<article class="home-pin-card">'
+    +'<button type="button" class="home-pin-body"'+attrs+' aria-label="'+esc(label)+'">'
+      +'<span class="home-pin-top"><span class="home-pin-eyebrow">Pinned '+kind+'</span>'
+        +'<span class="home-pin-icons" aria-hidden="true">'
+          +'<span class="home-pin-icon">'+(isSnippet?SNIPPET_SVG:PROMPT_SVG)+usageBadgeHtml(count,kind)+'</span>'
+          +'<span class="home-pin-flag">'+PIN_SVG+'</span>'
+        +'</span></span>'
+      +'<span class="home-pin-title">'+esc(title)+'</span>'
+      +(preview?'<span class="home-pin-text">'+esc(preview)+'</span>':'')
+    +'</button>'
+    +'<div class="home-pin-foot">'
+      +'<button type="button" class="home-pin-action"'+attrs+' tabindex="-1" aria-hidden="true">'+(opens?HOME_ARROW_SVG:HOME_COPY_SVG)+esc(action)+'</button>'
+      +'<button type="button" class="home-pin-more" data-home-menu="'+kind+'" data-home-id="'+esc(item.id)+'" aria-label="More actions for '+esc(title)+'">'+HOME_MORE_SVG+'</button>'
+    +'</div>'
+  +'</article>';
 }
 function renderHome(){
   var slot=document.getElementById('home-pinned-list');
@@ -6818,14 +6922,14 @@ function renderHome(){
     var group=groups[i];
     if(!pinnedKeys[group.key])continue;
     var active=pickActiveVariant(group,'ALL','ALL');
-    html.push(homePinnedCardHtml('snippet',active,snippetGroupUsage(group),group.key));
+    html.push(homePinnedCardHtml('snippet',active,snippetGroupUsage(group),group.variants.length));
     break;
   }
   var pinnedPrompt=null;
   for(var j=0;j<allPrompts.length;j++){
     if(allPrompts[j].pinned){pinnedPrompt=allPrompts[j];break;}
   }
-  if(pinnedPrompt)html.push(homePinnedCardHtml('prompt',pinnedPrompt,Number(pinnedPrompt.usage_count)||0,''));
+  if(pinnedPrompt)html.push(homePinnedCardHtml('prompt',pinnedPrompt,Number(pinnedPrompt.usage_count)||0,1));
   if(html.length){
     slot.innerHTML=html.join('');
   }else if(snipsFailed||promptsFailed){
@@ -11246,6 +11350,8 @@ document.addEventListener('keydown',function(e){
       var name=action.getAttribute('data-home-action');
       if(name==='snippets')showList();
       else if(name==='prompts')showPrompts();
+      else if(name==='brains')showMemory();
+      else if(name==='account')openProfileSheet();
       else if(name==='capture'){
         showMemory();
         openCapture(capFromShare('','',''));
@@ -11256,6 +11362,12 @@ document.addEventListener('keydown',function(e){
         snipsFailed=false;promptsFailed=false;
         loadSnips();loadPrompts();renderHome();
       }
+      return;
+    }
+    var menu=e.target.closest('[data-home-menu]');
+    if(menu){
+      if(menu.getAttribute('data-home-menu')==='prompt')openPromptSheet(menu.getAttribute('data-home-id'));
+      else openBottomSheet(menu.getAttribute('data-home-id'));
       return;
     }
     var card=e.target.closest('[data-home-type]');
@@ -11524,8 +11636,23 @@ function applyCompanyBrand(){
     row.classList.remove('sb-hidden');
   });
 }
+/* Home's band: the account button carries the person's initials, the line
+   under the wordmark names their company's workspace. Same name sources as the
+   profile sheet and the footer brand. */
+function applyHomeHeader(){
+  var u=SESSION&&SESSION.user;
+  var meta=(u&&u.user_metadata)||{};
+  var email=(u&&u.email)||'';
+  var name=(meta.display_name||meta.full_name||meta.name||'').trim();
+  var initials=profileInitials(name,email);
+  var btn=document.getElementById('home-account');
+  if(btn&&initials!=='👤')btn.textContent=initials;
+  var company=typeof meta.company_name==='string'?meta.company_name.trim():'';
+  var ws=document.getElementById('home-workspace');
+  if(ws)ws.textContent=company?company+' workspace':'Your workspace';
+}
 if(requireAuth()){
-  applyHeroName();applyCompanyBrand();showHome();loadSnips();sbCheckAlive();
+  applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();
   captureResume();
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible')sbCheckAlive();
