@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
 import type { ActivationKey, NotionSyncState, Profile } from '@/types/database';
-import { DEFAULT_TRIGGER_CONFIG } from '@/lib/triggerUtils';
+import { clampAutoInsertSeconds, DEFAULT_TRIGGER_CONFIG } from '@/lib/triggerUtils';
 import { clampMonths } from '@/lib/inactivity';
 import {
   AVATAR_BUCKET,
@@ -35,6 +35,9 @@ export interface ProfilePatch {
   trigger_prompt_seq?: string;
   trigger_snippet_key?: ActivationKey;
   trigger_prompt_key?: ActivationKey;
+  /** Automatic insert (AUTO-INSERT-001): on or off, and the wait in seconds. */
+  trigger_auto_insert?: boolean;
+  trigger_auto_insert_seconds?: number;
   /**
    * Calendar months of silence before the unused-asset banner names an asset
    * (INACTIVE-001). Lives here rather than in local storage for the same reason
@@ -99,6 +102,11 @@ function pickActivationKey(
   return v === 'Tab' || v === 'Enter' ? v : 'Tab';
 }
 
+/** Read the automatic-insert switch; anything but a real boolean means off. */
+function pickAutoInsert(metadata: Record<string, unknown> | undefined): boolean {
+  return metadata?.['trigger_auto_insert'] === true;
+}
+
 function pickCompanyName(metadata: Record<string, unknown> | undefined): string {
   const v = metadata?.['company_name'];
   return typeof v === 'string' ? v.trim() : '';
@@ -125,6 +133,8 @@ function userToProfile(u: { id: string; email?: string | null; user_metadata?: R
     trigger_prompt_seq:  pickTriggerSeq(meta, 'trigger_prompt_seq',  DEFAULT_TRIGGER_CONFIG.promptTrigger),
     trigger_snippet_key: pickActivationKey(meta, 'trigger_snippet_key'),
     trigger_prompt_key:  pickActivationKey(meta, 'trigger_prompt_key'),
+    trigger_auto_insert: pickAutoInsert(meta),
+    trigger_auto_insert_seconds: clampAutoInsertSeconds(meta?.['trigger_auto_insert_seconds']),
     company_name: pickCompanyName(meta),
     company_logo_url: pickHttpsUrl(meta, 'company_logo_url'),
     avatar_url: pickHttpsUrl(meta, 'avatar_url'),
@@ -249,6 +259,12 @@ export const settingsApi: SettingsApi = {
     if (patch.trigger_prompt_seq  !== undefined) next['trigger_prompt_seq']  = patch.trigger_prompt_seq;
     if (patch.trigger_snippet_key !== undefined) next['trigger_snippet_key'] = patch.trigger_snippet_key;
     if (patch.trigger_prompt_key  !== undefined) next['trigger_prompt_key']  = patch.trigger_prompt_key;
+    if (patch.trigger_auto_insert !== undefined) next['trigger_auto_insert'] = patch.trigger_auto_insert;
+    // Clamped on write too: the extension reads this number as a wait, and a
+    // value outside 1-10 must never reach it.
+    if (patch.trigger_auto_insert_seconds !== undefined) {
+      next['trigger_auto_insert_seconds'] = clampAutoInsertSeconds(patch.trigger_auto_insert_seconds);
+    }
     // Clamped on write as well as on read: the control offers 6-9, and a value
     // outside that range must never reach the extension's copy of this rule.
     if (patch.inactivity_months !== undefined) next['inactivity_months'] = clampMonths(patch.inactivity_months);

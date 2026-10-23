@@ -52,7 +52,7 @@ CI runs all three on every push to `develop`.
 | Where the extension runs | `content.js` field detection | `integrations/supported-sites` |
 | Notion sync | `NotionSyncPanel.tsx`, `extension/services/notion-sync/notion-sync.js` | `integrations/notion-sync` |
 | Account, branding, unused months, Santo del Giorno switch, dashboard footer (saint of the day, days to Christmas), delete account | `app/src/features/settings/{AccountPanel,BrandingPanel,InactivityPanel,SaintOfDayPanel,DeleteAccountPanel}.tsx`, `services/supabase/functions/delete-account/`, `app/src/components/layout/{SaintOfDay,ChristmasCountdown}.tsx` | `settings/account` |
-| Triggers | `InlineTriggerPanel.tsx`, `extension/auth/auth.js` | `settings/triggers` |
+| Triggers, Insert automatically | `InlineTriggerPanel.tsx`, `AutoInsertPanel.tsx`, `extension/auth/auth.js` | `settings/triggers` |
 | Password, devices, login activity | `app/src/features/settings/{PasswordPanel,SecurityPanel}.tsx` | `settings/security` |
 | Analytics | `app/src/routes/AnalyticsPage.tsx`, `app/src/features/analytics/`, `app/src/lib/api/analyticsApi.ts` | `settings/analytics` |
 | Overviews | | `index`, `introduction`, `text-snippets/overview`, `prompts/overview` |

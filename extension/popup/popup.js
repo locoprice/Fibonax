@@ -272,7 +272,10 @@ var inaState    = null;   // null until storage resolves; the notice stays hidde
 var inaIndex    = 0;      // which stale asset the strip is showing
 
 // TRIGGER CONFIGURATION — cached in chrome.storage.local, owned by user_metadata
-var triggerCfg = { snippetTrigger: '::', promptTrigger: '"""', snippetActivationKey: 'Tab', promptActivationKey: 'Tab', selectionSuggestions: true, autoCapitalize: true };
+// autoInsert / autoInsertSeconds are owned by the dashboard (AUTO-INSERT-001); the
+// popup carries them only so saveTriggerCfg, which writes this whole object, never
+// drops them from the cache content.js reads.
+var triggerCfg = { snippetTrigger: '::', promptTrigger: '"""', snippetActivationKey: 'Tab', promptActivationKey: 'Tab', selectionSuggestions: true, autoCapitalize: true, autoInsert: false, autoInsertSeconds: 2 };
 
 function loadTriggerCfg(cb) {
   try {
@@ -284,6 +287,8 @@ function loadTriggerCfg(cb) {
         if (d.triggerCfg.promptActivationKey) triggerCfg.promptActivationKey = d.triggerCfg.promptActivationKey;
         if (typeof d.triggerCfg.selectionSuggestions === 'boolean') triggerCfg.selectionSuggestions = d.triggerCfg.selectionSuggestions;
         if (typeof d.triggerCfg.autoCapitalize === 'boolean') triggerCfg.autoCapitalize = d.triggerCfg.autoCapitalize;
+        if (typeof d.triggerCfg.autoInsert === 'boolean') triggerCfg.autoInsert = d.triggerCfg.autoInsert;
+        if (typeof d.triggerCfg.autoInsertSeconds === 'number') triggerCfg.autoInsertSeconds = d.triggerCfg.autoInsertSeconds;
       }
       if (cb) cb();
     });

@@ -109,10 +109,39 @@ export function sanitizeTriggerInput(value: string): string {
     .slice(0, TRIGGER_MAX_LENGTH);
 }
 
+// ── Automatic insert (AUTO-INSERT-001) ───────────────────────────────────────
+// Off until the person turns it on. When on, a trigger plus a few letters that
+// leave one snippet standing inserts it after a wait they choose, with the menu
+// open meanwhile. MIRRORED in extension/content/content.js (`_autoInsertSeconds`)
+// and extension/auth/auth.js (`sbApplyTriggerMetadata`); change all three together.
+
+export const AUTO_INSERT_MIN_SECONDS = 1;
+export const AUTO_INSERT_MAX_SECONDS = 10;
+export const AUTO_INSERT_DEFAULT_SECONDS = 2;
+
+/**
+ * Whole seconds between AUTO_INSERT_MIN_SECONDS and AUTO_INSERT_MAX_SECONDS.
+ * Anything that is not a number falls back to the default, so a bad value in
+ * user_metadata can never become "insert at once".
+ */
+export function clampAutoInsertSeconds(value: unknown): number {
+  // Number(null) and Number('') are 0, which would clamp to the shortest wait.
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : Number.NaN;
+  if (!Number.isFinite(n)) return AUTO_INSERT_DEFAULT_SECONDS;
+  return Math.min(AUTO_INSERT_MAX_SECONDS, Math.max(AUTO_INSERT_MIN_SECONDS, Math.round(n)));
+}
+
 /** Canonical defaults, matching the extension popup's initial triggerCfg. */
 export const DEFAULT_TRIGGER_CONFIG = {
   snippetTrigger: '::',
   promptTrigger: '"""',
   snippetActivationKey: 'Tab' as ActivationKey,
   promptActivationKey: 'Tab' as ActivationKey,
+  autoInsert: false,
+  autoInsertSeconds: AUTO_INSERT_DEFAULT_SECONDS,
 } as const;

@@ -95,7 +95,7 @@ var snippets = DEFAULT_SNIPPETS.slice();
 // library apart from a signed-out one and say which it is.
 var hasSession = false;
 var trigger  = '::';
-var triggerCfg = { snippetTrigger: '::', promptTrigger: '"""', snippetActivationKey: 'Tab', promptActivationKey: 'Tab', selectionSuggestions: true, autoCapitalize: true };
+var triggerCfg = { snippetTrigger: '::', promptTrigger: '"""', snippetActivationKey: 'Tab', promptActivationKey: 'Tab', selectionSuggestions: true, autoCapitalize: true, autoInsert: false, autoInsertSeconds: 2 };
 var lastInputTime = 0; // debounce: prevents keydown + input event double-fire on desktop
 var isPasting = false; // guards against paste events feeding the trigger buffer
 
@@ -224,6 +224,7 @@ try {
         if (typeof data.triggerCfg.autoCapitalize === 'boolean') {
           triggerCfg.autoCapitalize = data.triggerCfg.autoCapitalize;
         }
+        _readAutoInsertCfg(data.triggerCfg);
       }
     } catch(e) {}
   });
@@ -273,6 +274,8 @@ try {
         if (typeof nc.autoCapitalize === 'boolean') {
           triggerCfg.autoCapitalize = nc.autoCapitalize;
         }
+        _readAutoInsertCfg(nc);
+        if (!triggerCfg.autoInsert) _cancelPickerAuto();
       }
       if (changes[SBInteractiveSteps.KEY]) interactiveStepsOn = SBInteractiveSteps.isOn(changes[SBInteractiveSteps.KEY].newValue);
     } catch(e) {}
@@ -441,21 +444,12 @@ function checkBuf() {
     }
   }
 
-  // Unique-prefix expansion (v2.148.2): the trigger plus the first letters of a
-  // shortcut expands on its own, as long as only one snippet can still be meant
-  // — "::neo" is enough for NEO BOOKING. An exact match always wins (the loop
-  // above returns first), so "::form" still reaches ::form and never ::forms.
-  // Ambiguous prefixes expand nothing and fall through to the suggestion menu,
-  // where the user picks. Safe only because a match settles before it fires: the
-  // prefix is re-evaluated on every further letter.
-  var typedAfter = _typedAfterTrigger(buf, snippetTrigger);
-  if (typedAfter && typedAfter.length >= MIN_PREFIX_CHARS) {
-    var only = _uniquePrefixSnippet(typedAfter, snippetTrigger);
-    if (only) {
-      _armMatch(only, snippetTrigger.length + typedAfter.length, activeEl);
-      return;
-    }
-  }
+  // A prefix that is not a whole shortcut ("::neo") never expands from here: it
+  // opens the suggestion menu like any other partial trigger. Inserting it on
+  // its own is the opt-in "Insert automatically" setting, and it runs from the
+  // menu (see _armPickerAuto) so the list is on screen for the whole wait. Until
+  // v3.76.0 this branch armed the unique match and inserted it 350ms later,
+  // before anyone could read the menu.
 
   // Check configurable snippet trigger (e.g. ::) — debounced pending state
   var snippetSeq = triggerCfg.snippetTrigger || '::';
@@ -515,20 +509,30 @@ function checkBuf() {
 }
 
 // ── UNIQUE-PREFIX MATCHING ───────────────────────────────────────────
-// Typing the whole shortcut is not required: the trigger plus enough letters to
-// leave one candidate standing expands it. Three letters is the floor — two is
-// short enough to fire while the user is still deciding what to type, and in a
-// growing library a two-letter opening rarely stays unambiguous for long.
+// With "Insert automatically" on (Settings, AUTO-INSERT-001), typing the whole
+// shortcut is not required: the trigger plus enough letters to leave one
+// candidate standing is inserted after the wait the person chose. Three letters
+// is the floor — two is short enough to fire while the user is still deciding
+// what to type, and in a growing library a two-letter opening rarely stays
+// unambiguous for long. Off by default: the menu waits for Tab or Enter.
 var MIN_PREFIX_CHARS = 3;
+var AUTO_INSERT_MIN_SECONDS = 1;
+var AUTO_INSERT_MAX_SECONDS = 10;
+var AUTO_INSERT_DEFAULT_SECONDS = 2;
 
-// Everything typed since the last trigger sequence, or '' when the buffer holds
-// no live trigger. A space ends a trigger, so "::neo hola" yields nothing.
-function _typedAfterTrigger(b, seq) {
-  var idx = b.lastIndexOf(seq);
-  if (idx === -1) return '';
-  var run = b.slice(idx + seq.length);
-  if (!run || /\s/.test(run)) return '';
-  return run;
+// Copy the automatic-insert fields of a stored triggerCfg onto the live one.
+function _readAutoInsertCfg(src) {
+  if (!src) return;
+  if (typeof src.autoInsert === 'boolean') triggerCfg.autoInsert = src.autoInsert;
+  if (typeof src.autoInsertSeconds === 'number') triggerCfg.autoInsertSeconds = src.autoInsertSeconds;
+}
+
+// The wait in ms, kept inside 1-10 seconds whatever the cache holds. Mirrors
+// clampAutoInsertSeconds in app/src/lib/triggerUtils.ts.
+function _autoInsertSeconds() {
+  var n = Math.round(Number(triggerCfg.autoInsertSeconds));
+  if (!isFinite(n)) n = AUTO_INSERT_DEFAULT_SECONDS;
+  return Math.min(AUTO_INSERT_MAX_SECONDS, Math.max(AUTO_INSERT_MIN_SECONDS, n));
 }
 
 // Strip the trigger sequence from a stored shortcut / alternative query, which
@@ -3264,7 +3268,7 @@ function showTriggerPicker(el, mode, seqLen, filterStr) {
   header += mode === 'snippet'
     ? '<span style="display:inline-flex;align-items:center;gap:4px">' + snippetIcon(14) + 'Insert snippet</span>'
     : '<span style="display:inline-flex;align-items:center;gap:4px">' + promptIcon(14) + 'Prompt mode \u00b7 ' + xesc(triggerCfg.promptTrigger || '"""') + '</span>';
-  header += '<span style="margin-left:auto;font-weight:500;text-transform:none;letter-spacing:0;color:#A1A1AA;font-size:10px">Tab / Enter to insert</span>';
+  header += '<span class="sb-tp-hint" style="margin-left:auto;font-weight:500;text-transform:none;letter-spacing:0;color:#A1A1AA;font-size:10px">' + PICKER_HINT + '</span>';
   header += '</div>';
   header += '<div class="sb-tp-items" style="flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:6px;"></div>';
   div.innerHTML = header;
@@ -3286,6 +3290,51 @@ function showTriggerPicker(el, mode, seqLen, filterStr) {
   document.body.appendChild(div);
   triggerPickerEl = div;
   _renderPickerItems(triggerPickerQuery);
+  // The letters typed before the menu opened may already leave one snippet.
+  _armPickerAuto();
+}
+
+var PICKER_HINT = 'Tab / Enter to insert';
+
+function _setPickerHint(text) {
+  var hint = triggerPickerEl && triggerPickerEl.querySelector('.sb-tp-hint');
+  if (hint) hint.textContent = text || PICKER_HINT;
+}
+
+// Stop a pending automatic insert and put the usual hint back.
+function _cancelPickerAuto() {
+  if (pickerAutoTimer) { clearTimeout(pickerAutoTimer); pickerAutoTimer = null; }
+  _setPickerHint('');
+}
+
+// "Insert automatically" (AUTO-INSERT-001). Off until the person turns it on in
+// Settings. Then, once the typed letters leave a single snippet standing, the
+// menu stays open for the wait they chose and inserts it unless they do
+// something else first: Esc, Backspace, an arrow key or another letter all
+// stop or restart the wait, and Tab / Enter insert at once. Called when the menu
+// opens and after every letter typed into it.
+function _armPickerAuto() {
+  _cancelPickerAuto();
+  if (!triggerCfg.autoInsert || !triggerPickerEl || triggerPickerMode !== 'snippet') return;
+  if (!_pickerHasOnePrefixMatch()) return;
+  var secs = _autoInsertSeconds();
+  _setPickerHint('Inserting in ' + secs + (secs === 1 ? ' second' : ' seconds') + ' · Esc to cancel');
+  pickerAutoTimer = setTimeout(function() {
+    pickerAutoTimer = null;
+    if (!_pickerHasOnePrefixMatch()) { _setPickerHint(''); return; }
+    selectTriggerItem(0);
+  }, secs * 1000);
+}
+
+// True when the menu holds exactly one snippet and the typed letters are a real
+// prefix of its shortcut or one of its alternative queries (not a word that
+// merely appears inside a title), at least MIN_PREFIX_CHARS of them.
+function _pickerHasOnePrefixMatch() {
+  if (!triggerPickerEl || triggerPickerMode !== 'snippet') return false;
+  if (triggerPickerQuery.length < MIN_PREFIX_CHARS) return false;
+  if (triggerPickerFiltered.length !== 1) return false;
+  var seq = (triggerCfg && triggerCfg.snippetTrigger) || '::';
+  return !!_uniquePrefixSnippet(triggerPickerQuery, seq);
 }
 
 function selectTriggerItem(idx) {
@@ -3413,14 +3462,17 @@ function handleTriggerPickerKey(e) {
   if (!triggerPickerEl) return false;
   var count = triggerPickerFiltered.length;
 
+  // Browsing the list means the person is choosing for themselves.
   if (e.key === 'ArrowDown') {
     e.preventDefault();
+    _cancelPickerAuto();
     triggerPickerIdx = Math.min(triggerPickerIdx + 1, count - 1);
     updateTriggerPickerHighlight();
     return true;
   }
   if (e.key === 'ArrowUp') {
     e.preventDefault();
+    _cancelPickerAuto();
     triggerPickerIdx = Math.max(triggerPickerIdx - 1, 0);
     updateTriggerPickerHighlight();
     return true;
@@ -3466,22 +3518,9 @@ function handleTriggerPickerKey(e) {
         if (idx > -1) selectTriggerItem(idx);
       }, 0);
     }
-    // Snippets: once the typed letters leave a single row standing, that row is
-    // the snippet — expand it when typing settles, exactly as a prefix typed too
-    // fast for the menu to open would have. Requires a genuine prefix match, so
-    // a query that merely appears inside one title still waits for Tab.
-    if (triggerPickerMode === 'snippet') {
-      if (pickerAutoTimer) clearTimeout(pickerAutoTimer);
-      pickerAutoTimer = setTimeout(function() {
-        pickerAutoTimer = null;
-        if (!triggerPickerEl || triggerPickerMode !== 'snippet') return;
-        if (triggerPickerQuery.length < MIN_PREFIX_CHARS) return;
-        if (triggerPickerFiltered.length !== 1) return;
-        var seq = (triggerCfg && triggerCfg.snippetTrigger) || '::';
-        if (!_uniquePrefixSnippet(triggerPickerQuery, seq)) return;
-        selectTriggerItem(0);
-      }, MATCH_SETTLE_MS);
-    }
+    // Snippets: with "Insert automatically" on, a single remaining prefix match
+    // starts the wait again from this letter (no-op when the setting is off).
+    _armPickerAuto();
     // Return true to short-circuit the main keydown handler so the keystroke
     // isn't accidentally appended to the shortcut buffer (which could match
     // a different snippet while the picker is open).
@@ -3492,7 +3531,7 @@ function handleTriggerPickerKey(e) {
     if (triggerPickerQuery.length > 0) {
       // Deleting is the user disagreeing with the menu — never auto-expand into
       // a correction they are still making.
-      if (pickerAutoTimer) { clearTimeout(pickerAutoTimer); pickerAutoTimer = null; }
+      _cancelPickerAuto();
       triggerPickerQuery = triggerPickerQuery.slice(0, -1);
       triggerPickerDeleteLen = Math.max(0, triggerPickerDeleteLen - 1);
       _renderPickerItems(triggerPickerQuery);
