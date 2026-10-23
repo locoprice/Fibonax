@@ -285,7 +285,6 @@ function sbApplyTriggerMetadata(meta) {
       promptTrigger:        cur.promptTrigger        || '"""',
       snippetActivationKey: cur.snippetActivationKey || 'Tab',
       promptActivationKey:  cur.promptActivationKey  || 'Tab',
-      selectionSuggestions: (typeof cur.selectionSuggestions === 'boolean') ? cur.selectionSuggestions : true,
       autoCapitalize:       (typeof cur.autoCapitalize       === 'boolean') ? cur.autoCapitalize       : true,
       autoInsert:           (typeof cur.autoInsert           === 'boolean') ? cur.autoInsert           : false,
       autoInsertSeconds:    (typeof cur.autoInsertSeconds    === 'number')  ? cur.autoInsertSeconds    : 2

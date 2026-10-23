@@ -46,7 +46,7 @@ export function DashboardLayout() {
   }, [loadSettings, profile]);
 
   // Auto-show the onboarding once per browser. The sidebar's "Getting Started"
-  // button replays it any time afterward.
+  // button replays it for the first few visits (lib/gettingStarted.ts).
   useEffect(() => {
     let seen = false;
     try {
@@ -81,7 +81,7 @@ export function DashboardLayout() {
               <button
                 type="button"
                 onClick={() => setChangelogOpen(true)}
-                className="font-mono text-[10px] text-ink-subtle transition-colors hover:text-primary"
+                className="text-[10px] text-ink-subtle transition-colors hover:text-primary"
               >
                 {APP_VERSION}
               </button>
@@ -110,7 +110,7 @@ export function DashboardLayout() {
               <button
                 type="button"
                 onClick={() => setContactOpen(true)}
-                className="font-mono text-[10px] text-ink-subtle transition-colors hover:text-primary"
+                className="text-[10px] text-ink-subtle transition-colors hover:text-primary"
               >
                 Support
               </button>
@@ -118,7 +118,7 @@ export function DashboardLayout() {
                 href="https://fibonax.com/legal/privacy-policy.html"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[10px] text-ink-subtle transition-colors hover:text-primary"
+                className="text-[10px] text-ink-subtle transition-colors hover:text-primary"
               >
                 Privacy
               </a>
@@ -126,7 +126,7 @@ export function DashboardLayout() {
                 href="https://fibonax.com/legal/terms-and-conditions.html"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[10px] text-ink-subtle transition-colors hover:text-primary"
+                className="text-[10px] text-ink-subtle transition-colors hover:text-primary"
               >
                 Terms
               </a>
@@ -134,12 +134,12 @@ export function DashboardLayout() {
                 href="https://fibonax.com/legal/cookie-policy.html"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[10px] text-ink-subtle transition-colors hover:text-primary"
+                className="text-[10px] text-ink-subtle transition-colors hover:text-primary"
               >
                 Cookies
               </a>
             </div>
-            <span className="shrink-0 font-mono text-[10px] text-ink-subtle">{RELEASE_DATE}</span>
+            <span className="shrink-0 text-[10px] text-ink-subtle">{RELEASE_DATE}</span>
           </footer>
         </div>
       </div>

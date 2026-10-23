@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Check, ChevronDown, Clock, Eye, Loader2, Sparkles, Trash2, X, Zap } from 'lucide-react';
 import { HistoryPanel, type HistoryEntry } from '@/features/history/HistoryPanel';
@@ -8,6 +8,7 @@ import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { DEFAULT_TRIGGER_CONFIG, sanitizeTriggerInput } from '@/lib/triggerUtils';
 import { classifyPrompt } from '@/lib/intentEngine';
+import { placeMenu } from '@/lib/menuPlacement';
 import { assembleBlocks, foldReasoningIntoConstraints } from '@/lib/promptUtils';
 import { loadInteractiveSteps, saveInteractiveSteps } from '@/lib/interactiveSteps';
 import {
@@ -133,10 +134,11 @@ function DarkSelect<T extends string>({
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number; width: number }>({
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number }>({
     top: 0,
     left: 0,
     width: 0,
+    maxHeight: 288,
   });
 
   const selectedLabel = options.find((o) => o.value === value)?.label ?? null;
@@ -144,10 +146,33 @@ function DarkSelect<T extends string>({
   const handleOpen = () => {
     if (triggerRef.current) {
       const r = triggerRef.current.getBoundingClientRect();
-      setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+      setPos((prev) => ({ ...prev, top: r.bottom + 4, left: r.left, width: r.width }));
     }
     setOpen(true);
   };
+
+  // Placed before paint, once the menu has rendered and can be measured. This
+  // field sits low in a tall panel, where a menu pinned under it ran off the
+  // bottom of the screen with its last options out of reach. The menu opens
+  // above when there is more room there, and a long list (every folder) is
+  // capped to the room it has and scrolls inside the menu. Same idea as the
+  // label picker's menu, which already behaved.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const trigger = triggerRef.current;
+    const menu = menuRef.current;
+    if (!trigger || !menu) return;
+    const r = trigger.getBoundingClientRect();
+    // Full height with every option showing: scrollHeight leaves the border out.
+    const contentHeight = menu.scrollHeight + (menu.offsetHeight - menu.clientHeight);
+    const placed = placeMenu({
+      triggerTop: r.top,
+      triggerBottom: r.bottom,
+      contentHeight,
+      viewportHeight: window.innerHeight,
+    });
+    setPos({ top: placed.top, left: r.left, width: r.width, maxHeight: placed.maxHeight });
+  }, [open, options.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -157,8 +182,31 @@ function DarkSelect<T extends string>({
         setOpen(false);
       }
     };
+    // The panel scrolls and the menu is fixed to the screen, so a menu left open
+    // while the panel moves would be hanging in the wrong place: close it, as a
+    // native menu does. Scrolling the menu's own list is left alone.
+    const onMove = (e: Event) => {
+      if (e.target instanceof Node && menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    // Escape closes this menu and nothing else. Without this the key reached the
+    // editor's own Escape handler and closed the whole panel, unsaved text and
+    // all. Capture phase and stopPropagation, as the label picker does.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      setOpen(false);
+    };
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    window.addEventListener('resize', onMove);
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('resize', onMove);
+      window.removeEventListener('scroll', onMove, true);
+      window.removeEventListener('keydown', onKey, true);
+    };
   }, [open]);
 
   return (
@@ -181,8 +229,8 @@ function DarkSelect<T extends string>({
         createPortal(
           <div
             ref={menuRef}
-            style={{ top: pos.top, left: pos.left, width: pos.width }}
-            className="fixed z-[9999] overflow-hidden rounded-[10px] border border-[#3A3A42] bg-[#24242B] p-1 shadow-[0_12px_40px_rgba(0,0,0,0.7),0_2px_8px_rgba(0,0,0,0.4)]"
+            style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
+            className="fixed z-[9999] overflow-y-auto overscroll-contain rounded-[10px] border border-[#3A3A42] bg-[#24242B] p-1 shadow-[0_12px_40px_rgba(0,0,0,0.7),0_2px_8px_rgba(0,0,0,0.4)]"
           >
             <button
               type="button"
@@ -740,8 +788,11 @@ export function PromptBlockEditor() {
       // 520px covers half of a 1024px screen. It narrows to 420px below 2xl,
       // and PromptsPage reserves the same two widths — the pair must move
       // together or the list ends up under the drawer.
-      className={`fixed bottom-0 right-0 top-[60px] z-40 flex w-[420px] 2xl:w-[520px] flex-col overflow-hidden border-l border-[#222227] bg-[#0B0B0E] shadow-[-24px_0_70px_rgba(0,0,0,0.6)] transition-transform duration-200 ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
+      // The shadow belongs to the open panel only. A closed one sits just off
+      // screen, and its 70px shadow would still smear a dark band down the right
+      // edge of the page.
+      className={`fixed bottom-0 right-0 top-[60px] z-40 flex w-[420px] 2xl:w-[520px] flex-col overflow-hidden border-l border-[#222227] bg-[#0B0B0E] transition-[transform,box-shadow] duration-200 ${
+        isOpen ? 'translate-x-0 shadow-[-24px_0_70px_rgba(0,0,0,0.6)]' : 'translate-x-full'
       }`}
     >
       {/* ── Top bar ── */}
@@ -1041,12 +1092,16 @@ export function PromptBlockEditor() {
             {submitError}
           </div>
         )}
-        <div className="flex items-center gap-2">
+        {/* Every button keeps its words on one line (shrink-0, nowrap). On the
+            420px panel History is an icon, so the four buttons fit with room to
+            spare; the row may still wrap whole as a last resort, but a button is
+            never squeezed until its label breaks in two. */}
+        <div className="flex flex-wrap items-center gap-2">
           {mode === 'edit' && editingPrompt && (
             <button
               type="button"
               onClick={handleUsePrompt}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-[#1B4FD8]/30 px-3 text-sm font-medium text-[#1B4FD8] transition-colors hover:bg-[#1B4FD8]/10"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#1B4FD8]/30 px-3 text-sm font-medium text-[#1B4FD8] transition-colors hover:bg-[#1B4FD8]/10"
             >
               <Zap className="h-3.5 w-3.5" />
               Use
@@ -1056,7 +1111,7 @@ export function PromptBlockEditor() {
             <button
               type="button"
               onClick={handlePreviewDraft}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-[#34343C] px-3 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8]"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#34343C] px-3 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8]"
             >
               <Eye className="h-3.5 w-3.5" />
               Preview
@@ -1070,10 +1125,12 @@ export function PromptBlockEditor() {
                 setHistoryOpen(true);
                 void loadPromptVersions(editingPrompt.id);
               }}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-[#34343C] px-3 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8]"
+              aria-label="History"
+              title="History"
+              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#34343C] px-2.5 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8] 2xl:px-3"
             >
               <Clock className="h-3.5 w-3.5" />
-              History
+              <span className="hidden 2xl:inline">History</span>
             </button>
           )}
           {mode === 'edit' && (
@@ -1081,7 +1138,7 @@ export function PromptBlockEditor() {
               type="button"
               onClick={handleDelete}
               disabled={saving}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-[#FF5F57]/20 px-3 text-sm font-medium text-[#FF5F57] transition-colors hover:bg-[#FF5F57]/10 disabled:opacity-40"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#FF5F57]/20 px-3 text-sm font-medium text-[#FF5F57] transition-colors hover:bg-[#FF5F57]/10 disabled:opacity-40"
             >
               <Trash2 className="h-3.5 w-3.5" />
               {confirmDelete ? 'Confirm?' : 'Delete'}
@@ -1091,7 +1148,7 @@ export function PromptBlockEditor() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex h-9 items-center gap-2 rounded-[10px] bg-[#1B4FD8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1440B0] disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-[10px] bg-[#1B4FD8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1440B0] disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
             {saving ? 'Saving…' : mode === 'edit' ? 'Save changes' : 'Create prompt'}

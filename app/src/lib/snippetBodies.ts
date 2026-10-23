@@ -1,6 +1,22 @@
 import type { SnippetBodies, SnippetLanguage } from '@/types/database';
 
 /**
+ * The per-language texts a saved snippet carries, the way the editor opens it:
+ * its `bodies` map, with a row that predates the map surfacing its single body
+ * under the active language. Guarded on a non-empty body: a row whose active
+ * language is blank has that slot absent, not seeded with an empty string.
+ */
+export function rowBodies(row: {
+  bodies: SnippetBodies;
+  language: SnippetLanguage;
+  content: string;
+}): SnippetBodies {
+  const bodies: SnippetBodies = { ...row.bodies };
+  if (!bodies[row.language] && row.content.length > 0) bodies[row.language] = row.content;
+  return bodies;
+}
+
+/**
  * Per-language body map edits (CLEAR-LANG-001).
  *
  * One rule, in one place: a language slot either holds text or does not exist.

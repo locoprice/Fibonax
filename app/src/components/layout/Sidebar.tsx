@@ -24,12 +24,15 @@ import { PromptIcon } from '@/components/shared/PromptIcon';
 import { cn } from '@/lib/utils';
 import { pickHttpsUrl } from '@/lib/branding';
 import { RESOURCE_LINKS } from '@/lib/links';
+import { useGettingStartedVisible } from '@/lib/useGettingStartedVisible';
 import { JotFormModal } from '@/components/layout/JotFormModal';
+import { NavCountPill } from '@/components/layout/NavCountPill';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/stores/authStore';
 import { useSnippetStore } from '@/stores/snippetStore';
 import { usePromptStore } from '@/stores/promptStore';
+import { useMemoryStore } from '@/stores/memoryStore';
 import { countWaiting, useReviewStore } from '@/stores/reviewStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -41,6 +44,11 @@ interface NavItem {
   end?: boolean;
   /** When provided, renders a count pill — filled (primary) when active, muted otherwise. */
   count?: number;
+  /**
+   * What the count stands for, shown on hover and read by screen readers.
+   * Left out where the row name already says it.
+   */
+  countLabel?: string;
   /** Renders a hairline above this item, splitting the content trio from the rest. */
   dividerBefore?: boolean;
 }
@@ -55,20 +63,6 @@ function navClass({ isActive, collapsed }: { isActive: boolean; collapsed: boole
     isActive
       ? 'bg-primary-light text-primary before:bg-primary'
       : 'text-ink-muted before:bg-transparent hover:bg-bg-alt hover:text-ink',
-  );
-}
-
-/** Filled count pill (active) or muted bg-alt pill (inactive). Used on nav rows. */
-function NavCountPill({ count, active }: { count: number; active: boolean }) {
-  return (
-    <span
-      className={cn(
-        'ml-auto inline-flex min-w-[20px] items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums',
-        active ? 'bg-primary text-white' : 'bg-bg-alt text-ink-subtle',
-      )}
-    >
-      {count}
-    </span>
   );
 }
 
@@ -112,11 +106,13 @@ export function Sidebar() {
   const signOut = useAuthStore((s) => s.signOut);
   const snippetCount = useSnippetStore((s) => s.snippets.length);
   const promptCount = usePromptStore((s) => s.prompts.length);
+  const brainCount = useMemoryStore((s) => s.spaces.length);
   const sharedFolderCount = useSnippetStore((s) => s.folderShares.size);
   const waitingCount = useReviewStore((s) => countWaiting(s.items));
   const loadReview = useReviewStore((s) => s.load);
   const companyLogoUrl = useSettingsStore((s) => s.profile?.company_logo_url ?? null);
   const openOnboarding = useUiStore((s) => s.openOnboarding);
+  const showGettingStarted = useGettingStartedVisible(user?.id ?? null);
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useUiStore((s) => s.setSidebarCollapsed);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -135,10 +131,15 @@ export function Sidebar() {
   const PRIMARY: NavItem[] = [
     { to: '/', label: 'Snippets', icon: SnippetIcon, end: true, count: snippetCount },
     { to: '/prompts', label: 'Prompts', icon: PromptIcon, count: promptCount },
-    // No count pill: the spaces list is loaded by the Memory page itself, and
-    // pulling that store into the sidebar would make every page fetch it.
-    { to: '/memory', label: 'Brains', icon: BrainIcon },
-    { to: '/team', label: 'Team', icon: Users, count: sharedFolderCount, dividerBefore: true },
+    { to: '/memory', label: 'Brains', icon: BrainIcon, count: brainCount },
+    {
+      to: '/team',
+      label: 'Team',
+      icon: Users,
+      count: sharedFolderCount,
+      countLabel: `${sharedFolderCount} shared folder${sharedFolderCount === 1 ? '' : 's'}`,
+      dividerBefore: true,
+    },
     // What waits for a person, across snippets, prompts and Brains.
     { to: '/review', label: 'Review', icon: ShieldCheck, count: waitingCount },
     { to: '/analytics', label: 'Analytics', icon: BarChart3 },
@@ -230,7 +231,11 @@ export function Sidebar() {
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.label}</span>
                       {typeof item.count === 'number' && item.count > 0 ? (
-                        <NavCountPill count={item.count} active={isActive} />
+                        <NavCountPill
+                          count={item.count}
+                          active={isActive}
+                          label={item.countLabel}
+                        />
                       ) : null}
                     </>
                   )}
@@ -239,17 +244,20 @@ export function Sidebar() {
             </Fragment>
           ))}
 
-          {/* Getting Started — replays the onboarding animation on demand */}
-          <RailTooltip collapsed={collapsed} label="Getting Started">
-            <button
-              type="button"
-              onClick={openOnboarding}
-              className={cn(navClass({ isActive: false, collapsed }), 'w-full text-left')}
-            >
-              <PlayCircle className="h-4 w-4 shrink-0" />
-              <span>Getting Started</span>
-            </button>
-          </RailTooltip>
+          {/* Getting Started replays the onboarding animation. It stays for the
+              first few visits and then goes, so a familiar sidebar is not noisy. */}
+          {showGettingStarted && (
+            <RailTooltip collapsed={collapsed} label="Getting Started">
+              <button
+                type="button"
+                onClick={openOnboarding}
+                className={cn(navClass({ isActive: false, collapsed }), 'w-full text-left')}
+              >
+                <PlayCircle className="h-4 w-4 shrink-0" />
+                <span>Getting Started</span>
+              </button>
+            </RailTooltip>
+          )}
         </div>
       </nav>
 
