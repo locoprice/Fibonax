@@ -59,11 +59,14 @@ action color. These values apply only to `/mobile/`.
 | `mobile-danger` | `#B42318` | Error text and indicators |
 | `mobile-danger-bg` | `#FEF2F2` | Error surfaces |
 
-The home screen follows the mockup: wordmark and account initials on the band,
-the company's workspace line, **What's next?** with three task cards (the first
-white), then **Ready to reuse** with the first pinned snippet and prompt as
-cards, **Search snippets** and **Your Brains**. The bottom bar is white, and the
-active tab is Azure with a short bar under it.
+The home screen follows the mockup, made quieter at Valentina's request: the
+band carries the wordmark, the account initials, **What's next?**, one white
+**Use a snippet** card and two plain links under it (**Prepare a prompt**,
+**Capture a note**). The mockup's workspace line and two-line intro are left
+out; the company shows in the footer logo. The app version and the month of the last update sit in the band under **Capture a note**, as a quiet pill and a mono date. Below the band: **Ready to reuse**
+with the first pinned snippet and prompt as cards, **Search snippets** and
+**Your Brains**. The bottom bar is white, and the active tab is Azure with a
+short bar under it.
 
 ### Primary (single — Azure)
 
@@ -403,7 +406,7 @@ The four local, content-hashed image assets live in `app/public/landing/assets/p
   have yet, so they stay honest: **All pinned** is **Browse** (pinned items
   already sit at the top of the list), and **Find anything in your library** is
   **Search snippets**. Keep the pinned work, bottom navigation, company logo,
-  version/update footer and Snippets/Prompts usage counts in place; Brains do
+  version/update line in the Home band and Snippets/Prompts usage counts in place; Brains do
   not show usage counts.
 
 - Mobile "Recently used" carousel: omitted from `app/public/mobile/index.html` until we track snippet `last_used_at`. Slot is reserved in the section layout.

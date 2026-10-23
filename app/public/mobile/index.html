@@ -70,30 +70,35 @@ body{
   color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
   display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
 .home-account:active{background:var(--navy-soft)}
-.home-workspace{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11px;letter-spacing:.1px;
-  color:var(--navy-copy);position:relative;z-index:1}
-.home-dot{width:6px;height:6px;flex:none;border-radius:50%;background:#ADC4FF}
-.home-hero{position:relative;margin-top:29px}
+.home-hero{position:relative;margin-top:30px}
 .home-orbit{position:absolute;width:122px;height:122px;right:-38px;top:-17px;opacity:.32;pointer-events:none;
   stroke:#829BDD;stroke-width:1;fill:none}
 .home-title{position:relative;z-index:1;font-size:38px;font-weight:700;letter-spacing:-1.25px;line-height:1.08;color:#fff}
-.home-intro{position:relative;z-index:1;margin-top:10px;max-width:270px;font-size:15px;line-height:1.5;color:var(--navy-copy)}
-.home-tasks{display:grid;gap:10px;margin-top:24px;position:relative;z-index:1}
+/* One obvious first step: a single white card. The other two starts are quiet
+   links under it, so the band offers a choice without asking for one. */
+.home-tasks{margin-top:24px;position:relative;z-index:1}
 .home-task{display:flex;align-items:center;gap:13px;width:100%;min-height:76px;padding:14px 16px;
-  border:1px solid var(--navy-line);border-radius:14px;background:var(--navy-soft);color:#fff;
+  border:1px solid #fff;border-radius:14px;background:#fff;color:var(--navy);
   text-align:left;font-family:inherit;cursor:pointer;
-  -webkit-tap-highlight-color:transparent;transition:transform .12s,background .15s,border-color .15s}
-.home-task:active{transform:scale(.985);border-color:#fff;background:#2B3E62}
-.home-task-icon{width:36px;height:36px;flex:0 0 36px;display:flex;align-items:center;justify-content:center;color:#B9CCFF}
+  -webkit-tap-highlight-color:transparent;transition:transform .12s,background .15s}
+.home-task:active{transform:scale(.985);background:var(--primary-lt)}
+.home-task-icon{width:36px;height:36px;flex:0 0 36px;display:flex;align-items:center;justify-content:center;color:var(--primary)}
 .home-task-icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .home-task-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
 .home-task-copy strong{font-size:16px;font-weight:650;letter-spacing:-.2px;line-height:1.3}
-.home-task-copy small{font-size:12px;line-height:1.4;color:#D4DBE9}
+.home-task-copy small{font-size:12px;line-height:1.4;color:var(--text2)}
 .home-task-arrow{width:18px;height:18px;flex:0 0 18px;margin-left:auto}
-.home-task.is-primary{background:#fff;border-color:#fff;color:var(--navy)}
-.home-task.is-primary .home-task-icon{color:var(--primary)}
-.home-task.is-primary small{color:var(--text2)}
-.home-task.is-primary:active{background:var(--primary-lt)}
+.home-links{display:flex;flex-direction:column;margin-top:8px}
+.home-link{display:flex;align-items:center;gap:13px;width:100%;min-height:44px;padding:6px 24px;
+  border:0;border-radius:10px;background:none;color:#D4DBE9;font-family:inherit;font-size:15px;font-weight:600;
+  text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.home-link:active{background:var(--navy-soft)}
+.home-link svg{width:20px;height:20px;flex:0 0 20px;color:#B9CCFF;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:10px;padding:0 24px;position:relative;z-index:1}
+.home-meta-badge{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:4px 12px;border:1px solid var(--navy-line);border-radius:9999px;background:var(--navy-soft)}
+.home-meta-dot{width:7px;height:7px;flex:none;border-radius:50%;background:#22C55E}
+.home-meta-ver{font-size:13px;font-weight:700;letter-spacing:.2px;color:#D8E3FF}
+.home-meta-date{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.4;letter-spacing:.15px;color:var(--navy-copy)}
 .home-band :focus-visible{outline:2px solid #D8E3FF;outline-offset:2px}
 .home-body{padding:25px 24px 0}
 .home-body :focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
@@ -143,7 +148,6 @@ body{
 @media(min-width:700px){
   .home-band{padding-left:40px;padding-right:40px}
   .home-title{font-size:44px}
-  .home-intro{max-width:460px}
   .home-orbit{width:170px;height:170px;right:30px;top:-13px}
   .home-body{padding:30px 40px 0}
   .home-pin-list{grid-template-columns:1fr 1fr}
@@ -321,40 +325,24 @@ body{
 /* ── PAGE FOOTER ─────────────────────────────── */
 .mpage-footer{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:6px;padding:28px 20px 12px;
-}
-.mpage-footer-badge{
-  display:inline-flex;align-items:center;gap:7px;
-  background:var(--card);border:1px solid var(--border);border-radius:9999px;
-  padding:5px 14px;box-shadow:var(--shadow-sm)
-}
-.mpage-footer-dot{
-  width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0
+  gap:8px;padding:30px 20px 24px;
 }
 .mpage-footer-label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.05px}
-.mpage-footer-ver{
-  font-size:11px;font-weight:700;color:var(--primary-copy);letter-spacing:.2px;
-  background:var(--primary-lt);padding:2px 7px;border-radius:4px
-}
-.mpage-footer-date{
-  font-size:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  color:var(--text3);letter-spacing:.2px
-}
 /* Company co-brand — mirrors the dashboard topbar source (Settings → Company
-   branding): logo in a white pill (matches the version badge) + company name,
-   on one symmetric centered row with the version badge. Hidden when unset. */
+   branding): logo in a white pill, or the company name, centered. Hidden when
+   unset. */
 .mpage-footer-row{display:flex;align-items:center;justify-content:center;
   gap:8px;flex-wrap:wrap;max-width:100%}
 .mpage-footer-brand{display:flex;align-items:center;gap:8px;min-width:0}
-.mpage-footer-logo-chip{display:inline-flex;align-items:center;flex-shrink:0;
+.mpage-footer-logo-chip{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;min-height:42px;
   background:var(--card);border:1px solid var(--border);border-radius:9999px;
-  padding:4px 12px;box-shadow:var(--shadow-sm)}
-.mpage-footer-logo{max-height:18px;max-width:120px;display:block;object-fit:contain}
+  padding:6px 14px;box-shadow:0 3px 12px rgba(20,33,62,.07)}
+.mpage-footer-logo{max-height:24px;max-width:130px;display:block;object-fit:contain}
 .mpage-footer-company{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.05px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 
 /* ── FLOATING QUICK-ACTION GRID (overlaps hero) ── */
-.mqa{display:none}
+.mqa{padding:0 16px;margin-top:-22px;position:relative;z-index:2;flex-shrink:0}
 .mqa-grid{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
   background:var(--card);border-radius:18px;padding:10px;
@@ -1466,35 +1454,31 @@ svg.brain-type-icon{stroke-width:1.8}
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
         </button>
       </div>
-      <p class="home-workspace"><span class="home-dot" aria-hidden="true"></span><span id="home-workspace">Your workspace</span></p>
 
       <div class="home-hero">
         <svg class="home-orbit" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="55"/><circle cx="60" cy="60" r="39"/><circle cx="60" cy="60" r="23"/><path d="M5 60h110M60 5v110"/></svg>
         <h1 class="home-title" id="home-title">What’s next?</h1>
-        <p class="home-intro">Your words. Your context.<br>Ready for the task ahead.</p>
 
         <div class="home-tasks" role="group" aria-label="Start a task">
-          <button class="home-task is-primary" type="button" data-home-action="snippets">
+          <button class="home-task" type="button" data-home-action="snippets">
             <span class="home-task-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg>
             </span>
             <span class="home-task-copy"><strong>Use a snippet</strong><small>Find, personalize, and copy</small></span>
             <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <button class="home-task" type="button" data-home-action="prompts">
-            <span class="home-task-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>
-            </span>
-            <span class="home-task-copy"><strong>Prepare a prompt</strong><small>Take good instructions to any AI</small></span>
-            <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <button class="home-task" type="button" data-home-action="capture">
-            <span class="home-task-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></svg>
-            </span>
-            <span class="home-task-copy"><strong>Capture a note</strong><small>Save something useful to a Brain</small></span>
-            <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
+          <div class="home-links">
+            <button class="home-link" type="button" data-home-action="prompts">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>Prepare a prompt
+            </button>
+            <button class="home-link" type="button" data-home-action="capture">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Capture a note
+            </button>
+          </div>
+        </div>
+        <div class="home-meta">
+          <span class="home-meta-badge"><span class="home-meta-dot" aria-hidden="true"></span><span class="home-meta-ver">{{APP_VERSION}}</span></span>
+          <span class="home-meta-date">Updated {{RELEASE_MONTH}}</span>
         </div>
       </div>
     </div>
@@ -1529,12 +1513,7 @@ svg.brain-type-icon{stroke-width:1.8}
         <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
         <span class="mpage-footer-company"></span>
       </div>
-      <div class="mpage-footer-badge">
-        <span class="mpage-footer-dot" aria-hidden="true"></span>
-        <span class="mpage-footer-ver">{{APP_VERSION}}</span>
-      </div>
     </div>
-    <span class="mpage-footer-date">Updated {{RELEASE_MONTH}}</span>
   </div>
 </div>
 
@@ -1609,12 +1588,7 @@ svg.brain-type-icon{stroke-width:1.8}
         <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
         <span class="mpage-footer-company"></span>
       </div>
-      <div class="mpage-footer-badge">
-        <span class="mpage-footer-dot" aria-hidden="true"></span>
-        <span class="mpage-footer-ver">{{APP_VERSION}}</span>
-      </div>
     </div>
-    <span class="mpage-footer-date">Updated {{RELEASE_MONTH}}</span>
   </div>
 
 </div>
@@ -1720,12 +1694,7 @@ svg.brain-type-icon{stroke-width:1.8}
           <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
           <span class="mpage-footer-company"></span>
         </div>
-        <div class="mpage-footer-badge">
-          <span class="mpage-footer-dot" aria-hidden="true"></span>
-          <span class="mpage-footer-ver">{{APP_VERSION}}</span>
-        </div>
       </div>
-      <span class="mpage-footer-date">Updated {{RELEASE_MONTH}}</span>
     </div>
   </div>
 </div>
@@ -1774,12 +1743,7 @@ svg.brain-type-icon{stroke-width:1.8}
           <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
           <span class="mpage-footer-company"></span>
         </div>
-        <div class="mpage-footer-badge">
-          <span class="mpage-footer-dot" aria-hidden="true"></span>
-          <span class="mpage-footer-ver">{{APP_VERSION}}</span>
-        </div>
       </div>
-      <span class="mpage-footer-date">Updated {{RELEASE_MONTH}}</span>
     </div>
   </div>
 </div>
@@ -1894,12 +1858,7 @@ svg.brain-type-icon{stroke-width:1.8}
         <span class="mpage-footer-logo-chip sb-hidden"><img class="mpage-footer-logo" alt="Company logo" draggable="false"></span>
         <span class="mpage-footer-company"></span>
       </div>
-      <div class="mpage-footer-badge">
-        <span class="mpage-footer-dot" aria-hidden="true"></span>
-        <span class="mpage-footer-ver">{{APP_VERSION}}</span>
-      </div>
     </div>
-    <span class="mpage-footer-date">Updated {{RELEASE_MONTH}}</span>
   </div>
 
 </div>
@@ -11636,9 +11595,8 @@ function applyCompanyBrand(){
     row.classList.remove('sb-hidden');
   });
 }
-/* Home's band: the account button carries the person's initials, the line
-   under the wordmark names their company's workspace. Same name sources as the
-   profile sheet and the footer brand. */
+/* Home's band: the account button carries the person's initials, from the same
+   name sources as the profile sheet. */
 function applyHomeHeader(){
   var u=SESSION&&SESSION.user;
   var meta=(u&&u.user_metadata)||{};
@@ -11647,15 +11605,32 @@ function applyHomeHeader(){
   var initials=profileInitials(name,email);
   var btn=document.getElementById('home-account');
   if(btn&&initials!=='👤')btn.textContent=initials;
-  var company=typeof meta.company_name==='string'?meta.company_name.trim():'';
-  var ws=document.getElementById('home-workspace');
-  if(ws)ws.textContent=company?company+' workspace':'Your workspace';
+}
+/* The session read from storage is a snapshot from when this phone signed in,
+   so a company name or logo chosen later in the dashboard is missing from it.
+   Ask the server for the current profile, keep it in memory only (the dashboard
+   owns the stored session), and redraw every place that shows it. Fail-open:
+   on any error the snapshot stays. Throttled to 30s like the liveness check. */
+var _profileLastCheck=0;
+function refreshAccountDetails(){
+  if(!ACCESS_TOKEN)return;
+  var now=Date.now();
+  if(now-_profileLastCheck<30000)return;
+  _profileLastCheck=now;
+  fetch(SUPA+'/auth/v1/user',{headers:authHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(u){
+      if(!u||!u.user_metadata||!SESSION||!SESSION.user)return;
+      SESSION.user.user_metadata=u.user_metadata;
+      applyHeroName();applyCompanyBrand();applyHomeHeader();
+    })
+    .catch(function(){});
 }
 if(requireAuth()){
-  applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();
+  applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();refreshAccountDetails();
   captureResume();
   document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible')sbCheckAlive();
+    if(document.visibilityState==='visible'){sbCheckAlive();refreshAccountDetails();}
   });
 }
 </script>
