@@ -5,9 +5,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Fibonax">
-<meta name="theme-color" content="#1B4FD8">
+<meta name="theme-color" content="#1C1C1E">
+<meta name="color-scheme" content="dark">
 <!-- Installed from the browser menu, the page becomes an app, and on Android
      that app is listed in every Share menu: the manifest's share_target opens
      /mobile/?title=…&text=…&url=…, which lands in Save to Brain. Its scope is
@@ -16,22 +17,25 @@
 <link rel="apple-touch-icon" href="/mobile/apple-touch-icon.png">
 <title>Fibonax</title>
 <style>
-/* ── DESIGN SYSTEM v1.1 — canonical tokens (mirrors harmonized-final.html) ── */
+/* ── CONCEPT B — approved dark mobile palette (see docs/DESIGN_SYSTEM.md) ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#FAFAFA;--bg-alt:#F2F2F7;--card:#FFFFFF;
-  --primary:#1B4FD8;--primary-dk:#1440B0;--primary-lt:#EEF2FF;--primary-grad:#4F7FE8;
-  --text:#1C1C1E;--text2:#6E6E73;--text3:#8E8E93;
-  --border:#E5E5EA;--success:#34C759;--danger:#E74C3C;
-  --warn-deep:#D97706;--warn-bg:#FFFBEB;--danger-bg:#FEF2F2;
+  color-scheme:dark;
+  --bg:#1C1C1E;--bg-alt:#242428;--card:#2C2C2E;
+  --primary:#1B4FD8;--primary-dk:#1440B0;--primary-lt:#1E3A6E;--primary-grad:#4F7FE8;
+  --primary-copy:#8FAEF6;--primary-border:#6E96F0;
+  --text:#F5F5F7;--text2:#AEAEB2;--text3:#9B9BA1;
+  --border:#3A3A3C;--success:#34C759;--danger:#F87171;
+  --warn-deep:#FBBF24;--warn-bg:#3C2F15;--warn-badge-bg:#FFFBEB;--warn-badge-ink:#D97706;
+  --danger-bg:#3B1D23;
   --r:16px;--r-card:18px;--r-btn:14px;--r-in:10px;
-  --shadow-sm:0 1px 3px rgba(0,0,0,.04),0 4px 14px rgba(0,0,0,.04);
-  --shadow-md:0 8px 24px rgba(0,0,0,.10),0 1px 3px rgba(0,0,0,.04);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.22),0 4px 14px rgba(0,0,0,.14);
+  --shadow-md:0 8px 24px rgba(0,0,0,.32),0 1px 3px rgba(0,0,0,.18);
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace
 }
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
-  background:var(--bg-alt);color:var(--text);
+  background:var(--bg);color:var(--text);
   -webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
   overflow-x:hidden;min-height:100dvh;line-height:1.5
 }
@@ -40,7 +44,7 @@ body{
 #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;
   height:100dvh;gap:16px}
 .spinner{width:36px;height:36px;border:3px solid var(--border);
-  border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+  border-top-color:var(--primary-copy);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #loading p{font-size:14px;color:var(--text2)}
 
@@ -54,7 +58,7 @@ body{
 
 /* Task-first home — three clear entry points, then the user's pinned work. */
 .home-main{padding:30px 20px 0}
-.home-kicker{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--primary)}
+.home-kicker{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--primary-copy)}
 .home-title{margin-top:7px;font-size:30px;font-weight:750;letter-spacing:-1px;line-height:1.12;color:var(--text)}
 .home-intro{margin-top:8px;max-width:300px;font-size:14px;line-height:1.5;color:var(--text2)}
 .home-tasks{display:flex;flex-direction:column;gap:9px;margin-top:22px}
@@ -63,8 +67,8 @@ body{
   text-align:left;font-family:inherit;cursor:pointer;box-shadow:var(--shadow-sm);
   -webkit-tap-highlight-color:transparent;transition:transform .12s,background .15s}
 .home-task:active{transform:scale(.985);background:var(--primary-lt)}
-.home-task:focus-visible,.home-search:focus-visible,.home-link:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.home-task-icon{width:40px;height:40px;flex:0 0 40px;border-radius:12px;background:var(--primary-lt);color:var(--primary);
+.home-task:focus-visible,.home-search:focus-visible,.home-link:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
+.home-task-icon{width:40px;height:40px;flex:0 0 40px;border-radius:12px;background:var(--primary-lt);color:var(--primary-copy);
   display:flex;align-items:center;justify-content:center}
 .home-task-icon svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .home-task-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}
@@ -74,27 +78,27 @@ body{
 .home-section{margin-top:28px}
 .home-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
 .home-section-head h2{font-size:17px;font-weight:700;letter-spacing:-.3px}
-.home-browse{border:0;background:none;color:var(--primary);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:8px 0;min-height:40px}
+.home-browse{border:0;background:none;color:var(--primary-copy);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:8px 0;min-height:40px}
 .home-pin-list{display:flex;flex-direction:column;gap:9px}
 .home-pin-card{display:flex;align-items:center;gap:11px;min-height:64px;padding:10px 12px;
   border:1px solid var(--border);border-radius:16px;background:var(--card);box-shadow:var(--shadow-sm);color:var(--text);
   text-align:left;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .home-pin-card:active{background:var(--primary-lt)}
-.home-pin-icon{position:relative;width:42px;height:42px;flex:0 0 42px;border-radius:12px;background:var(--primary-lt);color:var(--primary);
+.home-pin-icon{position:relative;width:42px;height:42px;flex:0 0 42px;border-radius:12px;background:var(--primary-lt);color:var(--primary-copy);
   display:flex;align-items:center;justify-content:center;font-size:19px}
 .home-pin-icon svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .home-pin-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
 .home-pin-copy strong{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .home-pin-copy small{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .home-pin-arrow{width:16px;height:16px;color:var(--text3);flex:0 0 16px}
-.home-empty{padding:16px;border:1px dashed var(--border);border-radius:14px;color:var(--text2);font-size:13px;line-height:1.5;background:rgba(255,255,255,.65)}
+.home-empty{padding:16px;border:1px dashed var(--border);border-radius:14px;color:var(--text2);font-size:13px;line-height:1.5;background:var(--card)}
 .home-search{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;margin-top:18px;padding:0 14px;
   border:1px solid var(--border);border-radius:14px;background:var(--card);color:var(--text2);font-family:inherit;font-size:14px;font-weight:500;
   text-align:left;cursor:pointer;box-shadow:var(--shadow-sm)}
-.home-search svg{width:18px;height:18px;color:var(--primary);stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.home-search svg{width:18px;height:18px;color:var(--primary-copy);stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .home-search .home-search-arrow{margin-left:auto;color:var(--text3)}
 .home-status{padding:12px 0;text-align:center;color:var(--text2);font-size:13px}
-.home-empty button{display:block;margin:6px auto 0;border:0;background:none;color:var(--primary);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:44px}
+.home-empty button{display:block;margin:6px auto 0;border:0;background:none;color:var(--primary-copy);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;min-height:44px}
 
 /* ── GRADIENT HERO ───────────────────────────── */
 .mhero{
@@ -168,7 +172,7 @@ body{
   position:relative;z-index:1;
   display:grid;grid-template-rows:0fr;
   margin:0 -20px 12px;
-  background:linear-gradient(180deg,#E7E7EE 0%,var(--bg-alt) 42%);
+  background:linear-gradient(180deg,var(--card) 0%,var(--bg-alt) 42%);
   transition:grid-template-rows .28s ease
 }
 .mfilters-panel.open{grid-template-rows:1fr}
@@ -202,7 +206,7 @@ body{
 .mfacet-t{font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
   color:var(--text3)}
 .mfacet-clr{border:none;background:none;font-family:inherit;padding:0;
-  font-size:11px;font-weight:700;color:var(--primary);
+  font-size:11px;font-weight:700;color:var(--primary-copy);
   cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mfacet-clr.sb-hidden{display:none}
 .mfilters-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -245,7 +249,7 @@ body{
 .mlabel-seg button{border:none;background:none;font-family:inherit;cursor:pointer;
   padding:4px 12px;font-size:11.5px;font-weight:700;color:var(--text2);
   -webkit-tap-highlight-color:transparent}
-.mlabel-seg button.on{background:var(--text);color:#fff}
+.mlabel-seg button.on{background:var(--text);color:var(--bg)}
 .mfacet-empty{font-size:12.5px;font-weight:500;color:var(--text2);line-height:1.5}
 .mfilters[aria-expanded="true"] .mfilters-caret{transform:rotate(180deg)}
 /* Every hero gives its top padding to the strip, which carries the notch inset
@@ -272,7 +276,7 @@ body{
 }
 .mpage-footer-label{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.05px}
 .mpage-footer-ver{
-  font-size:11px;font-weight:700;color:var(--primary);letter-spacing:.2px;
+  font-size:11px;font-weight:700;color:var(--primary-copy);letter-spacing:.2px;
   background:var(--primary-lt);padding:2px 7px;border-radius:4px
 }
 .mpage-footer-date{
@@ -286,7 +290,7 @@ body{
   gap:8px;flex-wrap:wrap;max-width:100%}
 .mpage-footer-brand{display:flex;align-items:center;gap:8px;min-width:0}
 .mpage-footer-logo-chip{display:inline-flex;align-items:center;flex-shrink:0;
-  background:var(--card);border:1px solid var(--border);border-radius:9999px;
+  background:#fff;border:1px solid rgba(255,255,255,.7);border-radius:9999px;
   padding:4px 12px;box-shadow:var(--shadow-sm)}
 .mpage-footer-logo{max-height:18px;max-width:120px;display:block;object-fit:contain}
 .mpage-footer-company{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.05px;
@@ -313,12 +317,12 @@ body{
    narrow phone, and it gives the second line somewhere to sit. */
 .mqa-ico{
   flex:1;min-height:64px;border-radius:14px;padding:8px 4px;
-  background:linear-gradient(158deg,#FFFFFF 0%,var(--primary-lt) 100%);
-  color:var(--primary);
+  background:linear-gradient(158deg,var(--card) 0%,var(--primary-lt) 100%);
+  color:var(--primary-copy);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  border:1px solid rgba(27,79,216,.10);
+  border:1px solid var(--border);
   box-shadow:0 4px 8px rgba(27,79,216,.16),
-    0 1px 0 rgba(255,255,255,.95) inset,
+    0 1px 0 rgba(255,255,255,.08) inset,
     0 -3px 6px rgba(27,79,216,.08) inset;
   transition:transform .14s,box-shadow .14s,background .14s,color .14s
 }
@@ -344,11 +348,11 @@ body{
   width:100%;background:var(--card);border:1px solid var(--border);
   border-radius:12px;padding:10px 14px 10px 38px;font-size:15px;
   color:var(--text);outline:none;font-family:inherit;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='2.2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23AEAEB2' stroke-width='2.2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:12px center;
   transition:border-color .15s
 }
-.search-bar input:focus{border-color:var(--primary)}
+.search-bar input:focus{border-color:var(--primary-border)}
 .search-bar input::placeholder{color:var(--text2)}
 /* On the hero the field floats on the gradient: the grey hairline reads as dirt
    on blue, so it becomes a soft shadow. z-index clears the hero's glow circles. */
@@ -359,7 +363,7 @@ body{
 /* ── SECTION HEADING ─────────────────────────── */
 .msec{padding:14px 16px 6px;display:flex;align-items:flex-end;justify-content:space-between}
 .msec-t{font-size:19px;font-weight:800;letter-spacing:-.5px;color:var(--text)}
-.msec-a{font-size:13px;color:var(--primary);font-weight:600}
+.msec-a{font-size:13px;color:var(--primary-copy);font-weight:600}
 
 /* ── UBER-STYLE CHIPS (folder + lang) ────────── */
 .folder-tabs,.lang-tabs{
@@ -376,7 +380,7 @@ body{
   -webkit-tap-highlight-color:transparent;transition:all .15s;min-height:30px
 }
 .folder-pill:active,.lang-pill:active,.mlabel-pill:active{transform:scale(.96)}
-.folder-pill.on,.lang-pill.on,.mlabel-pill.on{background:var(--text);color:#fff;border-color:var(--text)}
+.folder-pill.on,.lang-pill.on,.mlabel-pill.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .folder-pill-ico{font-size:14px;line-height:1}
 .folder-pill-cnt,.mlabel-cnt{
   font-size:11px;font-weight:700;background:var(--bg-alt);
@@ -405,7 +409,7 @@ body{
   position:absolute;top:calc(50% - 1px);transform:translateY(-50%);z-index:3;
   display:none;align-items:center;justify-content:center;
   width:30px;height:30px;padding:0;border-radius:9999px;
-  border:1px solid var(--border);background:var(--card);color:var(--primary);
+  border:1px solid var(--border);background:var(--card);color:var(--primary-copy);
   cursor:pointer;box-shadow:var(--shadow-sm);
   -webkit-tap-highlight-color:transparent
 }
@@ -423,7 +427,7 @@ body{
   display:flex;align-items:center;justify-content:center;gap:9px;
   padding:15px 14px;
   background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);
-  box-shadow:var(--shadow-sm);color:var(--primary);
+  box-shadow:var(--shadow-sm);color:var(--primary-copy);
   font-family:inherit;font-size:14.5px;font-weight:700;letter-spacing:-.2px;
   cursor:pointer;-webkit-tap-highlight-color:transparent;
   transition:transform .1s,background .15s
@@ -442,7 +446,7 @@ body{
 }
 .snip-card:active{transform:scale(.98);opacity:.85}
 .snip-icon-well,.prompt-icon{position:relative}
-.snip-icon-well{width:44px;height:44px;flex:0 0 44px;border-radius:13px;background:var(--primary-lt);color:var(--primary);
+.snip-icon-well{width:44px;height:44px;flex:0 0 44px;border-radius:13px;background:var(--primary-lt);color:var(--primary-copy);
   display:flex;align-items:center;justify-content:center;font-size:20px}
 .snip-icon-well svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .musage-count{position:absolute;top:-7px;right:-9px;z-index:1;min-width:22px;height:22px;padding:0 5px;
@@ -458,7 +462,7 @@ body{
 .search-details{min-height:44px;min-width:60px;padding:6px;border:0;border-radius:6px;
   background:transparent;color:var(--text2);font:inherit;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0}
 .search-details:active{background:var(--bg-alt)}
-.search-details:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.search-details:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .search-match{font-size:12px;color:var(--text2);overflow-wrap:anywhere;margin-top:4px}
 .sb-info-row.is-list{display:block}
 .sb-info-row.is-list .sb-info-v{display:block;white-space:pre-wrap;text-align:left;
@@ -475,7 +479,7 @@ body{
   flex-wrap:nowrap;overflow:hidden;min-width:0}
 .snip-meta>.snip-sc,.snip-meta>.share-badge{flex-shrink:0}
 .snip-meta>.fbadge{min-width:0;flex-shrink:1}
-.snip-sc{font-family:var(--mono);font-size:12px;color:var(--primary);font-weight:600}
+.snip-sc{font-family:var(--mono);font-size:12px;color:var(--primary-copy);font-weight:600}
 /* Language badges + interactive pills (shared with mockup) */
 .lbadge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;
   text-transform:uppercase;letter-spacing:.3px;display:inline-block}
@@ -507,8 +511,8 @@ body{
   -webkit-tap-highlight-color:transparent;
   transition:background .15s;user-select:none
 }
-.snip-menu:active{background:rgba(0,0,0,.06)}
-.snip-menu:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.snip-menu:active{background:rgba(255,255,255,.08)}
+.snip-menu:focus-visible{outline:2px solid var(--primary-border);outline-offset:-2px}
 
 /* Pinned flag — a marker, not a control: rendered only on pinned rows, azure
    stroke + primary-lt fill (same accent pairing as badges). Pinning itself
@@ -516,7 +520,7 @@ body{
 .snip-pin-flag,.prompt-pin-flag{
   position:absolute;width:24px;height:24px;
   display:flex;align-items:center;justify-content:center;
-  color:var(--primary);pointer-events:none
+  color:var(--primary-copy);pointer-events:none
 }
 .snip-pin-flag{top:50%;right:50px;transform:translateY(-50%)}
 .snip-pin-flag svg,.prompt-pin-flag svg{width:17px;height:17px;display:block;
@@ -549,7 +553,7 @@ body{
 .mtab-item{
   min-width:0;flex:1;height:50px;border-radius:15px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  color:rgba(255,255,255,.38);cursor:pointer;
+  color:rgba(255,255,255,.62);cursor:pointer;
   -webkit-tap-highlight-color:transparent;border:none;background:transparent;
   font-family:inherit;transition:color .2s,background .2s
 }
@@ -577,8 +581,8 @@ body{
 .mobile-more-menu button{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 12px;
   border:0;border-radius:10px;background:transparent;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;line-height:1.2;text-align:left;cursor:pointer}
 .mobile-more-menu button:active{background:var(--bg-alt)}
-.mobile-more-menu button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
-.mobile-more-menu svg{width:18px;height:18px;flex:0 0 18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:var(--primary)}
+.mobile-more-menu button:focus-visible{outline:2px solid var(--primary-border);outline-offset:-2px}
+.mobile-more-menu svg{width:18px;height:18px;flex:0 0 18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:var(--primary-copy)}
 
 /* ── DETAIL VIEW ─────────────────────────────── */
 /* A Brain item opens in the same detail page as a snippet: same header, same
@@ -649,14 +653,14 @@ body{
   background:var(--card);border:1px solid var(--border);border-radius:var(--r-in);
   color:var(--text);font-family:inherit;outline:none;
   -webkit-appearance:none;appearance:none;transition:border-color .15s}
-.link-in::placeholder{color:#C7C7CC}
-.link-in:focus{border-color:var(--primary)}
+.link-in::placeholder{color:var(--text3)}
+.link-in:focus{border-color:var(--primary-border)}
 .link-btn{flex:none;min-width:72px;height:48px;padding:0 18px;border:none;
   border-radius:var(--r-in);background:var(--primary);color:#fff;
   font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;
   -webkit-tap-highlight-color:transparent;transition:transform .1s,opacity .15s}
 .link-btn:active{transform:scale(.97)}
-.link-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.link-btn:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .link-btn:disabled{opacity:.55;cursor:progress;transform:none}
 .link-status{margin-top:8px;padding:0 2px;font-size:13px;line-height:1.45;color:var(--text2)}
 .link-status:empty{margin-top:0}
@@ -677,7 +681,7 @@ body{
    and regular, so an empty box never looks filled. Same on all four fill
    surfaces. */
 .field-in[type=text]{font-weight:700}
-.field-in::placeholder{color:#C7C7CC;font-weight:400}
+.field-in::placeholder{color:var(--text3);font-weight:400}
 .field-in[type=date],.field-in[type=time],.field-in[type=datetime-local]{
   color:#C2410C;font-weight:600}
 
@@ -702,14 +706,14 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .field-opt{display:flex;align-items:center;gap:10px;cursor:pointer;
   font-size:16px;color:var(--text)}
 .field-opt input.field-in{width:18px;height:18px;flex:none;
-  accent-color:var(--primary)}
+  accent-color:var(--primary-copy)}
 /* The Other choice's box: what is typed here is the menu's answer. Indented
    under the choices, bold like every typed answer. */
 .field-othertxt{border:none;border-bottom:1px solid var(--border);outline:none;
   font-size:16px;font-weight:700;color:var(--text);background:transparent;
   width:calc(100% - 28px);margin-left:28px;padding:6px 0;font-family:inherit}
-.field-othertxt::placeholder{color:#C7C7CC;font-weight:400}
-.field-othertxt:focus{border-bottom-color:var(--primary)}
+.field-othertxt::placeholder{color:var(--text3);font-weight:400}
+.field-othertxt:focus{border-bottom-color:var(--primary-copy)}
 
 /* Date/Time Adjust panel — the builder's three decisions, offered again while
    the form is open. A quiet link under the picker rather than a button: it is
@@ -719,7 +723,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .field-adj{display:inline-block;margin-top:8px;padding:2px 0;background:none;
   border:none;font-family:inherit;font-size:13px;font-weight:600;
   color:var(--text2);cursor:pointer}
-.field-adj[aria-expanded=true]{color:var(--primary)}
+.field-adj[aria-expanded=true]{color:var(--primary-copy)}
 .field-adjbox{display:flex;flex-direction:column;gap:10px;margin-top:8px;
   padding:12px;background:var(--bg-alt);border-radius:10px}
 .field-adjrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -734,7 +738,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .field-adjchk{display:flex;align-items:center;gap:6px;flex:none;
   font-size:13px;color:var(--text2)}
 .field-adjchk input[type=checkbox]{flex:none;width:18px;height:18px;
-  accent-color:var(--primary)}
+  accent-color:var(--primary-copy)}
 .field-adjsep{flex:none;color:var(--text2)}
 /* Scoped inside the box on purpose: a bare .field-hh loses to
    `.field-adjbox select` on specificity, and the two clock controls then take
@@ -752,7 +756,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .field-link{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
 .field-link:empty{display:none}
 .field-from{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;
-  background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:700}
+  background:var(--primary-lt);color:var(--primary-copy);font-size:11px;font-weight:700}
 .field-note{font-size:12.5px;font-weight:600;color:var(--warn-deep)}
 .field-note.none{font-weight:500;color:var(--text2)}
 
@@ -771,7 +775,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
    phone has a Share menu, and Copy takes the whole row where it has none. */
 .copy-foot{position:fixed;bottom:0;left:0;right:0;display:flex;gap:8px;
   padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
-  background:rgba(242,242,247,.92);backdrop-filter:blur(12px);
+  background:rgba(28,28,30,.92);backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:40}
 .foot-btn{flex:1 1 0;min-width:0;background:var(--primary);color:#fff;
   border:1px solid transparent;
@@ -779,7 +783,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit;
   transition:background .2s,transform .1s;display:flex;
   align-items:center;justify-content:center;gap:8px;letter-spacing:-.2px;white-space:nowrap}
-.foot-btn.is-share{background:var(--card);color:var(--primary);border-color:var(--border)}
+.foot-btn.is-share{background:var(--card);color:var(--primary-copy);border-color:var(--border)}
 .foot-btn:active{transform:scale(.97)}
 .foot-btn.ok{background:var(--success);color:#fff;border-color:transparent}
 
@@ -824,7 +828,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 }
 .sb-sheet-actions li:first-child{border-top:none}
 .sb-sheet-actions li:active{background:var(--bg-alt)}
-.sb-sheet-actions li[data-action=use]{color:var(--primary);font-weight:700}
+.sb-sheet-actions li[data-action=use]{color:var(--primary-copy);font-weight:700}
 .sb-action-danger{color:var(--danger) !important}
 .sb-sheet-act-i{width:22px;text-align:center;font-size:16px;line-height:1}
 /* A line icon rides in the same 22px slot as the character ones, sized to fill
@@ -838,7 +842,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .sb-profile-id{display:flex;align-items:center;gap:14px;
   padding:14px 22px 16px;border-bottom:1px solid var(--bg-alt)}
 .sb-profile-avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;
-  background:var(--primary-lt);color:var(--primary);
+  background:var(--primary-lt);color:var(--primary-copy);
   display:flex;align-items:center;justify-content:center;
   font-size:16px;font-weight:800;letter-spacing:.5px}
 .sb-profile-who{min-width:0}
@@ -860,7 +864,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 /* Tap-to-copy id row: same tap feedback as the sheet action list. */
 .sb-info-row[data-copy]{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .sb-info-row[data-copy]:active{background:var(--bg-alt)}
-.sb-info-mono{font-family:var(--mono);font-size:12px;color:var(--primary)}
+.sb-info-mono{font-family:var(--mono);font-size:12px;color:var(--primary-copy)}
 
 /* ── REVIEW STATUS (AI-KNOWLEDGE P2) ───────────────
    A chip beside the name for anything not approved, and a warning line on a
@@ -869,10 +873,10 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .mrev{display:inline-flex;align-items:center;flex-shrink:0;padding:0 7px;
   border-radius:999px;border:1px solid var(--border);background:var(--bg-alt);
   color:var(--text2);font-size:11px;font-weight:700;line-height:18px;vertical-align:middle}
-.mrev.ai_generated{background:var(--primary-lt);color:var(--primary);border-color:transparent}
+.mrev.ai_generated{background:var(--primary-lt);color:var(--primary-copy);border-color:transparent}
 .mrev.under_review{gap:4px;padding:0;border:0;border-radius:0;background:transparent;color:var(--text2);font-weight:500}
 .mrev.under_review::before{content:"";width:12px;height:12px;flex-shrink:0;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6h4'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6h4'/%3E%3C/svg%3E") center/contain no-repeat}
-.mrev.deprecated{background:var(--warn-bg);color:var(--warn-deep);border-color:transparent}
+.mrev.deprecated{background:var(--warn-badge-bg);color:var(--warn-badge-ink);border-color:transparent}
 .mrevwarn{margin:0 0 12px;padding:10px 12px;border-radius:var(--r-in);background:var(--warn-bg);
   color:var(--warn-deep);font-size:13px;font-weight:600}
 
@@ -903,11 +907,11 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .ask-hint{font-size:13px;color:var(--text2);margin:4px 0 8px}
 .ask-err{font-size:14px;color:var(--danger);margin:8px 0}
 .ask-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;
-  background:var(--primary-lt);color:var(--primary);font-size:12px;font-weight:700}
+  background:var(--primary-lt);color:var(--primary-copy);font-size:12px;font-weight:700}
 .ask-answer{font-size:15px;line-height:1.5;color:var(--text);white-space:pre-wrap;
   word-break:break-word;margin:10px 0}
 .ask-n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;
-  padding:0 5px;border-radius:5px;border:none;background:var(--primary-lt);color:var(--primary);
+  padding:0 5px;border-radius:5px;border:none;background:var(--primary-lt);color:var(--primary-copy);
   font:inherit;font-size:11px;font-weight:700;flex-shrink:0}
 .ask-answer .ask-n{margin:0 2px;vertical-align:text-top;cursor:pointer}
 .ask-n.off{background:var(--bg-alt);color:var(--text2)}
@@ -931,13 +935,13 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   background:var(--primary);color:#fff;font:inherit;font-size:15px;font-weight:700;
   min-height:48px;-webkit-tap-highlight-color:transparent}
 .ask-btn:active{background:var(--primary-dk)}
-.ask-btn.ghost{background:var(--bg-alt);color:var(--primary)}
+.ask-btn.ghost{background:var(--bg-alt);color:var(--primary-copy)}
 .ask-fb-h{font-size:13px;color:var(--text2);margin:16px 0 8px}
 .ask-fb{display:flex;flex-wrap:wrap;gap:8px}
 .ask-fb button{padding:8px 12px;min-height:36px;border-radius:999px;border:1px solid var(--border);
   background:var(--card);color:var(--text);font:inherit;font-size:13px;font-weight:600;
   -webkit-tap-highlight-color:transparent}
-.ask-fb button.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.ask-fb button.on{background:var(--primary);border-color:var(--primary-copy);color:#fff}
 .ask-fb button:disabled:not(.on){opacity:.5}
 
 /* ── EDIT MODAL ──────────────────────────────── */
@@ -981,7 +985,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   transition:border-color .15s
 }
 .sb-modal-body input:focus,
-.sb-modal-body textarea:focus{border-color:var(--primary)}
+.sb-modal-body textarea:focus{border-color:var(--primary-copy)}
 /* A picked value, styled as the inputs around it, with the chevron the fill
    form's menus carry. */
 .sb-modal-body select{
@@ -994,7 +998,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   background-repeat:no-repeat;background-position:right 14px center;background-size:16px 16px;
   transition:border-color .15s
 }
-.sb-modal-body select:focus{border-color:var(--primary)}
+.sb-modal-body select:focus{border-color:var(--primary-copy)}
 .sb-modal-body textarea{
   flex:1;min-height:200px;resize:none;line-height:1.5
 }
@@ -1022,7 +1026,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
    above is for typed fields only. */
 .sb-modal-body .psteps input[type=checkbox]{
   width:18px;height:18px;padding:0;border:none;border-radius:0;background:none;
-  -webkit-appearance:checkbox;appearance:auto;accent-color:var(--primary)}
+  -webkit-appearance:checkbox;appearance:auto;accent-color:var(--primary-copy)}
 /* Add text opens on its fields; the error line takes room only when it speaks. */
 #sb-mem-err:empty,#sb-cap-err:empty{display:none}
 /* Save to Brain: why this Brain is offered, and what saving will make. */
@@ -1033,7 +1037,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
    and the tip under it says how to get the text out without it. */
 .cap-pic{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;
   padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-btn);
-  background:var(--card);color:var(--primary);font:inherit;text-align:left;
+  background:var(--card);color:var(--primary-copy);font:inherit;text-align:left;
   cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:var(--shadow-sm);
   transition:transform .1s}
 .cap-pic:active{transform:scale(.98)}
@@ -1068,7 +1072,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .sb-folder-list li{display:flex;align-items:center;gap:12px}
 .sb-folder-list li.sb-selected{background:var(--primary-lt);font-weight:600}
 .sb-folder-list li.sb-selected::after{
-  content:'✓';margin-left:auto;color:var(--primary);font-weight:700;font-size:18px
+  content:'✓';margin-left:auto;color:var(--primary-copy);font-weight:700;font-size:18px
 }
 .sb-folder-row-ico{font-size:18px;line-height:1;flex-shrink:0;width:24px;text-align:center}
 .sb-folder-row-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1083,14 +1087,14 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   border-radius:var(--r-in);color:var(--text);outline:none;font-family:inherit;
   -webkit-appearance:none;appearance:none;transition:border-color .15s
 }
-#sb-folder-search:focus{border-color:var(--primary)}
+#sb-folder-search:focus{border-color:var(--primary-copy)}
 
 /* Folder picker: New Folder inline create */
 .sb-folder-new-wrap{border-top:1px solid var(--border);padding:8px 16px 12px}
 .sb-folder-new-btn{
   width:100%;display:flex;align-items:center;gap:10px;
   background:none;border:none;padding:12px 4px;font-family:inherit;
-  color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;
+  color:var(--primary-copy);font-size:15px;font-weight:600;cursor:pointer;
   -webkit-tap-highlight-color:transparent;min-height:44px
 }
 .sb-folder-new-btn:active{opacity:.7}
@@ -1117,14 +1121,14 @@ svg.brain-type-icon{stroke-width:1.8}
   -webkit-tap-highlight-color:transparent;transition:all .15s
 }
 .sb-fico-picker .sb-fico-opt:active{transform:scale(.94)}
-.sb-fico-picker .sb-fico-opt.sel{border-color:var(--primary);background:var(--primary-lt);color:var(--primary)}
+.sb-fico-picker .sb-fico-opt.sel{border-color:var(--primary-copy);background:var(--primary-lt);color:var(--primary-copy)}
 .sb-folder-new-form input{
   flex:1;padding:10px 12px;font-size:15px;
   background:var(--bg-alt);border:1px solid var(--border);
   border-radius:var(--r-in);color:var(--text);outline:none;font-family:inherit;
   -webkit-appearance:none;appearance:none
 }
-.sb-folder-new-form input:focus{border-color:var(--primary)}
+.sb-folder-new-form input:focus{border-color:var(--primary-copy)}
 .sb-folder-new-form button{
   padding:0 16px;font-size:14px;font-weight:700;font-family:inherit;
   background:var(--primary);color:#fff;border:none;border-radius:var(--r-in);
@@ -1157,7 +1161,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .psteps-txt{flex:1;min-width:0}
 .psteps-t{display:block;font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.2px}
 .psteps-d{display:block;font-size:13px;color:var(--text2);margin-top:3px;line-height:1.4}
-.psteps input{flex:none;width:18px;height:18px;accent-color:var(--primary)}
+.psteps input{flex:none;width:18px;height:18px;accent-color:var(--primary-copy)}
 .prompt-card{
   background:var(--card);border-radius:var(--r-card);
   padding:14px;display:flex;align-items:flex-start;gap:12px;
@@ -1169,7 +1173,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .prompt-icon{
   width:44px;height:44px;border-radius:13px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;font-size:22px;
-  background:var(--primary-lt);color:var(--primary)
+  background:var(--primary-lt);color:var(--primary-copy)
 }
 .prompt-icon .musage-count{top:-7px;right:-9px}
 .prompt-info{flex:1;min-width:0}
@@ -1195,7 +1199,7 @@ svg.brain-type-icon{stroke-width:1.8}
   width:20px;height:20px;border-radius:5px;flex-shrink:0
 }
 .share-private{background:#F2F2F7;color:#8E8E93}
-.share-folder{background:var(--primary-lt);color:var(--primary)}
+.share-folder{background:var(--primary-lt);color:var(--primary-copy)}
 .share-team{background:#F0FDF4;color:#15803D}
 
 /* ── PROMPTS + MEMORY: fixed gradient hero (mirrors snippets home) ── */
@@ -1210,7 +1214,7 @@ svg.brain-type-icon{stroke-width:1.8}
   display:none;align-items:center;justify-content:center;padding:0;
   -webkit-tap-highlight-color:transparent;transition:background .15s
 }
-.psearch-clear:active{background:rgba(0,0,0,.06)}
+.psearch-clear:active{background:rgba(255,255,255,.08)}
 .psearch-wrap.has-text .psearch-clear{display:flex}
 .psearch-wrap.has-text input{padding-right:40px}
 .psearch-meta{
@@ -1235,15 +1239,15 @@ svg.brain-type-icon{stroke-width:1.8}
   padding:0;border-radius:50%;-webkit-tap-highlight-color:transparent;
   transition:background .15s;user-select:none
 }
-.prompt-menu:active{background:rgba(0,0,0,.06)}
-.prompt-menu:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.prompt-menu:active{background:rgba(255,255,255,.08)}
+.prompt-menu:focus-visible{outline:2px solid var(--primary-border);outline-offset:-2px}
 
 /* ── EMPTY-STATE SUGGESTIONS ── */
 .empty-sug{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .empty-sug-lbl{width:100%;font-size:12px;color:var(--text3);margin-bottom:2px}
 .empty-sug-chip{
   border:1px solid var(--border);background:var(--card);border-radius:9999px;
-  padding:6px 14px;font-size:13px;font-weight:600;color:var(--primary);
+  padding:6px 14px;font-size:13px;font-weight:600;color:var(--primary-copy);
   cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;
   min-height:34px;transition:transform .1s
 }
@@ -1264,7 +1268,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .mbrain-act{
   display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;
   padding:10px 8px;border-radius:var(--r-btn);
-  background:var(--card);color:var(--primary);border:1px solid var(--border);
+  background:var(--card);color:var(--primary-copy);border:1px solid var(--border);
   box-shadow:var(--shadow-sm);font-family:inherit;font-size:14px;font-weight:700;
   letter-spacing:-.2px;white-space:nowrap;cursor:pointer;
   -webkit-tap-highlight-color:transparent;transition:transform .1s,background .15s
@@ -1311,7 +1315,7 @@ svg.brain-type-icon{stroke-width:1.8}
 /* Refresh button spin animation */
 @keyframes an-spin{to{transform:rotate(360deg)}}
 #an-refresh-btn.spinning svg{animation:an-spin .7s linear infinite}
-.an-kpi.a-primary{border-left-color:var(--primary)}
+.an-kpi.a-primary{border-left-color:var(--primary-copy)}
 .an-kpi.a-orange{border-left-color:#C2410C}
 .an-kpi.a-green{border-left-color:var(--success)}
 .an-kpi.a-purple{border-left-color:#7C3AED}
@@ -1349,19 +1353,19 @@ svg.brain-type-icon{stroke-width:1.8}
   margin-top:5px;overflow:hidden}
 .an-folder-bar{height:100%;background:var(--primary);border-radius:2px;
   transition:width .5s ease}
-.an-folder-cnt{font-size:14px;font-weight:700;color:var(--primary);flex-shrink:0}
+.an-folder-cnt{font-size:14px;font-weight:700;color:var(--primary-copy);flex-shrink:0}
 .an-health-row{display:flex;flex-direction:column;gap:7px;padding:12px 0;
   border-bottom:1px solid var(--bg-alt)}
 .an-health-row:last-child{border-bottom:none}
 .an-health-top{display:flex;justify-content:space-between;align-items:center}
 .an-health-lbl{font-size:13px;font-weight:600;color:var(--text)}
-.an-health-pct{font-size:14px;font-weight:800;color:var(--primary)}
-.an-health-pct.h-warn{color:#C2410C}
+.an-health-pct{font-size:14px;font-weight:800;color:var(--primary-copy)}
+.an-health-pct.h-warn{color:var(--warn-deep)}
 .an-health-pct.h-ok{color:var(--success)}
 .an-health-bar-wrap{height:6px;background:var(--bg-alt);border-radius:3px;overflow:hidden}
 .an-health-bar{height:100%;border-radius:3px;background:var(--primary);
   transition:width .5s ease}
-.an-health-bar.h-warn{background:#C2410C}
+.an-health-bar.h-warn{background:var(--warn-deep)}
 .an-health-bar.h-ok{background:var(--success)}
 .an-recent-item{display:flex;align-items:center;gap:12px;padding:12px 0;
   border-bottom:1px solid var(--bg-alt);cursor:pointer;
@@ -1370,7 +1374,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .an-recent-item:active{background:var(--bg-alt);
   margin:0 -16px;padding-left:16px;padding-right:16px}
 .an-recent-ico{width:40px;height:40px;border-radius:12px;flex-shrink:0;
-  background:var(--primary-lt);color:var(--primary);
+  background:var(--primary-lt);color:var(--primary-copy);
   display:flex;align-items:center;justify-content:center;font-size:19px}
 .an-recent-info{flex:1;min-width:0}
 .an-recent-title{font-size:14px;font-weight:700;color:var(--text);
@@ -1385,7 +1389,7 @@ svg.brain-type-icon{stroke-width:1.8}
 <body>
 
 <div id="loading">
-  <div style="font-size:40px;color:var(--primary)"><svg class="snippet-icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></div>
+  <div style="font-size:40px;color:var(--primary-copy)"><svg class="snippet-icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></div>
   <div class="spinner"></div>
   <p>Loading snippets…</p>
 </div>
@@ -3537,7 +3541,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .d-fields.ff-form{max-height:none;overflow:visible;}
 #view-detail .fill-switch{display:flex;gap:8px;padding:8px 16px;border-bottom:1px solid var(--border);}
 #view-detail .fill-switch button{flex:1;min-height:44px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font:inherit;}
-#view-detail .fill-switch button[aria-pressed=true]{color:var(--primary);border-color:var(--primary);}
+#view-detail .fill-switch button[aria-pressed=true]{color:var(--primary-copy);border-color:var(--primary-copy);}
 #view-detail[data-pane=preview] .mobile-fill-pane,#view-detail[data-pane=preview] #det-link,#view-detail[data-pane=fields] .mobile-preview-pane{display:none;}
 #view-detail .ff-field .field-inline{display:block;}
 
