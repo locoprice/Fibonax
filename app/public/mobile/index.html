@@ -64,41 +64,40 @@ body{
   padding:calc(18px + env(safe-area-inset-top)) 24px 26px}
 .home-top{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1}
 .home-wordmark{display:flex;align-items:center;gap:9px;font-size:21px;font-weight:750;letter-spacing:-.8px}
-.home-brandmark{width:24px;height:26px;flex:none;color:#B4C9FF;stroke:currentColor;fill:none;
-  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.home-brandmark{width:30px;height:26px;flex:none;background:#B4C9FF;
+  -webkit-mask:url(/landing/leib-tour-icon.png) center/contain no-repeat;mask:url(/landing/leib-tour-icon.png) center/contain no-repeat}
 .home-account{width:44px;height:44px;flex:none;border-radius:50%;border:1px solid #566784;background:#223251;
   color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
   display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
 .home-account:active{background:var(--navy-soft)}
+.home-account,.sb-profile-avatar{overflow:hidden}
+.home-account img,.sb-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .home-hero{position:relative;margin-top:30px}
 .home-orbit{position:absolute;width:122px;height:122px;right:-38px;top:-17px;opacity:.32;pointer-events:none;
   stroke:#829BDD;stroke-width:1;fill:none}
 .home-title{position:relative;z-index:1;font-size:38px;font-weight:700;letter-spacing:-1.25px;line-height:1.08;color:#fff}
-/* One obvious first step: a single white card. The other two starts are quiet
-   links under it, so the band offers a choice without asking for one. */
-.home-tasks{margin-top:24px;position:relative;z-index:1}
-.home-task{display:flex;align-items:center;gap:13px;width:100%;min-height:76px;padding:14px 16px;
-  border:1px solid #fff;border-radius:14px;background:#fff;color:var(--navy);
+/* Three starts, three equal buttons: snippets, prompts and Brains each get a
+   raised white card with an icon, a title, a line saying what it does and a
+   blue arrow. Pressing one sinks it into its own edge. */
+.home-tasks{display:flex;flex-direction:column;gap:12px;margin-top:24px;position:relative;z-index:1}
+.home-task{display:flex;align-items:center;gap:14px;width:100%;min-height:68px;padding:12px 14px;
+  border:1px solid #fff;border-radius:16px;background:#fff;color:var(--navy);
+  box-shadow:0 4px 0 #B7C3E0,0 10px 18px rgba(5,10,25,.3);
   text-align:left;font-family:inherit;cursor:pointer;
-  -webkit-tap-highlight-color:transparent;transition:transform .12s,background .15s}
-.home-task:active{transform:scale(.985);background:var(--primary-lt)}
-.home-task-icon{width:36px;height:36px;flex:0 0 36px;display:flex;align-items:center;justify-content:center;color:var(--primary)}
+  -webkit-tap-highlight-color:transparent;transition:transform .08s,box-shadow .08s,background .12s}
+.home-task:active{transform:translateY(3px);background:var(--primary-lt);
+  box-shadow:0 1px 0 #B7C3E0,0 3px 8px rgba(5,10,25,.3)}
+.home-task-icon{width:40px;height:40px;flex:0 0 40px;display:flex;align-items:center;justify-content:center;
+  border-radius:12px;background:var(--primary-lt);color:var(--primary);transition:background .12s}
+.home-task:active .home-task-icon{background:#fff}
 .home-task-icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .home-task-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
 .home-task-copy strong{font-size:16px;font-weight:650;letter-spacing:-.2px;line-height:1.3}
 .home-task-copy small{font-size:12px;line-height:1.4;color:var(--text2)}
-.home-task-arrow{width:18px;height:18px;flex:0 0 18px;margin-left:auto}
-.home-links{display:flex;flex-direction:column;margin-top:8px}
-.home-link{display:flex;align-items:center;gap:13px;width:100%;min-height:44px;padding:6px 24px;
-  border:0;border-radius:10px;background:none;color:#D4DBE9;font-family:inherit;font-size:15px;font-weight:600;
-  text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.home-link:active{background:var(--navy-soft)}
-.home-link svg{width:20px;height:20px;flex:0 0 20px;color:#B9CCFF;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.home-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:10px;padding:0 24px;position:relative;z-index:1}
-.home-meta-badge{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:4px 12px;border:1px solid var(--navy-line);border-radius:9999px;background:var(--navy-soft)}
-.home-meta-dot{width:7px;height:7px;flex:none;border-radius:50%;background:#22C55E}
-.home-meta-ver{font-size:13px;font-weight:700;letter-spacing:.2px;color:#D8E3FF}
-.home-meta-date{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.4;letter-spacing:.15px;color:var(--navy-copy)}
+.home-task-arrow{width:28px;height:28px;flex:0 0 28px;margin-left:auto;padding:6px;box-sizing:border-box;
+  border-radius:50%;background:var(--primary);color:#fff}
+.home-meta{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:0 8px;margin-top:22px;position:relative;z-index:1;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.4;letter-spacing:.15px;color:var(--navy-copy)}
 .home-band :focus-visible{outline:2px solid #D8E3FF;outline-offset:2px}
 .home-body{padding:25px 24px 0}
 .home-body :focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
@@ -151,6 +150,8 @@ body{
   .home-orbit{width:170px;height:170px;right:30px;top:-13px}
   .home-body{padding:30px 40px 0}
   .home-pin-list{grid-template-columns:1fr 1fr}
+  .home-tasks{flex-direction:row}
+  .home-task{flex:1;min-width:0}
 }
 @media(max-width:350px){
   .home-band{padding-left:18px;padding-right:18px}
@@ -1449,7 +1450,7 @@ svg.brain-type-icon{stroke-width:1.8}
   <main class="home-main" aria-labelledby="home-title">
     <div class="home-band">
       <div class="home-top">
-        <span class="home-wordmark"><svg class="home-brandmark" viewBox="0 0 24 28" aria-hidden="true"><path d="M2 3h8l2 3 2-3h8M4 6h5l3 4 3-4h5M7 9h2l3 5 3-5h2M12 6v19M9 12v11M15 12v11"/></svg>Fibonax</span>
+        <span class="home-wordmark"><span class="home-brandmark" aria-hidden="true"></span>Fibonax</span>
         <button class="home-account" type="button" id="home-account" data-home-action="account" aria-label="Open your account">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
         </button>
@@ -1467,18 +1468,25 @@ svg.brain-type-icon{stroke-width:1.8}
             <span class="home-task-copy"><strong>Use a snippet</strong><small>Find, personalize, and copy</small></span>
             <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <div class="home-links">
-            <button class="home-link" type="button" data-home-action="prompts">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>Prepare a prompt
-            </button>
-            <button class="home-link" type="button" data-home-action="capture">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Capture a note
-            </button>
-          </div>
+          <button class="home-task" type="button" data-home-action="prompts">
+            <span class="home-task-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg>
+            </span>
+            <span class="home-task-copy"><strong>Prepare a prompt</strong><small>Pick a prompt and copy it</small></span>
+            <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="home-task" type="button" data-home-action="capture">
+            <span class="home-task-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></svg>
+            </span>
+            <span class="home-task-copy"><strong>Capture a note</strong><small>Save text or a link to a Brain</small></span>
+            <svg class="home-task-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="home-meta">
-          <span class="home-meta-badge"><span class="home-meta-dot" aria-hidden="true"></span><span class="home-meta-ver">{{APP_VERSION}}</span></span>
-          <span class="home-meta-date">Updated {{RELEASE_MONTH}}</span>
+          <span>{{APP_VERSION}}</span>
+          <span aria-hidden="true">·</span>
+          <span>Updated {{RELEASE_MONTH}}</span>
         </div>
       </div>
     </div>
@@ -1893,7 +1901,7 @@ svg.brain-type-icon{stroke-width:1.8}
     <span class="mtab-label">Home</span>
   </button>
   <button class="mtab-item" type="button" aria-label="Brains" data-nav="brains">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 18V5a3 3 0 0 0-5.8-1.1A4 4 0 0 0 4 11.2 4 4 0 0 0 7 18h5Zm0-13a3 3 0 0 1 5.8-1.1A4 4 0 0 1 20 11.2 4 4 0 0 1 17 18h-5"/><path d="M8 8h.01M16 8h.01M8 13h.01M16 13h.01"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>
     <span class="mtab-label">Brains</span>
   </button>
   <button class="mtab-item" type="button" aria-label="More" data-nav="more" aria-haspopup="dialog" aria-expanded="false" aria-controls="mobile-more-menu">
@@ -10797,6 +10805,31 @@ function profileInitials(name,email){
   if(email)return email.charAt(0).toUpperCase();
   return '👤';
 }
+/* The picture chosen in the dashboard (https only, like the company logo). It
+   replaces the initials once it has loaded, so a slow or broken link leaves
+   the initials in place. */
+function profileAvatarUrl(){
+  var u=SESSION&&SESSION.user;
+  var v=u&&u.user_metadata&&u.user_metadata.avatar_url;
+  return typeof v==='string'&&v.indexOf('https://')===0?v:'';
+}
+function paintAvatar(el,initials){
+  var url=profileAvatarUrl();
+  if(url&&el.getAttribute('data-avatar')===url)return;
+  el.removeAttribute('data-avatar');
+  if(initials)el.textContent=initials;
+  if(!url)return;
+  var img=new Image();
+  img.alt='';
+  img.draggable=false;
+  img.referrerPolicy='no-referrer';
+  img.addEventListener('load',function(){
+    el.textContent='';
+    el.appendChild(img);
+    el.setAttribute('data-avatar',url);
+  });
+  img.src=url;
+}
 function openProfileSheet(){
   var u=SESSION&&SESSION.user;
   var email=(u&&u.email)||'';
@@ -10813,7 +10846,7 @@ function openProfileSheet(){
   nameEl.textContent=name;
   nameEl.hidden=!name;
   document.getElementById('sb-profile-email').textContent=email;
-  document.getElementById('sb-profile-avatar').textContent=profileInitials(name,email);
+  paintAvatar(document.getElementById('sb-profile-avatar'),profileInitials(name,email));
   var sh=document.getElementById('sb-profile-sheet');
   sh.classList.remove('sb-hidden');
   sh.setAttribute('aria-hidden','false');
@@ -11595,8 +11628,8 @@ function applyCompanyBrand(){
     row.classList.remove('sb-hidden');
   });
 }
-/* Home's band: the account button carries the person's initials, from the same
-   name sources as the profile sheet. */
+/* Home's band: the account button carries the person's picture, or their
+   initials from the same name sources as the profile sheet. */
 function applyHomeHeader(){
   var u=SESSION&&SESSION.user;
   var meta=(u&&u.user_metadata)||{};
@@ -11604,7 +11637,7 @@ function applyHomeHeader(){
   var name=(meta.display_name||meta.full_name||meta.name||'').trim();
   var initials=profileInitials(name,email);
   var btn=document.getElementById('home-account');
-  if(btn&&initials!=='👤')btn.textContent=initials;
+  if(btn)paintAvatar(btn,initials!=='👤'?initials:'');
 }
 /* The session read from storage is a snapshot from when this phone signed in,
    so a company name or logo chosen later in the dashboard is missing from it.
