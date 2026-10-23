@@ -1940,12 +1940,12 @@ function showOverlay(targetEl, snip, scLen, done) {
   el.setAttribute('aria-describedby', 'sb-fill-description');
   el.innerHTML =
     '<div class="sb-hdr">' +
-      '<h2 class="sb-function-name" id="sb-fill-title">'+xesc(snip.title)+'</h2>' +
+      '<h2 class="sb-function-name" id="sb-fill-title">Fill in your snippet: '+xesc(snip.title)+'</h2>' +
       '<button type="button" class="sb-close" aria-label="Cancel insertion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>' +
     '</div>' +
     '<nav class="sb-view-switch" aria-label="Snippet view"><button type="button" data-pane="fields" aria-pressed="true">Fill in</button><button type="button" data-pane="preview" aria-pressed="false">Preview</button></nav>' +
     '<div class="sb-form-content"><div class="sb-input-pane">' +
-      '<div class="sb-heading"><h3 class="sb-title">Fill in your snippet</h3>' +
+      '<div class="sb-heading">' +
         '<p id="sb-fill-description">Fill in the fields, then insert your message.</p></div>' +
       (reviewWarning(snip) ? '<div class="sb-revwarn" role="alert">' + xesc(reviewWarning(snip)) + '</div>' : '') +
       (vm.linkable ? _sbLinkHtml() : '') +
@@ -3753,14 +3753,13 @@ document.addEventListener('input', function(e) {
     "#sb-overlay button{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:var(--sb-s-2);min-height:calc(var(--sb-s-10) + var(--sb-s-1));border:1px solid transparent;border-radius:var(--sb-r-lg);font-family:inherit;font-size:var(--sb-fs-13);font-weight:600;line-height:1.3;cursor:pointer;touch-action:manipulation;}" +
     "#sb-overlay button:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px;}" +
     "#sb-overlay .sb-hdr{flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--sb-s-3);padding:var(--sb-s-2) var(--sb-s-6);border-bottom:1px solid var(--sb-line);}" +
-    "#sb-overlay .sb-function-name{min-width:0;font-size:var(--sb-fs-14);font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere;}" +
+    "#sb-overlay .sb-function-name{min-width:0;font-size:var(--sb-fs-16);font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere;}" +
     "#sb-overlay .sb-close{flex:none;width:calc(var(--sb-s-10) + var(--sb-s-1));padding:0;color:var(--sb-ink-muted);}" +
     "#sb-overlay .sb-close:hover{background:var(--sb-bg-muted);color:var(--sb-ink);}" +
     "#sb-overlay .sb-close svg{display:block;}" +
     "#sb-overlay .sb-form-content{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scroll-padding-block:var(--sb-s-3);padding:var(--sb-s-5) var(--sb-s-6);}" +
     "#sb-overlay .sb-heading{margin-bottom:var(--sb-s-4);}" +
-    "#sb-overlay .sb-title{font-size:var(--sb-fs-20);font-weight:600;letter-spacing:-.03em;line-height:1.25;overflow-wrap:anywhere;}" +
-    "#sb-overlay #sb-fill-description{margin-top:var(--sb-s-1);font-size:var(--sb-fs-13);color:var(--sb-ink-muted);}" +
+    "#sb-overlay #sb-fill-description{margin:0;font-size:var(--sb-fs-12);font-weight:600;color:var(--sb-ink);}" +
     "#sb-overlay .sb-revwarn{margin-bottom:var(--sb-s-5);padding:var(--sb-s-3) var(--sb-s-4);border:1px solid var(--sb-warn-bdr);border-radius:var(--sb-r-lg);background:var(--sb-warn-bg);color:var(--sb-ink);font-size:var(--sb-fs-12);}" +
     "#sb-overlay .sb-fields{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:var(--sb-s-4);}" +
     "#sb-overlay .sb-field{display:flex;flex-direction:column;gap:var(--sb-s-2);min-width:0;}" +
