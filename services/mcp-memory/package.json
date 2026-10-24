@@ -1,6 +1,6 @@
 {
   "name": "fibonax-mcp-memory",
-  "version": "3.82.2",
+  "version": "3.82.3",
   "private": true,
   "type": "module",
   "description": "Fibonax working-memory MCP server. Attaches and detaches memory shards per step, inside a token budget.",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
