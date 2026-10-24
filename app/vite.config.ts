@@ -14,7 +14,7 @@ interface RawEntry  { version: string; date: string; label: string; changes: Raw
 
 function buildChangelog(): RawEntry[] {
   try {
-    const repoRoot = path.resolve(__dirname, '..');
+    const repoRoot = path.resolve(import.meta.dirname, '..');
     const raw = execSync(
       'git log --pretty=format:"%s%x09%ad" --date=short --no-merges',
       { encoding: 'utf-8', cwd: repoRoot },
@@ -105,7 +105,7 @@ const RELEASE_MONTH_TOKEN  = '{{RELEASE_MONTH}}';
 
 function readExtensionVersion(): string {
   try {
-    const manifestPath = path.resolve(__dirname, '../extension/manifest.json');
+    const manifestPath = path.resolve(import.meta.dirname, '../extension/manifest.json');
     const { version } = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as {
       version: string;
     };
@@ -133,8 +133,8 @@ function landingVersionPlugin(): Plugin {
   const version      = readExtensionVersion();
   const releaseDate  = formatReleaseDate(RELEASE_DATE);
   const releaseMonth = formatReleaseMonth(RELEASE_DATE);
-  const sourceFile   = path.resolve(__dirname, 'public/landing/index.html');
-  const distFile     = path.resolve(__dirname, 'dist/landing/index.html');
+  const sourceFile   = path.resolve(import.meta.dirname, 'public/landing/index.html');
+  const distFile     = path.resolve(import.meta.dirname, 'dist/landing/index.html');
   const stamp = (html: string): string =>
     html.split(EXT_VERSION_TOKEN).join(version)
         .split(RELEASE_DATE_TOKEN).join(releaseDate)
@@ -182,8 +182,8 @@ const APP_VERSION_TOKEN = '{{APP_VERSION}}';
 function mobileVersionPlugin(): Plugin {
   const version      = APP_VERSION;
   const releaseMonth = formatReleaseMonth(RELEASE_DATE);
-  const sourceFile   = path.resolve(__dirname, 'public/mobile/index.html');
-  const distFile     = path.resolve(__dirname, 'dist/mobile/index.html');
+  const sourceFile   = path.resolve(import.meta.dirname, 'public/mobile/index.html');
+  const distFile     = path.resolve(import.meta.dirname, 'dist/mobile/index.html');
   const stamp = (html: string): string =>
     html.split(APP_VERSION_TOKEN).join(version)
         .split(RELEASE_MONTH_TOKEN).join(releaseMonth);
@@ -241,9 +241,9 @@ const EXTENSION_MIME: Record<string, string> = {
 };
 
 function extensionScriptsPlugin(): Plugin {
-  const repoRoot = path.resolve(__dirname, '..');
+  const repoRoot = path.resolve(import.meta.dirname, '..');
   const extSrc   = path.join(repoRoot, 'extension');
-  const distDir  = path.resolve(__dirname, 'dist');
+  const distDir  = path.resolve(import.meta.dirname, 'dist');
 
   return {
     name: 'sprintbrain-extension-scripts',
@@ -299,7 +299,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   server: {
@@ -310,14 +310,16 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: true,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
         // Split heavy vendors into their own cached chunks so no single chunk
         // blows past Vite's 500 kB advisory and repeat visits re-use them.
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          charts: ['recharts'],
-          supabase: ['@supabase/supabase-js'],
+        codeSplitting: {
+          groups: [
+            { name: 'react', test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/ },
+            { name: 'charts', test: /node_modules[\\/](recharts|d3-[^\\/]+|victory-vendor|internmap)[\\/]/ },
+            { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/ },
+          ],
         },
       },
     },
