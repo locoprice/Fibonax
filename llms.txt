@@ -47,7 +47,7 @@ Use this to find where a capability lives. Each row is shipped unless marked loc
 **Brains**
 - Spaces and items (kinds, summaries, labels), file/document uploads (`memory_documents`), trash and history, an in page **Context** button/picker (`content/memory-picker.js`, shortcut `Ctrl/Cmd+Shift+M`), **Save selection to Fibonax** from the right click menu (`content/save-selection.js`), **Save this chat** from supported AI chat sites (`content/chat-capture.js`), the popup's Brains tab, and Save to Brain on the phone.
 - How text is cut, named, summarised and routed to the right Brain lives once in `extension/shared/memory-chunk.js` (`chunkText`, `captureName`, `captureSummary`, `suggestBrain`, `pickBrain`). What "Copy whole Brain" / "Use now" hands an AI lives in `extension/shared/memory-pack.js` (`formatInjectedBlock`). The phone carries generated copies of both.
-- MCP server tools: `memory_steps`, `memory_index`, `memory_enter_step`, `memory_attach`, `memory_detach`, `memory_state`, `memory_save`.
+- MCP server (`fibonax-memory`, package `fibonax-mcp-memory`, token in `FIBONAX_MEMORY_TOKEN`; renamed from the `sprintbrain-*` names in v3.82.1) tools: `memory_steps`, `memory_index`, `memory_enter_step`, `memory_attach`, `memory_detach`, `memory_state`, `memory_save`.
 
 **Review status (AI knowledge governance)**: every snippet, prompt and Brain item has a status (draft, AI generated, under review, approved, deprecated, archived). The database trigger `app.review_status_guard` is the authority; `app/src/lib/reviewStatus.ts` and the phone's `REVIEW_STATUSES` mirror it. A Review page (`/review`) lists what waits for an approver; non admin edits of approved team content drop back to under review. Archived items are skipped by the MCP readers and search.
 
@@ -113,7 +113,6 @@ The Supabase anon/publishable key is intentionally committed client side (`app/s
 All user facing text, the manifest, the dashboard, mobile, landing, manual and docs say **Fibonax**, and the third section says **Brains**. A few identifiers still use the old name on purpose or have not been moved. Do not rename them in passing; each rename breaks something that already exists:
 
 - Edge function `ask-sprintbrain`: the deployed function URL. Renaming means a new deploy plus changing `askApi.ts`, the phone and `check-pro-gate.js` together.
-- MCP server: server name `sprintbrain-memory`, npm package `sprintbrain-mcp-memory`, and the `SPRINTBRAIN_MEMORY_TOKEN` environment variable. People's existing MCP client configs use them.
 - Stored keys and constants in app code and the phone (storage keys, internal ids, the extension id helper, CSS token prefix `--sb-`).
 - The former domains and address (`sprintbrain.com`, `app.sprintbrain.com`): only as redirects and in `externally_connectable`.
 - Older migrations and their README, which are history.
