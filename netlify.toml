@@ -4,7 +4,7 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
 
 # Former app address -> app.fibonax.com, permanently, keeping path and query.
 # Must stay FIRST and forced: Netlify takes the first matching rule, and
