@@ -688,6 +688,7 @@
     // exactly as it always has.
     var linkable = false;
     for (var lf = 0; lf < fields.length; lf++) if (fields[lf].link) { linkable = true; break; }
+    var linkLabel = linkable ? linkBoxLabel(fields) : '';
 
     // The preview resolves against the EFFECTIVE values, which is each field's
     // entry falling back to its default — not the raw `values` argument. A
@@ -708,6 +709,9 @@
       // the operator just approved.
       fmtOverride: fmtOverride,
       linkable: linkable,
+      // The words over the Link box, naming the fields it fills. '' when the
+      // form has no Link box.
+      linkLabel: linkLabel,
       layout: layout,
       steps: buildSteps(shown, layout)
     };
@@ -774,11 +778,52 @@
     return { url: s, problem: '' };
   }
 
+  // The Link box says what it fills, by name, so nobody has to guess what goes
+  // in it or what happens next: "Paste a web page link to fill Client, Start
+  // and Boxes". Past three names the rest is a count, so the line stays short
+  // on a phone. Until v3.83.0 it read "Fill from link", which said neither.
+  var LINK_LABEL_NAMES = 3;
+
+  // A choice nobody named is keyed MENU_ and a hash of its token (the engine's
+  // _menuKeyHash, lowercase base 36), which means nothing to a reader.
+  var UNNAMED_MENU_KEY = /^MENU_[0-9a-z]*[a-z][0-9a-z]*$/;
+
+  function linkFieldName(field) {
+    if (trim(field.label)) return trim(field.label);
+    if (field.type === 'dd' && UNNAMED_MENU_KEY.test(field.key)) return 'Choice';
+    var name = trim(field.key.replace(/_/g, ' '));
+    // A name in capitals (CLIENT, START_DATE) reads as shouting in a sentence.
+    // One the author cased themselves is kept as written.
+    if (name === name.toUpperCase()) name = name.charAt(0) + name.slice(1).toLowerCase();
+    return name;
+  }
+
+  /**
+   * The words over the Link box for a form's fields.
+   * @param {Array} fields  the view model's fields
+   * @returns {string} '' when none of them reads a page
+   */
+  function linkBoxLabel(fields) {
+    var names = [];
+    for (var i = 0; i < fields.length; i++) if (fields[i].link) names.push(linkFieldName(fields[i]));
+    if (!names.length) return '';
+    var list;
+    if (names.length > LINK_LABEL_NAMES) {
+      list = names.slice(0, LINK_LABEL_NAMES).join(', ') + ' and ' + (names.length - LINK_LABEL_NAMES) + ' more';
+    } else if (names.length > 1) {
+      list = names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+    } else {
+      list = names[0];
+    }
+    return 'Paste a web page link to fill ' + list;
+  }
+
   // Every sentence the feature says, in one place. The four surfaces draw their
   // own markup and show these words, so a message changes once for all of them.
+  // The box's own label is the one exception: it names the form's fields, so it
+  // comes with the form (linkLabel on the view model).
   var LINK_TEXT = {
-    'box-label': 'Fill from link',
-    'box-placeholder': 'Paste a link to fill this form',
+    'box-placeholder': 'https://',
     'box-button': 'Fill',
     'reading': 'Reading the page…',
     'from-link': 'From link',

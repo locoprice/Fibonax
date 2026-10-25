@@ -698,7 +698,9 @@ body{
    snippet looks exactly as it did. The box is the page's typed-box style at
    16px (smaller makes iOS zoom on focus), the button its primary action. The
    status line keeps its place in the page even when empty, so a screen reader
-   still hears what it says next. */
+   still hears what it says next. The label is a sentence naming the fields
+   it fills, so it is set in sentence case rather than as a section heading. */
+.link-lbl{display:block;font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px}
 .link-row{display:flex;gap:8px}
 .link-in{flex:1;min-width:0;height:48px;padding:0 14px;font-size:16px;
   background:var(--card);border:1px solid var(--border);border-radius:var(--r-in);
@@ -1628,7 +1630,7 @@ svg.brain-type-icon{stroke-width:1.8}
       <div class="lang-picker" id="det-lang-picker"></div>
     </div>
     <div id="det-link" class="sb-hidden" aria-busy="false">
-      <label class="sec-lbl" id="det-link-lbl" for="det-link-in"></label>
+      <label class="link-lbl" id="det-link-lbl" for="det-link-in"></label>
       <div class="link-row">
         <input id="det-link-in" class="link-in" type="url" inputmode="url" enterkeyhint="go"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
@@ -3074,6 +3076,7 @@ svg.brain-type-icon{stroke-width:1.8}
     // exactly as it always has.
     var linkable = false;
     for (var lf = 0; lf < fields.length; lf++) if (fields[lf].link) { linkable = true; break; }
+    var linkLabel = linkable ? linkBoxLabel(fields) : '';
 
     // The preview resolves against the EFFECTIVE values, which is each field's
     // entry falling back to its default — not the raw `values` argument. A
@@ -3094,6 +3097,9 @@ svg.brain-type-icon{stroke-width:1.8}
       // the operator just approved.
       fmtOverride: fmtOverride,
       linkable: linkable,
+      // The words over the Link box, naming the fields it fills. '' when the
+      // form has no Link box.
+      linkLabel: linkLabel,
       layout: layout,
       steps: buildSteps(shown, layout)
     };
@@ -3160,11 +3166,52 @@ svg.brain-type-icon{stroke-width:1.8}
     return { url: s, problem: '' };
   }
 
+  // The Link box says what it fills, by name, so nobody has to guess what goes
+  // in it or what happens next: "Paste a web page link to fill Client, Start
+  // and Boxes". Past three names the rest is a count, so the line stays short
+  // on a phone. Until v3.83.0 it read "Fill from link", which said neither.
+  var LINK_LABEL_NAMES = 3;
+
+  // A choice nobody named is keyed MENU_ and a hash of its token (the engine's
+  // _menuKeyHash, lowercase base 36), which means nothing to a reader.
+  var UNNAMED_MENU_KEY = /^MENU_[0-9a-z]*[a-z][0-9a-z]*$/;
+
+  function linkFieldName(field) {
+    if (trim(field.label)) return trim(field.label);
+    if (field.type === 'dd' && UNNAMED_MENU_KEY.test(field.key)) return 'Choice';
+    var name = trim(field.key.replace(/_/g, ' '));
+    // A name in capitals (CLIENT, START_DATE) reads as shouting in a sentence.
+    // One the author cased themselves is kept as written.
+    if (name === name.toUpperCase()) name = name.charAt(0) + name.slice(1).toLowerCase();
+    return name;
+  }
+
+  /**
+   * The words over the Link box for a form's fields.
+   * @param {Array} fields  the view model's fields
+   * @returns {string} '' when none of them reads a page
+   */
+  function linkBoxLabel(fields) {
+    var names = [];
+    for (var i = 0; i < fields.length; i++) if (fields[i].link) names.push(linkFieldName(fields[i]));
+    if (!names.length) return '';
+    var list;
+    if (names.length > LINK_LABEL_NAMES) {
+      list = names.slice(0, LINK_LABEL_NAMES).join(', ') + ' and ' + (names.length - LINK_LABEL_NAMES) + ' more';
+    } else if (names.length > 1) {
+      list = names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+    } else {
+      list = names[0];
+    }
+    return 'Paste a web page link to fill ' + list;
+  }
+
   // Every sentence the feature says, in one place. The four surfaces draw their
   // own markup and show these words, so a message changes once for all of them.
+  // The box's own label is the one exception: it names the form's fields, so it
+  // comes with the form (linkLabel on the view model).
   var LINK_TEXT = {
-    'box-label': 'Fill from link',
-    'box-placeholder': 'Paste a link to fill this form',
+    'box-placeholder': 'https://',
     'box-button': 'Fill',
     'reading': 'Reading the page…',
     'from-link': 'From link',
@@ -9097,6 +9144,8 @@ function renderDetail(snip,keepVals){
   /* Fill from link sits above the fields only when one of them says where it
      is on a page. */
   document.getElementById('det-link').classList.toggle('sb-hidden',!_vm.linkable);
+  /* The box names the fields it fills, so its words come with each form. */
+  document.getElementById('det-link-lbl').textContent=_vm.linkLabel;
 
   if(!_vm.fields.length){
     form.innerHTML='<div class="no-fields">No input fields — ready to copy ✓</div>';
@@ -9600,7 +9649,6 @@ function fillFromLink(){
 (function(){
   var M=window.SBFillForm;
   var inp=document.getElementById('det-link-in'),btn=document.getElementById('det-link-btn');
-  document.getElementById('det-link-lbl').textContent=M.linkText('box-label');
   inp.placeholder=M.linkText('box-placeholder');
   btn.textContent=M.linkText('box-button');
   btn.addEventListener('click',fillFromLink);

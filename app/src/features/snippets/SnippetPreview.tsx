@@ -415,6 +415,7 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
             read did stays in view while the filled fields are checked. */}
         {view?.linkable && (
           <PreviewLinkBox
+            label={view.linkLabel}
             value={linkInput}
             onChange={setLinkInput}
             onFill={handleFillFromLink}
@@ -539,6 +540,8 @@ function fieldNote(result: SbLinkResult | undefined): FieldNote | null {
 }
 
 interface PreviewLinkBoxProps {
+  /** The words over the box, naming the fields it fills. */
+  label: string;
   value: string;
   onChange: (value: string) => void;
   onFill: () => void;
@@ -550,23 +553,21 @@ interface PreviewLinkBoxProps {
 /**
  * The Link box: paste a link to a page and the fields that say where their
  * values are fill themselves from it. Same parts, same words and same order on
- * all four fill surfaces; the words come from `linkText`.
+ * all four fill surfaces; the words come from `linkText`, and the label naming
+ * the fields from the view model's `linkLabel`.
  *
  * Not a field. Its value never reaches the form, the preview or the count
  * beside Values, and it carries none of a field's styling.
  */
-function PreviewLinkBox({ value, onChange, onFill, status, inputRef, buttonRef }: PreviewLinkBoxProps) {
+function PreviewLinkBox({ label, value, onChange, onFill, status, inputRef, buttonRef }: PreviewLinkBoxProps) {
   const busy = status.tone === 'busy';
   return (
     <div
       aria-busy={busy}
       className="mx-4 mb-3 flex shrink-0 flex-col rounded-[10px] border border-line bg-bg-alt px-2.5 py-2"
     >
-      <label
-        htmlFor="sb-preview-link"
-        className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-subtle"
-      >
-        {linkText('box-label')}
+      <label htmlFor="sb-preview-link" className="mb-1.5 text-[11px] font-semibold text-ink">
+        {label}
       </label>
       <div className="flex items-center gap-1.5">
         <input

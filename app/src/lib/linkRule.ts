@@ -91,36 +91,51 @@ export function readLinkAttr(attrs: string): string {
   return match ? linkValue(match[1]) : '';
 }
 
-/**
- * What a builder's link controls hold while the author is deciding: whether
- * the field reads a page at all, how, and the words exactly as typed.
- */
-export interface LinkRuleDraft {
-  enabled: boolean;
-  mode: LinkMode;
-  words: string;
+/** Where a field token's settings start: right after the colon of its head. */
+function settingsStart(token: string): number {
+  return token.indexOf(':') + 1;
 }
 
-/** A builder's starting point: off, on the mode that field is most likely to want. */
-export function emptyLinkDraft(mode: LinkMode): LinkRuleDraft {
-  return { enabled: false, mode, words: '' };
-}
-
-/**
- * The controls loaded from a rule already in the body, so editing a field keeps
- * its link rather than dropping it. A token with no rule opens switched off, on
- * `fallback`.
- */
-export function linkDraftFrom(value: string | null | undefined, fallback: LinkMode): LinkRuleDraft {
-  const rule = parseLinkRule(value);
-  if (!rule) return emptyLinkDraft(fallback);
-  return { enabled: true, mode: rule.mode, words: rule.words.join('|') };
+/** The rule a field token carries, in its written spelling, or ''. */
+export function tokenLink(token: string): string {
+  const start = settingsStart(token);
+  const close = token.lastIndexOf('}');
+  if (start === 0 || close < start) return '';
+  return readLinkAttr(token.slice(start, close));
 }
 
 /**
- * The value a writer takes from the controls: '' while switched off or left
- * empty, so a field nobody pointed at a page is written exactly as before.
+ * The token with its rule set to `link`, or taken out when `link` says nothing
+ * usable. Only the `link=` setting moves: a rule already there is changed where
+ * it sits, a new one goes last, and every other setting is left exactly as
+ * written. That is what lets the Fill from a web page window change a field it
+ * has no builder for, such as one written by hand.
  */
-export function linkFromDraft(draft: LinkRuleDraft): string {
-  return draft.enabled ? linkValue(`${draft.mode}:${draft.words}`) : '';
+export function withTokenLink(token: string, link: string): string {
+  const value = linkValue(link);
+  const start = settingsStart(token);
+  const close = token.lastIndexOf('}');
+  if (start === 0 || close < start) return token;
+  // The first setting follows the head's colon, every other one a `;`. A colon
+  // anywhere else is part of a value ("after:Start date") and never a start.
+  const setting = /([:;])(\s*)link\s*=[^;}]*/gi;
+  let found: RegExpExecArray | null = null;
+  for (let m = setting.exec(token); m; m = setting.exec(token)) {
+    if (m.index >= close) break;
+    if (m[1] === ';' || m.index === start - 1) {
+      found = m;
+      break;
+    }
+  }
+  if (!found) {
+    return value === '' ? token : `${token.slice(0, close)}; link=${value}${token.slice(close)}`;
+  }
+  const at = found.index;
+  const end = at + found[0].length;
+  if (value !== '') {
+    return `${token.slice(0, at)}${found[1]}${found[2] || ' '}link=${value}${token.slice(end)}`;
+  }
+  // Taken out whole, with the `;` that joined it to the settings around it.
+  if (found[1] === ';') return token.slice(0, at) + token.slice(end);
+  return token.slice(0, at + 1) + token.slice(end).replace(/^\s*;/, '');
 }

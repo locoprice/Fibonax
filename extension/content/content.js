@@ -1649,10 +1649,10 @@ function _sbReorder(root, edited) {
 //
 // The Link box is not a field. It carries no .sb-inp and no data-key, so
 // getVals, the focus flow and the insert can never read it as an answer.
-function _sbLinkHtml() {
+function _sbLinkHtml(label) {
   var t = _SBFF.linkText;
   return '<div class="sb-link" aria-busy="false">' +
-      '<label class="sb-linklbl" for="sb-linkinp">' + xesc(t('box-label')) + '</label>' +
+      '<label class="sb-linklbl" for="sb-linkinp">' + xesc(label) + '</label>' +
       '<div class="sb-linkrow">' +
         '<input id="sb-linkinp" class="sb-linkinp" type="url" inputmode="url" autocomplete="off"' +
           ' spellcheck="false" placeholder="' + xesc(t('box-placeholder')) + '">' +
@@ -1948,7 +1948,7 @@ function showOverlay(targetEl, snip, scLen, done) {
       '<div class="sb-heading">' +
         '<p id="sb-fill-description">Fill in the fields, then insert your message.</p></div>' +
       (reviewWarning(snip) ? '<div class="sb-revwarn" role="alert">' + xesc(reviewWarning(snip)) + '</div>' : '') +
-      (vm.linkable ? _sbLinkHtml() : '') +
+      (vm.linkable ? _sbLinkHtml(vm.linkLabel) : '') +
       '<div class="sb-fields">'+fhtml+'</div></div>' +
       '<section class="sb-preview" aria-labelledby="sb-preview-label">' +
         '<div class="sb-preview-heading"><h3 id="sb-preview-label">Message preview</h3><span>Live preview</span></div>' +
@@ -1987,10 +1987,11 @@ function showOverlay(targetEl, snip, scLen, done) {
   });
 
   setTimeout(function() {
-    // A form that can fill from a link opens on the Link box: the next thing
-    // the operator does there is paste. Other forms start at the first field,
-    // including prefilled dates, so long snippets open at the top in text order.
-    _sbFocus(el.querySelector('.sb-linkinp') || el.querySelector('.sb-fields .ff-menu > summary,.sb-fields .sb-inp:not([type="radio"]):not([type="checkbox"])'));
+    // Every form starts at the first field, including prefilled dates, so long
+    // snippets open at the top in text order. A form with a Link box used to
+    // open on it instead, and people typed their answers into the link box; it
+    // now sits above the fields and names them, one Tab or click away.
+    _sbFocus(el.querySelector('.sb-fields .ff-menu > summary,.sb-fields .sb-inp:not([type="radio"]):not([type="checkbox"])'));
     updatePrev(snip);
   }, 50);
 

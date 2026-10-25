@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
 import { EditingBanner, RenameNote } from '@/features/snippets/formulaDialogParts';
-import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { cn } from '@/lib/utils';
 import {
   buildFormMenuToken,
@@ -22,13 +21,6 @@ import {
   type FormMenuConfig,
 } from '@/lib/formMenuToken';
 import { MENU_PRESETS, menuPresetOptions } from '@/lib/menuPresets';
-import {
-  emptyLinkDraft,
-  LABEL_LINK_MODES,
-  linkDraftFrom,
-  linkFromDraft,
-  type LinkRuleDraft,
-} from '@/lib/linkRule';
 
 interface MenuRow {
   /** Stable across label edits, so the preselection survives retyping. */
@@ -102,7 +94,6 @@ export function FormMenuDialog({
   // state stays so a menu written with cols=N keeps it through an edit here
   // rather than losing it the first time someone reopens the builder.
   const [cols, setCols] = useState('');
-  const [link, setLink] = useState<LinkRuleDraft>(emptyLinkDraft('after'));
   // Off when the pick only decides what Show or hide rules print.
   const [print, setPrint] = useState(true);
   // Display Other option: one more choice whose typed text is the answer.
@@ -128,7 +119,6 @@ export function FormMenuDialog({
       setName(initial.name);
       setMultiple(initial.multiple);
       setCols(initial.cols === null ? '' : String(initial.cols));
-      setLink(linkDraftFrom(initial.link, 'after'));
       setPrint(initial.print !== false);
       setOtherOn(initial.other !== undefined);
       setOtherLabel(initial.other ?? MENU_OTHER_LABEL);
@@ -147,7 +137,6 @@ export function FormMenuDialog({
     setName('');
     setMultiple(false);
     setCols('');
-    setLink(emptyLinkDraft('after'));
     setPrint(true);
     setOtherOn(false);
     setOtherLabel(MENU_OTHER_LABEL);
@@ -242,11 +231,12 @@ export function FormMenuDialog({
         name,
         multiple,
         cols: cols.trim() === '' ? null : Number(cols),
-        link: linkFromDraft(link),
+        // Set in the Fill from a web page window, and kept here as it was.
+        link: initial?.link ?? '',
         print,
         ...(otherOn ? { other: otherLabel } : {}),
       }),
-    [rows, preselected, name, multiple, cols, link, print, otherOn, otherLabel],
+    [rows, preselected, name, multiple, cols, initial, print, otherOn, otherLabel],
   );
 
   const canInsert = filledRows.length > 0 && nameValid;
@@ -510,17 +500,6 @@ export function FormMenuDialog({
                 : 'The field is still asked, but nothing prints where it sits. Its answer only decides what Show or hide rules print.'}
             </p>
           </div>
-
-          {/* ── From a link ── */}
-          {/* The page has to name one of the options above, exactly; anything
-              else is left for the operator to pick. */}
-          <LinkRuleFields
-            id="form-menu-link"
-            value={link}
-            onChange={setLink}
-            modes={LABEL_LINK_MODES}
-            onEnter={handleSubmit}
-          />
 
           {/* ── What lands in the body ── */}
           <div className="rounded-[10px] border border-line bg-bg-alt px-3 py-2.5">

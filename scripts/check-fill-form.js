@@ -46,7 +46,7 @@ for (const [key, want] of TYPE_CASES) {
 console.log('OK Field kind inferred from the name (' + TYPE_CASES.length + ' cases)');
 
 // ── THE VIEW MODEL EVERY SURFACE READS ──────────────────────────────
-const SHAPE = ['fields', 'buttons', 'preview', 'layout', 'steps', 'fmtOverride', 'linkable'];
+const SHAPE = ['fields', 'buttons', 'preview', 'layout', 'steps', 'fmtOverride', 'linkable', 'linkLabel'];
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
                      'other', 'otherOn', 'otherText',
                      'cols', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
@@ -382,6 +382,20 @@ const vmL = ff.fillForm(LINK_BODY, {}, opt({ lang: 'ES' }));
 if (vmL.linkable !== true) fail('a form whose fields carry link= is not offered the Link box');
 if (ff.fillForm('Hola {NOMBRE}', {}, opt()).linkable !== false) {
   fail('a form with no link= offers the Link box; every snippet written before it must look the same');
+}
+// The box names what it fills, so nobody has to guess what goes in it.
+const LINK_LABELS = [
+  [LINK_BODY, 'Paste a web page link to fill Who, Boxes, Bags and 3 more'],
+  ['{formtext: name=ORDER_REF; link=after:Order} {formtext: name=NOTE}', 'Paste a web page link to fill Order ref'],
+  ['{formtext: name=Client; link=after:Customer} {formdate: name=START; link=after:From}',
+    'Paste a web page link to fill Client and Start'],
+  ['{formtext: name=N; type=number; label=How many; link=before:Box}', 'Paste a web page link to fill How many'],
+  ['{formmenu: Basic,Plus; link=after:Plan}', 'Paste a web page link to fill Choice'],
+  ['Hola {NOMBRE}', ''],
+];
+for (const [body, want] of LINK_LABELS) {
+  const got = ff.fillForm(body, {}, opt()).linkLabel;
+  if (got !== want) fail('the Link box over ' + JSON.stringify(body) + ' reads ' + JSON.stringify(got) + ', expected ' + JSON.stringify(want));
 }
 const noteField = vmL.fields.find((f) => f.key === 'NOTE');
 if (noteField.link !== null) fail('a field with no link= carries a reading rule: ' + JSON.stringify(noteField.link));

@@ -1,6 +1,6 @@
 ---
-title: "Fill a form from a link"
-sidebarTitle: "Fill from link"
+title: "Fill a form from a web page"
+sidebarTitle: "Fill from a web page"
 description: "Paste a link to a web page, such as an order or a confirmation, and Fibonax fills the snippet's fields from what the page says. You check them, then insert."
 ---
 
@@ -11,20 +11,26 @@ Nothing is ever inserted by itself.
 ## Use it
 
 1. Open the snippet the way you always do: type its trigger, pick it from the menu, right-click, or open it in the extension popup, the editor preview or on your phone.
-2. At the top of the form, paste the link into **Fill from link**, then press **Fill** or <kbd>Enter</kbd>.
+2. At the top of the form, a box names the fields it fills, like **Paste a web page link to fill Client, Start and Boxes**. Paste the link there, then press **Fill** or <kbd>Enter</kbd>.
 3. The fields fill in. Each one that came from the page says **From link**.
 4. Check the values, change any you need, then insert. In the popup and on your phone, tap **Copy** or **Share**.
 
-The **Fill from link** box only appears on snippets whose fields say where their value is on a page. That is set up once, in the editor.
+The form opens on its first field, so you can also fill it in by hand and leave the box empty. The box only appears on snippets that are set up to read a page.
 
 ## Set up a snippet
 
-The **Text**, **Number**, **Date/Time** and **Choice** windows in the editor have a **Fill from a pasted link** option. Tick it, then say where the value is on the page:
+1. In the editor's side panel, open **Actions**, then **Fill from a web page**, and click **Set up**.
+2. The window lists every Text, Number, Date/Time and Choice field in the snippet. For each field you want filled, type the words it comes after on the page, exactly as the page shows them, like `Order number` or `Pick-up`. Capitals and accents don't matter.
+3. Click **Save**. The line under **Fill from a web page** says how many fields now fill from a page.
 
-- **Text after a label**: the value printed right after a label. Type the label exactly as the page shows it, like `Order number` or `Pick-up`. Capitals and accents don't matter.
-- **Number before a word, added up**: for counts written like `2 Boxes`. Type the word that follows the number. When a page writes it differently for one, type both spellings separated by `|`, like `Box|Boxes`. If the word appears in several places, the numbers are added up. If the page doesn't mention it at all, the field keeps its default, so give the field a default of 0.
+A field you leave empty is filled in by hand, as before. To stop a field filling from a page, clear its box and click **Save**. **Cancel** leaves the snippet as it was, and **Undo** under the body takes back the last **Save**.
 
-**Number before a word** is offered on Number fields, because a count is a number. Text, Date/Time and Choice fields use **Text after a label**.
+The window offers two ways to read a page:
+
+- **Text after a label**: the value printed right after a label, like `Order number: 4471`. This is what every field uses.
+- **Number before a word**: for counts written like `2 Boxes`. Offered on Number fields. Type the word that follows the number. When a page writes it differently for one, type both spellings separated by `|`, like `Box|Boxes`. If the word appears in several places, the numbers are added up. If the page doesn't mention it at all, the field keeps its default, so give the field a default of 0.
+
+Changing a field in its own window, like renaming it or picking another format, keeps how it reads the page.
 
 ## Which pages work
 
@@ -69,4 +75,4 @@ and come back on {formdate: name=END; format=long; after=START; link=after:Retur
 Delivery: {formmenu: Standard,Express; name=DELIVERY; link=after:Delivery}
 ```
 
-A label can't contain `;` or braces. Everything else in it is matched as written.
+A label can't contain `;` or braces. Everything else in it is matched as written. Fields written this way show in the **Set up** window too.

@@ -10,7 +10,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { EditingBanner, RenameNote } from '@/features/snippets/formulaDialogParts';
-import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { cn } from '@/lib/utils';
 import {
   buildFormTextToken,
@@ -18,19 +17,9 @@ import {
   isValidFieldName,
   type FormTextConfig,
 } from '@/lib/formTextToken';
-import {
-  emptyLinkDraft,
-  LABEL_LINK_MODES,
-  linkDraftFrom,
-  linkFromDraft,
-  type LinkRuleDraft,
-} from '@/lib/linkRule';
 
 const HINT = 'text-[11px] text-ink-subtle mt-1.5';
 const SECTION_LABEL = 'block text-xs font-medium text-ink-muted mb-1.5';
-
-// Text on a page usually sits after its label ("Order number: 4471").
-const TEXT_LINK_START = emptyLinkDraft('after');
 
 interface FormTextDialogProps {
   open: boolean;
@@ -76,7 +65,6 @@ export function FormTextDialog({
   // way the engine does, so naming a field nome_ospite turns it on by itself.
   const [personChoice, setPersonChoice] = useState<boolean | null>(null);
   const personName = personChoice ?? isPersonNameKey(name);
-  const [link, setLink] = useState<LinkRuleDraft>(TEXT_LINK_START);
 
   const nameRef = useRef<HTMLInputElement | null>(null);
 
@@ -89,20 +77,20 @@ export function FormTextDialog({
       setName(initial.name);
       setDefaultValue(initial.default);
       setPersonChoice(initial.personName ?? null);
-      setLink(linkDraftFrom(initial.link, 'after'));
       return;
     }
     setName(suggestedName);
     setDefaultValue('');
     setPersonChoice(null);
-    setLink(TEXT_LINK_START);
   }, [open, suggestedName, initial]);
 
   const nameValid = isValidFieldName(name);
 
+  // The field's Fill from a web page rule has its own window. An edit here
+  // keeps it as it was.
   const token = useMemo(
-    () => buildFormTextToken({ name, default: defaultValue, personName, link: linkFromDraft(link) }),
-    [name, defaultValue, personName, link],
+    () => buildFormTextToken({ name, default: defaultValue, personName, link: initial?.link ?? '' }),
+    [name, defaultValue, personName, initial],
   );
 
   function handleSubmit() {
@@ -132,8 +120,8 @@ export function FormTextDialog({
 
         {list && <div className="min-w-0 px-6 pb-3">{list}</div>}
 
-        {/* Scrolls like the Choice builder's: with Fill from link open, the
-            window outgrows a laptop screen. */}
+        {/* Scrolls like the Choice builder's, so a long window still fits a
+            laptop screen. */}
         <div className="max-h-[60vh] overflow-y-auto px-6 pb-2 flex flex-col gap-4">
           {initial && onNew && (
             <EditingBanner onNew={onNew} newLabel="New field instead">
@@ -218,15 +206,6 @@ export function FormTextDialog({
               itself when the field&apos;s name includes name, nome, nombre or nom.
             </p>
           </div>
-
-          {/* ── From a link ── */}
-          <LinkRuleFields
-            id="form-text-link"
-            value={link}
-            onChange={setLink}
-            modes={LABEL_LINK_MODES}
-            onEnter={handleSubmit}
-          />
 
           {/* ── What lands in the body ── */}
           {/* Only while the name holds. The writer repairs an unusable name so

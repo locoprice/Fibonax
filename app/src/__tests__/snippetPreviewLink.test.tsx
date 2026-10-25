@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-// The editor's live preview, with and without Fill from link.
+// The editor's live preview, with and without Fill from a web page.
 //
 // Server rendering draws the preview exactly as it first appears: the shared
 // engine is already on the page (put there below, as an earlier preview would
@@ -59,6 +59,9 @@ const LINKABLE =
 
 const PLAIN = 'Order {formtext: name=ORDER_REF}, note {formtext: name=NOTE}';
 
+// Names the fields the box fills, and only those: NOTE reads no page.
+const LABEL = 'Paste a web page link to fill Order ref and Boxes';
+
 function render(body: string): string {
   return renderToStaticMarkup(<SnippetPreview body={body} lang="EN" />);
 }
@@ -66,25 +69,23 @@ function render(body: string): string {
 describe('SnippetPreview — the Link box', () => {
   it('is drawn above the fields for a snippet that reads a page', () => {
     const html = render(LINKABLE);
-    expect(html).toContain('>Fill from link</label>');
+    expect(html).toContain(`>${LABEL}</label>`);
     // The visible label follows the snippet's wording; anchor the ordering
     // check to the actual field rather than its previous generated title.
     expect(html).toContain('data-fill-key="ORDER_REF"');
-    expect(html.indexOf('Fill from link')).toBeLessThan(html.indexOf('data-fill-key="ORDER_REF"'));
+    expect(html.indexOf(LABEL)).toBeLessThan(html.indexOf('data-fill-key="ORDER_REF"'));
   });
 
   it('carries the parts every surface draws, in the shared words', () => {
     const html = render(LINKABLE);
-    expect(html).toMatch(
-      /<label for="sb-preview-link"[^>]*>Fill from link<\/label>/,
-    );
+    expect(html).toMatch(new RegExp(`<label for="sb-preview-link"[^>]*>${LABEL}</label>`));
     const input = /<input id="sb-preview-link"[^>]*>/.exec(html)?.[0] ?? '';
     expect(input).toContain('type="url"');
     expect(input).toContain('inputMode="url"');
     expect(input).toContain('autoComplete="off"');
     // React writes this one in lower case; HTML attribute names ignore case.
     expect(input).toContain('spellcheck="false"');
-    expect(input).toContain('placeholder="Paste a link to fill this form"');
+    expect(input).toContain('placeholder="https://"');
     expect(html).toMatch(/<button type="button"[^>]*>Fill<\/button>/);
     expect(html).toMatch(/<p role="status" aria-live="polite"[^>]*><\/p>/);
     expect(html).toContain('aria-busy="false"');
@@ -100,7 +101,7 @@ describe('SnippetPreview — the Link box', () => {
 
   it('is absent from every snippet that never mentions link=', () => {
     const html = render(PLAIN);
-    expect(html).not.toContain('Fill from link');
+    expect(html).not.toContain('Paste a web page link');
     expect(html).not.toContain('sb-preview-link');
     expect(html).not.toContain('role="status"');
     expect(html).toContain('2 fields');
