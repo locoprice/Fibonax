@@ -45,7 +45,7 @@ import {
 } from './supabase.ts';
 
 const SERVER_NAME = 'fibonax-memory';
-const SERVER_VERSION = '3.83.0';
+const SERVER_VERSION = '3.84.0';
 
 /** Budget before any step has been entered. Replaced by the step's own budget on the first transition. */
 const DEFAULT_BUDGET = 4000;

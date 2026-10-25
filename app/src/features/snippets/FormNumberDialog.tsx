@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { EditingBanner, RenameNote } from '@/features/snippets/formulaDialogParts';
+import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { cn } from '@/lib/utils';
 import {
   buildFormNumberToken,
@@ -22,6 +23,13 @@ import {
   type FormNumberConfig,
   type NumberFormat,
 } from '@/lib/formNumberToken';
+import {
+  emptyLinkDraft,
+  linkDraftFrom,
+  linkFromDraft,
+  LINK_MODES,
+  type LinkRuleDraft,
+} from '@/lib/linkRule';
 
 const HINT = 'text-[11px] text-ink-subtle mt-1.5';
 const SECTION_LABEL = 'block text-xs font-medium text-ink-muted mb-1.5';
@@ -48,6 +56,10 @@ const FORMAT_HINT: Record<NumberFormat, string> = {
 // cheaper than an author discovering it in a message already sent.
 const NOT_A_NUMBER_WARNING =
   'Phone numbers, order references and postcodes are not numbers. They lose a leading zero and cannot hold + or spaces. Use a Text field for those.';
+
+// A quantity on a page is far more often a count ("2 Boxes") than a figure
+// after a label, so a number field opens on counting.
+const NUMBER_LINK_START = emptyLinkDraft('before');
 
 interface FormNumberDialogProps {
   open: boolean;
@@ -95,9 +107,9 @@ export function FormNumberDialog({
   const [format, setFormat] = useState<NumberFormat>('plain');
   const [currency, setCurrency] = useState<CurrencyCode>(DEFAULT_CURRENCY);
   const [defaultValue, setDefaultValue] = useState('');
+  const [link, setLink] = useState<LinkRuleDraft>(NUMBER_LINK_START);
   // Not shown: the caption a Calculator or Price line gave its box. Kept so an
-  // edit here does not take it away from the fill form. The same goes for the
-  // field's Fill from a web page rule, which has its own window.
+  // edit here does not take it away from the fill form.
   const [label, setLabel] = useState('');
 
   const nameRef = useRef<HTMLInputElement | null>(null);
@@ -112,6 +124,7 @@ export function FormNumberDialog({
       setFormat(initial.format);
       setCurrency(initial.currency);
       setDefaultValue(initial.default);
+      setLink(linkDraftFrom(initial.link, 'before'));
       setLabel(initial.label ?? '');
       return;
     }
@@ -119,6 +132,7 @@ export function FormNumberDialog({
     setFormat('plain');
     setCurrency(DEFAULT_CURRENCY);
     setDefaultValue('');
+    setLink(NUMBER_LINK_START);
     setLabel('');
   }, [open, suggestedName, initial]);
 
@@ -134,9 +148,9 @@ export function FormNumberDialog({
         currency,
         default: defaultValue.trim(),
         label,
-        link: initial?.link ?? '',
+        link: linkFromDraft(link),
       }),
-    [name, format, currency, defaultValue, label, initial],
+    [name, format, currency, defaultValue, label, link],
   );
 
   function handleSubmit() {
@@ -166,8 +180,8 @@ export function FormNumberDialog({
 
         {list && <div className="min-w-0 px-6 pb-3">{list}</div>}
 
-        {/* Scrolls like the Choice builder's, so a long window still fits a
-            laptop screen. */}
+        {/* Scrolls like the Choice builder's: with Fill from link open, the
+            window outgrows a laptop screen. */}
         <div className="max-h-[60vh] overflow-y-auto px-6 pb-2 flex flex-col gap-4">
           {initial && onNew && (
             <EditingBanner onNew={onNew} newLabel="New field instead">
@@ -295,6 +309,15 @@ export function FormNumberDialog({
               </p>
             )}
           </div>
+
+          {/* ── From a link ── */}
+          <LinkRuleFields
+            id="form-number-link"
+            value={link}
+            onChange={setLink}
+            modes={LINK_MODES}
+            onEnter={handleSubmit}
+          />
 
           {/* ── What lands in the body ── */}
           {/* Only while both halves hold. The writer repairs an unusable name so

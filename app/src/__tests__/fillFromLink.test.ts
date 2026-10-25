@@ -12,14 +12,14 @@ import { buildFormDateToken } from '@/lib/formDateToken';
 import { buildFormMenuToken, parseFormMenuToken, type FormMenuConfig } from '@/lib/formMenuToken';
 import { buildFormNumberToken } from '@/lib/formNumberToken';
 import { buildFormTextToken } from '@/lib/formTextToken';
-import { linkFields, withLinkRules } from '@/lib/linkFields';
 import {
+  emptyLinkDraft,
   LINK_MODES,
+  linkDraftFrom,
+  linkFromDraft,
   linkValue,
   parseLinkRule,
   readLinkAttr,
-  tokenLink,
-  withTokenLink,
 } from '@/lib/linkRule';
 
 // Fill from link, the dashboard's half.
@@ -149,126 +149,37 @@ describe('linkRule — the dashboard reads a rule the way the engine does', () =
   });
 });
 
-describe('linkRule: one token\'s rule, read and changed in place', () => {
-  it('reads the rule a token carries, wherever its settings put it', () => {
-    expect(tokenLink('{formtext: name=T; link=after:Customer}')).toBe('after:Customer');
-    expect(tokenLink('{formmenu: link=Plan; A; B; name=M}')).toBe('after:Plan');
-    expect(tokenLink('{formdate: name=D; format=long}')).toBe('');
+describe('linkRule — what the builder controls write', () => {
+  it('writes nothing while switched off, whatever is typed', () => {
+    expect(linkFromDraft({ enabled: false, mode: 'after', words: 'Start date' })).toBe('');
   });
 
-  it('adds a rule last, in the spelling the builders write', () => {
-    const plain = buildFormNumberToken({ name: 'N', format: 'plain', currency: 'EUR', default: '0' });
-    const linked = buildFormNumberToken({
-      name: 'N', format: 'plain', currency: 'EUR', default: '0', link: 'before:Boxes|Box',
+  it('writes nothing for an empty or blank label', () => {
+    expect(linkFromDraft({ enabled: true, mode: 'after', words: '' })).toBe('');
+    expect(linkFromDraft({ enabled: true, mode: 'before', words: ' | ' })).toBe('');
+  });
+
+  it('always spells the mode, so a label holding a colon stays one label', () => {
+    expect(linkFromDraft({ enabled: true, mode: 'after', words: 'Ref: 7' })).toBe('after:Ref: 7');
+    expect(engine.sbParseLinkRule('after:Ref: 7')).toEqual({ mode: 'after', words: ['Ref: 7'] });
+    expect(linkFromDraft({ enabled: true, mode: 'before', words: 'Box|Boxes' })).toBe(
+      'before:Box|Boxes',
+    );
+  });
+
+  it('opens an edited field on the rule it carries, and an unpointed one switched off', () => {
+    expect(linkDraftFrom('before:Boxes|Box', 'after')).toEqual({
+      enabled: true,
+      mode: 'before',
+      words: 'Boxes|Box',
     });
-    expect(withTokenLink(plain, ' before : Boxes | Box ')).toBe(linked);
-    expect(withTokenLink('{formdate: name=D; format=long}', 'Pick-up')).toBe(
-      '{formdate: name=D; format=long; link=after:Pick-up}',
-    );
+    expect(linkDraftFrom('', 'before')).toEqual(emptyLinkDraft('before'));
+    expect(linkDraftFrom(undefined, 'after')).toEqual({ enabled: false, mode: 'after', words: '' });
   });
 
-  it('changes a rule where it sits, and leaves every other setting as written', () => {
-    const raw = '{formmenu: A,B; name=M; link=after:Plan; print=no; other=Something else}';
-    expect(withTokenLink(raw, 'after:Service')).toBe(
-      '{formmenu: A,B; name=M; link=after:Service; print=no; other=Something else}',
-    );
-    expect(withTokenLink('{formmenu: link=Plan; A; B; name=M}', 'Service')).toBe(
-      '{formmenu: link=after:Service; A; B; name=M}',
-    );
-  });
-
-  it('takes a rule out whole, the separator with it', () => {
-    expect(withTokenLink('{formtext: name=T; link=after:Customer}', '')).toBe('{formtext: name=T}');
-    expect(withTokenLink('{formmenu: A,B; name=M; link=after:Plan; print=no}', ' | ')).toBe(
-      '{formmenu: A,B; name=M; print=no}',
-    );
-    expect(withTokenLink('{formmenu: link=Plan; A; B; name=M}', '')).toBe('{formmenu: A; B; name=M}');
-    expect(withTokenLink('{formtext: name=T}', '')).toBe('{formtext: name=T}');
-  });
-
-  it('never reads a colon inside a value as the start of a setting', () => {
-    const raw = '{formtext: name=T; default=see:link=x}';
-    expect(withTokenLink(raw, 'after:Ref')).toBe('{formtext: name=T; default=see:link=x; link=after:Ref}');
-  });
-
-  it('writes a token the engine still reads as the same field', () => {
-    const raw = '{formtext: name=QTY; type=number; default=0; label=How many}';
-    const next = withTokenLink(raw, 'before:Box|Boxes');
-    expect(engine.buildFormFieldCfg(next).QTY).toMatchObject({
-      type: 'number',
-      default: '0',
-      label: 'How many',
-      link: 'before:Box|Boxes',
-    });
-  });
-});
-
-describe('Fill from a web page window: the fields it lists and what Save writes', () => {
-  const body = [
-    'Hello {formtext: name=CLIENT; link=after:Customer},',
-    'your {formtext: name=BOXES; type=number; default=0} boxes',
-    'go out on {formdate: name=START; format=long}.',
-    '{formmenu: Standard,Express}',
-    'Again: {formtext: name=CLIENT}',
-    '{button label=Go}BOXES = 2{/button} {time: YYYY}',
-  ].join('\n');
-
-  it('lists every field once, in body order, with the rule it carries', () => {
-    const fields = linkFields(body);
-    expect(fields.map((f) => [f.title, f.kind, f.link])).toEqual([
-      ['CLIENT', 'text', 'after:Customer'],
-      ['BOXES', 'number', ''],
-      ['START', 'date', ''],
-      ['Unnamed choice', 'menu', ''],
-    ]);
-    expect(fields[3]?.detail).toBe('Choice: Standard, Express');
-  });
-
-  it('offers counting on a number only, unless a rule written by hand already counts', () => {
-    const [client, boxes] = linkFields(body);
-    expect(client?.modes).toEqual(['after']);
-    expect(boxes?.modes).toEqual(['after', 'before']);
-    const [counted] = linkFields('{formtext: name=T; link=before:Box}');
-    expect(counted?.modes).toEqual(['after', 'before']);
-  });
-
-  it('shows the rule wherever a repeated field wrote it', () => {
-    const [field] = linkFields('{formtext: name=T} and {formtext: name=T; link=after:Ref}');
-    expect(field?.link).toBe('after:Ref');
-  });
-
-  it('writes each rule on every token of its field and touches nothing else', () => {
-    const fields = linkFields(body);
-    const menuKey = fields[3]?.key ?? '';
-    const next = withLinkRules(body, {
-      CLIENT: 'after:Name',
-      BOXES: 'before:Box|Boxes',
-      START: '',
-      [menuKey]: 'after:Plan',
-    });
-    expect(next).toBe(
-      [
-        'Hello {formtext: name=CLIENT; link=after:Name},',
-        'your {formtext: name=BOXES; type=number; default=0; link=before:Box|Boxes} boxes',
-        'go out on {formdate: name=START; format=long}.',
-        '{formmenu: Standard,Express; link=after:Plan}',
-        'Again: {formtext: name=CLIENT; link=after:Name}',
-        '{button label=Go}BOXES = 2{/button} {time: YYYY}',
-      ].join('\n'),
-    );
-  });
-
-  it('leaves the body as it was when nothing changed, and takes a rule out with an empty box', () => {
-    expect(withLinkRules(body, {})).toBe(body);
-    expect(withLinkRules(body, { BOXES: '', START: ' | ' })).toBe(body);
-    expect(withLinkRules(body, { CLIENT: '' })).not.toContain('link=');
-  });
-
-  it('fills the fields the window set, read by the shared fill form', () => {
-    const next = withLinkRules(body, { BOXES: 'before:Box|Boxes', START: 'after:Pick-up' });
-    const view = ff.fillForm(next, {}, { now: new Date(2026, 9, 1) });
-    const read = ff.readFromPage(view.fields, ['Customer', 'Ada', '2 Boxes', 'Pick-up', '2026-10-09']);
-    expect(read.values).toMatchObject({ CLIENT: 'Ada', BOXES: '2', START: '2026-10-09' });
+  it('round-trips the controls through a written rule', () => {
+    const draft = { enabled: true, mode: 'after' as const, words: 'Start date|Starts' };
+    expect(linkDraftFrom(linkFromDraft(draft), 'before')).toEqual(draft);
   });
 });
 

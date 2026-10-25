@@ -147,11 +147,6 @@ export interface SbFillFormViewModel {
    * the Link box. False for every snippet that never mentions `link=`.
    */
   linkable: boolean;
-  /**
-   * The words over the Link box, naming the fields it fills ("Paste a web
-   * page link to fill Client and Start"). '' when there is no Link box.
-   */
-  linkLabel: string;
   layout: 'flat' | 'steps';
   steps: string[][];
 }

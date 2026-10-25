@@ -5,7 +5,6 @@ import {
   CalendarClock,
   CalendarRange,
   Eye,
-  Globe,
   History,
   Info,
   Languages,
@@ -48,7 +47,6 @@ import { FormButtonDialog } from '@/features/snippets/FormButtonDialog';
 import { FormCalculatorDialog } from '@/features/snippets/FormCalculatorDialog';
 import { ConditionList, FormConditionDialog, RuleSummary } from '@/features/snippets/FormConditionDialog';
 import { FormDateDialog } from '@/features/snippets/FormDateDialog';
-import { FillFromPageDialog } from '@/features/snippets/FillFromPageDialog';
 import { FormulaListSection, ItemListSection } from '@/features/snippets/formulaDialogParts';
 import { FormPriceLineDialog } from '@/features/snippets/FormPriceLineDialog';
 import { FormInterestDialog } from '@/features/snippets/FormInterestDialog';
@@ -57,6 +55,7 @@ import { FormMenuDialog } from '@/features/snippets/FormMenuDialog';
 import { FormNumberDialog } from '@/features/snippets/FormNumberDialog';
 import { FormTextDialog } from '@/features/snippets/FormTextDialog';
 import { FormTimeDialog } from '@/features/snippets/FormTimeDialog';
+import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { SnippetPreview } from '@/features/snippets/SnippetPreview';
 import { cn, countWords } from '@/lib/utils';
 import { findMenuTokenAt, nextMenuName } from '@/lib/formMenuToken';
@@ -70,14 +69,14 @@ import {
   type BodyItem,
   type BodyItemKind,
 } from '@/lib/bodyItems';
-import { nextTextName } from '@/lib/formTextToken';
+import { buildFormTextToken, nextTextName } from '@/lib/formTextToken';
 import {
   findRuleAt,
   rulesInBody,
   summarizeEntry,
   type RuleInBody,
 } from '@/lib/conditionRule';
-import { nextNumberName } from '@/lib/formNumberToken';
+import { buildFormNumberToken, DEFAULT_CURRENCY, nextNumberName } from '@/lib/formNumberToken';
 import {
   buildFormDateToken,
   dateFormatOptions,
@@ -88,7 +87,11 @@ import {
   type DateFormat,
   type TimeFormat,
 } from '@/lib/formDateToken';
-import { linkFields } from '@/lib/linkFields';
+import {
+  LABEL_LINK_MODES,
+  linkFromDraft,
+  type LinkRuleDraft,
+} from '@/lib/linkRule';
 import { clearBodySlot, rowBodies, setBodySlot } from '@/lib/snippetBodies';
 import { translateApi, type TranslateTarget } from '@/lib/api/translateApi';
 import {
@@ -230,6 +233,8 @@ const ACTIONS_HINT =
   'Clicked while filling. Never printed. An action changes the values in the form as you work, so a figure you would otherwise reach for a calculator to get lands in one click. Open one below to see what it does.';
 const MATH_HINT =
   'Calculated for you. A discounted price, a total, an average: math resolves as the snippet expands, from the numbers filled in. Open one below to see what it does.';
+const LINK_HINT =
+  'Filled from a web page. The person filling the form pastes the page’s link, and the fields set to read it fill themselves. Open the one below to see what it does.';
 const LOGIC_HINT =
   'Worked out on its own. A line that shows or hides depending on an answer, the greeting the hour calls for: logic resolves as the snippet expands. Open one below to see what it does.';
 
@@ -245,6 +250,8 @@ const NUMBER_FIELDS: { label: string; hint: string }[] = [
     hint: 'Plain, Currency or Percent. It changes how the value prints, never the number a formula reads.' },
   { label: 'Default',
     hint: 'Optional. Left blank the field opens empty, which is not the same as starting at 0.' },
+  { label: 'From a link',
+    hint: 'Optional. The number before a word on a pasted web page, added up wherever it appears, or the number after a label.' },
 ];
 
 // The three inputs FormButtonDialog offers, named as it names them, so opening
@@ -260,17 +267,17 @@ const BUTTON_FIELDS: { label: string; hint: string }[] = [
     hint: 'Whether the button trims the space around it. On a line of its own it leaves a blank line behind unless it does.' },
 ];
 
-// Fill from a web page is set up in one window for all the fields, opened by
-// the toggle's Set up button. Until v3.83.0 it was a tick box inside each
-// field's own window, and this toggle only described it: people opened it,
-// found nothing to press, and could not tell what to do next.
+// Fill from a pasted link has its own section, with the tick box and the Add
+// buttons in its footer. Until v3.83.0 it was a toggle under Actions that only
+// described the feature, with nothing to press; the tick box in each field's
+// own window stays as it was, for a field already in the snippet.
 const LINK_FIELDS: { label: string; hint: string }[] = [
-  { label: 'Set up',
-    hint: 'Lists every field in the snippet. For each one, type the words it comes after on the page, like Order number.' },
+  { label: 'Add a field',
+    hint: 'Leave Fill from a pasted link ticked, type the label the value comes after on the page, then add a Text, Number, Date or Choice. It arrives with a generic name, like TEXT_1.' },
+  { label: 'A field you already have',
+    hint: 'Open it in its own window and tick Fill from a pasted link there.' },
   { label: 'At fill time',
-    hint: 'The form shows a box that names these fields. Paste the page’s link and press Fill. Check the answers, then insert.' },
-  { label: 'Which pages',
-    hint: 'Public pages that open without signing in, with a link starting https://.' },
+    hint: 'A Link box appears in the form. Paste, and the fields fill. Check them, then insert.' },
 ];
 
 const MENU_FIELDS: { label: string; hint: string }[] = [
@@ -280,6 +287,8 @@ const MENU_FIELDS: { label: string; hint: string }[] = [
     hint: 'Single Choice fills as radio buttons, Multiple Choice as checkboxes.' },
   { label: 'Name',
     hint: 'Optional. Only needed if the body reads the choice back; leave it blank and the menu still works.' },
+  { label: 'From a link',
+    hint: 'Optional. Picks the option a pasted web page names after a label. A page naming something else leaves the choice to you.' },
 ];
 
 // One date and one time, each with the format it prints in. The group used to
@@ -581,6 +590,16 @@ export function NewSnippetDialog() {
   // seeing the choice next to the button is the whole point of it.
   const [dateFormat, setDateFormat] = useState<DateFormat>(DEFAULT_DATE_FORMAT);
   const [timeFormat, setTimeFormat] = useState<TimeFormat>(DEFAULT_TIME_FORMAT);
+  // Where on a pasted page the next field added from the Fill from a pasted
+  // link section reads its value. Ticked to start with, since that is what the
+  // section is for. The label is cleared once a field takes it: a label belongs
+  // to one field, and two fields reading the same label would always fill with
+  // the same answer.
+  const [pageLink, setPageLink] = useState<LinkRuleDraft>({ enabled: true, mode: 'after', words: '' });
+  // An Add button pressed with the box ticked and no label, so nothing to read.
+  const [pageLinkError, setPageLinkError] = useState(false);
+  // The rule a Choice added from that section starts with, handed to its window.
+  const [menuLink, setMenuLink] = useState('');
   // Text-field builder — writes a {formtext:} token at the cursor.
   const [textFieldOpen, setTextFieldOpen] = useState(false);
   // Number-field builder — writes a number token at the cursor. Its own type in
@@ -588,9 +607,6 @@ export function NewSnippetDialog() {
   const [numberFieldOpen, setNumberFieldOpen] = useState(false);
   // Action-button builder — writes a {button}…{/button} token at the cursor.
   const [actionButtonOpen, setActionButtonOpen] = useState(false);
-  // Fill from a web page: one window that sets, for every field, the words it
-  // comes after on a pasted page.
-  const [fillFromPageOpen, setFillFromPageOpen] = useState(false);
   // Which formula window is open: a line of a quote from a price, or a calculator.
   const [formulaWindow, setFormulaWindow] = useState<FormulaWindow | null>(null);
   // Show or hide builder — writes an {if:} block at the cursor, or rewrites the
@@ -870,11 +886,44 @@ export function NewSnippetDialog() {
     );
   }
 
-  // How many fields fill from a pasted page, for the line under its toggle.
-  const pageFieldCount = useMemo(
-    () => linkFields(form.content).filter((f) => f.link !== '').length,
-    [form.content],
-  );
+  function changePageLink(next: LinkRuleDraft) {
+    setPageLink(next);
+    setPageLinkError(false);
+  }
+
+  /**
+   * The Fill from a pasted link section's Add buttons: a new field under a
+   * generic name (TEXT_n, NUM_n, DATE_n), reading the label set above them.
+   * Choice opens its window with the rule filled in, since a menu is nothing
+   * without its options.
+   */
+  function addPageField(kind: 'text' | 'number' | 'date' | 'menu') {
+    const link = linkFromDraft(pageLink);
+    if (pageLink.enabled && link === '') {
+      setPageLinkError(true);
+      return;
+    }
+    if (kind === 'menu') {
+      setItemEdit(null);
+      setMenuLink(link);
+      setMenuFieldOpen(true);
+      return;
+    }
+    insertAtCursor(
+      kind === 'text'
+        ? buildFormTextToken({ name: nextTextName(form.content), default: '', link })
+        : kind === 'number'
+          ? buildFormNumberToken({
+              name: nextNumberName(form.content),
+              format: 'plain',
+              currency: DEFAULT_CURRENCY,
+              default: '',
+              link,
+            })
+          : buildFormDateToken({ name: nextDateName(form.content, 'date'), kind: 'date', format: dateFormat, link }),
+    );
+    if (link !== '') setPageLink((prev) => ({ ...prev, words: '' }));
+  }
 
   // The rule the caret sits in, when the builder can edit it. A condition typed
   // by hand in another shape is left to the body.
@@ -1583,6 +1632,13 @@ export function NewSnippetDialog() {
                       expands, following the snippet&apos;s language.
                     </dd>
                   </div>
+                  <div>
+                    <dt className="font-mono text-[10px] text-ink">From a link</dt>
+                    <dd className="text-[11px] text-ink-subtle leading-tight">
+                      Optional. Takes the text after a label on a web page pasted in the fill
+                      form. To add up a count from the page, use a Number field.
+                    </dd>
+                  </div>
                 </dl>
               </Toggle>
 
@@ -1667,6 +1723,76 @@ export function NewSnippetDialog() {
 
             </div>
 
+            {/* Fill from a pasted link: its own section, right under the fields
+                it adds. The tick box and the Add buttons sit in the footer, the
+                way the Date/Time toggle keeps its formats beside its buttons. */}
+            <div className="p-4 border-b border-line">
+              <div className="flex items-center gap-1.5">
+                <p className={SIDEBAR_LABEL}>Fill from a pasted link</p>
+                <Tooltip
+                  label={LINK_HINT}
+                  placement="right"
+                  className="flex items-center text-ink-subtle hover:text-ink transition-colors"
+                >
+                  <Info className="h-3 w-3" aria-hidden />
+                </Tooltip>
+              </div>
+              <Toggle
+                label="Fill from a pasted link"
+                className="mb-2.5 mt-2.5"
+                footer={
+                  <div className="flex flex-col gap-2">
+                    <LinkRuleFields
+                      id="sb-page-link"
+                      size="rail"
+                      value={pageLink}
+                      onChange={changePageLink}
+                      modes={LABEL_LINK_MODES}
+                      disabled={saving}
+                      offHint="Tick it and the field you add next fills itself from a web page pasted in the fill form. You check it before inserting."
+                    />
+                    {pageLinkError && (
+                      <p role="alert" className="text-[11px] leading-tight text-danger">
+                        Type the label on the page first, then add the field.
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('text')}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Text
+                      </Button>
+                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('number')}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Number
+                      </Button>
+                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('date')}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Date
+                      </Button>
+                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('menu')}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Choice
+                      </Button>
+                    </div>
+                  </div>
+                }
+              >
+                <p className="text-[11px] text-ink-subtle leading-tight">
+                  The person filling the form pastes a page&apos;s link, and the fields fill
+                  themselves from what the page says. They check the answers before
+                  inserting.
+                </p>
+                <dl className="mt-2 flex flex-col gap-1.5">
+                  {LINK_FIELDS.map((f) => (
+                    <div key={f.label}>
+                      <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
+                      <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </Toggle>
+            </div>
+
             {/* Actions */}
             <div className="p-4 border-b border-line">
               <div className="flex items-center gap-1.5">
@@ -1712,41 +1838,6 @@ export function NewSnippetDialog() {
                     </div>
                   ))}
                 </dl>
-              </Toggle>
-
-              <Toggle
-                label="Fill from a web page"
-                className="mb-2.5"
-                footer={
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="primary"
-                    disabled={saving}
-                    onClick={() => setFillFromPageOpen(true)}
-                  >
-                    <Globe className="mr-1 h-3 w-3" />
-                    Set up
-                  </Button>
-                }
-              >
-                <p className="text-[11px] text-ink-subtle leading-tight">
-                  The person filling the form pastes a web page&apos;s link, and the fields
-                  fill in from what the page says. They check the answers before inserting.
-                </p>
-                <dl className="mt-2 flex flex-col gap-1.5">
-                  {LINK_FIELDS.map((f) => (
-                    <div key={f.label}>
-                      <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
-                      <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <p className="mt-2.5 text-[11px] font-medium text-ink">
-                  {pageFieldCount === 0
-                    ? 'No field fills from a web page yet.'
-                    : `${pageFieldCount} ${pageFieldCount === 1 ? 'field fills' : 'fields fill'} from a web page.`}
-                </p>
               </Toggle>
             </div>
 
@@ -2422,14 +2513,22 @@ export function NewSnippetDialog() {
 
             <FormMenuDialog
               open={menuFieldOpen}
-              onOpenChange={windowOpenChange(setMenuFieldOpen)}
+              onOpenChange={(next) => {
+                windowOpenChange(setMenuFieldOpen)(next);
+                if (!next) setMenuLink('');
+              }}
               suggestedName={nextMenuName(form.content)}
               initial={itemEdit?.kind === 'menu' ? itemEdit.cfg : null}
+              newLink={menuLink}
               language={form.language}
               list={itemList(MENU_KINDS, MENU_NOUN)}
               readers={editReaders}
               onNew={() => setItemEdit(null)}
-              onSubmit={submitItem}
+              onSubmit={(token) => {
+                submitItem(token);
+                // The section's label went to this menu, like any field it adds.
+                if (menuLink !== '') setPageLink((prev) => ({ ...prev, words: '' }));
+              }}
             />
 
             <FormButtonDialog
@@ -2439,13 +2538,6 @@ export function NewSnippetDialog() {
               list={itemList(BUTTON_KINDS, BUTTON_NOUN)}
               onNew={() => setItemEdit(null)}
               onInsert={submitItem}
-            />
-
-            <FillFromPageDialog
-              open={fillFromPageOpen}
-              onOpenChange={setFillFromPageOpen}
-              body={form.content}
-              onSave={(next) => commitBody(next, 'Saved Fill from a web page.')}
             />
 
             <FormDateDialog

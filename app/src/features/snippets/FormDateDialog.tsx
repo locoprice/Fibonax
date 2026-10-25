@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { RenameNote } from '@/features/snippets/formulaDialogParts';
+import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { cn } from '@/lib/utils';
 import {
   buildFormDateToken,
@@ -21,6 +22,7 @@ import {
   type DateFieldKind,
   type FormDateConfig,
 } from '@/lib/formDateToken';
+import { emptyLinkDraft, LABEL_LINK_MODES, linkDraftFrom, linkFromDraft, type LinkRuleDraft } from '@/lib/linkRule';
 
 const HINT = 'text-[11px] text-ink-subtle mt-1.5';
 const SECTION_LABEL = 'block text-xs font-medium text-ink-muted mb-1.5';
@@ -51,10 +53,9 @@ interface FormDateDialogProps {
 
 /**
  * Changes a date or time field already in the snippet: its name, whether it
- * opens a calendar or a clock, and how it prints. New ones are inserted
- * straight from the side panel, where the format sits beside the button; this
- * is the window their Edit opens. Where on a pasted page the field reads its
- * value is set in the Fill from a web page window, and kept here as it was.
+ * opens a calendar or a clock, how it prints, and where on a pasted page it
+ * reads its value. New ones are inserted straight from the side panel, where
+ * the format sits beside the button; this is the window their Edit opens.
  *
  * The token is written by `@/lib/formDateToken`, the writer the panel uses,
  * so a field changed here reads exactly like one inserted there.
@@ -71,6 +72,7 @@ export function FormDateDialog({
   const [name, setName] = useState('');
   const [kind, setKind] = useState<DateFieldKind>('date');
   const [format, setFormat] = useState<string>(DEFAULT_DATE_FORMAT);
+  const [link, setLink] = useState<LinkRuleDraft>(emptyLinkDraft('after'));
   const nameRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -78,14 +80,15 @@ export function FormDateDialog({
     setName(initial.name);
     setKind(initial.kind);
     setFormat(initial.format !== '' ? initial.format : initial.kind === 'time' ? DEFAULT_TIME_FORMAT : DEFAULT_DATE_FORMAT);
+    setLink(linkDraftFrom(initial.link, 'after'));
   }, [open, initial]);
 
   const nameValid = isValidFieldName(name);
   const options = kind === 'time' ? TIME_FORMAT_OPTIONS : dateFormatOptions(lang);
 
   const token = useMemo(
-    () => buildFormDateToken({ name, kind, format, link: initial?.link ?? '', after: initial?.after ?? '' }),
-    [name, kind, format, initial],
+    () => buildFormDateToken({ name, kind, format, link: linkFromDraft(link), after: initial?.after ?? '' }),
+    [name, kind, format, link, initial],
   );
 
   function changeKind(next: DateFieldKind) {
@@ -179,6 +182,15 @@ export function FormDateDialog({
               ))}
             </select>
           </div>
+
+          {/* ── From a link ── */}
+          <LinkRuleFields
+            id="form-date-link"
+            value={link}
+            onChange={setLink}
+            modes={LABEL_LINK_MODES}
+            onEnter={handleSubmit}
+          />
 
           {nameValid && (
             <div className="rounded-[10px] border border-line bg-bg-alt px-3 py-2.5">

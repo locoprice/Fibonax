@@ -2044,7 +2044,7 @@ function renderDetailHtml(s){
       form+='</div>';
       // The Link box sits above the fields it fills, outside their scroll, so
       // it stays in view however long the form is.
-      h+=(vm.linkable?detailLinkHtml(s.id, vm.linkLabel):'')+form;
+      h+=(vm.linkable?detailLinkHtml(s.id):'')+form;
     }
     var pvCls='d-body'+(resolved.trim()?'':' plain');
     var note=hasFields
@@ -2366,10 +2366,10 @@ function newDetailLink(){
   return { url:'', msg:'', error:false, busy:false, marks:{} };
 }
 
-function detailLinkHtml(id, label){
+function detailLinkHtml(id){
   var t=window.SBFillForm.linkText, L=detailLink;
   return '<div class="d-link" data-lid="'+esc(id)+'" aria-busy="'+(L.busy?'true':'false')+'">'
-    +'<label class="d-linklbl" for="d-linkinp">'+esc(label)+'</label>'
+    +'<label class="d-linklbl" for="d-linkinp">'+esc(t('box-label'))+'</label>'
     +'<div class="d-linkrow">'
       +'<input id="d-linkinp" class="d-linkinp" type="url" inputmode="url" autocomplete="off" spellcheck="false"'
         +' placeholder="'+esc(t('box-placeholder'))+'" value="'+esc(L.url)+'">'
