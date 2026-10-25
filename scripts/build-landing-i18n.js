@@ -108,6 +108,28 @@ function translate(html, locale, lang) {
   return out;
 }
 
+// The homepage head names its own address three times (canonical, og:url,
+// og:locale). A translated copy has to name itself, not the English page, or a
+// search engine reads the Italian and Spanish pages as duplicates of it.
+const OG_LOCALES = { it: 'it_IT', es: 'es_ES' };
+
+function localizeHead(html, lang) {
+  if (!OG_LOCALES[lang]) throw new Error(`[${lang}] add its og:locale to OG_LOCALES`);
+  const swaps = [
+    [`<link rel="canonical" href="${CANONICAL}">`, `<link rel="canonical" href="${CANONICAL}${lang}/">`],
+    [`<meta property="og:url" content="${CANONICAL}">`, `<meta property="og:url" content="${CANONICAL}${lang}/">`],
+    ['<meta property="og:locale" content="en_US">', `<meta property="og:locale" content="${OG_LOCALES[lang]}">`],
+  ];
+  let out = html;
+  for (const [from, to] of swaps) {
+    if (out.split(from).length !== 2) {
+      throw new Error(`[${lang}] expected exactly one ${from} in the English source`);
+    }
+    out = out.replace(from, to);
+  }
+  return out;
+}
+
 function withHreflang(html, langs, page = '') {
   const block = hreflangBlock(langs, page);
   const stripped = html.replace(HREFLANG_RUN, '');
@@ -225,7 +247,7 @@ function main() {
   for (const lang of langs) {
     const locale = JSON.parse(fs.readFileSync(path.join(LOCALES, `${lang}.json`), 'utf8'));
     const target = path.join(LANDING, lang, 'index.html');
-    const desired = translate(base, locale, lang);
+    const desired = localizeHead(translate(base, locale, lang), lang);
 
     const existing = fs.existsSync(target) ? readText(target) : null;
     if (existing === desired) {

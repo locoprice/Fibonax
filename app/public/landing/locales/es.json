@@ -654,7 +654,7 @@
     {
       "find": "content=\"One place for your Snippets, Prompts and Brains. Built to give every AI the context it needs to work better.\"",
       "replace": "content=\"Un solo lugar para tus Snippets, Prompts y Brains. Diseñado para dar a cada IA el contexto que necesita para trabajar mejor.\"",
-      "count": 1
+      "count": 2
     },
     {
       "find": ">Your AI can change.<",
@@ -1124,6 +1124,16 @@
     {
       "find": "<span class=\"sr-only\"> (opens in a new tab)</span>",
       "replace": "<span class=\"sr-only\"> (se abre en una pestaña nueva)</span>",
+      "count": 1
+    },
+    {
+      "find": "content=\"Fibonax: Your context. Every AI. One direction.\"",
+      "replace": "content=\"Fibonax: Tu contexto. Cada IA. Una dirección.\"",
+      "count": 1
+    },
+    {
+      "find": "\"description\": \"One place for your Snippets, Prompts and Brains. Built to give every AI the context it needs to work better.\"",
+      "replace": "\"description\": \"Un solo lugar para tus Snippets, Prompts y Brains. Diseñado para dar a cada IA el contexto que necesita para trabajar mejor.\"",
       "count": 1
     }
   ],

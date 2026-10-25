@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://fibonax.com/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://fibonax.com/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://fibonax.com/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://fibonax.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://fibonax.com/"/>
+  </url>
+  <url>
+    <loc>https://fibonax.com/it/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://fibonax.com/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://fibonax.com/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://fibonax.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://fibonax.com/"/>
+  </url>
+  <url>
+    <loc>https://fibonax.com/es/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://fibonax.com/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://fibonax.com/it/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://fibonax.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://fibonax.com/"/>
+  </url>
+  <url>
+    <loc>https://fibonax.com/pricing/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://fibonax.com/pricing/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://fibonax.com/it/pricing/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://fibonax.com/es/pricing/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://fibonax.com/pricing/"/>
+  </url>
+  <url>
+    <loc>https://fibonax.com/it/pricing/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://fibonax.com/pricing/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://fibonax.com/it/pricing/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://fibonax.com/es/pricing/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://fibonax.com/pricing/"/>
+  </url>
+  <url>
+    <loc>https://fibonax.com/es/pricing/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://fibonax.com/pricing/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://fibonax.com/it/pricing/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://fibonax.com/es/pricing/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://fibonax.com/pricing/"/>
+  </url>
+  <url>
+    <loc>https://fibonax.com/legal/privacy-policy.html</loc>
+  </url>
+  <url>
+    <loc>https://fibonax.com/legal/terms-and-conditions.html</loc>
+  </url>
+  <url>
+    <loc>https://fibonax.com/legal/cookie-policy.html</loc>
+  </url>
+</urlset>
