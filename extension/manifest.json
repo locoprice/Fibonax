@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Fibonax | Advanced prompt engineering | Native AI Snippets | Memory Layer",
   "short_name": "Fibonax",
-  "version": "3.84.1",
+  "version": "3.84.2",
   "description": "AI prompt library and text expander. Free team sharing, dynamic snippets with live formulas, and two-way Notion sync.",
   "permissions": [
     "storage",

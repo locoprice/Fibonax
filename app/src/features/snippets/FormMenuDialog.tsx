@@ -59,7 +59,7 @@ interface FormMenuDialogProps {
   initial?: FormMenuConfig | null;
   /**
    * The Fill from a pasted link rule a new menu starts with, as `after:Plan`,
-   * when it is added from that side panel section. '' or left out otherwise.
+   * when it is added from the Fill from a pasted link toggle. '' or left out otherwise.
    */
   newLink?: string;
   /**

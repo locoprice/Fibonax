@@ -233,8 +233,6 @@ const ACTIONS_HINT =
   'Clicked while filling. Never printed. An action changes the values in the form as you work, so a figure you would otherwise reach for a calculator to get lands in one click. Open one below to see what it does.';
 const MATH_HINT =
   'Calculated for you. A discounted price, a total, an average: math resolves as the snippet expands, from the numbers filled in. Open one below to see what it does.';
-const LINK_HINT =
-  'Filled from a web page. The person filling the form pastes the page’s link, and the fields set to read it fill themselves. Open the one below to see what it does.';
 const LOGIC_HINT =
   'Worked out on its own. A line that shows or hides depending on an answer, the greeting the hour calls for: logic resolves as the snippet expands. Open one below to see what it does.';
 
@@ -267,9 +265,9 @@ const BUTTON_FIELDS: { label: string; hint: string }[] = [
     hint: 'Whether the button trims the space around it. On a line of its own it leaves a blank line behind unless it does.' },
 ];
 
-// Fill from a pasted link has its own section, with the tick box and the Add
-// buttons in its footer. Until v3.83.0 it was a toggle under Actions that only
-// described the feature, with nothing to press; the tick box in each field's
+// Fill from a pasted link sits under Actions, beside Button, with the tick box
+// and the Add buttons in its footer. It was a toggle that only described the
+// feature, with nothing to press, until v3.84.0; the tick box in each field's
 // own window stays as it was, for a field already in the snippet.
 const LINK_FIELDS: { label: string; hint: string }[] = [
   { label: 'Add a field',
@@ -892,7 +890,7 @@ export function NewSnippetDialog() {
   }
 
   /**
-   * The Fill from a pasted link section's Add buttons: a new field under a
+   * The Fill from a pasted link toggle's Add buttons: a new field under a
    * generic name (TEXT_n, NUM_n, DATE_n), reading the label set above them.
    * Choice opens its window with the rule filled in, since a menu is nothing
    * without its options.
@@ -1723,23 +1721,56 @@ export function NewSnippetDialog() {
 
             </div>
 
-            {/* Fill from a pasted link: its own section, right under the fields
-                it adds. The tick box and the Add buttons sit in the footer, the
-                way the Date/Time toggle keeps its formats beside its buttons. */}
+            {/* Actions */}
             <div className="p-4 border-b border-line">
               <div className="flex items-center gap-1.5">
-                <p className={SIDEBAR_LABEL}>Fill from a pasted link</p>
+                <p className={SIDEBAR_LABEL}>Actions</p>
                 <Tooltip
-                  label={LINK_HINT}
+                  label={ACTIONS_HINT}
                   placement="right"
                   className="flex items-center text-ink-subtle hover:text-ink transition-colors"
                 >
                   <Info className="h-3 w-3" aria-hidden />
                 </Tooltip>
               </div>
+              {/* Like Choice, this one opens a builder rather than pasting a
+                  literal: a button that sets nothing is not a shorter version
+                  of a button, it is an inert one. */}
+              <Toggle
+                label="Button"
+                className="mb-2.5 mt-2.5"
+                footer={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    disabled={saving}
+                    onClick={() => setActionButtonOpen(true)}
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    Build the button
+                  </Button>
+                }
+              >
+                <p className="text-[11px] text-ink-subtle leading-tight">
+                  Something the person filling the form clicks, never something the reader
+                  sees. It sets fields to values you decide, so a discount or a revised
+                  total lands in one click instead of being worked out by hand. The button
+                  itself drops out of the message when the snippet is sent.
+                </p>
+                <dl className="mt-2 flex flex-col gap-1.5">
+                  {BUTTON_FIELDS.map((f) => (
+                    <div key={f.label}>
+                      <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
+                      <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </Toggle>
+
               <Toggle
                 label="Fill from a pasted link"
-                className="mb-2.5 mt-2.5"
+                className="mb-2.5"
                 footer={
                   <div className="flex flex-col gap-2">
                     <LinkRuleFields
@@ -1784,54 +1815,6 @@ export function NewSnippetDialog() {
                 </p>
                 <dl className="mt-2 flex flex-col gap-1.5">
                   {LINK_FIELDS.map((f) => (
-                    <div key={f.label}>
-                      <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
-                      <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </Toggle>
-            </div>
-
-            {/* Actions */}
-            <div className="p-4 border-b border-line">
-              <div className="flex items-center gap-1.5">
-                <p className={SIDEBAR_LABEL}>Actions</p>
-                <Tooltip
-                  label={ACTIONS_HINT}
-                  placement="right"
-                  className="flex items-center text-ink-subtle hover:text-ink transition-colors"
-                >
-                  <Info className="h-3 w-3" aria-hidden />
-                </Tooltip>
-              </div>
-              {/* Like Choice, this one opens a builder rather than pasting a
-                  literal: a button that sets nothing is not a shorter version
-                  of a button, it is an inert one. */}
-              <Toggle
-                label="Button"
-                className="mb-2.5 mt-2.5"
-                footer={
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="primary"
-                    disabled={saving}
-                    onClick={() => setActionButtonOpen(true)}
-                  >
-                    <Plus className="mr-1 h-3 w-3" />
-                    Build the button
-                  </Button>
-                }
-              >
-                <p className="text-[11px] text-ink-subtle leading-tight">
-                  Something the person filling the form clicks, never something the reader
-                  sees. It sets fields to values you decide, so a discount or a revised
-                  total lands in one click instead of being worked out by hand. The button
-                  itself drops out of the message when the snippet is sent.
-                </p>
-                <dl className="mt-2 flex flex-col gap-1.5">
-                  {BUTTON_FIELDS.map((f) => (
                     <div key={f.label}>
                       <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
                       <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
