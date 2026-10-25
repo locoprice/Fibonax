@@ -1,5 +1,5 @@
 # Chrome Web Store — Submission Copy
-**Extension:** Fibonax
+**Extension:** Fibonax | Advanced prompt engineering | Native AI Snippets | Memory Layer (73 characters, Chrome allows 75; `short_name` is Fibonax)
 **Version:** 2.142.0
 **Category:** Productivity
 **Language:** English

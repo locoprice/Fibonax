@@ -20,10 +20,10 @@ export interface SupabaseConfig {
 }
 
 export function configFromEnv(env: NodeJS.ProcessEnv): SupabaseConfig {
-  const token = env.SPRINTBRAIN_MEMORY_TOKEN;
+  const token = env.FIBONAX_MEMORY_TOKEN;
   if (!token) {
     throw new Error(
-      'SPRINTBRAIN_MEMORY_TOKEN is not set. Issue one from the dashboard (Settings, Memory) and put it in the MCP client config.',
+      'FIBONAX_MEMORY_TOKEN is not set. Issue one with memory_issue_token (see services/mcp-memory/README.md) and put it in the MCP client config.',
     );
   }
   return {

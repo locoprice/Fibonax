@@ -6,6 +6,14 @@
 <meta name="theme-color" content="#1B4FD8">
 <title>Fibonax: Your context. Every AI. One direction.</title>
 <meta name="description" content="One place for your Snippets, Prompts and Brains. Built to give every AI the context it needs to work better.">
+<link rel="canonical" href="https://fibonax.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Fibonax">
+<meta property="og:title" content="Fibonax: Your context. Every AI. One direction.">
+<meta property="og:description" content="One place for your Snippets, Prompts and Brains. Built to give every AI the context it needs to work better.">
+<meta property="og:url" content="https://fibonax.com/">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
 <link rel="alternate" hreflang="en" href="https://fibonax.com/">
 <link rel="alternate" hreflang="es" href="https://fibonax.com/es/">
 <link rel="alternate" hreflang="it" href="https://fibonax.com/it/">
@@ -13,6 +21,40 @@
 <link rel="icon" type="image/png" sizes="128x128" href="/icon128.png">
 <link rel="icon" type="image/png" sizes="48x48" href="/icon48.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/icon16.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://fibonax.com/#organization",
+      "name": "Fibonax",
+      "url": "https://fibonax.com/",
+      "logo": "https://fibonax.com/icon128.png",
+      "sameAs": [
+        "https://github.com/locoprice/Fibonax"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "email": "fibonaxai@gmail.com"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Fibonax",
+      "url": "https://fibonax.com/",
+      "description": "One place for your Snippets, Prompts and Brains. Built to give every AI the context it needs to work better.",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web, Chrome",
+      "downloadUrl": "https://chromewebstore.google.com/detail/fibonax/khdpimdpkgmmaimpbfjgglnpaemmopoo",
+      "publisher": {
+        "@id": "https://fibonax.com/#organization"
+      }
+    }
+  ]
+}
+</script>
 <style>
 /* SHARED:base-css:BEGIN */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -2432,7 +2474,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.81.2';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.84.2';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.

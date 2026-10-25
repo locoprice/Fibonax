@@ -23,7 +23,7 @@ const languageEnum = z.enum(['EN', 'IT', 'ES', 'FR', 'MULTI']);
 
 // Bodies keyed by language. Every key is optional — only languages the user
 // has actually typed into will be present after a save.
-export const snippetBodiesSchema = z.record(languageEnum, z.string()).default({});
+export const snippetBodiesSchema = z.partialRecord(languageEnum, z.string()).default({});
 
 export const snippetSchema = z.object({
   id: z.string().uuid(),
@@ -35,7 +35,7 @@ export const snippetSchema = z.object({
   alternative_queries: z.array(z.string()),
   is_formula: z.boolean(),
   formula: z.string().nullable(),
-  variables: z.record(z.unknown()),
+  variables: z.record(z.string(), z.unknown()),
   // Folder ids are TEXT in the schema (legacy client-generated + org folders),
   // not necessarily UUIDs — don't over-constrain.
   folder_id: z.string().nullable(),

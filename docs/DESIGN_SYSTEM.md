@@ -60,10 +60,13 @@ action color. These values apply only to `/mobile/`.
 | `mobile-danger-bg` | `#FEF2F2` | Error surfaces |
 
 The home screen follows the mockup, made quieter at Valentina's request: the
-band carries the wordmark, the account initials, **What's next?**, one white
-**Use a snippet** card and two plain links under it (**Prepare a prompt**,
-**Capture a note**). The mockup's workspace line and two-line intro are left
-out; the company shows in the footer logo. The app version and the month of the last update sit in the band under **Capture a note**, as a quiet pill and a mono date. Below the band: **Ready to reuse**
+band carries the wordmark, the account picture (initials when there is none), **What's next?**
+and three equal white buttons (**Use a snippet**, **Prepare a prompt**,
+**Capture a note**), each with an icon tile, a line saying what it does and a
+blue arrow. They sit on a raised edge and sink 3px when pressed, so each one
+reads as its own button (users missed that the two plain links under a single
+card led to other sections). Side by side from 700px. The mockup's workspace line and two-line intro are left
+out; the company shows in the footer logo. The app version and the month of the last update sit in the band under **Capture a note**, as one centred line of plain mono text (`v3.82.0 · Updated Oct 2026`, no pill). Below the band: **Ready to reuse**
 with the first pinned snippet and prompt as cards, **Search snippets** and
 **Your Brains**. The bottom bar is white, and the active tab is Azure with a
 short bar under it.
@@ -476,7 +479,9 @@ requirements. The private Notion benchmark library was unavailable during review
 Owner-approved on 2026-10-20: a near-viewport overlay (1280 px maximum width,
 32 px outer margin), fields left and full read-only preview right. At 800 px
 and below, Fill in / Preview switches panes. Header and insertion action stay
-visible. Existing Azure / neutral tokens and 44 px controls remain. Long forms
+visible, each on a soft Azure bar (`--sb-azure-bg`, as Gmail's compose window
+tints its title bar) so they read apart from the white form. In-page overlay
+only; the popup, dashboard preview and phone keep their own chrome. Existing Azure / neutral tokens and 44 px controls remain. Long forms
 keep walk order in open, collapsible groups of four; generic numbered headings
 avoid assigning an industry to a user's content. Choices collapse into a native
 details disclosure retaining the existing radio/checkbox controls and Other.

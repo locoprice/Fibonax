@@ -69,14 +69,14 @@ import {
   type BodyItem,
   type BodyItemKind,
 } from '@/lib/bodyItems';
-import { nextTextName } from '@/lib/formTextToken';
+import { buildFormTextToken, nextTextName } from '@/lib/formTextToken';
 import {
   findRuleAt,
   rulesInBody,
   summarizeEntry,
   type RuleInBody,
 } from '@/lib/conditionRule';
-import { nextNumberName } from '@/lib/formNumberToken';
+import { buildFormNumberToken, DEFAULT_CURRENCY, nextNumberName } from '@/lib/formNumberToken';
 import {
   buildFormDateToken,
   dateFormatOptions,
@@ -88,7 +88,6 @@ import {
   type TimeFormat,
 } from '@/lib/formDateToken';
 import {
-  emptyLinkDraft,
   LABEL_LINK_MODES,
   linkFromDraft,
   type LinkRuleDraft,
@@ -266,11 +265,15 @@ const BUTTON_FIELDS: { label: string; hint: string }[] = [
     hint: 'Whether the button trims the space around it. On a line of its own it leaves a blank line behind unless it does.' },
 ];
 
+// Fill from a pasted link sits under Actions, beside Button, with the tick box
+// and the Add buttons in its footer. It was a toggle that only described the
+// feature, with nothing to press, until v3.84.0; the tick box in each field's
+// own window stays as it was, for a field already in the snippet.
 const LINK_FIELDS: { label: string; hint: string }[] = [
-  { label: 'Where',
-    hint: 'Tick Fill from a pasted link in the Text, Number, Date/Time or Choice window of each field.' },
-  { label: 'What to read',
-    hint: 'Say where the value sits on the page: after a label, or a number before a word.' },
+  { label: 'Add a field',
+    hint: 'Leave Fill from a pasted link ticked, type the label the value comes after on the page, then add a Text, Number, Date or Choice. It arrives with a generic name, like TEXT_1.' },
+  { label: 'A field you already have',
+    hint: 'Open it in its own window and tick Fill from a pasted link there.' },
   { label: 'At fill time',
     hint: 'A Link box appears in the form. Paste, and the fields fill. Check them, then insert.' },
 ];
@@ -308,8 +311,6 @@ const DATE_TIME_FIELDS: { label: string; hint: string }[] = [
     hint: 'Not a field — a date worked out at expansion, with the time pinned. Count forward from today, or land on a named day like next Monday.' },
   { label: 'Range',
     hint: 'Two dates and the span between them. 1 to 3 September is 2 apart and 3 counting both ends; you pick which, and type the word after it.' },
-  { label: 'From a link',
-    hint: 'Optional. The next Date or Time takes the value after a label on a web page pasted in the fill form. A date the page leaves open to two readings is left for you to pick.' },
 ];
 
 // Every formula window reads its snippet's formulas the same way, so each
@@ -587,10 +588,16 @@ export function NewSnippetDialog() {
   // seeing the choice next to the button is the whole point of it.
   const [dateFormat, setDateFormat] = useState<DateFormat>(DEFAULT_DATE_FORMAT);
   const [timeFormat, setTimeFormat] = useState<TimeFormat>(DEFAULT_TIME_FORMAT);
-  // Where on a pasted page the next Date or Time reads its value. Cleared once
-  // a field takes it: a label belongs to one field, and two fields reading the
-  // same label would always fill with the same answer.
-  const [dateLink, setDateLink] = useState<LinkRuleDraft>(emptyLinkDraft('after'));
+  // Where on a pasted page the next field added from the Fill from a pasted
+  // link section reads its value. Ticked to start with, since that is what the
+  // section is for. The label is cleared once a field takes it: a label belongs
+  // to one field, and two fields reading the same label would always fill with
+  // the same answer.
+  const [pageLink, setPageLink] = useState<LinkRuleDraft>({ enabled: true, mode: 'after', words: '' });
+  // An Add button pressed with the box ticked and no label, so nothing to read.
+  const [pageLinkError, setPageLinkError] = useState(false);
+  // The rule a Choice added from that section starts with, handed to its window.
+  const [menuLink, setMenuLink] = useState('');
   // Text-field builder — writes a {formtext:} token at the cursor.
   const [textFieldOpen, setTextFieldOpen] = useState(false);
   // Number-field builder — writes a number token at the cursor. Its own type in
@@ -862,23 +869,58 @@ export function NewSnippetDialog() {
         name: nextDateName(form.content, 'date'),
         kind: 'date',
         format: dateFormat,
-        link: linkFromDraft(dateLink),
       }),
-    [form.content, dateFormat, dateLink],
+    [form.content, dateFormat],
   );
 
-  // The Date and Time buttons: the field, with the link rule when one is set.
+  // The Date and Time buttons.
   function insertDateField(kind: 'date' | 'time') {
-    const link = linkFromDraft(dateLink);
     insertAtCursor(
       buildFormDateToken({
         name: nextDateName(form.content, kind),
         kind,
         format: kind === 'time' ? timeFormat : dateFormat,
-        link,
       }),
     );
-    if (link !== '') setDateLink(emptyLinkDraft('after'));
+  }
+
+  function changePageLink(next: LinkRuleDraft) {
+    setPageLink(next);
+    setPageLinkError(false);
+  }
+
+  /**
+   * The Fill from a pasted link toggle's Add buttons: a new field under a
+   * generic name (TEXT_n, NUM_n, DATE_n), reading the label set above them.
+   * Choice opens its window with the rule filled in, since a menu is nothing
+   * without its options.
+   */
+  function addPageField(kind: 'text' | 'number' | 'date' | 'menu') {
+    const link = linkFromDraft(pageLink);
+    if (pageLink.enabled && link === '') {
+      setPageLinkError(true);
+      return;
+    }
+    if (kind === 'menu') {
+      setItemEdit(null);
+      setMenuLink(link);
+      setMenuFieldOpen(true);
+      return;
+    }
+    insertAtCursor(
+      kind === 'text'
+        ? buildFormTextToken({ name: nextTextName(form.content), default: '', link })
+        : kind === 'number'
+          ? buildFormNumberToken({
+              name: nextNumberName(form.content),
+              format: 'plain',
+              currency: DEFAULT_CURRENCY,
+              default: '',
+              link,
+            })
+          : buildFormDateToken({ name: nextDateName(form.content, 'date'), kind: 'date', format: dateFormat, link }),
+    );
+    if (link !== '') setPageLink((prev) => ({ ...prev, words: '' }));
   }
 
   // The rule the caret sits in, when the builder can edit it. A condition typed
@@ -1501,19 +1543,6 @@ export function NewSnippetDialog() {
                       </Button>
                     </div>
 
-                    {/* Fill from link, for the next Date or Time. In the rail
-                        rather than behind a dialog, for the same reason as the
-                        formats above: one decision, seen before the token lands. */}
-                    <LinkRuleFields
-                      id="sb-date-link"
-                      size="rail"
-                      value={dateLink}
-                      onChange={setDateLink}
-                      modes={LABEL_LINK_MODES}
-                      disabled={saving}
-                      offHint="The next Date or Time you insert fills itself from a web page pasted in the fill form. You check it before inserting."
-                    />
-
                     {/* What the next Date button will write. The author sees the
                         token before it is in the body, the same promise the
                         number and menu builders make in their own dialogs. */}
@@ -1739,9 +1768,48 @@ export function NewSnippetDialog() {
                 </dl>
               </Toggle>
 
-              <Toggle label="Fill from a pasted link" className="mb-2.5">
+              <Toggle
+                label="Fill from a pasted link"
+                className="mb-2.5"
+                footer={
+                  <div className="flex flex-col gap-2">
+                    <LinkRuleFields
+                      id="sb-page-link"
+                      size="rail"
+                      value={pageLink}
+                      onChange={changePageLink}
+                      modes={LABEL_LINK_MODES}
+                      disabled={saving}
+                      offHint="Tick it and the field you add next fills itself from a web page pasted in the fill form. You check it before inserting."
+                    />
+                    {pageLinkError && (
+                      <p role="alert" className="text-[11px] leading-tight text-danger">
+                        Type the label on the page first, then add the field.
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('text')}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Text
+                      </Button>
+                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('number')}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Number
+                      </Button>
+                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('date')}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Date
+                      </Button>
+                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('menu')}>
+                        <Plus className="mr-1 h-3 w-3" />
+                        Choice
+                      </Button>
+                    </div>
+                  </div>
+                }
+              >
                 <p className="text-[11px] text-ink-subtle leading-tight">
-                  The person filling the form pastes a page's link, and the fields fill
+                  The person filling the form pastes a page&apos;s link, and the fields fill
                   themselves from what the page says. They check the answers before
                   inserting.
                 </p>
@@ -2428,14 +2496,22 @@ export function NewSnippetDialog() {
 
             <FormMenuDialog
               open={menuFieldOpen}
-              onOpenChange={windowOpenChange(setMenuFieldOpen)}
+              onOpenChange={(next) => {
+                windowOpenChange(setMenuFieldOpen)(next);
+                if (!next) setMenuLink('');
+              }}
               suggestedName={nextMenuName(form.content)}
               initial={itemEdit?.kind === 'menu' ? itemEdit.cfg : null}
+              newLink={menuLink}
               language={form.language}
               list={itemList(MENU_KINDS, MENU_NOUN)}
               readers={editReaders}
               onNew={() => setItemEdit(null)}
-              onSubmit={submitItem}
+              onSubmit={(token) => {
+                submitItem(token);
+                // The section's label went to this menu, like any field it adds.
+                if (menuLink !== '') setPageLink((prev) => ({ ...prev, words: '' }));
+              }}
             />
 
             <FormButtonDialog

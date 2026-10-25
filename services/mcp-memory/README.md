@@ -57,11 +57,11 @@ project root, for Claude Desktop it is `claude_desktop_config.json`.
 ```json
 {
   "mcpServers": {
-    "sprintbrain-memory": {
+    "fibonax-memory": {
       "command": "node",
       "args": ["C:/Users/averd/Desktop/Claude Projects/Fibonax/services/mcp-memory/src/index.ts"],
       "env": {
-        "SPRINTBRAIN_MEMORY_TOKEN": "sbmw_..."
+        "FIBONAX_MEMORY_TOKEN": "sbmw_..."
       }
     }
   }
@@ -137,7 +137,7 @@ select * from public.memory_issue_token('agent laptop', null, array['read', 'wri
 ```
 
 The plaintext token is returned once and never stored. Put it in the MCP client
-config as `SPRINTBRAIN_MEMORY_TOKEN`. Leaving the third argument off issues a
+config as `FIBONAX_MEMORY_TOKEN`. Leaving the third argument off issues a
 read-only token, as before.
 
 ## How selection works

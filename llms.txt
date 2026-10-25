@@ -1,45 +1,97 @@
 # Fibonax
 
-> Text expander and dynamic snippet platform. Type a short trigger in any web field and get back a structured template with live formulas, per field prompts, and team shared libraries. Ships to every industry: nothing the product seeds names a vertical.
+> Text expander and dynamic snippet platform, with an AI prompt library and a "Brains" knowledge layer. Type a short trigger in any web field and get back a structured template with live formulas, per field prompts, and team shared libraries. Ships to every industry: nothing the product seeds names a vertical.
 
-This file is a high density orientation index for coding agents (Claude Code and similar) working in this repository. It reflects verified current state. Where it disagrees with `docs/PROJECT_CONTEXT.md`, `docs/CLAUDE.md`, or `app/CLAUDE.md`, trust this file, the root `CLAUDE.md`, and `docs/ENGINEERING_REFERENCE.md` instead (see "Superseded docs" at the bottom).
+This file is a high density orientation index for coding agents (Claude Code and similar) working in this repository. It reflects verified current state, and it deliberately avoids hard coding the release number: the version lives in `extension/manifest.json` and everything else must match it (see Development Workflow). Where it disagrees with `docs/PROJECT_CONTEXT.md`, `docs/CLAUDE.md`, or `app/CLAUDE.md`, trust this file, the root `CLAUDE.md`, and `docs/ENGINEERING_REFERENCE.md` instead (see "Superseded docs" at the bottom).
+
+The product was renamed from SprintBrain to Fibonax. The rename is complete in everything a person reads; a short list of internal names deliberately or still carries the old name (see "Brand and legacy names").
 
 ## Overview
 
-Fibonax is a Chrome extension (Manifest V3) plus a companion SaaS dashboard. A user types a trigger prefix (default `;;`, configurable per account) followed by a shortcut in any editable web field. The extension expands it into a template that can include input fields, conditionals, and inline formulas.
+Fibonax is a Chrome extension (Manifest V3) plus a companion SaaS dashboard and a phone web app. A user types a trigger prefix (default `;;`, configurable per account) followed by a shortcut in any editable web field. The extension expands it into a template that can include input fields, choices, buttons, conditionals, and inline formulas.
 
-The product is three content types in one shell: **snippets** (trigger, expand), **prompts** (longer AI-prompt text, dashboard-authored, read-only on the extension), and **memory** (durable facts an AI assistant can pull into a conversation, stored as shards and served over an MCP server). Tripartite Parity (root `CLAUDE.md`) makes this non-negotiable: a UI capability added to one is added to all three, in the same change, on every surface where they exist.
+The product is three content types in one shell, and the third one has a user facing name:
 
-Three surfaces exist. See Architecture & Parity below for exactly what stays in sync across them and what does not.
+| Content | What it is | Notes |
+|---|---|---|
+| **Snippets** | Reusable text that expands from a trigger | Organised in folders. Fill form, formulas, language variants, version history. |
+| **Prompts** | Longer AI prompt text, dashboard authored | Read only on the extension. Opened with the `"""` menu. Filtered by the same folders, as chips. Has a quality score and block editing. |
+| **Brains** | Durable knowledge an AI assistant can pull into a conversation | Organised in **spaces**. Everything a person reads says "Brain" / "Brains", never "Memory". In code it stays `memory`: `memory_*` tables, the `/memory` route, `memory-pack.js`, the MCP server. Items are stored as shards. |
+
+Tripartite Parity (root `CLAUDE.md`) makes this non-negotiable: a UI capability added to one is added to all three, in the same change, on every surface where they exist.
+
+Surfaces. See Architecture & Parity below for exactly what stays in sync across them and what does not.
 
 | Surface | Path | Role |
 |---|---|---|
 | Chrome extension | `extension/` | Primary expansion surface. Vanilla JS, MV3, no build step. |
-| Dashboard | `app/` (React) | The real home for CRUD, team/org sharing, analytics, settings. Desktop only (viewports under 1024px redirect to `/mobile/`). |
-| Mobile companion | `app/public/mobile/` | Used daily; fully synchronised on what a snippet *is and does* in the same task as every other surface. Brains can be read, copied, shared and added to there, and text or links from other apps saved into them (Save to Brain: Share menu, Shortcut, Paste & save; the Brain is suggested from the words, as in the extension). Only the management layer (folder rename/delete, full CRUD admin, managing Brains) is intentionally absent. |
+| Dashboard | `app/` (React) | The real home for CRUD, team sharing, review, analytics, settings. Desktop only (viewports under 1024px are sent to `/mobile/`). |
+| Mobile companion | `app/public/mobile/` | `fibonax.com/mobile`, one self contained `index.html`, installable (`manifest.webmanifest`). Used daily; fully synchronised on what a snippet *is and does*. Brains can be read, copied, shared and added to there, and text or links from other apps saved into them (Save to Brain: Android Share menu, an iPhone Shortcut opening `/mobile/?text=`, or Paste & save; the Brain is suggested from the words, as in the extension). Only the management layer (folder rename/delete, full CRUD admin, managing Brains) is intentionally absent. |
+| MCP server | `services/mcp-memory/` | Working memory for AI assistants over MCP, backed by the same Brains data. |
+| Marketing site | `app/public/landing/` | `fibonax.com`, a separate Netlify deploy. English, Italian and Spanish. |
+| User manual | `user-docs/` | `docs.fibonax.com`, published by Mintlify from this repo on every push to `main`. |
 
-The marketing site (`fibonax.com`) is a separate Netlify deploy rooted at `app/public/landing/`. English is the only language authored directly; Italian and Spanish copy is always human supplied (ask Valentina or Alessandro), never machine translated.
+## Features (what exists today)
+
+Use this to find where a capability lives. Each row is shipped unless marked locked.
+
+**Snippets and the fill form**
+- Field builders (dashboard editor, one dialog each in `app/src/features/snippets/Form*Dialog.tsx`): Text, Number (a quantity is always a numeric field, `{formtext: name=X; type=number}`), Date, Time, Date range, Choice menu (`menuPresets.ts`), Button, plus Math (Price line, Calculator, Interest) and Logic (Show or hide, Condition, Greeting).
+- Every inserted element can be listed, edited, saved, cancelled, removed and undone without touching raw text (`app/src/lib/bodyItems.ts`, `formulaToken.ts`, `conditionRule.ts`, `formulaSteps.ts`, `formulaDialogParts.tsx`). A new element is not done until it has all of that and a round trip test.
+- **Fill from link**: a Link box on every fill form reads a public web page and fills fields from it (`read-link` edge function reads, `fill-form.js` decides which piece fills which field, rules in `link=`).
+- Multi language variants with a language check/picker, version history, import/export (`snippetIo.ts`), bulk actions, unused-asset notice (`shared/inactivity.js`), usage stats and grouping (`shared/snippet-stats.js`).
+- Triggers: inline trigger and "insert automatically" settings per account; right click context menu and a picker as the other two entry points.
+
+**Prompts**: block editor, "Ask User Questions", **Interactive Steps** (a device setting that prefixes a copied prompt with one-step-at-a-time instructions; `extension/shared/interactive-steps.js`, dashboard mirror `app/src/lib/interactiveSteps.ts`, key shared with mobile), prompt score (`usePromptEvaluator.ts`), prompt version history.
+
+**Brains**
+- Spaces and items (kinds, summaries, labels), file/document uploads (`memory_documents`), trash and history, an in page **Context** button/picker (`content/memory-picker.js`, shortcut `Ctrl/Cmd+Shift+M`), **Save selection to Fibonax** from the right click menu (`content/save-selection.js`), **Save this chat** from supported AI chat sites (`content/chat-capture.js`), the popup's Brains tab, and Save to Brain on the phone.
+- How text is cut, named, summarised and routed to the right Brain lives once in `extension/shared/memory-chunk.js` (`chunkText`, `captureName`, `captureSummary`, `suggestBrain`, `pickBrain`). What "Copy whole Brain" / "Use now" hands an AI lives in `extension/shared/memory-pack.js` (`formatInjectedBlock`). The phone carries generated copies of both.
+- MCP server (`fibonax-memory`, package `fibonax-mcp-memory`, token in `FIBONAX_MEMORY_TOKEN`; renamed from the `sprintbrain-*` names in v3.82.1) tools: `memory_steps`, `memory_index`, `memory_enter_step`, `memory_attach`, `memory_detach`, `memory_state`, `memory_save`.
+
+**Review status (AI knowledge governance)**: every snippet, prompt and Brain item has a status (draft, AI generated, under review, approved, deprecated, archived). The database trigger `app.review_status_guard` is the authority; `app/src/lib/reviewStatus.ts` and the phone's `REVIEW_STATUSES` mirror it. A Review page (`/review`) lists what waits for an approver; non admin edits of approved team content drop back to under review. Archived items are skipped by the MCP readers and search.
+
+**Teams**: organisations with roles, invitations (`invite-member`, `/invite`), several teams per person (`TeamSwitcher`), team covers, and folder sharing by permission (`FolderShareModal`). Folder ACL is the only sharing path.
+
+**Account and settings**: branding (company logo), profile picture, password, devices and login activity, Notion sync (per user token and database), analytics (usage, heatmap, top triggers), delete account (`delete-account` edge function, one transaction then storage cleanup), Santo del Giorno footer line and days to Christmas countdown (`saint-of-the-day` function, `shared/saint-of-day.js`).
+
+**Pro features, built but locked**: Ask Fibonax (answers a question only from the caller's own content, with sources and feedback), Draft with AI (turns pasted text into an unsaved draft), Translate from EN, Suggest labels, and Read a picture on the phone. Each is shown dimmed with the tooltip "Available to Pro users soon" and cannot start a request. One switch per feature in `app/src/lib/proFeatures.ts` (all `false`); `scripts/check-pro-gate.js` keeps the dashboard, phone and manual in step. Translate, Suggest labels and Read a picture have edge functions that are **not deployed**. Switch-on steps and the manual lines held back are in `docs/pro-features/README.md`. Do not turn a switch on without that checklist and a funded `ANTHROPIC_API_KEY`.
 
 ## Architecture & Parity
 
 There is no single "extension vs. standalone app" parity switch. What is actually non-negotiable:
 
-1. **Shared logic, not a shared runtime.** Rules several surfaces must agree on are written once in `extension/shared/`. The popup and the content script load those files as they are. `app/public/mobile/index.html` (and, for the tooltip, the landing site) carries generated copies between markers, and the dashboard either loads the file itself (the snippet preview loads `fill-form.js`) or keeps a TypeScript mirror. The `scripts/sync-*.js` and `scripts/check-*.js` gates fail on drift. The vanilla `Sprintbrain.html` page that once reused `popup.js` was retired in v3.36.0.
-2. **The formula engine is duplicated exactly once, by hand.** `extension/formula-engine.js` is the single source for the extension (the manifest loads it before `content/content.js`) and the dashboard's snippet preview. `app/public/mobile/index.html` carries its own, simpler resolver. Any output changing engine edit has to be ported there by hand; it will not pick up the change automatically.
-3. **The dashboard is the live data surface.** Snippets, prompts, and memory get full CRUD there directly against Supabase. All surfaces read and write the same Supabase tables, so they reconcile through the backend, not through shared frontend state.
-4. **Mobile is fully synchronised on what a snippet is and does**, in the same task as every other surface, and on using a Brain (read, copy, share, add text, Save to Brain). Only the management layer (folder rename/delete, full CRUD admin, managing Brains) is intentionally absent there; do not propose closing that gap as a "parity fix."
-5. **Tripartite Parity (snippets, prompts, memory).** One product, three content types, same dashboard shell: same page skeleton, same menus, same components, same wording pattern. A capability added to one (search, filter, sort, bulk actions, a new menu item) is added to all three in the same change. What differs by design: the organising model (snippets use folders, prompts filter by those folders as chips, memory uses its own spaces) and content type only features (form fields and triggers on snippets, block editing on prompts, shards and steps on memory).
-6. **Authoring and expansion parity, at right angles to the above.** A snippet capability is not shipped when the editor can write it, only when every fill surface can use it: the in-page overlay (`extension/content/content.js`), the popup fill modal (`extension/popup/popup.js`), the dashboard's live preview (`app/src/features/snippets/SnippetPreview.tsx`), and mobile. What a fill form *is* (fields, kinds, controls) is decided once in `extension/shared/fill-form.js`; the four renderers only draw it.
+1. **Shared logic, not a shared runtime.** Rules several surfaces must agree on are written once in `extension/shared/`. The popup and the content script load those files as they are. `app/public/mobile/index.html` (and, for the tooltip, the landing site) carries generated copies between markers, and the dashboard either loads the file itself (the snippet preview loads `fill-form.js`) or keeps a TypeScript mirror. The `scripts/sync-*.js` and `scripts/check-*.js` gates fail on drift. The vanilla `Sprintbrain.html` page that once reused `popup.js` was retired in v3.36.0; comments naming it describe history.
+2. **The formula engine is duplicated exactly once, by hand.** `extension/formula-engine.js` is the single source for the extension (the manifest loads it before `content/content.js`) and the dashboard's snippet preview. `app/public/mobile/index.html` carries its own, simpler parser and resolver, pinned by `scripts/check-snippets.js`. Any output changing engine edit has to be ported there by hand; it will not pick up the change automatically.
+3. **The dashboard is the live data surface.** Snippets, prompts, and Brains get full CRUD there directly against Supabase. All surfaces read and write the same Supabase tables, so they reconcile through the backend, not through shared frontend state.
+4. **Mobile is fully synchronised on what a snippet is and does**, in the same task as every other surface, and on using a Brain (read, copy, share, add text, Save to Brain). Only the management layer is intentionally absent there; do not propose closing that gap as a "parity fix." Mobile has been the surface that drifts, because it costs the most to update. Verify it at phone width (375px), not by trusting the desktop.
+5. **Tripartite Parity (snippets, prompts, Brains).** One product, three content types, same dashboard shell: same page skeleton, same menus, same components, same wording pattern, built shared rather than copied. What differs by design: the organising model (snippets use folders, prompts filter by those folders as chips, Brains use their own spaces) and content type only features (form fields and triggers on snippets, block editing on prompts, shards and steps on Brains). Where a surface is deliberately absent or read only (prompts on the extension, management on mobile) that stands and must be named in the task summary.
+6. **Authoring and expansion parity, at right angles to the above.** A snippet capability is not shipped when the editor can write it, only when every fill surface can use it: the in-page overlay (`extension/content/content.js`), the popup fill modal (`extension/popup/popup.js`), the dashboard's live preview (`app/src/features/snippets/SnippetPreview.tsx`), and mobile. What a fill form *is* (fields, kinds, controls) is decided once in `extension/shared/fill-form.js`; the four renderers only draw it (shared copy in `fill-form-ui.js/.css`). A new token in the engine needs a renderer on every surface in the same task, or the surface shows no field at all and prints the wrong thing.
+7. **Industry neutral.** Nothing the product seeds (chips, sample bodies, placeholders, onboarding, fixtures) may name a vertical. Enforced by `scripts/check-industry-neutral.js` with the word list in `scripts/vertical-words.js`. Marketing copy may; the product may not. Existing user data is never rewritten to satisfy this.
 
 ## Tech Stack
 
 **Extension** (`extension/`): vanilla JavaScript (ES5+), Manifest V3. No build step, no npm, no TypeScript, no framework. Chrome loads it directly from the filesystem.
 
-**Dashboard** (`app/`): React 18 + TypeScript (strict, no `any`) + Vite 5 + Tailwind 3 + shadcn style primitives (Radix) + Zustand 5 + `react-router-dom` 6 + Zod + Recharts + `@supabase/supabase-js`. Desktop only.
+**Dashboard** (`app/`): React 18 + TypeScript (strict, no `any`) + Vite 5 + Tailwind 3 + shadcn style primitives (Radix) + Zustand 5 + `react-router-dom` 6 + Zod + Recharts + `@supabase/supabase-js`, tested with Vitest (`npm run test`). Desktop only. Routes: `/` (snippets), `/prompts`, `/memory` and `/memory/:spaceId` (Brains), `/review`, `/team`, `/analytics`, `/settings`, plus `/login`, `/signup`, `/auth/callback`, `/invite`, and the extension sign in handoff page.
 
-**Backend** (`services/supabase/`): Supabase Postgres with Row Level Security as the primary authorization layer, plus Deno edge functions for anything that needs a server side secret (Notion token exchange, session minting, invites).
+**Backend** (`services/supabase/`): Supabase Postgres with Row Level Security as the primary authorization layer, ordered SQL migrations (`migrations/`, tracked in its `README.md`), and Deno edge functions for anything that needs a server side secret or a server side fetch:
 
-**Working memory** (`services/mcp-memory/`): a Node MCP server that gives an AI assistant a working memory it can swap as work moves between steps. Facts are stored as individually addressable shards (`memory_shards`, personal RLS); a step declares which labels it needs and only those shards are attached, inside a token budget. Runs TypeScript directly via Node's native type stripping (Node 22.18+), no build step. The extension's own memory UI (`shared/memory-pack.js`, `shared/memory-chunk.js`, `content/memory-picker.js`, `content/chat-capture.js`) is a separate, browser-side consumer of the same knowledge layer, not a client of this server.
+| Function | Purpose |
+|---|---|
+| `mint-extension-session` | One time token so the extension signs in from the dashboard session |
+| `invite-member` | Team invitation email and pending invite row |
+| `notion-snippet-push`, `notion-prompt-push` | Server side proxy for Notion sync |
+| `delete-account` | Deletes the caller's own account and files |
+| `read-link` | Reads a public page for Fill from link (text only, never interprets it) |
+| `saint-of-the-day` | The footer's saint line, one fixed source |
+| `ask-sprintbrain` | Ask Fibonax (Pro, locked). Keeps its deployed name |
+| `draft-with-ai` | Draft with AI (Pro, locked) |
+| `translate-body`, `suggest-labels`, `read-picture` | Pro, locked, **not deployed** |
+
+**Working memory** (`services/mcp-memory/`): a Node MCP server that gives an AI assistant a working memory it can swap as work moves between steps. Facts are stored as individually addressable shards (`memory_shards`, personal RLS); a step declares which labels it needs and only those shards are attached, inside a token budget. Runs TypeScript directly via Node's native type stripping (Node 22.18+), no build step. The extension's own Brains UI (`shared/memory-pack.js`, `shared/memory-chunk.js`, `content/memory-picker.js`, `content/chat-capture.js`) is a separate, browser side consumer of the same knowledge layer, not a client of this server.
+
+**AI service**: Claude through the Anthropic API, called only from edge functions with `ANTHROPIC_API_KEY` as a function secret. Every AI feature returns a proposal and saves nothing; a person reviews it. Nothing is read with more rights than the caller has (search and reads go through the caller's own JWT).
 
 ## Integrations & Infrastructure
 
@@ -49,16 +101,28 @@ There is no single "extension vs. standalone app" parity switch. What is actuall
 | Supabase URL | `https://eyowustlbqujaimaxggt.supabase.co` |
 | Supabase region | `eu-west-1` (verified live against the project; the published privacy policy currently states eu-central-1/Frankfurt, which is wrong and worth fixing separately) |
 | GitHub | `https://github.com/locoprice/Fibonax` |
-| Dashboard (frontend) | `https://app.fibonax.com`. Netlify site built from the root `netlify.toml` (`base = "app"`, publishes `app/dist`). Also the origin whitelisted in `extension/manifest.json`'s `externally_connectable`, used for the extension's SSO handoff. Distinct from the marketing site below, which is a separate Netlify site with its own config at `app/public/landing/netlify.toml`. |
-| Notion sync | Per account, user configured (Settings -> Notion, `app/src/features/settings/NotionSyncPanel.tsx`). Each user supplies their own integration token and database ID. There is no single project wide Notion database, so no database ID is listed here as a system fact. |
+| Dashboard (frontend) | `https://app.fibonax.com`. Netlify site built from the root `netlify.toml` (`base = "app"`, publishes `app/dist`). Also the origin whitelisted in `extension/manifest.json`'s `externally_connectable`, used for the extension's SSO handoff. `app.sprintbrain.com` is kept there too and permanently redirected (301) to `app.fibonax.com`. |
+| Marketing site | `https://fibonax.com`, a separate Netlify site with its own config at `app/public/landing/netlify.toml` (no build step; `www` goes to the apex; `sprintbrain.com` is redirected to `fibonax.com`). Pages: home, `pricing/`, `legal/`, plus generated `it/` and `es/`. |
+| User manual | `https://docs.fibonax.com`, Mintlify, source `user-docs/`, page map in `docs/USER_DOCS.md` |
+| Notion sync | Per account, user configured (Settings -> Notion, `app/src/features/settings/NotionSyncPanel.tsx`). Each user supplies their own integration token and database ID. There is no single project wide Notion database. |
 
-The Supabase anon/publishable key is intentionally committed client side (`app/src/lib/supabase.ts`, `extension/auth/auth.js`). Row Level Security is the actual security boundary, not key secrecy. The Notion integration token is the real secret and lives only as a Supabase edge function secret; it is never in the repo and never reaches the browser (`services/supabase/functions/notion-*-push` proxy it server to server).
+The Supabase anon/publishable key is intentionally committed client side (`app/src/lib/supabase.ts`, `extension/auth/auth.js`). Row Level Security is the actual security boundary, not key secrecy. The Notion integration token and `ANTHROPIC_API_KEY` are the real secrets and live only as Supabase edge function secrets; they are never in the repo and never reach the browser.
+
+## Brand and legacy names
+
+All user facing text, the manifest, the dashboard, mobile, landing, manual and docs say **Fibonax**, and the third section says **Brains**. A few identifiers still use the old name on purpose or have not been moved. Do not rename them in passing; each rename breaks something that already exists:
+
+- Edge function `ask-sprintbrain`: the deployed function URL. Renaming means a new deploy plus changing `askApi.ts`, the phone and `check-pro-gate.js` together.
+- Stored keys and constants in app code and the phone (storage keys, internal ids, the extension id helper, CSS token prefix `--sb-`).
+- The former domains and address (`sprintbrain.com`, `app.sprintbrain.com`): only as redirects and in `externally_connectable`.
+- Older migrations and their README, which are history.
 
 ## Security Constraints
 
 - **No `eval()`, no `new Function()`.** The formula engine (`extension/formula-engine.js`) is a hand written, CSP-safe recursive descent parser end to end, not a library like `expr-eval` and not `Function()` with a validated expression. This is also structurally enforced: `manifest.json`'s content security policy is `script-src 'self'; object-src 'self'`.
-- **`chrome.storage.sync` may never be written to.** Enforced by the `scripts/check-storage.js` CI gate wired into `.github/workflows/ci.yml`. Reading a legacy roaming key once, to migrate it to local and delete it, is fine; writing new data to sync is not. The gate exists because of two real incidents: a snippet library that roamed across Chrome profiles, and a Notion API key that sat in a roaming key. Both are fixed, and the public privacy policy now states local only storage, which is why this is a CI gate rather than a code review note.
-- Row Level Security is the primary data isolation layer on every Supabase table. Never disable it. The extension and dashboard both authenticate with per user JWTs, not a shared service key. Memory shards carry the same per-user RLS as snippets and prompts.
+- **`chrome.storage.sync` may never be written to.** Enforced by `scripts/check-storage.js` in CI. Reading a legacy roaming key once, to migrate it to local and delete it, is fine; writing new data to sync is not.
+- Row Level Security is the primary data isolation layer on every Supabase table. Never disable it. The extension and dashboard both authenticate with per user JWTs, not a shared service key. Edge functions derive the user from the verified JWT and accept no user id parameter (`delete-account`, `mint-extension-session`). Brains items carry the same per user RLS as snippets and prompts.
+- Server side fetches (`read-link`, `saint-of-the-day`) are guarded: a fixed or validated address only, never an arbitrary address from the caller.
 - Zero secrets committed: tokens, keys, and `.env` values stay out of the repo. The one deliberate, documented exception is the Supabase anon key described above.
 
 ## Folder Layout
@@ -66,41 +130,54 @@ The Supabase anon/publishable key is intentionally committed client side (`app/s
 ```
 Fibonax/
 ├── CLAUDE.md                     # Root engineering standards, read first
+├── AGENTS.md                     # Who does what: Claude (functionality, PM, translations) vs Codex (visual UX/UI only)
+├── llms.txt                      # This file
 ├── extension/                    # Chrome MV3 extension, vanilla JS, no build
 │   ├── manifest.json
 │   ├── formula-engine.js         # Shared CSP-safe formula parser, loaded before content.js
-│   ├── background/background.js
-│   ├── content/{content.js,memory-picker.js,chat-capture.js}
+│   ├── background/background.js  # Service worker: context menus, sync, alarms
+│   ├── content/{content.js,memory-picker.js,chat-capture.js,save-selection.js}
 │   ├── popup/{popup.html,popup.js,sync-deletion.js}
 │   ├── auth/auth.js
 │   ├── services/notion-sync/notion-sync.js
-│   ├── shared/{fill-form.js,snippet-stats.js,inactivity.js,memory-pack.js,memory-chunk.js,tooltip.js,tokens/}
+│   ├── shared/{fill-form.js,fill-form-ui.js,fill-form-ui.css,snippet-stats.js,inactivity.js,
+│   │           memory-pack.js,memory-chunk.js,interactive-steps.js,saint-of-day.js,tooltip.js,tokens/}
 │   └── assets/icons/
-├── app/                           # React + Vite dashboard, desktop-only SPA
-│   ├── src/{routes,features,components,stores,lib,types}/  # routes now include MemoryPage, MemorySpacePage, TeamPage, InvitePage
+├── app/                          # React + Vite dashboard, desktop-only SPA
+│   ├── src/{routes,features,components,stores,lib,types,__tests__}/
+│   │   # features: analytics history labels memory onboarding org prompts review search settings snippets
 │   └── public/{landing/,mobile/}  # Marketing site + mobile companion, served verbatim
 ├── services/
 │   ├── supabase/
-│   │   ├── migrations/            # Ordered SQL, applied via the Supabase CLI
-│   │   └── functions/             # Edge functions: Notion proxy, session minting, invites, label suggestions
-│   └── mcp-memory/                # Working-memory MCP server, see Tech Stack
-├── design_handoff_design_system/  # Canonical design tokens and reference kits
-├── scripts/                       # CI gate scripts, see Development Workflow
+│   │   ├── migrations/           # Ordered SQL + README tracking what is applied
+│   │   └── functions/            # Edge functions, see the table in Tech Stack
+│   └── mcp-memory/               # Working-memory MCP server
+├── user-docs/                    # docs.fibonax.com source (Mintlify). Never create user-docs/snippets/
+├── design_handoff_design_system/ # Canonical design tokens and reference kits
+├── scripts/                      # sync-*.js generate copies, check-*.js are CI gates
 └── docs/
-    ├── ENGINEERING_REFERENCE.md   # Monorepo map, CI, testing standards
-    ├── DESIGN_SYSTEM.md           # Canonical UI tokens, read before any UI change
-    ├── PROJECT_CONTEXT.md         # Superseded, see note at the bottom
-    └── CLAUDE.md                  # Superseded, see note at the bottom
+    ├── ENGINEERING_REFERENCE.md  # Monorepo map, CI, testing standards
+    ├── DESIGN_SYSTEM.md          # Canonical UI tokens, read before any UI change
+    ├── USER_DOCS.md              # Page map: which manual page covers which code
+    ├── pro-features/             # How to switch the locked Pro features on
+    ├── AI_KNOWLEDGE_PLAN.md      # Ask / review status / Draft with AI plan
+    ├── PROJECT_CONTEXT.md        # Superseded, see note at the bottom
+    └── CLAUDE.md                 # Superseded, see note at the bottom
 ```
 
 ## Development Workflow
 
-- **Branches**: `main` is stable production; `develop` carries all active work. Claude Code specifically never creates a branch and never pushes anywhere except `develop`.
-- **Commits**: Conventional Commits, `type(scope): description`, one logical change per commit.
+- **Branches**: `main` is stable production; `develop` carries all active work. Claude Code never creates a branch and never pushes anywhere except `develop`, and only after the owners confirm the commit message.
+- **Commits**: Conventional Commits, `type(scope): description — vX.Y.Z`, one logical change per commit. Every completed task bumps the version.
 - **Version parity is CI-enforced across every shipped stamp** by `scripts/check-version.js`: `extension/manifest.json`, `app/package.json`, the hero version stamp in `app/public/landing/index.html`, and `services/mcp-memory`'s own two stamps (`package.json` and the `SERVER_VERSION` constant in `src/index.ts`). All of them move together; bumping the landing one means re-running `scripts/build-landing-i18n.js`.
-- **CI** (`.github/workflows/ci.yml`, Node 22, runs on push to `develop`): version parity, formula/snippet syntax, trigger expansion timing, language variant completeness, snippet grouping consistency, storage residency (no writes to `chrome.storage.sync`), tooltip parity, snippet grouping parity, unused-asset rule parity, working memory parity (`check-memory-parity.js`, needs Node 22's native TS type stripping since it imports the memory server's `engine.ts` directly), memory chunk / chat capture parity, landing translation parity, and a file structure smoke check.
-- **Quality bar**: the root `CLAUDE.md` calls this a zero-defect, production-first standard for the current pre-seed phase. No shipped bugs, no TODOs in production code, every fix verified end to end including regressions in adjacent flows.
+- **Landing translations**: the English source is `app/public/landing/index.html`, the only file where copy is authored. Claude writes the Italian and Spanish itself, in the same change, with no approval step (standing authorisation from Alessandro, 2026-09-10). Add `{find, replace, count}` entries to `app/public/landing/locales/{it,es}.json`, then run `node scripts/build-landing-i18n.js` to generate `landing/{it,es}/index.html`. `--check` is a CI gate and fails naming any stale key; never edit a `find` string to silence it. The authorisation covers the landing page only: the dashboard, popup and mobile interface are not translated.
+- **User manual**: every user visible change updates its page in `user-docs/` in the same task (map in `docs/USER_DOCS.md`). Gates: `node scripts/check-docs.js`, then from `user-docs/` `npx mint@4.2.940 validate` and `broken-links`. Document only what works; locked Pro features stay out of the published manual.
+- **Local gates before a commit**: in `app/`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test`. For the extension, `node --check` on each changed file plus the root scripts. The `app/` checks are not part of CI, so they only run if you run them.
+- **CI** (`.github/workflows/ci.yml`, one job, Node 22, runs on push to `develop`): version parity; snippet/formula syntax; trigger expansion timing; language variant and shipped content; snippet grouping and its parity copy; storage residency (no writes to `chrome.storage.sync`); tooltip parity; fill form parity, shared fill form UI copy and fill form view model; unused-asset rule parity; working memory parity (`check-memory-parity.js`, needs Node 22's native TS type stripping since it imports the memory server's `engine.ts` directly); phone memory pack and memory chunk parity; memory chunk and chat capture; Interactive Steps parity; saint of the day and Christmas countdown; Ask Fibonax, review status and Draft with AI parity; Pro lock; landing translation parity; industry neutral wording; user docs house rules, then Mintlify validate and broken links; and a file structure smoke check.
+- **Generated copies**: edit the shared source, then run the matching `scripts/sync-*.js` (fill-form, fill-form-ui, memory-pack, memory-chunk, snippet-stats, tooltip). Never hand edit between the generated markers in `mobile/index.html`. That file has no `.gitattributes`, so check `git diff --numstat` for a whole file CRLF flip before committing.
+- **Summary format**: Claude's end of task summary for Valentina and Alessandro is short, plain language, outcomes only, with Changes made / Verification / Regression check / Expansion check (snippet changes) / Docs check. Details are in the root `CLAUDE.md`.
+- **Quality bar**: zero defect, production first, for the current pre-seed phase. No shipped bugs, no TODOs in production code, every fix verified end to end including regressions in adjacent flows. Simplicity for non technical users outranks any feature.
 
 ## Superseded docs
 
-`docs/PROJECT_CONTEXT.md` (last updated at extension v2.14.1) and `docs/CLAUDE.md` (last updated at v2.80.0) are both hundreds of releases behind (as of this writing, `extension/manifest.json` is at v3.25.1) and disagree with the current code on specific, verifiable points: for example, both describe the formula engine as using `Function()` or unspecified evaluation rather than the current CSP-safe recursive descent parser, `docs/CLAUDE.md` describes `chrome.storage.sync` as the live cache for snippets and trigger config rather than a write path that CI now actively forbids, and neither mentions memory, `fill-form.js`, or the `services/mcp-memory` server at all. `app/CLAUDE.md` (last updated 2026-06-06) has the same problem for the dashboard specifically: its route and feature list predate `TeamPage`, `InvitePage`, `SignupPage`, `MemoryPage`, and `MemorySpacePage`. Treat all three as historical record, not instruction, and re-verify against actual code before citing any of them.
+`docs/PROJECT_CONTEXT.md` (last updated at extension v2.14.1) and `docs/CLAUDE.md` (last updated at v2.80.0) are hundreds of releases behind (the current version is in `extension/manifest.json`) and disagree with the current code on specific, verifiable points: for example, both describe the formula engine as using `Function()` or unspecified evaluation rather than the current CSP-safe recursive descent parser, `docs/CLAUDE.md` describes `chrome.storage.sync` as the live cache for snippets and trigger config rather than a write path that CI now actively forbids, and neither mentions Brains, `fill-form.js`, review status, or the `services/mcp-memory` server at all. `app/CLAUDE.md` (last updated 2026-06-06) has the same problem for the dashboard specifically: its route and feature list predate `TeamPage`, `InvitePage`, `SignupPage`, `MemoryPage`, `MemorySpacePage`, and `ReviewPage`. Treat all three as historical record, not instruction, and re-verify against actual code before citing any of them.

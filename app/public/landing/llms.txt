@@ -1,0 +1,40 @@
+# Fibonax
+
+> Fibonax is one home for your Snippets, Prompts and Brains. Save your knowledge, instructions and workflows once, organize them, and bring the right context to any AI (ChatGPT, Claude, Gemini and others) without starting over.
+
+Your AI can change. Your context should not. Fibonax sits above the individual AI tools, so the context behind your work stays organized and portable.
+
+## What it is
+
+- **Snippets**: reusable text, replies and templates. Type a short trigger in any text field and the finished text appears, with names, dates and prices filled in.
+- **Prompts**: your best AI instructions, structured, saved and ready to reuse in any AI tool.
+- **Brains**: the knowledge, decisions, preferences and information that help an AI understand what you are working on.
+
+Teams can share their library. Fibonax works for any kind of work: writing, coding, running a business, managing a team, creating content or building AI workflows.
+
+## Where to use it
+
+- Chrome extension: https://chromewebstore.google.com/detail/fibonax/khdpimdpkgmmaimpbfjgglnpaemmopoo
+- Web dashboard: https://app.fibonax.com/
+- Phone web app: https://app.fibonax.com/mobile/
+- Sign up: https://app.fibonax.com/signup
+
+## Documentation
+
+- [What Fibonax is](https://docs.fibonax.com/introduction)
+- [Quickstart](https://docs.fibonax.com/quickstart)
+- [Install the Chrome extension](https://docs.fibonax.com/install-extension)
+- [Snippets](https://docs.fibonax.com/text-snippets/overview)
+- [Prompts](https://docs.fibonax.com/prompts/overview)
+- [Brains](https://docs.fibonax.com/brains/overview)
+- [Team workspace](https://docs.fibonax.com/team/workspace)
+- [Notion sync](https://docs.fibonax.com/integrations/notion-sync)
+
+## About this site
+
+- Pricing: coming soon. https://fibonax.com/pricing/
+- Languages: English (https://fibonax.com/), Italian (https://fibonax.com/it/), Spanish (https://fibonax.com/es/)
+- Source code: https://github.com/locoprice/Fibonax
+- Service status: https://fibonax.instatus.com/
+- Support: fibonaxai@gmail.com
+- Legal: https://fibonax.com/legal/privacy-policy.html, https://fibonax.com/legal/terms-and-conditions.html, https://fibonax.com/legal/cookie-policy.html

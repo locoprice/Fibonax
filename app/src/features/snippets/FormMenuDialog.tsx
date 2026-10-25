@@ -58,6 +58,11 @@ interface FormMenuDialogProps {
    */
   initial?: FormMenuConfig | null;
   /**
+   * The Fill from a pasted link rule a new menu starts with, as `after:Plan`,
+   * when it is added from the Fill from a pasted link toggle. '' or left out otherwise.
+   */
+  newLink?: string;
+  /**
    * The snippet's language (EN, IT, ES, FR or MULTI). A ready-made list prints
    * in the message, so it is written in that language; Multi gets English.
    */
@@ -84,6 +89,7 @@ export function FormMenuDialog({
   onOpenChange,
   suggestedName,
   initial = null,
+  newLink = '',
   language,
   list,
   readers = 0,
@@ -147,12 +153,12 @@ export function FormMenuDialog({
     setName('');
     setMultiple(false);
     setCols('');
-    setLink(emptyLinkDraft('after'));
+    setLink(linkDraftFrom(newLink, 'after'));
     setPrint(true);
     setOtherOn(false);
     setOtherLabel(MENU_OTHER_LABEL);
     setPreset(NO_PRESET);
-  }, [open, suggestedName, initial]);
+  }, [open, suggestedName, initial, newLink]);
 
   function updateRow(id: number, label: string) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, label } : r)));
