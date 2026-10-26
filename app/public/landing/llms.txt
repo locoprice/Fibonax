@@ -28,7 +28,6 @@ Teams can share their library. Fibonax works for any kind of work: writing, codi
 - [Prompts](https://docs.fibonax.com/prompts/overview)
 - [Brains](https://docs.fibonax.com/brains/overview)
 - [Team workspace](https://docs.fibonax.com/team/workspace)
-- [Notion sync](https://docs.fibonax.com/integrations/notion-sync)
 
 ## About this site
 

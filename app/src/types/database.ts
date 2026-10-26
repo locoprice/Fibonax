@@ -254,14 +254,6 @@ export interface Prompt extends ReviewFields {
   is_malformed: boolean;
 }
 
-export interface NotionSyncState {
-  database_id: string;
-  api_key: string;
-  last_sync_at: IsoDateTime | null;
-  status: 'idle' | 'syncing' | 'error';
-  last_error: string | null;
-}
-
 // ── Version history ───────────────────────────────────────────────────────────
 
 /**
@@ -352,7 +344,7 @@ export interface ActivityMonth {
 
 /** GitHub-style "Activity overview" + "Contribution activity", on snippet data. */
 export interface ActivityOverview {
-  axes: ActivityAxis[]; // Snippets / Prompts / Folders / Notion syncs
+  axes: ActivityAxis[]; // Snippets / Prompts / Folders / Brains
   activeFolders: string[]; // top folders by usage — the "Contributed to" line
   timeline: ActivityMonth[]; // most-recent month first
 }

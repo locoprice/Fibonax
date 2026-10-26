@@ -51,7 +51,6 @@ CI runs all three on every push to `develop`.
 | Team page, invitations, roles | `app/src/routes/{TeamPage,InvitePage}.tsx`, `app/src/features/org/` | `team/workspace` |
 | Phone page, including its Brains page, Paste & save, Share beside Copy, and the Share menu entry (`manifest.webmanifest`) | `app/public/mobile/` | `apps/mobile` |
 | Where the extension runs | `content.js` field detection | `integrations/supported-sites` |
-| Notion sync | `NotionSyncPanel.tsx`, `extension/services/notion-sync/notion-sync.js` | `integrations/notion-sync` |
 | Account, branding, unused months, Santo del Giorno switch, dashboard footer (saint of the day, days to Christmas), delete account | `app/src/features/settings/{AccountPanel,BrandingPanel,InactivityPanel,SaintOfDayPanel,DeleteAccountPanel}.tsx`, `services/supabase/functions/delete-account/`, `app/src/components/layout/{SaintOfDay,ChristmasCountdown}.tsx` | `settings/account` |
 | Triggers, Insert automatically | `InlineTriggerPanel.tsx`, `AutoInsertPanel.tsx`, `extension/auth/auth.js` | `settings/triggers` |
 | Password, devices, login activity | `app/src/features/settings/{PasswordPanel,SecurityPanel}.tsx` | `settings/security` |
@@ -73,4 +72,6 @@ These exist in the product but don't work for users, so the manual stays silent 
 - **Read a picture** (phone, Save to Brain): built locked for Pro in v3.63.0 (switch `picture`, and `PICTURE_AVAILABLE` on the phone); the `read-picture` function is not deployed. Its section is kept, unpublished, in `docs/pro-features/read-picture.mdx`. The phone page documents the free way instead: copy the text with Live Text or Google Lens, then Paste & save.
 - **Analytics cards**: "across 4 folders" and the "12%" change are fixed text, and "last 30 days" doesn't match the 14-day data window.
 
-Documented as limits instead: the phone page ignores `{elseif:}` and `{else}`; Notion sync has no French column.
+Documented as limits instead: the phone page ignores `{elseif:}` and `{else}`.
+
+The pull from Notion (Settings > Notion sync, and the extension's sync every five minutes) was retired in v3.86.0. Its page, `integrations/notion-sync`, now redirects to `settings/account`.

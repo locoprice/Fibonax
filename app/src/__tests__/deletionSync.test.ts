@@ -15,9 +15,9 @@ import { resolve } from 'node:path';
 //                a mocked Supabase client, asserting both the network operation
 //                and the local-cache sync (store array + selection pruning,
 //                with rollback on failure).
-// • Pop-up     — extension/popup/popup.js (global-scope vanilla JS, not
-//                importable into Vitest) is covered by a source-level parity
-//                guard asserting it performs the same hard DELETE on `snippets`.
+// • Pop-up     : read-only. Its only snippet delete belonged to the pull from
+//                Notion, retired in v3.86.0; a source-level guard asserts no
+//                snippet-delete wiring exists so it cannot quietly come back.
 // • Mobile     — snippets are READ-ONLY on the companion (delete was removed in
 //                v2.100.0); a source-level guard asserts no snippet-delete wiring
 //                exists so it cannot quietly come back.
@@ -308,72 +308,8 @@ describe('shared backend contract', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POP-UP — the extension's delete helper, executed for real.
-//
-// The Chrome pop-up's delete logic is extracted into
-// extension/popup/sync-deletion.js (a plain <script> that also exports via
-// CommonJS). We require it directly through Node (bypassing Vite's module
-// graph, since it lives outside the app/ root) and run it.
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface PopupSync {
-  snippetDeleteQuery(id: string): string;
-  removeSnippetFromList<T extends { id: string }>(list: T[], id: string): T[];
-  performSnippetDelete(
-    supaFetch: (table: string, method: string, body: unknown, qs: string) => Promise<unknown>,
-    id: string,
-    onError?: (e: unknown) => void,
-  ): Promise<unknown>;
-}
-
-// Load a plain-script CommonJS helper (the surfaces' sync-deletion.js) without
-// going through Vite's module graph — Vitest would otherwise transform files
-// under its root and mangle the `module.exports` assignment. Evaluating the
-// source in a fresh module scope is location-independent and deterministic.
-function loadHelper<T>(path: string): T {
-  const src = readFileSync(path, 'utf8');
-  const mod = { exports: {} as unknown };
-  const run = new Function('module', 'exports', src) as (
-    m: typeof mod,
-    e: unknown,
-  ) => void;
-  run(mod, mod.exports);
-  return mod.exports as T;
-}
-
-const popupSync = loadHelper<PopupSync>(
-  resolve(process.cwd(), '..', 'extension', 'popup', 'sync-deletion.js'),
-);
-
-describe('pop-up · snippet deletion (live helper)', () => {
-  it('builds a hard-delete query scoped to one row', () => {
-    expect(popupSync.snippetDeleteQuery('snip-A')).toBe('id=eq.snip-A');
-  });
-
-  it('removes the deleted snippet from the local cache list', () => {
-    const next = popupSync.removeSnippetFromList([{ id: 'snip-A' }, { id: 'snip-B' }], 'snip-A');
-    expect(next.map((s) => s.id)).toEqual(['snip-B']);
-  });
-
-  it('issues a DELETE on the snippets table via supaFetch', async () => {
-    const supaFetch = vi.fn().mockResolvedValue({ ok: true });
-    await popupSync.performSnippetDelete(supaFetch, 'snip-A');
-    expect(supaFetch).toHaveBeenCalledWith('snippets', 'DELETE', null, 'id=eq.snip-A');
-  });
-
-  it('reports backend failure through onError instead of throwing', async () => {
-    const supaFetch = vi.fn().mockRejectedValue(new Error('offline'));
-    const onError = vi.fn();
-    await popupSync.performSnippetDelete(supaFetch, 'snip-A', onError);
-    expect(onError).toHaveBeenCalledWith(expect.any(Error));
-  });
-});
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WIRING GUARD — the executed helpers above are only meaningful if production
-// actually calls them. Assert each surface delegates to its sync helper (and
-// loads it), so no surface can quietly re-inline a divergent delete path.
+// WIRING GUARD: the read-only surfaces must stay read-only. Assert that no
+// snippet-delete path exists on them, so one cannot quietly come back.
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('cross-surface wiring guard', () => {
@@ -387,10 +323,11 @@ describe('cross-surface wiring guard', () => {
   );
   const mobileHtml = readFileSync(resolve(process.cwd(), 'public', 'mobile', 'index.html'), 'utf8');
 
-  it('pop-up delegates deletion to SBPopupSync and loads the helper', () => {
-    expect(popupJs).toMatch(/SBPopupSync\.performSnippetDelete/);
-    expect(popupJs).toMatch(/SBPopupSync\.removeSnippetFromList/);
-    expect(popupHtml).toMatch(/<script src="sync-deletion\.js">/);
+  it('pop-up stays read-only: no snippet-delete wiring exists', () => {
+    // Its only snippet delete belonged to the pull from Notion (retired v3.86.0).
+    expect(popupJs).not.toMatch(/SBPopupSync/);
+    expect(popupJs).not.toMatch(/'snippets',\s*'DELETE'/);
+    expect(popupHtml).not.toMatch(/<script src="sync-deletion\.js">/);
   });
 
   it('mobile stays read-only: no snippet-delete wiring exists', () => {

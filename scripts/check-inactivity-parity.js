@@ -100,8 +100,8 @@ const used = INA.recordUse(INA.recordKeep(INA.normalizeState(null), 'x', NOW), '
 check('recordUse stamps the date', used.lastUsed.x, NOW);
 check('recordUse clears any standing snooze', used.keptUntil.x, undefined);
 
-// A deleted asset must not keep a snooze alive: ids are reused by Notion sync,
-// and an inherited snooze would silence a brand-new snippet.
+// A deleted asset must not keep a snooze alive: an id can be reused, and an
+// inherited snooze would silence a brand-new snippet.
 const pruned = INA.pruneState(
   { lastUsed: { keep: 1, drop: 2 }, keptUntil: { keep: 3, drop: 4 } },
   ['keep'],

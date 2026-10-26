@@ -1,6 +1,5 @@
 // ── FIBONAX BACKGROUND v2.32.0 — Fix: Notion sync no longer overwrites manually-edited snippets ──
 importScripts('../auth/auth.js');
-importScripts('../services/notion-sync/notion-sync.js');
 
 var SUPA_URL = SB_SUPA_URL;
 
@@ -1144,7 +1143,7 @@ if (chrome.commands && chrome.commands.onCommand) {
 }
 
 // ── LEGACY SEED / ROAMING-KEY PURGE ──────────────────────────────
-// Two things had to leave the browser on update:
+// Three things had to leave the browser on update:
 //   1. chrome.storage.sync copies of 'snippets' and 'notionCfg'. sync roams to
 //      every Chrome signed into the same Google account, so snippet content and
 //      a Notion API key travelled between profiles. Credentials never belong in
@@ -1154,9 +1153,17 @@ if (chrome.commands && chrome.commands.onCommand) {
 //      installs, and a sign-out left the previous session's cache in place, so
 //      the picker served a library to someone with no account. Signed-in installs
 //      are untouched: their cache is their own data.
+//   3. Everything the pull from Notion kept locally, including the Notion API
+//      key, signed in or not. The pull was retired in v3.86.0.
+var NOTION_PULL_KEYS = ['sb_notion_cfg', 'sb_notion_last_sync_ts', 'sb_notion_sync_error',
+  'sb_notion_sync_lock', 'sb_notion_snippet_cache', 'sb_alarm_sync_result'];
+
 function sbPurgeLegacyLocalData() {
   try {
     chrome.storage.sync.remove(['snippets', 'notionCfg'], function() {
+      if (chrome.runtime.lastError) { /* key may not exist */ }
+    });
+    chrome.storage.local.remove(NOTION_PULL_KEYS, function() {
       if (chrome.runtime.lastError) { /* key may not exist */ }
     });
     chrome.storage.local.get('sb_session', function(d) {
@@ -1257,7 +1264,6 @@ chrome.runtime.onStartup.addListener(function() {
   // roaming keys from another Chrome after updating would otherwise keep them.
   sbMigrateRoamingPrefs();
   initMenus();
-  bgNotionSync();
   sbRefreshActionIcon();
 });
 
@@ -1269,9 +1275,8 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
   // sbClearSession fires auth_changed, which rebuilds the menus signed-out.
   if (typeof sbCheckSessionAlive === 'function') sbCheckSessionAlive(function() {});
   // Refresh the context menu from Supabase so snippets/folders created on the
-  // dashboard show up without needing to open the popup, then run Notion sync.
+  // dashboard show up without needing to open the popup.
   forceRefreshMenus();
-  _alarmSync();
 });
 
 // ── MENU FRESHNESS — keep the right-click menu in sync with the dashboard ──
@@ -1314,80 +1319,3 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   // other listeners), producing "message channel closed" noise and leaks.
 });
 
-
-// ── BACKGROUND NOTION SYNC (delegates to NotionSync module) ───────
-function bgNotionSync() {
-  try {
-    chrome.storage.local.get('sb_notion_cfg', function (d) {
-      var cfg = d && d.sb_notion_cfg ? d.sb_notion_cfg : null;
-
-      // Fallback: migrate from sync → local if needed
-      if (!cfg || !cfg.apiKey || !cfg.dbId) {
-        chrome.storage.sync.get('notionCfg', function (sd) {
-          var sCfg = sd && sd.notionCfg ? sd.notionCfg : null;
-          if (!sCfg || !sCfg.apiKey || !sCfg.dbId) return;
-          chrome.storage.local.set({sb_notion_cfg: sCfg}, function() {
-            // Drop the roaming copy: an API key must not sit in storage.sync.
-            chrome.storage.sync.remove('notionCfg');
-          });
-          _bgRunSync(sCfg);
-        });
-        return;
-      }
-
-      _bgRunSync(cfg);
-    });
-  } catch (e) {
-    console.error('[Fibonax BG] Notion cfg read failed:', e.message);
-  }
-}
-
-function _bgRunSync(cfg) {
-  NotionSync.reset();
-  NotionSync.run(cfg, {
-    onComplete: function () {},
-    onError: function (err) {
-      console.error('[Fibonax BG] Notion bg-sync failed:', err.message);
-    }
-  });
-}
-
-// ── ALARM SYNC — silent background sync every 5 minutes ─────────
-function _alarmSync() {
-  chrome.storage.local.get('sb_notion_cfg', function(d) {
-    var cfg = (d && d.sb_notion_cfg) ? d.sb_notion_cfg : null;
-    if (!cfg || !cfg.apiKey || !cfg.dbId) {
-      return;
-    }
-
-    // Check debounce — skip if synced in last 3 minutes
-    chrome.storage.local.get('sb_notion_last_sync_ts', function(sd) {
-      var lastSync = sd && sd['sb_notion_last_sync_ts'];
-      if (lastSync) {
-        var elapsed = Date.now() - new Date(lastSync).getTime();
-        if (elapsed < 180000) {
-          return;
-        }
-      }
-
-      NotionSync.reset();
-      NotionSync.run(cfg, {
-        onProgress: function() {},
-        onComplete: function(snippets, success) {
-          if (!success) return;
-          if (snippets.length > 0) {
-            chrome.storage.local.set({
-              sb_alarm_sync_result: {
-                snippets: snippets,
-                timestamp: new Date().toISOString()
-              }
-            });
-          }
-        },
-        onError: function(err) {
-          console.error('[Fibonax Alarm] Sync failed:', err.message);
-        }
-      });
-    });
-  });
-}

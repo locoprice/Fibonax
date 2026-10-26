@@ -115,11 +115,11 @@ interface OverviewInput {
   snippetToFolder: Map<string, string | null>;
   folderNames: Map<string, string>;
   promptCount: number;
-  notionSyncCount: number;
+  brainCount: number;
 }
 
 function buildOverview(input: OverviewInput): ActivityOverview {
-  const { events, snippetToFolder, folderNames, promptCount, notionSyncCount } = input;
+  const { events, snippetToFolder, folderNames, promptCount, brainCount } = input;
 
   function folderOf(snippetId: string | null): string {
     const folderId = snippetId ? snippetToFolder.get(snippetId) : null;
@@ -165,7 +165,7 @@ function buildOverview(input: OverviewInput): ActivityOverview {
       { key: 'snippets', label: 'Snippets', count: snippetToFolder.size },
       { key: 'prompts', label: 'Prompts', count: promptCount },
       { key: 'folders', label: 'Folders', count: folderNames.size },
-      { key: 'syncs', label: 'Notion syncs', count: notionSyncCount },
+      { key: 'brains', label: 'Brains', count: brainCount },
     ],
     activeFolders,
     timeline,
@@ -251,7 +251,7 @@ export const analyticsApi: AnalyticsApi = {
     const { start } = activityBounds();
     const fromIso = start.toISOString();
 
-    const [eventsRes, snippetsRes, foldersRes, promptsRes, notionRes] = await Promise.all([
+    const [eventsRes, snippetsRes, foldersRes, promptsRes, brainsRes] = await Promise.all([
       supabase
         .from('snippet_events')
         .select('snippet_id, shortcut, created_at')
@@ -266,10 +266,12 @@ export const analyticsApi: AnalyticsApi = {
         .from('prompts')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId),
+      // Brains in the trash are not counted, as on the Brains page.
       supabase
-        .from('notion_sync_log')
+        .from('memory_spaces')
         .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId),
+        .eq('user_id', userId)
+        .is('deleted_at', null),
     ]);
     if (eventsRes.error) throw toApiError(eventsRes.error);
     if (snippetsRes.error) throw toApiError(snippetsRes.error);
@@ -293,7 +295,7 @@ export const analyticsApi: AnalyticsApi = {
       snippetToFolder,
       folderNames,
       promptCount: promptsRes.count ?? 0,
-      notionSyncCount: notionRes.error ? 0 : notionRes.count ?? 0,
+      brainCount: brainsRes.error ? 0 : brainsRes.count ?? 0,
     });
 
     return { ...grid, overview };

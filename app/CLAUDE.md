@@ -96,14 +96,14 @@ app/
 │   │   ├── analytics/         # UsageChart, TopTriggersTable
 │   │   ├── prompts/           # PromptCard, PromptBlockEditor, PromptFilters (toolbar
 │   │   │                      #   with prompt-only folder chips — no folder rail)
-│   │   └── settings/          # NotionSyncPanel, AccountPanel, IntegrationsPanel
+│   │   └── settings/          # AccountPanel, SecurityPanel, IntegrationsPanel
 │   ├── stores/                # Zustand: snippet, prompt, analytics, settings, auth, ui
 │   ├── lib/
 │   │   ├── api/               # Service layer (live Supabase + mock stubs)
 │   │   │   ├── snippetsApi.ts # LIVE CRUD
 │   │   │   ├── promptsApi.ts  # LIVE CRUD
 │   │   │   ├── foldersApi.ts  # LIVE folder CRUD (shared by snippets + prompts)
-│   │   │   ├── settingsApi.ts # LIVE reads + Notion config
+│   │   │   ├── settingsApi.ts # LIVE profile reads + writes
 │   │   │   └── analyticsApi.ts  # MOCK (pending snippet_events — ANALYTICS-001)
 │   │   ├── supabase.ts        # Supabase JS client (publishable key)
 │   │   ├── extensionId.ts     # Extension ID for postMessage handshake
@@ -158,7 +158,7 @@ app/
 - All API service responses are typed against `src/types/database.ts`.
 
 ### 4.7 Mock vs live data (as of v2.17.0)
-- **Live**: `snippetsApi` (folders + snippets + stats joined, full CRUD), `promptsApi` (live reads + CRUD against `public.prompts`), `settingsApi.getProfile` (derived from the authed `auth.users` record), `settingsApi.getNotionSync` (reads latest `notion_sync_log` row).
+- **Live**: `snippetsApi` (folders + snippets + stats joined, full CRUD), `promptsApi` (live reads + CRUD against `public.prompts`), `settingsApi.getProfile` (derived from the authed `auth.users` record). The Notion sync settings and top-bar pill were retired with the extension's pull from Notion in v3.86.0.
 - **Still mock**: `analyticsApi` (needs `snippet_events` time-series table — tracked in `ANALYTICS-001`).
 - Fixtures in `src/mock/fixtures.ts` remain deterministic (no `Math.random()` at runtime). Date offsets use a fixed `day(offset)` helper from `Date.now()` so the chart shape is stable per session.
 - All mock UUIDs are hand-rolled and stable across re-renders.
@@ -214,7 +214,7 @@ app/
 3. ~~**PROMPTS-001** — create `public.prompts` table + RLS; replace `promptsApi` mock with live reads.~~ ✅ shipped.
 4. ~~**AUTH-EXT-001** — migrate the Chrome extension from the anon key to per-user JWTs; drop the permissive `team_*` RLS policies.~~ ✅ shipped — extension authenticates via per-user JWT (`extension/auth/auth.js`); RLS enforces `auth.uid() = user_id` on every table. `ExtensionLinkPage` is the session-handoff entry point.
 5. **ANALYTICS-001** — add `public.snippet_events` time-series table; extension + dashboard log one row per trigger; replace `analyticsApi` mock with grouped aggregates.
-6. **NOTION-SYNC-DASH-001** — trigger Notion sync from the dashboard + show sync history.
+6. ~~**NOTION-SYNC-DASH-001**: trigger Notion sync from the dashboard + show sync history.~~ Dropped in v3.86.0: the pull from Notion was retired, so there is no sync to trigger.
 7. Dark mode (`uiStore` already has the seam).
 
 ---

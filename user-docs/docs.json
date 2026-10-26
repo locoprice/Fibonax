@@ -78,8 +78,7 @@
             "group": "Apps and integrations",
             "pages": [
               "apps/mobile",
-              "integrations/supported-sites",
-              "integrations/notion-sync"
+              "integrations/supported-sites"
             ]
           },
           {
@@ -103,6 +102,10 @@
     {
       "source": "/team/version-history",
       "destination": "/text-snippets/version-history"
+    },
+    {
+      "source": "/integrations/notion-sync",
+      "destination": "/settings/account"
     }
   ],
   "description": "Documentation for Fibonax: snippets, prompts and Brains you use in any text field, alone or with your team."

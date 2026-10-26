@@ -92,16 +92,6 @@
       "count": 1
     },
     {
-      "find": "</span>05 · Notion sync</div>",
-      "replace": "</span>05 · Sync de Notion</div>",
-      "count": 1
-    },
-    {
-      "find": "tag:'05 · Notion sync',",
-      "replace": "tag:'05 · Sync de Notion',",
-      "count": 1
-    },
-    {
       "find": "</span>08 · Security</div>",
       "replace": "</span>08 · Seguridad</div>",
       "count": 1
@@ -142,8 +132,8 @@
       "count": 2
     },
     {
-      "find": "Edit where your team already works.",
-      "replace": "Edita donde tu equipo ya trabaja.",
+      "find": "Context your AI can use.",
+      "replace": "El contexto que tu IA puede usar.",
       "count": 2
     },
     {
@@ -187,8 +177,8 @@
       "count": 1
     },
     {
-      "find": "          Mirror a <b>Notion database</b> as your library, one-way or two-way. Reviewers comment in\n          Notion; expansions update in the extension within the minute.",
-      "replace": "          Refleja una <b>base de datos de Notion</b> como tu biblioteca, en una o dos direcciones. Los revisores comentan\n          en Notion y las expansiones se actualizan en la extensión en menos de un minuto.",
+      "find": "          Keep facts, decisions and notes in a <b>Brain</b>. Add the right ones to the message you're\n          writing in an AI chat, and save a page selection with a right-click.",
+      "replace": "          Guarda hechos, decisiones y notas en un <b>Brain</b>. Añade los adecuados al mensaje que estás\n          escribiendo en un chat con IA y guarda una selección de la página con el botón derecho.",
       "count": 1
     },
     {
@@ -267,8 +257,8 @@
       "count": 1
     },
     {
-      "find": "aria-label=\"Learn more about Notion sync\"",
-      "replace": "aria-label=\"Más información sobre el sync de Notion\"",
+      "find": "aria-label=\"Learn more about Brains\"",
+      "replace": "aria-label=\"Más información sobre los Brains\"",
       "count": 1
     },
     {
@@ -337,8 +327,8 @@
       "count": 1
     },
     {
-      "find": "<p>Manage your full library from any browser. Create folders, write snippets with live formulas, share folders with your team, review analytics, and configure Notion sync. Nothing to install.</p>",
-      "replace": "<p>Gestiona toda tu biblioteca desde cualquier navegador. Crea folders, escribe snippets con fórmulas en vivo, comparte folders con tu equipo, revisa los analytics y configura el sync de Notion. Nada que instalar.</p>",
+      "find": "<p>Manage your full library from any browser. Create folders, write snippets with live formulas, share folders with your team and review analytics. Nothing to install.</p>",
+      "replace": "<p>Gestiona toda tu biblioteca desde cualquier navegador. Crea folders, escribe snippets con fórmulas en vivo, comparte folders con tu equipo y revisa los analytics. Nada que instalar.</p>",
       "count": 1
     },
     {
@@ -567,13 +557,13 @@
       "count": 1
     },
     {
-      "find": "body:'Connect a <b>Notion database</b> as the source of truth for your library. Reviewers comment in Notion; Fibonax pulls the updates into the extension within the minute, <b>one-way or two-way</b>.'",
-      "replace": "body:'Conecta una <b>base de datos de Notion</b> como fuente de verdad para tu biblioteca. Los revisores comentan en Notion y Fibonax trae las actualizaciones a la extensión en menos de un minuto, <b>en una o dos direcciones</b>.'",
+      "find": "body:'A <b>Brain</b> holds what an AI needs to know about your work: facts, decisions, preferences, notes. While you write to an AI, the extension adds the right items to your message, so you stop repeating yourself.'",
+      "replace": "body:'Un <b>Brain</b> guarda lo que una IA necesita saber de tu trabajo: hechos, decisiones, preferencias, notas. Mientras escribes a una IA, la extensión añade a tu mensaje los elementos adecuados, para que no tengas que repetirte.'",
       "count": 1
     },
     {
-      "find": "detail:'<strong>Setup</strong>Paste your Notion integration token and database ID in Settings → Notion Sync. Fibonax maps columns to snippet fields automatically and runs incremental pulls on a timer.'",
-      "replace": "detail:'<strong>Configuración</strong>Pega tu token de integración de Notion y el ID de la base de datos en Settings → Notion Sync. Fibonax mapea las columnas a los campos del snippet automáticamente y ejecuta lecturas incrementales de forma periódica.'",
+      "find": "detail:'<strong>Saving</strong>Right-click a selection on any page and save it to a Brain, or paste text on your phone. Fibonax suggests which Brain it belongs in.'",
+      "replace": "detail:'<strong>Guardar</strong>Haz clic derecho en una selección de cualquier página y guárdala en un Brain, o pega el texto en tu teléfono. Fibonax te sugiere en qué Brain va.'",
       "count": 1
     },
     {

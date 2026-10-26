@@ -1612,15 +1612,15 @@ body.cm-locked{overflow:hidden}
         </button>
       </article>
 
-      <!-- 05 · Notion sync -->
+      <!-- 05 · Brains -->
       <article class="fs-card">
-        <div class="fs-card-tag"><span class="fs-dot" aria-hidden="true"></span>05 · Sync Notion</div>
-        <h3 class="fs-card-title">Modifica dove il team lavora già.</h3>
+        <div class="fs-card-tag"><span class="fs-dot" aria-hidden="true"></span>05 · Brains</div>
+        <h3 class="fs-card-title">Il contesto che la tua AI può usare.</h3>
         <p class="fs-card-body">
-          Rispecchia un <b>database Notion</b> come libreria, in una o due direzioni. I revisori commentano su
-          Notion e le espansioni si aggiornano nell'estensione entro un minuto.
+          Conserva fatti, decisioni e note in un <b>Brain</b>. Aggiungi quelli giusti al messaggio che stai
+          scrivendo in una chat con l'AI e salva una selezione della pagina con il tasto destro.
         </p>
-        <button class="fs-cta" type="button" aria-label="Scopri di più sul sync Notion">
+        <button class="fs-cta" type="button" aria-label="Scopri di più sui Brains">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </button>
       </article>
@@ -1730,7 +1730,7 @@ body.cm-locked{overflow:hidden}
           <div class="sb-copy" data-platform="web-dashboard">
             <div class="sb-index" aria-hidden="true"><span>02 / 04</span><span class="sb-index-line"></span></div>
             <h3>Dashboard web</h3>
-            <p>Gestisci l'intera libreria da qualsiasi browser. Crea folder, scrivi snippet con formule dal vivo, condividi folder con il team, controlla gli analytics e configura il sync Notion. Niente da installare.</p>
+            <p>Gestisci l'intera libreria da qualsiasi browser. Crea folder, scrivi snippet con formule dal vivo, condividi folder con il team e controlla gli analytics. Niente da installare.</p>
             <div class="sb-badge"><svg width="20" height="20" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg><span>Vive nel tuo browser</span></div>
           </div>
           <div class="sb-copy" data-platform="mobile">
@@ -2110,10 +2110,10 @@ body.cm-locked{overflow:hidden}
       detail:'<strong>Come si aggiorna</strong>La dashboard scrive direttamente su Supabase. L\'estensione scarica una copia fresca ogni volta che apri il popup, all\'avvio del browser e a ogni aggiornamento in background dopo pochi minuti; l\'app mobile legge dal vivo al caricamento.'
     },
     {
-      tag:'05 · Sync Notion',
-      title:'Modifica dove il team lavora già.',
-      body:'Collega un <b>database Notion</b> come fonte di verità per la tua libreria. I revisori commentano su Notion e Fibonax porta gli aggiornamenti nell\'estensione entro un minuto, <b>in una o due direzioni</b>.',
-      detail:'<strong>Configurazione</strong>Incolla il token di integrazione Notion e l\'ID del database in Settings → Notion Sync. Fibonax mappa le colonne sui campi degli snippet in automatico ed esegue letture incrementali a intervalli.'
+      tag:'05 · Brains',
+      title:'Il contesto che la tua AI può usare.',
+      body:'Un <b>Brain</b> contiene ciò che un\'AI deve sapere del tuo lavoro: fatti, decisioni, preferenze, note. Mentre scrivi a un\'AI, l\'estensione aggiunge al messaggio gli elementi giusti, così non devi ripeterti.',
+      detail:'<strong>Salvataggio</strong>Fai clic destro su una selezione in qualsiasi pagina e salvala in un Brain, oppure incolla il testo dal telefono. Fibonax ti suggerisce in quale Brain va.'
     },
     {
       tag:'06 · Mobile',
@@ -2474,7 +2474,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.85.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.86.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.

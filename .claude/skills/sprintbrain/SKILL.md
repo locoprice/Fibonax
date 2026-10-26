@@ -242,22 +242,21 @@ Reference: `docs/MEMORY_ARCHITECTURE_REVIEW.md`, `docs/MEMORY_002_PLAN.md`.
 * NEVER store credentials or settings in `chrome.storage.sync`
 * Use `chrome.storage.local` for sensitive and local configuration
 * Async reads MUST complete before dependent execution
-* `loadNotionCfg()` MUST complete before `_runNotionSync()` — no exceptions
 * Survive blocked storage gracefully (private windows, blocked site data) — wrap reads and writes and render correctly with no stored value
 * Gated by `scripts/check-storage.js`
 
 ---
 
-# NOTION AND SYNC SAFETY
+# NOTION SAFETY
 
-Before modifying synchronization:
+Notion is one way: "Push to Notion" sends a snippet or prompt out, and nothing is read back. The extension's pull from Notion was retired in v3.86.0 because it deleted, duplicated and overwrote snippets. Do not bring a pull back without a design that never deletes, never duplicates and never overwrites a dashboard edit.
+
+Before modifying the push:
 
 1. Inspect the real Notion schema
 2. Verify property names and types
 3. Confirm mappings
-4. Preserve pagination and retry behavior
-5. Preserve offline/cache fallback
-6. Validate before committing
+4. Validate before committing
 
 NEVER assume a Notion property structure.
 

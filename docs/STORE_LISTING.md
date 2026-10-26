@@ -13,10 +13,10 @@
 ## Short Description (132 chars max — paste into "Summary")
 
 ```
-AI prompt library and text expander. Free team sharing, dynamic snippets with live formulas, and two-way Notion sync.
+AI prompt library and text expander. Free team sharing and dynamic snippets with live formulas.
 ```
 
-*(117 characters. Kept identical to `extension/manifest.json` → `description`, which Chrome uses to seed the Summary field on upload.)*
+*(95 characters. Kept identical to `extension/manifest.json` → `description`, which Chrome uses to seed the Summary field on upload.)*
 
 ---
 
@@ -77,18 +77,7 @@ Fibonax reads the syntax you already know, so you do not rewrite your library to
 • The template syntax is compatible: {formtext:}, {formdate:}, {formmenu:}, {time:}, {if:}, {elseif:}, {else}, {endif}, and {{placeholders}} behave the way you expect.
 • Export your library back to JSON whenever you want. Your content stays yours and stays portable.
 
-What you gain on top: team folder sharing at no cost, an AI prompt library with quality scoring, and two way Notion sync.
-
-
-NOTION SYNCHRONIZATION
-
-If your team already writes in Notion, keep writing there.
-
-• Connect a Notion database and Fibonax mirrors it into your library, refreshed automatically in the background every five minutes.
-• Sync runs both ways: edits made in Fibonax are pushed back to Notion as one clean row per snippet, with a separate body property per language, so multi-language templates never explode into duplicate pages.
-• Incremental sync based on last edited time, with retries, offline caching, and a manual force-sync when you cannot wait.
-• Reviewers comment and approve in Notion; the approved wording reaches every teammate's extension within the minute.
-• Notion credentials are entered once and shared between the dashboard and the extension automatically.
+What you gain on top: team folder sharing at no cost and an AI prompt library with quality scoring.
 
 
 USAGE ANALYTICS AND VERSION HISTORY
@@ -105,7 +94,7 @@ Know what your team actually uses, and recover anything you change by mistake.
 HOW IT WORKS
 
 1. Install Fibonax and sign in with a free account. Choose a magic link or a six digit code, with no password to remember.
-2. Create snippets, prompts, and folders in the web dashboard, import a JSON or Text Blaze export, or pull them from Notion.
+2. Create snippets, prompts, and folders in the web dashboard, or import a JSON or Text Blaze export.
 3. Insert your text in whichever way suits the moment:
    • Type your trigger plus the shortcut in any text field and press Tab. The trigger disappears and the finished text takes its place.
    • Right-click the field and pick from a context menu that mirrors your folders, with a submenu per language.
@@ -144,7 +133,6 @@ PRIVACY AND SECURITY
 • Cloud storage runs on Supabase in the EU, protected by row-level security, so you only ever read the rows you own or that were shared with you.
 • Formulas are evaluated by a parser written for this purpose. There is no eval and no dynamic code execution anywhere in the expansion path, so a snippet body can never run code in your browser.
 • The content script reads only the short keystroke buffer needed to detect your trigger. It injects nothing into the page until you type one.
-• Notion sync uses only the API key you provide. It is used to reach the Notion API and is never sold, shared, or used for anything else.
 • Your snippet content is never sold or shared with third parties, and is not used for advertising.
 • Review every signed-in device, check recent login activity, and sign out everywhere in one click.
 • Live service status is published at fibonax.instatus.com.
@@ -170,12 +158,12 @@ first 200 characters of its section so the store snippet shows them:
 |---|---|---|
 | **AI** | AI prompt library, prompt manager, ChatGPT prompts, Claude prompts, prompt engineering, AI productivity, prompt templates | Summary, intro paragraph, "Advanced AI support", "Prompt and snippet customization", "Who it is for" |
 | **Productivity** | text expander, text expansion, snippets, canned responses, email templates, keyboard shortcuts, autotext, macros | Summary, intro paragraph, "How it works", "Works everywhere you type" |
-| **Collaboration** | team sharing, shared snippets, team collaboration, shared templates, team workspace, permissions, Notion sync | "Free team management", "Notion synchronization", "Who it is for" |
+| **Collaboration** | team sharing, shared snippets, team collaboration, shared templates, team workspace, permissions | "Free team management", "Who it is for" |
 | **Migration** | Text Blaze alternative, Text Blaze import, import snippets, JSON import, export snippets, template syntax | "Moving from Text Blaze", "How it works" |
 
 Rules applied:
 - Keyword density stays natural. No keyword lists, no stuffing, both of which Chrome Web Store policy treats as spam.
-- The four killer features open the description, before the fold, in the order requested by the business: free team management, advanced AI support, prompt customization, Notion sync.
+- The three killer features open the description, before the fold, in the order requested by the business: free team management, advanced AI support, prompt customization. Notion sync was the fourth until the pull from Notion was retired in v3.86.0.
 - The update timeline gives recency signals to human readers evaluating whether the extension is maintained.
 - The Summary duplicates `manifest.json` → `description` exactly, so the value stays stable across re-uploads.
 - **Competitor naming is factual, not comparative.** "Moving from Text Blaze" claims only import compatibility and syntax compatibility, both of which are implemented ([snippetIo.ts:152](app/src/lib/snippetIo.ts:152), [formula-engine.js:5-24](extension/formula-engine.js:5)). No superiority claim, no trademark in the extension name or summary, which is what Chrome Web Store policy actually restricts. TextExpander is deliberately **not** named: no importer exists for its format.
@@ -209,8 +197,6 @@ Rules applied:
 | Fill fields and copy from the popup | v2.98.0 | ✅ |
 | More than 200 releases since March 2026, automated test suite | Audit: 202 version-tagged releases, 489 commits, 248 tests green across 21 spec files | ✅ Stated as "more than 200" so it stays true without re-editing |
 | Service status page | `fibonax.instatus.com`, wired v2.55.1 | ✅ |
-| Notion sync every 5 minutes, both directions, one row per snippet | `chrome.alarms` 5 min (`background.js`), `NotionPush` (`popup.js`), per-language Body properties (v2.36.0) | ✅ |
-| Notion credentials shared between dashboard and extension | v2.37.0 | ✅ |
 | Mobile browser access | `app/public/mobile/` (read-only browse, search, copy) | ✅ |
 | Devices list, login activity, sign out everywhere | v2.86.0 `SecurityPanel.tsx` | ✅ |
 | Supabase in the EU with RLS | Project `eyowustlbqujaimaxggt`, region eu-west-1, RLS on all tables | ✅ |
@@ -226,7 +212,7 @@ until they are real. Do not add them in a future edit without re-checking:
 | Not claimed | Why | Ref |
 |---|---|---|
 | Dark mode | Roadmap open. A `uiStore` seam exists, no theme ships | Audit §6.1 #7 |
-| Triggering Notion sync from the dashboard | [NotionSyncPanel.tsx:85](app/src/features/settings/NotionSyncPanel.tsx:85) is a `disabled` button titled "Available in next release". Sync runs from the extension alarm only | Audit §6.1 #6, NOTION-SYNC-DASH-001 |
+| Push to Notion | It sends to one Notion database set on the server, not to the customer's own Notion, and the prompt version (`notion-prompt-push`) is not deployed | `docs/USER_DOCS.md`, "Left out on purpose" |
 | `{elseif:}` / `{else}` / `{{…}}` on **mobile** | The mobile companion keeps a simpler resolver that handles only `{if:}…{endif}`. Claiming full conditional logic "everywhere" would be false on that surface | Audit §5.3 |
 
 ---
@@ -244,16 +230,13 @@ Required so that context menu clicks can identify the active tab and send the se
 Fibonax builds a dynamic right-click menu that mirrors your library, grouped by folder with language submenus. Clicking an entry inserts the snippet into the focused field on the current page.
 
 **alarms**
-A repeating alarm fires every 5 minutes to pull updates from your connected Notion database in the background. Without this permission the Manifest V3 service worker cannot schedule periodic tasks.
+A repeating alarm fires every 5 minutes so that a sign-out from another device reaches the extension, and so that the right-click menu picks up snippets and folders changed on the dashboard. Without this permission the Manifest V3 service worker cannot schedule periodic tasks.
 
 **Host permission: `<all_urls>`**
 Snippet expansion must work in any text field on any website: CRMs, booking platforms, email clients, chat tools, AI chat interfaces, and internal dashboards all use different origins. Restricting to a fixed list of domains would make the core feature non-functional for most users. The content script runs at `document_idle`, injects no UI unless the user types a configured trigger, and reads no page content beyond the keystroke buffer needed for trigger detection.
 
 **Host permission: `https://eyowustlbqujaimaxggt.supabase.co/*`**
 Fibonax authenticates users and stores snippet, prompt, folder, and sharing data on a Supabase backend. All calls are authenticated with a JWT obtained via email OTP. The key embedded in the extension is a Supabase publishable key; access is enforced server side through Row Level Security.
-
-**Host permission: `https://api.notion.com/*`**
-Users who connect a Notion database can sync their library in both directions. The extension calls the Notion API using the integration key the user enters, which is stored for that user's account and never shared with third parties.
 
 **`externally_connectable`: `https://app.fibonax.com/*`**
 The dashboard hands a one-time session token to the extension so signing in on the web signs you in in Chrome. Only the Fibonax dashboard origin can message the extension, and the handoff mints a session the extension owns independently.
@@ -282,12 +265,11 @@ visitors only look at the first two:
 2. **Prompt library** — prompt cards with strategy and intent filters, plus the efficiency score panel
 3. **Trigger in action** — a text field mid-expansion, trigger typed, finished template appearing
 4. **Dynamic field overlay** — the inline form collecting values, with the calculated total updating live
-5. **Notion sync panel** — connected database with the last-sync timestamp
+5. **Activity heatmap**: the contribution grid plus the top-triggers table, as the "adoption you can see" proof
 
-Two more worth shooting if slots allow, both now referenced in the copy:
+One more worth shooting if a slot allows, also referenced in the copy:
 
-6. **Activity heatmap** — the contribution grid plus the top-triggers table, as the "adoption you can see" proof
-7. **Version history diff** — side-by-side revision compare, the strongest trust signal for shared team content
+6. **Version history diff**: side-by-side revision compare, the strongest trust signal for shared team content
 
 ## Promotional Tile (440×280 — optional but recommended)
 
@@ -298,4 +280,4 @@ Tagline: **"Your team's snippets and AI prompts. One trigger away."**
 ## Single-Purpose Statement
 *(If asked during review)*
 
-Fibonax has a single purpose: letting users store reusable text snippets and AI prompts and expand them into any text field on any website using a customisable keyboard trigger. Team sharing, Notion sync, and the dashboard all serve that one purpose by determining which snippets a user can expand.
+Fibonax has a single purpose: letting users store reusable text snippets and AI prompts and expand them into any text field on any website using a customisable keyboard trigger. Team sharing and the dashboard both serve that one purpose by determining which snippets a user can expand.
