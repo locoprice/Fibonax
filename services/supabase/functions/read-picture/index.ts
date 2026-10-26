@@ -30,7 +30,7 @@
 //   SUPABASE_URL       — injected automatically by the runtime
 //   SUPABASE_ANON_KEY  — injected automatically by the runtime
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
 import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.110.0';
 
 const CORS_HEADERS = {
@@ -88,6 +88,14 @@ function json(payload: unknown, status: number): Response {
 
 function clean(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/** The answer once the caller has used up their AI calls (ai_call_allow). */
+function rateLimited(): Response {
+  return new Response(JSON.stringify({ error: 'rate_limited' }), {
+    status: 429,
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Retry-After': '3600' },
+  });
 }
 
 /**
@@ -159,6 +167,14 @@ Deno.serve(async (req: Request) => {
   if (!ANTHROPIC_API_KEY) {
     return json({ error: 'anthropic_not_configured', detail: 'ANTHROPIC_API_KEY secret not set' }, 503);
   }
+
+  // ── Per-person limit (ai_call_allow, 20261026150000_ai_call_limit.sql) ──
+  const { data: allowed, error: limitError } = await userClient.rpc('ai_call_allow', { p_kind: 'picture' });
+  if (limitError) {
+    console.error('read-picture: AI limit check failed', JSON.stringify({ code: limitError.code ?? null }));
+    return json({ error: 'limit_check_failed' }, 503);
+  }
+  if (allowed !== true) return rateLimited();
 
   // ── Read ─────────────────────────────────────────────────────────
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });

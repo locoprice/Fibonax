@@ -8885,7 +8885,11 @@ function pasteCapture(bid){
    app/src/lib/proFeatures.ts: scripts/check-pro-gate.js. */
 var PICTURE_AVAILABLE=false;
 var PICTURE_TIP='Text in a screenshot? Copy it with Live Text on iPhone or Google Lens on Android, then paste it here.';
+/* Every AI feature counts against one per-person limit (ai_call_allow).
+   Same words as AI_LIMIT_MESSAGE in app/src/lib/api/edgeFunctionError.ts. */
+var AI_LIMIT_TEXT='You have reached the AI limit: 30 uses an hour and 200 a day. Try again later.';
 var PICTURE_ERRORS={
+  rate_limited:AI_LIMIT_TEXT,
   invalid_picture:'That file is not a picture Fibonax can read.',
   picture_too_large:'That picture is too large to read. Try a smaller one.',
   picture_refused:'This picture can’t be read. Copy its text by hand instead.',
@@ -10494,6 +10498,7 @@ var ASK_MIN=3, ASK_MAX=1000;
 var PRO_SOON_LABEL='Available to Pro users soon';
 var ASK_AVAILABLE=false;
 var ASK_ERRORS={
+  rate_limited:AI_LIMIT_TEXT,
   anthropic_not_configured:'Ask Fibonax is not set up yet.',
   anthropic_request_failed:'The answer service did not respond. Try again.',
   anthropic_bad_output:'The answer came back unreadable. Try again.',

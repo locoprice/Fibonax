@@ -66,7 +66,7 @@ These exist in the product but don't work for users, so the manual stays silent 
 - **Translate from EN** (snippet editor): the `translate-body` edge function is not deployed. Shown locked for Pro since v3.61.0.
 - **Ask Fibonax** (dashboard search panel, phone) and **Draft with AI** (snippet, prompt and Brain item editors): locked for Pro since v3.61.0 ("Available to Pro users soon"). Their pages are kept, unpublished, in `docs/pro-features/`, with the lines to restore when they turn on.
 - **Notion button on prompt cards**: the `notion-prompt-push` edge function is not deployed.
-- **Push to Notion** (snippets): writes to one database set on the server, not to the account's own Notion.
+- **Push to Notion** (snippets): writes to one database set on the server, not to the account's own Notion. Since v3.86.1 it works only for members of the team that owns that database; anyone else is told so.
 - **Triggers card**: the Shortcut prefix buttons and the Snippet key / Prompt key choices are saved but never read by the extension.
 - **Label suggestions**: shown locked for Pro since v3.61.0 (switch `labels` in `app/src/lib/proFeatures.ts`); the `suggest-labels` function is not deployed.
 - **Read a picture** (phone, Save to Brain): built locked for Pro in v3.63.0 (switch `picture`, and `PICTURE_AVAILABLE` on the phone); the `read-picture` function is not deployed. Its section is kept, unpublished, in `docs/pro-features/read-picture.mdx`. The phone page documents the free way instead: copy the text with Live Text or Google Lens, then Paste & save.

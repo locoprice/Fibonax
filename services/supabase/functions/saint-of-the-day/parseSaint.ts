@@ -8,13 +8,27 @@
 // page that changes shape shows no saint instead of a wrong line. The
 // dashboard and the popup both treat null as "show nothing".
 //
-// Written without sight of the live page (the build machine could not reach
-// it), so the first deployed call is the real test: describePage() gives the
-// function a short, safe summary to log when nothing is found, which is what a
-// later fix is written from.
+// Checked against the live pages on 2026-10-26. The main "Santo del giorno"
+// page fills in its saints with JavaScript after loading, so its HTML names
+// none; the page for one day (sourceUrl) carries them as headings, "San Beano,
+// vescovo" and so on. describePage() gives the function a short, safe summary
+// to log when nothing is found, which is what a later fix is written from.
 
 /** Longest name accepted. The footer shows one short line. */
 export const MAX_NAME = 80;
+
+/** Where Vatican News keeps the saints of one day. */
+export const SOURCE_BASE = 'https://www.vaticannews.va/it/santo-del-giorno';
+
+/**
+ * The page for one day, from a YYYY-MM-DD date: .../santo-del-giorno/10/26.html.
+ * Built from the date alone, so nothing a caller sends can change the address.
+ */
+export function sourceUrl(date: string): string {
+  const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) throw new Error(`not a YYYY-MM-DD date: ${date}`);
+  return `${SOURCE_BASE}/${m[1]}/${m[2]}.html`;
+}
 
 const NAMED_ENTITIES: Record<string, string> = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
@@ -83,10 +97,26 @@ function toName(text: string): string | null {
   let s = text;
   // A label and a date can come in either order, so strip them twice.
   for (let i = 0; i < 2; i++) s = s.replace(LABEL_PREFIX, '').replace(DATE_PREFIX, '');
-  // Keep the name, drop what describes it ("..., vescovo e dottore della Chiesa").
-  s = (s.split(/[,;(|]| [-–—] /)[0] ?? '').replace(/^[\s:.\-–—]+|[\s:.\-–—]+$/g, '').replace(/\s+/g, ' ');
+  s = trimmed(s);
   if (s.length < 3 || s.length > MAX_NAME) return null;
   if (!SAINT_START.test(s) || NOT_A_NAME.test(s)) return null;
+  return s;
+}
+
+/** Keeps the name, drops what describes it ("..., vescovo e dottore della Chiesa"). */
+function trimmed(text: string): string {
+  return (text.split(/[,;(|]| [-–—] /)[0] ?? '').replace(/^[\s:.\-–—]+|[\s:.\-–—]+$/g, '').replace(/\s+/g, ' ');
+}
+
+/**
+ * A feast rather than a person ("Ognissanti" on 1 November), or null. Only
+ * ever read from the heading right below "Santo del giorno", where the day's
+ * page puts its first entry, so it needs no San or Santa in front.
+ */
+function toFeast(text: string): string | null {
+  const s = trimmed(text);
+  if (s.length < 3 || s.length > MAX_NAME) return null;
+  if (!/^\p{Lu}/u.test(s) || NOT_A_NAME.test(s)) return null;
   return s;
 }
 
@@ -123,7 +153,8 @@ function markerAt(list: Heading[]): number {
 /**
  * The saint's name from the page, or null. Headings from the "Santo del
  * giorno" heading onward are tried in order (all headings when the page has no
- * such heading), then the page's own title.
+ * such heading), then the page's own title. When none names a person, the
+ * heading right below "Santo del giorno" is taken as the day's feast.
  */
 export function parseSaint(html: string): string | null {
   const source = typeof html === 'string' ? html : '';
@@ -135,7 +166,9 @@ export function parseSaint(html: string): string | null {
     const name = toName(text);
     if (name) return name;
   }
-  return null;
+  const below = marker >= 0 ? list[marker + 1] : undefined;
+  const markerLevel = marker >= 0 ? list[marker]?.level ?? 0 : 0;
+  return below && below.level > markerLevel ? toFeast(below.text) : null;
 }
 
 /**

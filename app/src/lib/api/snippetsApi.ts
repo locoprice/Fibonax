@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
 import { foldersApi } from '@/lib/api/foldersApi';
+import { notionPushError } from '@/lib/api/notionPushError';
 import { validateTemplate } from '@/lib/statusSignals';
 import type { Folder, Snippet, SnippetBodies, SnippetRow } from '@/types/database';
 import type { SnippetFormValues, FolderFormValues } from '@/types/schemas';
@@ -536,7 +537,7 @@ export const snippetsApi: SnippetsApi = {
       ok: boolean;
       notion_page_id: string;
     }>(EDGE_FN_SHARE, { body: { snippet_id: id } });
-    if (error) throw toApiError(error);
+    if (error) throw await notionPushError(error);
     if (!data?.ok || !data.notion_page_id) {
       throw new Error('notion-snippet-push returned unexpected response');
     }

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
+import { fetchAllPages } from '@/lib/api/fetchAllPages';
 import type {
   ActivityData,
   ActivityDay,
@@ -11,11 +12,14 @@ import type {
 } from '@/types/database';
 
 // Live aggregation over public.snippet_events. The extension writes one row per
-// successful snippet expansion (ANALYTICS-001). We pull the last 14 days,
-// bucket client-side, and shape into the AnalyticsSummary the page expects.
+// successful snippet expansion (ANALYTICS-001). We pull the last 14 days (and
+// 53 weeks for the activity grid), bucket client-side, and shape into what the
+// page expects. Events are read in pages (fetchAllPages): one read stopped at
+// the server's 1,000-row cap, and an account with more uses than that saw
+// totals that were silently short.
 //
-// When usage outgrows in-process aggregation (~ a few thousand events / 14d),
-// move this to a Postgres RPC.
+// When usage outgrows in-process aggregation (~ tens of thousands of events
+// a year), move this to a Postgres RPC.
 
 export interface AnalyticsApi {
   getSummary(): Promise<AnalyticsSummary>;
@@ -236,14 +240,17 @@ export const analyticsApi: AnalyticsApi = {
     if (totalRes.error) throw toApiError(totalRes.error);
 
     const fromIso = new Date(Date.now() - WINDOW_DAYS * 86400_000).toISOString();
-    const eventsRes = await supabase
-      .from('snippet_events')
-      .select('shortcut, created_at')
-      .eq('user_id', userId)
-      .gte('created_at', fromIso);
-    if (eventsRes.error) throw toApiError(eventsRes.error);
+    const events = await fetchAllPages<EventRow>((from, to) =>
+      supabase
+        .from('snippet_events')
+        .select('shortcut, created_at')
+        .eq('user_id', userId)
+        .gte('created_at', fromIso)
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
 
-    return aggregate((eventsRes.data ?? []) as EventRow[], totalRes.count ?? 0);
+    return aggregate(events, totalRes.count ?? 0);
   },
 
   async getActivity() {
@@ -251,12 +258,16 @@ export const analyticsApi: AnalyticsApi = {
     const { start } = activityBounds();
     const fromIso = start.toISOString();
 
-    const [eventsRes, snippetsRes, foldersRes, promptsRes, brainsRes] = await Promise.all([
-      supabase
-        .from('snippet_events')
-        .select('snippet_id, shortcut, created_at')
-        .eq('user_id', userId)
-        .gte('created_at', fromIso),
+    const [events, snippetsRes, foldersRes, promptsRes, brainsRes] = await Promise.all([
+      fetchAllPages<EventRow & { snippet_id: string | null }>((from, to) =>
+        supabase
+          .from('snippet_events')
+          .select('snippet_id, shortcut, created_at')
+          .eq('user_id', userId)
+          .gte('created_at', fromIso)
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
       // No user_id filter: RLS surfaces shared (org) snippets + folders too, so
       // expansions of team snippets resolve to their real folder names instead of
       // an "Other" bucket — matching listSnippets/listFolders (app/CLAUDE.md §6).
@@ -273,11 +284,9 @@ export const analyticsApi: AnalyticsApi = {
         .eq('user_id', userId)
         .is('deleted_at', null),
     ]);
-    if (eventsRes.error) throw toApiError(eventsRes.error);
     if (snippetsRes.error) throw toApiError(snippetsRes.error);
     if (foldersRes.error) throw toApiError(foldersRes.error);
 
-    const events = (eventsRes.data ?? []) as Array<EventRow & { snippet_id: string | null }>;
     const grid = buildActivity(events);
 
     const snippetToFolder = new Map<string, string | null>(

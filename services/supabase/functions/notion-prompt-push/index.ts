@@ -5,11 +5,17 @@
 // Environment secrets required (set via `supabase secrets set`):
 //   NOTION_API_KEY         — team Notion integration token (ntn_...)
 //   NOTION_PROMPTS_DB_ID   — Notion database ID for prompts (distinct from snippets DB)
+//   NOTION_ORG_ID: the team that owns NOTION_API_KEY (optional, falls back to hardcoded)
 //   SUPABASE_URL           — injected automatically by the runtime
 //   SUPABASE_ANON_KEY      — injected automatically by the runtime
 //   SUPABASE_SERVICE_ROLE_KEY — injected automatically by the runtime
+//
+// The key is the team's, so only its members may push, and a stored page id
+// is updated only when that page sits in the team's database
+// (../_shared/notionGuard.ts).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
+import { DEFAULT_NOTION_ORG_ID, updatablePageId } from '../_shared/notionGuard.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +24,7 @@ const CORS_HEADERS = {
 
 const NOTION_API_KEY = Deno.env.get('NOTION_API_KEY') ?? '';
 const NOTION_DB_ID = Deno.env.get('NOTION_PROMPTS_DB_ID') ?? '';
+const NOTION_ORG_ID = Deno.env.get('NOTION_ORG_ID') ?? DEFAULT_NOTION_ORG_ID;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -106,8 +113,30 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // ── Fetch prompt using service role (bypasses RLS safely) ────────
   const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  // ── Only the team that owns the Notion key may push ──────────────
+  const { data: membership, error: memberError } = await serviceClient
+    .from('organization_members')
+    .select('user_id')
+    .eq('organization_id', NOTION_ORG_ID)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (memberError) {
+    console.error('notion-prompt-push: membership check failed', JSON.stringify({ code: memberError.code ?? null }));
+    return new Response(JSON.stringify({ error: 'membership_check_failed' }), {
+      status: 500,
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    });
+  }
+  if (!membership) {
+    return new Response(JSON.stringify({ error: 'not_team_member' }), {
+      status: 403,
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // ── Fetch prompt using service role (bypasses RLS safely) ────────
   const { data: prompt, error: fetchError } = await serviceClient
     .from('prompts')
     .select('id, name, content, type, strategy_type, intent_category, notion_page_id')
@@ -148,7 +177,9 @@ Deno.serve(async (req: Request) => {
   };
 
   const props = buildNotionProps(row);
-  let notionPageId = row.notion_page_id;
+  // A stored id that is malformed or names a page outside the team database
+  // is not followed: a new page is created instead.
+  let notionPageId = await updatablePageId(row.notion_page_id, NOTION_DB_ID, notionHeaders);
 
   // ── Idempotent upsert: PATCH if page exists, CREATE otherwise ────
   if (notionPageId) {

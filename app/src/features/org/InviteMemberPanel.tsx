@@ -345,6 +345,10 @@ export function InviteMemberPanel({ org }: InviteMemberPanelProps) {
           <ul className="flex flex-col gap-1.5">
             {invitations.map((invitation) => {
               const busy = busyId === invitation.id;
+              // An admin invitation is an admin's to resend or withdraw: the
+              // database refuses a manager (orginv_write), so the buttons are not
+              // offered to one.
+              const canChange = org.myRole === 'admin' || invitation.role !== 'admin';
               return (
                 <li
                   key={invitation.id}
@@ -370,21 +374,23 @@ export function InviteMemberPanel({ org }: InviteMemberPanelProps) {
                     >
                       {STATUS_LABEL[invitation.status] ?? invitation.status}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => void handleResend(invitation)}
-                      disabled={busy}
-                      aria-label={`Resend the invitation to ${invitation.email}`}
-                      title="Send it again"
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-ink-subtle transition-colors hover:bg-bg-alt hover:text-primary disabled:opacity-50"
-                    >
-                      {busy ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <RotateCw className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                    {invitation.status === 'pending' && (
+                    {canChange && (
+                      <button
+                        type="button"
+                        onClick={() => void handleResend(invitation)}
+                        disabled={busy}
+                        aria-label={`Resend the invitation to ${invitation.email}`}
+                        title="Send it again"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-ink-subtle transition-colors hover:bg-bg-alt hover:text-primary disabled:opacity-50"
+                      >
+                        {busy ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RotateCw className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    )}
+                    {canChange && invitation.status === 'pending' && (
                       <button
                         type="button"
                         onClick={() => void handleRevoke(invitation)}

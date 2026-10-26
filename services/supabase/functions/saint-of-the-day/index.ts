@@ -12,7 +12,8 @@
 //
 // 1. Only a signed-in caller can use it: the JWT is checked first, and there
 //    is no service-role client in this file.
-// 2. One fixed address. Nothing the caller sends is ever fetched, so there is
+// 2. One address per day, built from today's date in Rome (sourceUrl in
+//    parseSaint.ts). Nothing the caller sends is ever fetched, so there is
 //    nothing to point it elsewhere, and a redirect is followed only while it
 //    stays on the same https host.
 // 3. Bounded: 8 seconds for the whole fetch, 2 MB read at most, HTML only.
@@ -27,8 +28,8 @@
 // Environment (injected automatically by the runtime):
 //   SUPABASE_URL, SUPABASE_ANON_KEY
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { describePage, parseSaint } from './parseSaint.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
+import { describePage, parseSaint, sourceUrl } from './parseSaint.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -38,7 +39,6 @@ const CORS_HEADERS = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
-const SOURCE_URL = 'https://www.vaticannews.va/it/santo-del-giorno.html';
 const SOURCE_HOST = 'www.vaticannews.va';
 /** The whole fetch, redirects included. */
 const TIMEOUT_MS = 8_000;
@@ -121,9 +121,9 @@ function decode(bytes: Uint8Array, contentType: string): string {
   }
 }
 
-/** Fetches the page, following a redirect only while it stays on the same https host. */
-async function fetchPage(signal: AbortSignal): Promise<{ html: string; status: number }> {
-  let current = SOURCE_URL;
+/** Fetches the day's page, following a redirect only while it stays on the same https host. */
+async function fetchPage(date: string, signal: AbortSignal): Promise<{ html: string; status: number }> {
+  let current = sourceUrl(date);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     let res: Response;
     try {
@@ -172,7 +172,7 @@ async function fetchPage(signal: AbortSignal): Promise<{ html: string; status: n
 async function readSaintFromSource(date: string): Promise<Reading> {
   const started = Date.now();
   try {
-    const page = await fetchPage(AbortSignal.timeout(TIMEOUT_MS));
+    const page = await fetchPage(date, AbortSignal.timeout(TIMEOUT_MS));
     const name = parseSaint(page.html);
     if (!name) {
       console.error('saint-of-the-day: no name found', JSON.stringify({

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { AI_LIMIT_MESSAGE, readEdgeErrorCode } from '@/lib/api/edgeFunctionError';
 
 // Machine translation for a snippet body (TRANSLATE-001).
 //
@@ -28,24 +29,21 @@ export interface TranslateApi {
  * The distinctions here are the ones that change what the user does next:
  * a corrupted-placeholder refusal means "try again, it may well work", while
  * a missing key means "nothing you do in this dialog will help".
+ *
+ * The code comes from the response body (readEdgeErrorCode): supabase-js only
+ * says "non-2xx status code" in `message`, so matching on it never hit.
  */
-function translateError(detail: string | undefined): Error {
-  if (detail?.includes('anthropic_not_configured')) {
-    return new Error('Translation is not configured yet.');
-  }
-  if (detail?.includes('placeholders_corrupted')) {
-    return new Error('The translation changed a field, so it was discarded. Try again.');
-  }
-  if (detail?.includes('translation_refused')) {
-    return new Error('This text could not be translated.');
-  }
-  if (detail?.includes('source_too_long')) {
-    return new Error('This body is too long to translate.');
-  }
-  if (detail?.includes('empty_source')) {
-    return new Error('There is no English text to translate.');
-  }
-  return new Error('Could not reach the translation service. Try again.');
+const TRANSLATE_ERRORS: Record<string, string> = {
+  anthropic_not_configured: 'Translation is not configured yet.',
+  placeholders_corrupted: 'The translation changed a field, so it was discarded. Try again.',
+  translation_refused: 'This text could not be translated.',
+  source_too_long: 'This body is too long to translate.',
+  empty_source: 'There is no English text to translate.',
+  rate_limited: AI_LIMIT_MESSAGE,
+};
+
+function translateError(code: string): Error {
+  return new Error(TRANSLATE_ERRORS[code] ?? 'Could not reach the translation service. Try again.');
 }
 
 export const translateApi: TranslateApi = {
@@ -57,8 +55,8 @@ export const translateApi: TranslateApi = {
       body: { body, target },
     });
 
-    if (error) throw translateError(error.message);
-    if (!data?.ok || typeof data.translation !== 'string') throw translateError(undefined);
+    if (error) throw translateError(await readEdgeErrorCode(error));
+    if (!data?.ok || typeof data.translation !== 'string') throw translateError('');
 
     return data.translation;
   },

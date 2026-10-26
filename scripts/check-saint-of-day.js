@@ -265,8 +265,13 @@ const FN = readText(path.join(FUNCTION_DIR, 'index.ts'));
 check('the function folder carries the shared name', path.basename(FUNCTION_DIR), S.FUNCTION_NAME);
 check('function: only a signed-in caller', FN.indexOf('auth.getUser()') !== -1 && FN.indexOf("'unauthorized'") !== -1, true);
 check('function: no service-role key', /SERVICE_ROLE/i.test(FN), false);
-check('function: one fixed source address',
-  FN.indexOf("const SOURCE_URL = 'https://www.vaticannews.va/it/santo-del-giorno.html';") !== -1, true);
+// The main page fills its saints in with JavaScript, so the function reads the
+// page for the day, an address built from Rome's date and nothing else.
+const PARSE = readText(path.join(FUNCTION_DIR, 'parseSaint.ts'));
+check('function: one source address per day, built from the date',
+  PARSE.indexOf("export const SOURCE_BASE = 'https://www.vaticannews.va/it/santo-del-giorno';") !== -1 &&
+  FN.indexOf('let current = sourceUrl(date);') !== -1 &&
+  FN.indexOf('readSaintFromSource(today)') !== -1, true);
 check('function: answers with the keys both surfaces read', /ok: true, date: .*name/.test(FN), true);
 
 dashboardCopy().then(() => {

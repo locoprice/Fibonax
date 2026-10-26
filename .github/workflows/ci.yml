@@ -119,3 +119,39 @@ jobs:
 
       - name: CI Passed
         run: echo "Fibonax CI OK"
+
+  # The dashboard's own gates: the same four commands every commit to app/ must
+  # pass by hand (root CLAUDE.md, Verification Protocol). Until 2026-10-26 they
+  # ran nowhere automatically, so the test suite only caught what someone
+  # remembered to run.
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
