@@ -185,6 +185,7 @@ const EMPTY_FORM: SnippetFormValues = {
   language: 'EN',
   pinned: false,
   alternative_queries: [],
+  check_unfinished: true,
 };
 
 /**
@@ -683,6 +684,7 @@ export function NewSnippetDialog() {
         language:             editingSnippet.language,
         pinned:               editingSnippet.pinned,
         alternative_queries:  editingSnippet.alternative_queries,
+        check_unfinished:     editingSnippet.check_unfinished,
       });
       // Read once on open: the picker owns the draft from here, so a
       // background refresh can't stomp an in-progress edit.
@@ -2621,6 +2623,9 @@ export function NewSnippetDialog() {
               <SnippetPreview
                 body={form.content}
                 lang={form.language === 'MULTI' ? '' : form.language}
+                checkUnfinished={form.check_unfinished}
+                onCheckUnfinishedChange={(on) => updateField('check_unfinished', on)}
+                onEditBody={() => contentRef.current?.focus()}
               />
             </>
           )}

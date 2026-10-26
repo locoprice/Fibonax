@@ -104,6 +104,7 @@ const SNIPPET_A: SnippetRow = {
   notion_page_id: null,
   pinned: false,
   is_active: true,
+  check_unfinished: true,
   alternative_queries: [],
   updated_at: '2026-01-01T00:00:00Z',
   updated_by: 'user-1',

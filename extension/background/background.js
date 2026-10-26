@@ -244,6 +244,56 @@ function supaRpc(fn, params) {
   });
 }
 
+// Updates the rows a filter matches and answers with them as saved. RLS
+// decides what may be written, so an empty answer means nothing was: the
+// caller tells that apart from success rather than assuming it.
+function supaPatch(table, qs, body) {
+  return new Promise(function(resolve, reject) {
+    sbAuthHeaders(function(err, headers) {
+      if (err || !headers) { reject(new Error('not_authed')); return; }
+      fetch(SUPA_URL + '/rest/v1/' + table + '?' + qs, {
+        method: 'PATCH',
+        headers: {
+          'apikey': headers.apikey,
+          'Authorization': headers.Authorization,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(body || {})
+      }).then(function(r) {
+        if (!r.ok) { reject(new Error(table + ' answered HTTP ' + r.status)); return; }
+        return r.json().then(function(rows) { resolve(Array.isArray(rows) ? rows : []); }, reject);
+      }, reject);
+    });
+  });
+}
+
+// "Don't warn me about this snippet again", ticked on the unfinished-text
+// warning. Saved on the snippet itself so every device and the editor see it,
+// then written into the expansion cache at once, so the very next expansion
+// already honours it rather than waiting for the next sync.
+function setCheckUnfinished(id, on) {
+  return supaPatch('snippets', 'id=eq.' + encodeURIComponent(id) + '&select=id,check_unfinished',
+    { check_unfinished: on }).then(function(rows) {
+    if (!rows.length) return false;
+    return new Promise(function(resolve) {
+      chrome.storage.local.get('snippets', function(data) {
+        var list = (data && Array.isArray(data.snippets)) ? data.snippets : null;
+        if (chrome.runtime.lastError || !list) { resolve(true); return; }
+        var next = list.map(function(s) {
+          return s && s.id === id ? Object.assign({}, s, { check_unfinished: on }) : s;
+        });
+        chrome.storage.local.set({ snippets: next }, function() {
+          if (chrome.runtime.lastError) {
+            console.warn('[Fibonax] expansion cache write:', chrome.runtime.lastError.message);
+          }
+          resolve(true);
+        });
+      });
+    });
+  });
+}
+
 /**
  * Rank candidates for a draft. Summaries and scores, never bodies: the panel
  * lists what it found before anything is fetched to insert.
@@ -315,6 +365,23 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
     supaRpc('memory_save_shard', msg.payload || {}).then(function(id) {
       try { sendResponse({ ok: true, id: id }); } catch(e) {}
     }, function() {
+      try { sendResponse({ ok: false }); } catch(e) {}
+    });
+    return true;
+  }
+
+  // The unfinished-text switch, from the warning in the page or the popup.
+  // Only this one column, and only a yes or no: the page never writes a
+  // snippet's content through here.
+  if (msg.type === 'snippet_check_unfinished') {
+    if (typeof msg.id !== 'string' || msg.id === '' || typeof msg.on !== 'boolean') {
+      try { sendResponse({ ok: false }); } catch(e) {}
+      return;
+    }
+    setCheckUnfinished(msg.id, msg.on).then(function(saved) {
+      try { sendResponse({ ok: saved }); } catch(e) {}
+    }, function(err) {
+      console.error('[Fibonax] Could not save the unfinished-text switch:', err && err.message);
       try { sendResponse({ ok: false }); } catch(e) {}
     });
     return true;
@@ -461,7 +528,7 @@ function loadData() {
       // service worker had no body to cache, which is why a snippet edited on
       // the dashboard kept expanding its old text until the popup was opened.
       var snipQs = 'select=id,title,shortcut,alternative_queries,folder_id,lang,lang_group_id,sort_order,' +
-        'body,bodies,field_cfg,pinned,review_status' +
+        'body,bodies,field_cfg,pinned,review_status,check_unfinished' +
         // Archived snippets never expand (AI-KNOWLEDGE P2), like disabled ones.
         '&is_active=eq.true&review_status=neq.archived&order=sort_order';
       Promise.all([
@@ -952,6 +1019,9 @@ function writeExpansionCache(rows) {
           pinned: s.pinned || false,
           // Read by content.js: a deprecated snippet expands with a warning.
           review_status: s.review_status || 'approved',
+          // Read by content.js: false means the person asked not to be warned
+          // when this snippet's text looks unfinished.
+          check_unfinished: s.check_unfinished !== false,
           // The worker does not fetch usage, but the popup hydrates its list
           // from this same cache and reads s.stats.uses unguarded. Writing the
           // zeroed shape keeps that contract; DB.loadAll overwrites it with the

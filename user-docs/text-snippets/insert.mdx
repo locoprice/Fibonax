@@ -42,6 +42,30 @@ Fields needed by an active calculation have an asterisk. Before inserting or cop
 
 These rules apply in the overlay, extension popup, editor preview and mobile. They do not change the saved snippet or its defaults. **Copy raw** continues to copy the original template.
 
+## Check before it goes out
+
+Right before a snippet goes into your message, Fibonax reads the finished text for anything that looks unfinished, so a placeholder never reaches the person you're writing to. It looks for:
+
+- Brackets left in the text, such as `[xxx]`, `{fill this in}`, `{{NAME}}` or `<name>`.
+- Gaps, such as `XXX`, `xx/xx/xxxx`, `???`, `______` or `.....`.
+- Notes to yourself, such as `TBD`, `TBC` or `TODO:`.
+- Instructions, such as "insert name here", "inserisci qui" or "escribe aquí", in English, Italian and Spanish.
+- A field name printed as text, such as `CLIENT_NAME`.
+- Boxes in the form you left empty.
+
+When it finds something, **This text may not be finished** lists each piece and why. Nothing goes in until you choose:
+
+- **Fix it** takes you back to the form, marks each box in question and puts the cursor in the first one. It appears when a box can fix the problem.
+- **Edit snippet** opens the snippet in the dashboard, for a gap written in the snippet itself. Nothing is inserted.
+- **Insert anyway** inserts the text as it is.
+- <kbd>Esc</kbd> or the close button stops, like **Cancel** on the summary card: nothing is inserted.
+
+When the text is meant to look like that, tick **Don't warn me about this snippet again**, then choose **Insert anyway**. The summary card confirms it. The choice is saved with the snippet, so it applies on every computer and on your phone. To turn the warning back on, open the snippet and tick **Warn me if it looks unfinished** under the preview. See [Create and organize](/text-snippets/create-and-organize).
+
+The check runs on your device, and your text isn't sent anywhere. It finds gaps that are marked. A gap written as ordinary words, with nothing around it, reads like any other words and gets through, so read the preview before you insert.
+
+The same check runs when you copy from the popup and on your phone.
+
 ## Choose a language
 
 If a snippet has more than one language, Fibonax asks you to **Choose a language to insert**. To have one language picked for you each time, set **Default Language** in the extension popup's settings.
@@ -77,8 +101,10 @@ A snippet with several languages opens a submenu with one entry per language.
 
 Click the Fibonax icon in the Chrome toolbar and search. Click a snippet to open it, fill in its fields and click **Copy filled**, then paste the text where you need it. If the form starts with **Fill from link**, you can paste a page's link there to fill the fields first.
 
-- **Copy raw** copies the body with its fields still in it.
+- **Copy raw** copies the body with its fields still in it. It's the one copy that isn't [checked](#check-before-it-goes-out), because the fields are the point.
 - **Copy shortcut** copies the trigger.
+
+**Copy filled** and **Copy body** check the text first, as inserting does, and offer **Copy anyway**.
 
 Use the popup for fields that don't accept typed expansion.
 

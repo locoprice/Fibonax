@@ -117,6 +117,12 @@ export interface SbFillField {
    */
   fromLink: boolean;
   visible: boolean;
+  /**
+   * Whether this box's answer reaches the text as the form stands: false only
+   * for an empty box in a Show or hide section that is closed, which the
+   * unfinished-text check then leaves out.
+   */
+  prints: boolean;
 }
 
 /** A `{button}` control: sets field values when clicked, never prints. */
@@ -221,7 +227,31 @@ export interface SbDayChoice {
   named?: string;
 }
 
+/**
+ * One piece of a finished text that looks unfinished, as `unfinished()` in
+ * extension/shared/fill-form.js reports it: an empty box, or a fragment such
+ * as "[xxx]" with where it sits.
+ */
+export interface SbUnfinishedItem {
+  /** 'empty', 'placeholder', 'gap', 'note', 'instruction', 'field' or 'sample'. */
+  kind: string;
+  /** The fragment itself, or the title of the box left empty. */
+  text: string;
+  /** Why it was flagged, in the words every surface shows. */
+  reason: string;
+  /** The field it belongs to, or '' when it is written in the snippet itself. */
+  key: string;
+  /** Where the fragment starts in the text; -1 for an empty box. */
+  start: number;
+}
+
 interface SbFillFormApi {
+  /** What in a finished text looks unfinished. Pure; see SbUnfinishedItem. */
+  unfinished(text: string, fields: readonly SbFillField[]): SbUnfinishedItem[];
+  /** The shared words for the warning, with {name} slots filled in. */
+  unfinishedText(key: string, slots?: Record<string, string | number>): string;
+  /** How many pieces a list shows before "and N more". */
+  UNFINISHED_SHOWN: number;
   fillForm(
     text: string,
     values: Record<string, string>,
@@ -385,6 +415,28 @@ export function fillForm(
   const api = window.SBFillForm;
   if (!api) return null;
   return api.fillForm(body, values, opts);
+}
+
+/**
+ * What looks unfinished in a finished text, decided by the same rules the
+ * extension and the phone run right before a snippet goes out. [] until the
+ * engine has loaded.
+ */
+export function unfinishedItems(
+  text: string,
+  fields: readonly SbFillField[],
+): SbUnfinishedItem[] {
+  return window.SBFillForm?.unfinished(text, fields) ?? [];
+}
+
+/** The warning's shared words; '' until the engine has loaded. */
+export function unfinishedWords(key: string, slots?: Record<string, string | number>): string {
+  return window.SBFillForm?.unfinishedText(key, slots) ?? '';
+}
+
+/** How many pieces a list shows before "and N more". */
+export function unfinishedShown(): number {
+  return window.SBFillForm?.UNFINISHED_SHOWN ?? 6;
 }
 
 /** The hint inside a menu's Other box; '' until the engine has loaded. */

@@ -89,6 +89,9 @@ export const snippetFormSchema = z.object({
   language: languageEnum,
   pinned: z.boolean().default(false),
   alternative_queries: z.array(z.string()).default([]),
+  // Warn before inserting when the text looks unfinished. On for every new
+  // snippet; off only once someone asks not to be warned about this one.
+  check_unfinished: z.boolean().default(true),
 });
 
 export type SnippetFormValues = z.infer<typeof snippetFormSchema>;

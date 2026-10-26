@@ -462,13 +462,41 @@
     }
     var resolveOpts = { lang: opts.lang || '', fmtOverride: opts.fmtOverride, formula: formula,
       value: function(key, scope) { return dependencies[key] ? formula(key, scope) : scope[key]; } };
-    function resolve(body) {
+    function resolve(body, vals) {
       dependencies = Object.create(null);
-      return E.resolveBody(E.interpolateSnippet(body, values), Object.assign({}, values), resolveOpts);
+      return E.resolveBody(E.interpolateSnippet(body, vals), Object.assign({}, vals), resolveOpts);
     }
-    var preview = resolve(src);
-    var clean = omitEmptyLines(E, src, values, required);
-    if (clean !== src) preview = resolve(clean);
+    // The finished text for a set of answers: every line resolved, then the
+    // labelled lines left empty taken out.
+    function finished(vals) {
+      var full = resolve(src, vals);
+      var clean = omitEmptyLines(E, src, vals, required);
+      return clean !== src ? resolve(clean, vals) : full;
+    }
+    var preview = finished(values);
+
+    // Whether an empty box's answer would reach the text. A box inside a Show
+    // or hide section that is closed prints nothing either way, so the
+    // unfinished-text check does not call it empty. Answered one at a time with
+    // a sample answer; a choice tries its first option, which is what opens
+    // the section a choice controls. Each trial starts from the calculations
+    // the real answers need, and they are put back after, so a trial never
+    // marks a box as needed.
+    var needed = Object.keys(required);
+    function resetNeeded() {
+      Object.keys(required).forEach(function(k) { delete required[k]; });
+      needed.forEach(function(k) { required[k] = true; });
+    }
+    var SAMPLE = { number: '7', date: '2000-01-02', time: '07:07', datetime: '2000-01-02T07:07' };
+    fields.forEach(function(f) {
+      f.prints = true;
+      if (trim(values[f.key]) !== '') return;
+      var trial = Object.assign({}, values);
+      trial[f.key] = f.type === 'dd' ? (f.options[0] || 'sample') : (SAMPLE[f.type] || 'sample');
+      resetNeeded();
+      f.prints = finished(trial) !== preview;
+    });
+    resetNeeded();
     var errors = [];
     fields.forEach(function(f) {
       var value = values[f.key], message = '';
@@ -640,7 +668,11 @@
         fromLink: Object.prototype.hasOwnProperty.call(linked, key) && linked[key] === true,
         // Always visible today. Conditional visibility will compute this from
         // the same {if:} the text already uses; nothing else in the shape moves.
-        visible: true
+        visible: true,
+        // Whether this box's answer reaches the text as the form stands: false
+        // only for an empty box in a Show or hide section that is closed.
+        // Decided with the preview below; the unfinished-text check reads it.
+        prints: true
       });
     }
 
@@ -1135,6 +1167,177 @@
     return result.none ? LINK_TEXT['none-on-page'] : '';
   }
 
+  // ── BEFORE IT GOES OUT ──────────────────────────────────────────
+  // A message that reaches a customer with "[xxx]", "{fill this in}" or an
+  // empty "Dear ," in it is the most visible mistake the product can let
+  // through. Right before a snippet is inserted or copied, every surface reads
+  // the finished text through unfinished() and, when it finds something, shows
+  // the list and lets the person fix it or go ahead.
+  //
+  // Rules only, on the device: nothing leaves it, it answers instantly and it
+  // works offline. The price is that a gap written as plain words with no
+  // marker around it ("client name") reads like any other words and passes.
+  //
+  // Decided once, here, like everything else in this module. Each surface draws
+  // the list in its own markup and shows these words.
+
+  var UNFINISHED_TEXT = {
+    'title': 'This text may not be finished',
+    'intro': 'Check these before it goes out:',
+    'fix': 'Fix it',
+    'edit': 'Edit snippet',
+    'insert-anyway': 'Insert anyway',
+    'copy-anyway': 'Copy anyway',
+    'share-anyway': 'Share anyway',
+    'mute': 'Don’t warn me about this snippet again',
+    'muted': 'This snippet won’t warn you again. You can turn it back on in the editor.',
+    'mute-failed': 'Couldn’t save that, so this snippet will still warn you. Only someone who can edit it can turn this off.',
+    'more': 'and {n} more',
+    'empty': 'Left empty',
+    'placeholder': 'Looks like a placeholder',
+    'gap': 'Looks like a gap to fill in',
+    'note': 'Looks like a note to yourself',
+    'instruction': 'Looks like an instruction to fill something in',
+    'field': 'Looks like a field name, not real text',
+    'sample': 'Looks like sample text',
+    'in-field': 'In the box “{title}”',
+    'preview-title': 'May not be finished',
+    'preview-clear': 'Nothing looks unfinished.',
+    'setting': 'Warn me if it looks unfinished',
+    'setting-hint': 'Before it goes in, Fibonax checks for gaps like [name], XXX, ??? or empty boxes.'
+  };
+
+  /** The words for one UNFINISHED_TEXT key, with {name} slots filled in. */
+  function unfinishedText(key, slots) {
+    var s = Object.prototype.hasOwnProperty.call(UNFINISHED_TEXT, key) ? UNFINISHED_TEXT[key] : '';
+    var vals = slots || {};
+    return s.replace(/\{([a-z]+)\}/g, function(m, name) {
+      return Object.prototype.hasOwnProperty.call(vals, name) ? String(vals[name]) : m;
+    });
+  }
+
+  // The longest list a surface shows before "and N more". Past this the person
+  // has the point, and a taller box only pushes the buttons off a phone screen.
+  var UNFINISHED_SHOWN = 6;
+
+  // The letters a word is made of, accents included, so a phrase matched in
+  // Italian or Spanish ends where the word ends. \b alone treats "aquí" as
+  // ending before its í.
+  var UF_L = 'A-Za-zÀ-ɏ';
+
+  // Phrase lists in the three languages the product's users write in. Kept to
+  // instructions nobody sends on purpose: "the form to fill in" (il modulo da
+  // compilare, el formulario a rellenar) is a real thing to tell a customer,
+  // "insert name here" never is. So a phrase needs its "here".
+  var UF_HERE_EN = '(?:insert|type|write|add|put|paste|enter)(?:\\s+[' + UF_L + ']+){0,2}\\s+here';
+  var UF_HERE_IT = '(?:inserisci|inserire|inserite|scrivi|scrivere|scrivete|compila|compilare|compilate|metti|mettere|aggiungi|aggiungere|incolla|incollare|completa|completare)(?:\\s+[' + UF_L + ']+){0,2}\\s+(?:qui|qua)';
+  var UF_HERE_ES = '(?:inserta|insertar|inserte|escribe|escribir|escriba|pon|poner|ponga|añade|añadir|añada|agrega|agregar|agregue|pega|pegar|pegue|completa|completar|complete|rellena|rellenar|rellene)(?:\\s+[' + UF_L + ']+){0,2}\\s+(?:aquí|aqui|acá|aca)';
+  // "Your name here" is a template's; "leave your feedback here" is a real
+  // invitation, so only the nouns a blank stands for.
+  var UF_STANDALONE = '(?:your\\s+(?:name|surname|text|address|e-?mail|number|phone|company|signature|title|date|details)\\s+here|' +
+    'placeholder|segnaposto|marcador\\s+de\\s+posición)';
+  var UF_NOTE_WORDS = '(?:da\\s+definire|por\\s+definir)';
+
+  // Every rule: what it matches and which reason it gives. Order is priority
+  // when two overlap: "{{NAME}}" is one placeholder, not a brace inside braces.
+  var UNFINISHED_RULES = [
+    { kind: 'placeholder', re: /\{\{[^{}\n]{0,80}\}\}/g },
+    { kind: 'placeholder', re: /\{[^{}\n]{1,80}\}/g },
+    // [1] is a footnote, [x] and [ ] are tick boxes, [text](link) is a link.
+    { kind: 'placeholder', re: /\[([^\[\]\n]{0,80})\](?!\()/g,
+      keep: function(m) { return !/^\s*(?:\d+|[xX✓✔]|\s)\s*$/.test(m[1]); } },
+    // <name> is a placeholder; <a@b.com>, <https://…>, <br> and A <-> B are not.
+    { kind: 'placeholder', re: /<([^<>\n]{1,60})>/g,
+      keep: function(m) {
+        var inner = m[1];
+        if (!new RegExp('[' + UF_L + ']').test(inner)) return false;
+        if (/@|:\/\/|^\s*(?:mailto|tel|https?):/i.test(inner)) return false;
+        return !/^\/?(?:a|b|i|u|p|br|hr|em|strong|span|div|ul|ol|li|img|small|sub|sup|table|tr|td|th|h[1-6])(?:\s[^<>]*)?\/?$/i.test(inner);
+      } },
+    { kind: 'gap', re: new RegExp('(^|[^' + UF_L + '0-9])([xX]{2,}(?:[\\/.\\-:][xX]{2,})+|[xX]{3,})(?![' + UF_L + '0-9])', 'g'), group: 2 },
+    // "Price: ??? €" is a gap; "Really???" is emphasis.
+    { kind: 'gap', re: new RegExp('(^|[^' + UF_L + '0-9?])(\\?{2,})', 'g'), group: 2 },
+    { kind: 'gap', re: /_{3,}|\.{5,}|…{2,}/g },
+    // Upper case only: "todo" is "all" in Spanish and Italian, and a heading
+    // such as "TODO INCLUIDO" is not a note, so TODO needs its colon.
+    { kind: 'note', re: /\b(?:TBD|TBC|TBA|FIXME)\b|\bTODO(?=\s*[:\-–—])/g },
+    { kind: 'note', re: new RegExp('(^|[^' + UF_L + '])(' + UF_NOTE_WORDS + ')(?![' + UF_L + '])', 'gi'), group: 2 },
+    { kind: 'instruction', re: new RegExp('(^|[^' + UF_L + '])(' + UF_HERE_EN + '|' + UF_HERE_IT + '|' + UF_HERE_ES + '|' + UF_STANDALONE + ')(?![' + UF_L + '])', 'gi'), group: 2 },
+    { kind: 'sample', re: /\blorem\s+ipsum\b/gi },
+    // A field's own name printed as text: CLIENT_NAME, TOTAL_DUE.
+    { kind: 'field', re: /(^|[^A-Za-z0-9_])([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)(?![A-Za-z0-9_])/g, group: 2 }
+  ];
+
+  /**
+   * What in a finished text looks unfinished, in the order a person reads it:
+   * the boxes left empty first, then each suspicious piece where it sits.
+   *
+   * Pure: it reads the text it is given and the form's fields, and nothing
+   * else. Each surface asks it once, right before the text leaves Fibonax.
+   *
+   * @param {string} text    exactly what is about to be inserted or copied
+   * @param {Array} [fields] the view model's fields, when the snippet has a form
+   * @returns {Array<{ kind: string, text: string, reason: string, key: string, start: number }>}
+   *   kind is 'empty' or one of the rule kinds; key names the field the item
+   *   belongs to ('' when it is the snippet's own text); start is where the
+   *   piece begins in `text`, -1 for an empty box.
+   */
+  function unfinished(text, fields) {
+    var src = text === null || text === undefined ? '' : String(text);
+    var list = Array.isArray(fields) ? fields : [];
+    var out = [];
+
+    for (var f = 0; f < list.length; f++) {
+      var fld = list[f];
+      // A box in a closed Show or hide section prints nothing either way.
+      if (!fld || fld.visible === false || fld.prints === false || trim(fld.value) !== '') continue;
+      out.push({ kind: 'empty', text: fieldTitle(fld), reason: UNFINISHED_TEXT.empty, key: fld.key, start: -1 });
+    }
+
+    var hits = [];
+    for (var r = 0; r < UNFINISHED_RULES.length; r++) {
+      var rule = UNFINISHED_RULES[r];
+      rule.re.lastIndex = 0;
+      var m;
+      while ((m = rule.re.exec(src)) !== null) {
+        if (m[0] === '') { rule.re.lastIndex++; continue; }
+        if (rule.keep && !rule.keep(m)) continue;
+        var piece = rule.group ? m[rule.group] : m[0];
+        var at = rule.group ? m.index + m[0].length - piece.length : m.index;
+        hits.push({ kind: rule.kind, text: piece, start: at, end: at + piece.length, order: r });
+      }
+    }
+    // Earliest first; on a tie, the rule listed first. A piece inside one
+    // already taken is the same mistake seen twice.
+    hits.sort(function(a, b) { return a.start - b.start || a.order - b.order; });
+    var takenEnd = -1, seen = {};
+    for (var h = 0; h < hits.length; h++) {
+      var hit = hits[h];
+      if (hit.start < takenEnd) continue;
+      takenEnd = hit.end;
+      // A piece found inside what someone typed or pasted into a box is fixed
+      // in that box; anything else is written in the snippet itself. Case is
+      // ignored: a name field prints "bob [xxx]" as "Bob [Xxx]".
+      var owner = '', low = hit.text.toLowerCase();
+      for (var v = 0; v < list.length; v++) {
+        if (list[v] && String(list[v].value || '').toLowerCase().indexOf(low) !== -1) { owner = list[v].key; break; }
+      }
+      var id = hit.kind + '\u0000' + hit.text + '\u0000' + owner;
+      if (seen[id]) continue;
+      seen[id] = true;
+      out.push({ kind: hit.kind, text: hit.text, reason: UNFINISHED_TEXT[hit.kind], key: owner, start: hit.start });
+    }
+    return out;
+  }
+
+  /**
+   * Whether a snippet asks to be checked. On unless someone turned it off for
+   * this snippet, so a snippet saved before the setting existed is checked too.
+   */
+  function checksUnfinished(snip) {
+    return !(snip && snip.check_unfinished === false);
+  }
+
   var API = {
     fillForm: fillForm,
     fieldTitle: fieldTitle,
@@ -1147,6 +1350,11 @@
     linkSummary: linkSummary,
     linkNote: linkNote,
     LINK_TEXT: LINK_TEXT,
+    unfinished: unfinished,
+    unfinishedText: unfinishedText,
+    checksUnfinished: checksUnfinished,
+    UNFINISHED_TEXT: UNFINISHED_TEXT,
+    UNFINISHED_SHOWN: UNFINISHED_SHOWN,
     inferType: inferType,
     chooseLayout: chooseLayout,
     dayValue: dayValue,

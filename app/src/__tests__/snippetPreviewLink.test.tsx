@@ -60,7 +60,15 @@ const LINKABLE =
 const PLAIN = 'Order {formtext: name=ORDER_REF}, note {formtext: name=NOTE}';
 
 function render(body: string): string {
-  return renderToStaticMarkup(<SnippetPreview body={body} lang="EN" />);
+  return renderToStaticMarkup(
+    <SnippetPreview
+      body={body}
+      lang="EN"
+      checkUnfinished
+      onCheckUnfinishedChange={() => {}}
+      onEditBody={() => {}}
+    />,
+  );
 }
 
 describe('SnippetPreview — the Link box', () => {

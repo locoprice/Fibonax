@@ -50,7 +50,7 @@ const SHAPE = ['fields', 'buttons', 'preview', 'layout', 'steps', 'fmtOverride',
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
                      'other', 'otherOn', 'otherText',
                      'cols', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
-                     'link', 'fromLink'];
+                     'link', 'fromLink', 'prints'];
 
 const vm1 = ff.fillForm(
   'Hola {NOMBRE}, tu {formmenu: A,B,C; name=PLAN; default=B} para el {CHECKIN_DATE}.',

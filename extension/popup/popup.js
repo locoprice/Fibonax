@@ -136,6 +136,9 @@ var DB = {
             pinned: s.pinned || false,
             // Deprecated snippets expand with a warning (content.js reviewWarning).
             review_status: s.review_status || 'approved',
+            // false = the person asked not to be warned when this snippet's
+            // text looks unfinished (fill-form.js checksUnfinished).
+            check_unfinished: s.check_unfinished !== false,
             expansions: um[s.id] || 0,
             // The fallback anchor for the unused-asset notice: a snippet with no
             // expansion on record is measured from the day it was added, which
@@ -1838,15 +1841,67 @@ function copyFilled(id){
   var form=document.querySelector('.d-fields[data-fid="'+id+'"]');
   if(!window.SBFillFormUI.validate(form,vm)) return;
   var out=vm.preview;
-  try{ navigator.clipboard.writeText(out||''); }catch(e){}
-  showToast('Copied filled text');
+  checkThenCopy(s, out, vm, form, function(){
+    try{ navigator.clipboard.writeText(out||''); }catch(e){}
+    showToast('Copied filled text');
+  });
 }
 // Enter inside an open detail copies the primary action (filled when the body
 // is dynamic, otherwise the raw body).
 function copyDetailPrimary(id){
   var s=findSnip(id); if(!s) return;
   var body=detailActiveBody(s);
-  if(resolveFilled(body, detailActiveLang(s))!==body) copyFilled(id); else copyBody(id);
+  if(resolveFilled(body, detailActiveLang(s))!==body) copyFilled(id); else copyFinishedBody(id);
+}
+
+// ── BEFORE IT GOES OUT ──────────────────────────────────────────────
+// The same check, and the same window, as the page: SBFillForm.unfinished()
+// decides, SBFillFormUI.unfinishedDialog() shows it. "Copy raw" copies the
+// template on purpose, braces and all, so it is the one copy not checked.
+function checkThenCopy(s, text, vm, form, copy){
+  var M=window.SBFillForm, UI=window.SBFillFormUI;
+  var fields=vm?vm.fields:[];
+  var items=(M&&M.unfinished&&M.checksUnfinished(s))?M.unfinished(text, fields):[];
+  if(!items.length||!UI||!UI.unfinishedDialog){ copy(); return; }
+  var canFix=!!form&&items.some(function(it){ return !!it.key; });
+  UI.unfinishedDialog({
+    items: items,
+    fields: fields,
+    primary: canFix?'fix':'edit',
+    anyway: 'copy-anyway',
+    mute: !!s.id,
+    onPrimary: function(){
+      if(canFix) UI.flag(form, vm, items);
+      else inaOpenInDashboard(s.id);
+    },
+    // The copy goes first, while the click still counts as the person's:
+    // a clipboard write that waits for the network can be refused. The
+    // switch is saved after, and its toast follows.
+    onAnyway: function(muted, done){
+      if(!muted){ copy(); return; }
+      done();
+      copy();
+      muteUnfinished(s, showToast);
+    },
+    onClose: function(){}
+  });
+}
+
+// "Don't warn me about this snippet again": saved by the worker, which also
+// writes the expansion cache, so the page stops warning at once too.
+function muteUnfinished(s, done){
+  var M=window.SBFillForm;
+  try{
+    chrome.runtime.sendMessage({ type:'snippet_check_unfinished', id:s.id, on:false }, function(res){
+      var ok=!chrome.runtime.lastError && !!(res&&res.ok);
+      if(chrome.runtime.lastError) console.error('muteUnfinished:', chrome.runtime.lastError.message);
+      if(ok) s.check_unfinished=false;
+      done(M.unfinishedText(ok?'muted':'mute-failed'));
+    });
+  }catch(e){
+    console.error('muteUnfinished:', e);
+    done(M.unfinishedText('mute-failed'));
+  }
 }
 
 // ── ADJUST PANEL ────────────────────────────────────────────────────
@@ -2062,7 +2117,7 @@ function renderDetailHtml(s){
     var bodyCls  = body.trim() ? 'd-body' : 'd-body plain';
     h+='<div class="'+bodyCls+'">'+bodyHtml+'</div>'
       +'<div class="d-acts">'
-        +'<button class="d-btn pri" type="button" data-copybody="'+esc(s.id)+'">'+copyIco+'Copy body</button>'
+        +'<button class="d-btn pri" type="button" data-copyfinished="'+esc(s.id)+'">'+copyIco+'Copy body</button>'
         +scBtn+editBtn
       +'</div>';
   }
@@ -2259,6 +2314,9 @@ function wireListRows(el){
   });
   el.querySelectorAll('[data-copyfilled]').forEach(function(btn){
     btn.addEventListener('click',function(e){ e.stopPropagation(); copyFilled(btn.dataset.copyfilled); });
+  });
+  el.querySelectorAll('[data-copyfinished]').forEach(function(btn){
+    btn.addEventListener('click',function(e){ e.stopPropagation(); copyFinishedBody(btn.dataset.copyfinished); });
   });
   el.querySelectorAll('[data-copysc]').forEach(function(btn){
     btn.addEventListener('click',function(e){ e.stopPropagation(); var s=findSnip(btn.dataset.copysc); if(s) doCopyShortcut(s); });
@@ -2633,6 +2691,18 @@ function copyBody(id){
   var body=detailBody(s, lang, vars);
   try{ navigator.clipboard.writeText(body||''); }catch(e){}
   showToast('Copied '+lang+' body');
+}
+// A body with nothing to resolve is already the finished text, so its Copy is
+// the message itself and is checked like Copy filled.
+function copyFinishedBody(id){
+  var s=findSnip(id); if(!s) return;
+  var vars=findVariants(s);
+  var lang=(detailLang && vars[detailLang]) ? detailLang : (s.lang||'EN');
+  var body=detailBody(s, lang, vars);
+  checkThenCopy(s, body, null, null, function(){
+    try{ navigator.clipboard.writeText(body||''); }catch(e){}
+    showToast('Copied '+lang+' body');
+  });
 }
 
 function flashChip(id){

@@ -159,6 +159,13 @@ export interface Snippet extends ReviewFields {
    */
   is_active: boolean;
   /**
+   * Warn before inserting when the text looks unfinished ("[xxx]", an empty
+   * box). False once someone chose "Don't warn me about this snippet again";
+   * the editor turns it back on. Read on every surface through
+   * `checksUnfinished` in extension/shared/fill-form.js.
+   */
+  check_unfinished: boolean;
+  /**
    * Template-validation verdict persisted on write (STATUS-ICONS-001). The
    * queryable mirror of `validateSnippet`; the UI re-validates live so a stale
    * flag can never surface a wrong badge.

@@ -556,6 +556,13 @@ export const useSnippetStore = create<SnippetStore>((set, get) => ({
         },
         editNote,
       );
+      // The revision function writes content and does not know this switch, so
+      // it is saved beside it, and only when it changed: a save that leaves it
+      // alone costs no second write.
+      const checkUnfinished = patch.check_unfinished ?? snippet.check_unfinished;
+      if (checkUnfinished !== snippet.check_unfinished) {
+        await snippetsApi.setCheckUnfinished(id, checkUnfinished);
+      }
       const folder = patch.folder_id
         ? get().folders.find((f) => f.id === patch.folder_id)
         : null;
@@ -573,6 +580,7 @@ export const useSnippetStore = create<SnippetStore>((set, get) => ({
             : (folder?.name ?? null),
         pinned: patch.pinned ?? false,
         alternative_queries: patch.alternative_queries ?? [],
+        check_unfinished: checkUnfinished,
         updated_at: new Date().toISOString(),
         // The DB stamps updated_by = auth.uid() on this write; mirror it
         // locally so the attribution labels stay fresh without a refetch.

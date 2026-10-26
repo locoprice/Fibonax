@@ -73,6 +73,9 @@
       row.querySelector('.ff-label').textContent = root.SBFillForm.fieldTitle(field) + (field.required ? ' *' : '');
       var message = state.attempted ? field.error : '';
       var error = row.querySelector('.ff-error'); error.hidden = !message; error.textContent = message;
+      // A box flagged by Fix it stops being flagged the moment it is changed.
+      var warn = row.querySelector('.ff-warn');
+      if (warn && row._ffWarnedValue !== field.value) { warn.remove(); delete row._ffWarnedValue; }
       row.querySelectorAll(state.cfg.control).forEach(function(el) {
         el.setAttribute('aria-invalid', message ? 'true' : 'false');
       });
@@ -93,5 +96,240 @@
     }
     return false;
   }
-  root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate };
+  // ── BEFORE IT GOES OUT ──────────────────────────────────────────
+  // What every surface shows when SBFillForm.unfinished() finds something in
+  // the text about to be inserted or copied. One window, built here, so the
+  // page, the popup and the phone say the same words in the same order and
+  // answer the same keys. The words come from SBFillForm.unfinishedText.
+
+  function words(key, slots) { return root.SBFillForm.unfinishedText(key, slots); }
+
+  function lowerFirst(s) { return s ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
+
+  // The line under one piece: why it was flagged and, for a piece that sits in
+  // a box, which box to look in.
+  function why(item, fields) {
+    if (item.kind === 'empty' || !item.key) return item.reason;
+    var field = (fields || []).find(function(f) { return f.key === item.key; });
+    return field ? item.reason + ' · ' + words('in-field', { title: root.SBFillForm.fieldTitle(field) }) : item.reason;
+  }
+
+  var openDialog = null;
+
+  /**
+   * Opens the warning. Only one is ever open: a second call replaces the first.
+   *
+   * @param {Object} opts
+   * @param {Array}  opts.items    what SBFillForm.unfinished() found
+   * @param {Array}  [opts.fields] the form's fields, to name the box a piece is in
+   * @param {string} opts.primary  'fix' (back to the form), 'edit' (open the
+   *   editor), or '' where neither can help: the phone, which edits nothing
+   * @param {string} opts.anyway   'insert-anyway', 'copy-anyway' or 'share-anyway'
+   * @param {boolean} [opts.mute]  offer "Don't warn me about this snippet again"
+   * @param {Function} opts.onPrimary
+   * @param {Function} opts.onAnyway  (muted, done): muted is true when the mute
+   *   box is ticked; the window then stays open until done() is called
+   * @param {Function} opts.onClose   Esc, the close button or the backdrop
+   * @returns {{ close: Function, busy: Function }} close removes it with no answer;
+   *   busy(true) holds the buttons while the caller saves the mute choice
+   */
+  function unfinishedDialog(opts) {
+    if (openDialog) openDialog.close();
+    var doc = root.document;
+    var items = opts.items || [];
+    var shown = items.slice(0, root.SBFillForm.UNFINISHED_SHOWN);
+    var returnFocus = doc.activeElement;
+
+    var bd = doc.createElement('div');
+    bd.id = 'ff-unf-bd';
+    var box = doc.createElement('div');
+    box.id = 'ff-unf';
+    box.setAttribute('role', 'alertdialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-labelledby', 'ff-unf-title');
+    box.setAttribute('aria-describedby', 'ff-unf-intro');
+
+    var head = doc.createElement('div');
+    head.className = 'ff-unf-head';
+    var icon = doc.createElement('span');
+    icon.className = 'ff-unf-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
+    var title = doc.createElement('h2');
+    title.id = 'ff-unf-title';
+    title.textContent = words('title');
+    var closeBtn = doc.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'ff-unf-close';
+    closeBtn.setAttribute('aria-label', 'Cancel');
+    closeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+    head.appendChild(icon); head.appendChild(title); head.appendChild(closeBtn);
+
+    var body = doc.createElement('div');
+    body.className = 'ff-unf-body';
+    var intro = doc.createElement('p');
+    intro.id = 'ff-unf-intro';
+    intro.textContent = words('intro');
+    body.appendChild(intro);
+    var list = doc.createElement('ul');
+    list.className = 'ff-unf-list';
+    shown.forEach(function(item) {
+      var li = doc.createElement('li');
+      var piece = doc.createElement('span');
+      piece.className = 'ff-unf-piece' + (item.kind === 'empty' ? ' ff-unf-box' : '');
+      piece.textContent = item.text;
+      var line = doc.createElement('span');
+      line.className = 'ff-unf-why';
+      line.textContent = why(item, opts.fields);
+      li.appendChild(piece); li.appendChild(line);
+      list.appendChild(li);
+    });
+    body.appendChild(list);
+    if (items.length > shown.length) {
+      var more = doc.createElement('p');
+      more.className = 'ff-unf-more';
+      more.textContent = words('more', { n: items.length - shown.length });
+      body.appendChild(more);
+    }
+    var muteBox = null;
+    if (opts.mute) {
+      var mute = doc.createElement('label');
+      mute.className = 'ff-unf-mute';
+      muteBox = doc.createElement('input');
+      muteBox.type = 'checkbox';
+      var muteText = doc.createElement('span');
+      muteText.textContent = words('mute');
+      mute.appendChild(muteBox); mute.appendChild(muteText);
+      body.appendChild(mute);
+    }
+
+    var foot = doc.createElement('div');
+    foot.className = 'ff-unf-foot';
+    var anyway = doc.createElement('button');
+    anyway.type = 'button';
+    anyway.className = 'ff-unf-secondary';
+    anyway.textContent = words(opts.anyway);
+    var primary = null;
+    foot.appendChild(anyway);
+    if (opts.primary) {
+      primary = doc.createElement('button');
+      primary.type = 'button';
+      primary.className = 'ff-unf-primary';
+      primary.textContent = words(opts.primary);
+      foot.appendChild(primary);
+    }
+
+    box.appendChild(head); box.appendChild(body); box.appendChild(foot);
+    doc.body.appendChild(bd);
+    doc.body.appendChild(box);
+
+    var settled = false;
+    function remove() {
+      if (settled) return false;
+      settled = true;
+      doc.removeEventListener('keydown', onKey, true);
+      box.remove(); bd.remove();
+      if (openDialog === handle) openDialog = null;
+      return true;
+    }
+    function cancel() {
+      if (!remove()) return;
+      if (returnFocus && returnFocus.isConnected && typeof returnFocus.focus === 'function') {
+        try { returnFocus.focus({ preventScroll: true }); } catch (e) { returnFocus.focus(); }
+      }
+      if (typeof opts.onClose === 'function') opts.onClose();
+    }
+    function onKey(e) {
+      if (settled) return;
+      if (e.key === 'Escape') {
+        e.preventDefault(); e.stopPropagation(); cancel();
+        return;
+      }
+      if (!box.contains(doc.activeElement)) return;
+      // The page under the window must not act on a key meant for it: Enter in
+      // a mail editor sends, a letter can be a shortcut.
+      e.stopPropagation();
+      if (e.key === 'Tab') {
+        var stops = [closeBtn, muteBox, anyway, primary].filter(function(n) { return n && !n.disabled; });
+        var at = stops.indexOf(doc.activeElement);
+        var next = e.shiftKey ? (at <= 0 ? stops.length - 1 : at - 1) : (at === stops.length - 1 ? 0 : at + 1);
+        e.preventDefault();
+        stops[next].focus();
+      }
+    }
+
+    closeBtn.addEventListener('click', cancel);
+    bd.addEventListener('click', cancel);
+    if (primary) primary.addEventListener('click', function() { if (remove()) opts.onPrimary(); });
+    anyway.addEventListener('click', function() {
+      var muted = !!(muteBox && muteBox.checked);
+      // Ticked, the window stays open, held, while the caller saves the choice,
+      // and closes when the caller says so. Otherwise it closes first.
+      if (muted) handle.busy(true);
+      else if (!remove()) return;
+      opts.onAnyway(muted, remove);
+    });
+    doc.addEventListener('keydown', onKey, true);
+    // The safe choice holds the focus, so a stray Enter fixes, or closes,
+    // rather than sends.
+    (primary || closeBtn).focus();
+
+    var handle = {
+      close: remove,
+      busy: function(on) {
+        [closeBtn, muteBox, anyway, primary].forEach(function(n) { if (n) n.disabled = !!on; });
+        box.setAttribute('aria-busy', on ? 'true' : 'false');
+      }
+    };
+    openDialog = handle;
+    return handle;
+  }
+
+  /**
+   * Fix it: marks each box the warning named with what was wrong in it, and
+   * puts the caret in the first. Marks the snippet's own text cannot carry
+   * stay in the window's list; nothing here rewrites what the person typed.
+   * Returns whether any box was marked.
+   */
+  function flag(host, vm, items) {
+    if (!host || !host._fillUI) return false;
+    var doc = root.document;
+    var byKey = {};
+    (items || []).forEach(function(it) { if (it.key) (byKey[it.key] = byKey[it.key] || []).push(it); });
+    var first = null;
+    host._fillUI.rows.forEach(function(row, index) {
+      var key = row.dataset.ffKey;
+      var note = row.querySelector('.ff-warn');
+      var mine = byKey[key];
+      if (!mine) { if (note) note.remove(); delete row._ffWarnedValue; return; }
+      if (!note) {
+        note = doc.createElement('p');
+        note.className = 'ff-warn';
+        note.id = 'ff-warn-' + host._fillUI.cfg.prefix + '-' + index;
+        var error = row.querySelector('.ff-error');
+        row.insertBefore(note, error || null);
+        row.querySelectorAll(host._fillUI.cfg.control).forEach(function(el) {
+          var ids = (el.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+          if (ids.indexOf(note.id) === -1) ids.push(note.id);
+          el.setAttribute('aria-describedby', ids.join(' '));
+        });
+      }
+      note.textContent = mine.map(function(it) {
+        return it.kind === 'empty' ? it.reason : '“' + it.text + '”: ' + lowerFirst(it.reason);
+      }).join(' · ');
+      var field = vm.fields.find(function(f) { return f.key === key; });
+      row._ffWarnedValue = field ? field.value : '';
+      if (!first) first = row;
+    });
+    if (!first) return false;
+    var parent = first.parentElement;
+    while (parent && parent !== host) { if (parent.tagName === 'DETAILS') parent.open = true; parent = parent.parentElement; }
+    var control = first.querySelector('.ff-menu > summary') || first.querySelector(host._fillUI.cfg.control);
+    if (control) control.focus();
+    first.scrollIntoView({ block: 'nearest' });
+    return true;
+  }
+
+  root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
+    unfinishedDialog: unfinishedDialog, flag: flag };
 })(typeof window !== 'undefined' ? window : this);

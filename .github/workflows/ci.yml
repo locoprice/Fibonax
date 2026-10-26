@@ -56,6 +56,9 @@ jobs:
       - name: Fill form view model check
         run: node scripts/check-fill-form.js
 
+      - name: Unfinished-text check
+        run: node scripts/check-unfinished.js
+
       - name: Unused-asset rule parity check
         run: node scripts/check-inactivity-parity.js
 

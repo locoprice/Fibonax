@@ -44,6 +44,7 @@ function snippet(
     notion_page_id: null,
     pinned: false,
     is_active: true,
+    check_unfinished: true,
     alternative_queries: [],
     updated_at: '2026-09-01T00:00:00Z',
     updated_by: 'u1',

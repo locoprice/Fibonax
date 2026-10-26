@@ -115,6 +115,7 @@ function row(over: Partial<SnippetRow> = {}): SnippetRow {
     notion_page_id: null,
     pinned: false,
     is_active: true,
+    check_unfinished: true,
     is_malformed: false,
     alternative_queries: [],
     updated_at: '2026-01-01T00:00:00.000Z',

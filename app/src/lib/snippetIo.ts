@@ -17,6 +17,7 @@ interface ExportItem {
   language: SnippetRow['language'];
   folder_name: string | null;
   pinned: boolean;
+  check_unfinished: boolean;
 }
 
 export function exportSnippets(snippets: SnippetRow[]): void {
@@ -31,6 +32,7 @@ export function exportSnippets(snippets: SnippetRow[]): void {
       language: s.language,
       folder_name: s.folder_name,
       pinned: s.pinned,
+      check_unfinished: s.check_unfinished,
     })),
   };
 
@@ -104,6 +106,9 @@ function coerceItem(raw: Record<string, unknown>): SnippetFormValues | null {
     language,
     folder_id: null,
     pinned: raw['pinned'] === true,
+    // Only an explicit false turns the warning off: a file from another tool,
+    // or from before the switch existed, imports checked.
+    check_unfinished: raw['check_unfinished'] !== false,
     alternative_queries: Array.isArray(raw['alternative_queries'])
       ? (raw['alternative_queries'] as string[]).filter((q) => typeof q === 'string')
       : [],
