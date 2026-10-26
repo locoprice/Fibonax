@@ -390,5 +390,77 @@ if (typeof sandbox._renderPickerItems === 'function') {
   failed++;
 }
 
-if (failed) { console.error('\nX ' + failed + ' check(s) failed'); process.exit(1); }
-console.log('OK lang-variants + shipped-content gate');
+// -- 4. the Context panel offers Brain items and prompts --------------
+// Snippets are text to expand, not context. The search is told which kinds to
+// return, so a snippet never reaches the panel whatever the draft says. It
+// leaves prompts out unless they are named, so they are named. Runs the REAL
+// functions, sliced out of background.js.
+const pending = [];
+{
+  const BG = fs.readFileSync(path.join(__dirname, '..', 'extension', 'background', 'background.js'), 'utf8');
+  const from = BG.indexOf('function knowledgeSearch(');
+  const to = BG.indexOf('chrome.runtime.onMessage.addListener(', from);
+  if (from === -1 || to <= from) {
+    console.error('X background.js: cannot slice knowledgeSearch, the markers moved');
+    failed++;
+  } else {
+    const asked = [];
+    const bgSandbox = { supaRpc: (fn, params) => { asked.push({ fn, params }); return Promise.resolve([]); } };
+    vm.createContext(bgSandbox);
+    vm.runInContext(BG.slice(from, to) + '\nknowledgeSearch("airport", 40);', bgSandbox);
+    check('the Context panel runs one search', asked.map((a) => a.fn), ['knowledge_search']);
+    check('the Context panel asks for Brain items and prompts', asked[0].params.p_kinds, ['memory', 'prompt']);
+  }
+
+  // What happens to the rows the user ticks: each kind is read from its own table.
+  const bodiesFrom = BG.indexOf('var MEMORY_ID_RE');
+  const bodiesTo = BG.indexOf('function supaRpc(', bodiesFrom);
+  if (bodiesFrom === -1 || bodiesTo <= bodiesFrom) {
+    console.error('X background.js: cannot slice memoryBodies, the markers moved');
+    failed++;
+  } else {
+    const PROMPT_ID = '11111111-1111-4111-8111-111111111111';
+    const SHARD_ID = '22222222-2222-4222-8222-222222222222';
+    const fetched = [];
+    const bodySandbox = {
+      supaFetch: (table, qs) => { fetched.push({ table, qs }); return Promise.resolve([{ id: 'row-' + table, body: table + ' text' }]); },
+      items: [
+        { id: PROMPT_ID, kind: 'prompt' },
+        { id: SHARD_ID, kind: 'memory' },
+        { id: 'not-a-uuid', kind: 'prompt' },
+        { id: 's1779', kind: 'snippet' },
+      ],
+    };
+    vm.createContext(bodySandbox);
+    const result = vm.runInContext(BG.slice(bodiesFrom, bodiesTo) + '\nmemoryBodies(items);', bodySandbox);
+    const query = (table) => (fetched.find((f) => f.table === table) || { qs: '' }).qs;
+
+    check('each kind is read from its own table', fetched.map((f) => f.table).sort(), ['memory_shards', 'prompts', 'snippets']);
+    check('a prompt is read from prompts, with its text as the body',
+      query('prompts').includes('select=id,body:content') && query('prompts').includes('id=in.(' + PROMPT_ID + ')'), true);
+    check('an archived prompt is never read', query('prompts').includes('review_status=neq.archived'), true);
+    check('a prompt id never reaches the Brain item query', query('memory_shards').includes(PROMPT_ID), false);
+    check('a Brain item id never reaches the prompt query', query('prompts').includes(SHARD_ID), false);
+    check('an id that is not uuid-shaped is never sent as a prompt', query('prompts').includes('not-a-uuid'), false);
+    pending.push(result.then((rows) => {
+      check('a prompt row comes back tagged as a prompt',
+        rows.filter((r) => r.kind === 'prompt').map((r) => [r.id, r.body]), [['row-prompts', 'prompts text']]);
+    }));
+  }
+
+  // The badge on each row says what the person reads it as.
+  const panel = sandbox.SBMemoryPicker;
+  if (panel && typeof panel.kindLabel === 'function') {
+    check('a Brain item is badged Brain, not memory', panel.kindLabel('memory'), 'Brain');
+    check('a prompt is badged Prompt', panel.kindLabel('prompt'), 'Prompt');
+    check('a kind with no wording of its own is shown as it is', panel.kindLabel('other'), 'other');
+  } else {
+    console.error('X memory-picker.js no longer exposes kindLabel');
+    failed++;
+  }
+}
+
+Promise.all(pending).then(() => {
+  if (failed) { console.error('\nX ' + failed + ' check(s) failed'); process.exit(1); }
+  console.log('OK lang-variants + shipped-content gate');
+});

@@ -145,9 +145,9 @@ function inListQuoted(values) {
 /**
  * Bodies for the ids the user accepted in the injection panel.
  *
- * Takes `{id, kind}` pairs, never bare ids, because the two kinds live in
- * different tables with different id types and there is no one query that
- * serves both. Reading only memory_shards was the original defect: a snippet id
+ * Takes `{id, kind}` pairs, never bare ids, because the kinds live in
+ * different tables, some with different id types, and there is no one query that
+ * serves them all. Reading only memory_shards was the original defect: a snippet id
  * matched nothing there, and because it is not uuid-shaped it also made the
  * request 400, so the whole batch came back empty and every accepted item was
  * inserted as a heading over a blank line.
@@ -172,13 +172,16 @@ function memoryBodies(items) {
   var list = Array.isArray(items) ? items : [];
   var shardIds = [];
   var snippetIds = [];
+  var promptIds = [];
 
   for (var i = 0; i < list.length; i++) {
     var entry = list[i];
     if (!entry || !entry.id) continue;
     var id = String(entry.id);
     if (entry.kind === 'snippet') snippetIds.push(id);
-    else if (MEMORY_ID_RE.test(id)) shardIds.push(id);
+    else if (!MEMORY_ID_RE.test(id)) continue;
+    else if (entry.kind === 'prompt') promptIds.push(id);
+    else shardIds.push(id);
   }
 
   function tag(kind) {
@@ -204,6 +207,11 @@ function memoryBodies(items) {
   if (snippetIds.length) {
     jobs.push(supaFetch('snippets',
       'select=id,lang,body,bodies&is_active=is.true&review_status=neq.archived&id=in.(' + inListQuoted(snippetIds) + ')').then(tag('snippet')));
+  }
+  if (promptIds.length) {
+    // A prompt keeps its text in `content`; the alias hands it back as `body`.
+    jobs.push(supaFetch('prompts',
+      'select=id,body:content&review_status=neq.archived&id=in.(' + promptIds.join(',') + ')').then(tag('prompt')));
   }
   if (!jobs.length) return Promise.resolve([]);
 
@@ -296,11 +304,15 @@ function setCheckUnfinished(id, on) {
 /**
  * Rank candidates for a draft. Summaries and scores, never bodies: the panel
  * lists what it found before anything is fetched to insert.
+ *
+ * Brain items and prompts. Snippets are text to expand, not context, and
+ * listing them buried the Brain items. The search leaves prompts out unless
+ * they are asked for by name, which is why 'prompt' is spelled out here.
  */
 function knowledgeSearch(query, limit) {
   return supaRpc('knowledge_search', {
     p_query: query || null,
-    p_kinds: null,
+    p_kinds: ['memory', 'prompt'],
     p_label_ids: null,
     p_container_ids: null,
     p_limit: typeof limit === 'number' ? limit : 40

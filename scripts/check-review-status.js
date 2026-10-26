@@ -13,6 +13,8 @@
 //      panel, the phone, the MCP server or Ask leaves it out.
 //   4. A deprecated snippet warns with the same sentence on every surface.
 //   5. Search still runs with the caller's own rights.
+//   6. The Context panel offers prompts, and only when it asks for them: Ask and
+//      every installed extension keep seeing snippets and Brain items.
 const fs = require('fs');
 const path = require('path');
 
@@ -106,6 +108,23 @@ const ksBody = ks.slice(0, ks.indexOf('$$;'));
 check('knowledge_search is recreated', ksBody.length > 0);
 check('knowledge_search stays SECURITY INVOKER', !/security definer/i.test(ksBody.replace(/--.*$/gm, '')));
 check('knowledge_search is granted to signed-in users only', /grant execute on function public\.knowledge_search\([^)]*\) to authenticated;/.test(MIGRATION));
+
+// ── 6. The Context panel offers prompts, and only when asked ───────────────
+const CONTEXT = read('services/supabase/migrations/20261025120000_context_prompts_not_snippets.sql');
+const contextFn = CONTEXT.slice(CONTEXT.indexOf('create or replace function public.knowledge_search('));
+const contextBody = contextFn.slice(0, contextFn.indexOf('$$;'));
+const promptRows = CONTEXT.slice(CONTEXT.indexOf("'prompt'::text"), CONTEXT.indexOf('comment on view'));
+check('the knowledge view leaves archived prompts out', /from public\.prompts p[\s\S]*where p\.review_status <> 'archived'/.test(promptRows));
+check('the knowledge view still reads as the caller', /create or replace view app\.knowledge_index\s+with \(security_invoker = true\)/.test(CONTEXT));
+check('knowledge_search still runs with the caller\'s rights', contextBody.length > 0 && !/security definer/i.test(contextBody.replace(/--.*$/gm, '')));
+check('knowledge_search is still granted to signed-in users only',
+  /revoke all on function public\.knowledge_search\([^)]*\) from public, anon;/.test(CONTEXT) &&
+  /grant execute on function public\.knowledge_search\([^)]*\) to authenticated;/.test(CONTEXT));
+check('no kind list still means no prompts', contextBody.includes("when p_kinds is null then k.kind <> 'prompt'"));
+check('word counts come from the whole library', contextBody.includes("where (k.kind <> 'prompt' or 'prompt' = any(coalesce(p_kinds, '{}'::text[])))"));
+check('only the kinds asked for compete for the best score', /join base w on w\.kind = s\.kind and w\.source_id = s\.source_id and w\.wanted/.test(contextBody));
+check('Ask never names a kind, so it never sees prompts', !/p_kinds/.test(ASK));
+check('the Context panel leaves archived prompts out', /supaFetch\('prompts',\s*'select=id,body:content&review_status=neq\.archived/.test(BACKGROUND));
 
 if (failed > 0) {
   console.error('\n' + failed + ' review status check(s) failed.');
