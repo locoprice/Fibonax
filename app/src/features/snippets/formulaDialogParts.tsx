@@ -704,6 +704,8 @@ export function ItemListSection({
   noun,
   onEdit,
   editing,
+  only,
+  detail: detailOf,
 }: {
   body: string;
   onReplace: (start: number, end: number, text: string) => void;
@@ -713,14 +715,18 @@ export function ItemListSection({
   onEdit?: (item: BodyItem) => void;
   /** The item being changed now, to mark its row. */
   editing?: BodyItem | null;
+  /** Keeps only some of the items of those kinds, such as the ones that read a page. */
+  only?: (item: BodyItem) => boolean;
+  /** What the row's second line says, in place of the item's own detail. */
+  detail?: (item: BodyItem) => string;
 }) {
   const items = useMemo<BodyListItem[]>(
     () =>
       bodyItems(body)
-        .filter((i) => kinds.includes(i.kind))
+        .filter((i) => kinds.includes(i.kind) && (!only || only(i)))
         .map((i) => {
           const title = itemTitle(i);
-          const detail = itemDetail(i);
+          const detail = detailOf ? detailOf(i) : itemDetail(i);
           return {
             key: i.start,
             removeStart: i.start,
@@ -753,7 +759,7 @@ export function ItemListSection({
             active: editing != null && editing.start === i.start && editing.raw === i.raw,
           } satisfies BodyListItem;
         }),
-    [body, kinds, onEdit, editing],
+    [body, kinds, onEdit, editing, only, detailOf],
   );
   return <BodyListSection body={body} onReplace={onReplace} items={items} noun={noun} />;
 }

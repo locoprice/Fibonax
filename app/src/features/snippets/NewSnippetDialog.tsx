@@ -27,6 +27,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Segmented } from '@/components/ui/segmented';
 import { Toggle, ToggleGroup } from '@/components/ui/toggle';
 import { AssetAboutButton } from '@/components/shared/AssetAboutButton';
 import { ReviewStatusMenu } from '@/components/shared/ReviewStatusMenu';
@@ -55,7 +56,6 @@ import { FormMenuDialog } from '@/features/snippets/FormMenuDialog';
 import { FormNumberDialog } from '@/features/snippets/FormNumberDialog';
 import { FormTextDialog } from '@/features/snippets/FormTextDialog';
 import { FormTimeDialog } from '@/features/snippets/FormTimeDialog';
-import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { SnippetPreview } from '@/features/snippets/SnippetPreview';
 import { cn, countWords } from '@/lib/utils';
 import { findMenuTokenAt, nextMenuName } from '@/lib/formMenuToken';
@@ -87,11 +87,8 @@ import {
   type DateFormat,
   type TimeFormat,
 } from '@/lib/formDateToken';
-import {
-  LABEL_LINK_MODES,
-  linkFromDraft,
-  type LinkRuleDraft,
-} from '@/lib/linkRule';
+import { fieldNameFromWords } from '@/lib/linkFieldName';
+import { linkValue, parseLinkRule, readLinkAttr } from '@/lib/linkRule';
 import { clearBodySlot, rowBodies, setBodySlot } from '@/lib/snippetBodies';
 import { translateApi, type TranslateTarget } from '@/lib/api/translateApi';
 import {
@@ -266,18 +263,51 @@ const BUTTON_FIELDS: { label: string; hint: string }[] = [
     hint: 'Whether the button trims the space around it. On a line of its own it leaves a blank line behind unless it does.' },
 ];
 
-// Fill from a pasted link sits under Actions, beside Button, with the tick box
-// and the Add buttons in its footer. It was a toggle that only described the
-// feature, with nothing to press, until v3.84.0; the tick box in each field's
-// own window stays as it was, for a field already in the snippet.
-const LINK_FIELDS: { label: string; hint: string }[] = [
-  { label: 'Add a field',
-    hint: 'Leave Fill from a pasted link ticked, type the label the value comes after on the page, then add a Text, Number, Date or Choice. It arrives with a generic name, like TEXT_1.' },
-  { label: 'A field you already have',
-    hint: 'Open it in its own window and tick Fill from a pasted link there.' },
-  { label: 'At fill time',
-    hint: 'A Link box appears in the form. Paste, and the fields fill. Check them, then insert.' },
+// Fill from a pasted link sits under Actions, beside Button: two numbered
+// steps (the word on the page, the kind of field), one Add field button, and
+// the list of fields that already read a page. It carried a tick box and four
+// Add buttons under about 140 words of explanation until v3.88.0, and before
+// v3.84.0 it only described the feature, with nothing to press. The tick box
+// in each field's own window stays as it was, for a field already in the
+// snippet.
+type PageFieldKind = 'text' | 'number' | 'date' | 'menu';
+
+const PAGE_KIND_OPTIONS: readonly { value: PageFieldKind; label: string }[] = [
+  { value: 'text', label: 'Text' },
+  { value: 'number', label: 'Number' },
+  { value: 'date', label: 'Date' },
+  { value: 'menu', label: 'Choice' },
 ];
+
+const PAGE_KINDS: readonly BodyItemKind[] = ['text', 'number', 'date', 'time', 'menu'];
+const PAGE_NOUN = { one: 'field fills from the link', many: 'fields fill from the link' };
+const PAGE_KIND_WORD: Record<string, string> = {
+  text: 'Text',
+  number: 'Number',
+  date: 'Date',
+  time: 'Time',
+  menu: 'Choice',
+};
+
+/** The `link=` rule a field token carries, in its written spelling, or ''. */
+function pageRuleOf(item: BodyItem): string {
+  const start = item.raw.indexOf(':') + 1;
+  const close = item.raw.lastIndexOf('}');
+  return start === 0 || close < start ? '' : readLinkAttr(item.raw.slice(start, close));
+}
+
+function readsPage(item: BodyItem): boolean {
+  return pageRuleOf(item) !== '';
+}
+
+/** "Text · after Customer", or what a count adds up. */
+function pageDetail(item: BodyItem): string {
+  const rule = parseLinkRule(pageRuleOf(item));
+  const kind = PAGE_KIND_WORD[item.kind] ?? '';
+  if (!rule) return kind;
+  const words = rule.words.join(' or ');
+  return rule.mode === 'before' ? `${kind} · adds up the numbers before ${words}` : `${kind} · after ${words}`;
+}
 
 const MENU_FIELDS: { label: string; hint: string }[] = [
   { label: 'Values',
@@ -589,16 +619,18 @@ export function NewSnippetDialog() {
   // seeing the choice next to the button is the whole point of it.
   const [dateFormat, setDateFormat] = useState<DateFormat>(DEFAULT_DATE_FORMAT);
   const [timeFormat, setTimeFormat] = useState<TimeFormat>(DEFAULT_TIME_FORMAT);
-  // Where on a pasted page the next field added from the Fill from a pasted
-  // link section reads its value. Ticked to start with, since that is what the
-  // section is for. The label is cleared once a field takes it: a label belongs
-  // to one field, and two fields reading the same label would always fill with
-  // the same answer.
-  const [pageLink, setPageLink] = useState<LinkRuleDraft>({ enabled: true, mode: 'after', words: '' });
-  // An Add button pressed with the box ticked and no label, so nothing to read.
+  // The word before the value on a pasted page, for the next field added from
+  // the Fill from a pasted link entry, and the kind of field it becomes. The
+  // word is cleared once a field takes it: a word belongs to one field, and
+  // two fields reading the same word would always fill with the same answer.
+  const [pageWords, setPageWords] = useState('');
+  const [pageKind, setPageKind] = useState<PageFieldKind>('text');
+  // Add field pressed with no word typed, so nothing to read.
   const [pageLinkError, setPageLinkError] = useState(false);
-  // The rule a Choice added from that section starts with, handed to its window.
+  // The rule and the name a Choice added from that entry starts with, handed
+  // to its window.
   const [menuLink, setMenuLink] = useState('');
+  const [menuName, setMenuName] = useState('');
   // Text-field builder — writes a {formtext:} token at the cursor.
   const [textFieldOpen, setTextFieldOpen] = useState(false);
   // Number-field builder — writes a number token at the cursor. Its own type in
@@ -886,43 +918,60 @@ export function NewSnippetDialog() {
     );
   }
 
-  function changePageLink(next: LinkRuleDraft) {
-    setPageLink(next);
+  function changePageWords(raw: string) {
+    // `;` `{` `}` and line breaks would end or split the token, so they never get in.
+    setPageWords(raw.replace(/[;{}\r\n]/g, ''));
     setPageLinkError(false);
   }
 
   /**
-   * The Fill from a pasted link toggle's Add buttons: a new field under a
-   * generic name (TEXT_n, NUM_n, DATE_n), reading the label set above them.
-   * Choice opens its window with the rule filled in, since a menu is nothing
-   * without its options.
+   * The Fill from a pasted link entry's Add field: a new field named after the
+   * word it reads (CUSTOMER from "Customer"), under a generic name when the
+   * word makes none. Choice opens its window with the word and the name filled
+   * in, since a menu is nothing without its options.
    */
-  function addPageField(kind: 'text' | 'number' | 'date' | 'menu') {
-    const link = linkFromDraft(pageLink);
-    if (pageLink.enabled && link === '') {
+  function addPageField() {
+    const link = linkValue(`after:${pageWords}`);
+    if (link === '') {
       setPageLinkError(true);
       return;
     }
-    if (kind === 'menu') {
+    const body = form.content;
+    if (pageKind === 'menu') {
       setItemEdit(null);
       setMenuLink(link);
+      setMenuName(fieldNameFromWords(pageWords, body, ''));
       setMenuFieldOpen(true);
       return;
     }
     insertAtCursor(
-      kind === 'text'
-        ? buildFormTextToken({ name: nextTextName(form.content), default: '', link })
-        : kind === 'number'
+      pageKind === 'text'
+        ? buildFormTextToken({ name: fieldNameFromWords(pageWords, body, nextTextName(body)), default: '', link })
+        : pageKind === 'number'
           ? buildFormNumberToken({
-              name: nextNumberName(form.content),
+              name: fieldNameFromWords(pageWords, body, nextNumberName(body)),
               format: 'plain',
               currency: DEFAULT_CURRENCY,
               default: '',
               link,
             })
-          : buildFormDateToken({ name: nextDateName(form.content, 'date'), kind: 'date', format: dateFormat, link }),
+          : buildFormDateToken({
+              name: fieldNameFromWords(pageWords, body, nextDateName(body, 'date')),
+              kind: 'date',
+              format: dateFormat,
+              link,
+            }),
     );
-    if (link !== '') setPageLink((prev) => ({ ...prev, words: '' }));
+    setPageWords('');
+  }
+
+  /** Opens the window that changes `item`, from the Fill from a pasted link list. */
+  function openItemWindow(item: BodyItem) {
+    setItemEdit(item);
+    if (item.kind === 'text') setTextFieldOpen(true);
+    else if (item.kind === 'number') setNumberFieldOpen(true);
+    else if (item.kind === 'date' || item.kind === 'time') setDateFieldOpen(true);
+    else if (item.kind === 'menu') setMenuFieldOpen(true);
   }
 
   // The rule the caret sits in, when the builder can edit it. A condition typed
@@ -1774,55 +1823,86 @@ export function NewSnippetDialog() {
                 label="Fill from a pasted link"
                 className="mb-2.5"
                 footer={
-                  <div className="flex flex-col gap-2">
-                    <LinkRuleFields
-                      id="sb-page-link"
-                      size="rail"
-                      value={pageLink}
-                      onChange={changePageLink}
-                      modes={LABEL_LINK_MODES}
-                      disabled={saving}
-                      offHint="Tick it and the field you add next fills itself from a web page pasted in the fill form. You check it before inserting."
-                    />
-                    {pageLinkError && (
-                      <p role="alert" className="text-[11px] leading-tight text-danger">
-                        Type the label on the page first, then add the field.
-                      </p>
-                    )}
-                    <div className="flex flex-wrap gap-1.5">
-                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('text')}>
-                        <Plus className="mr-1 h-3 w-3" />
-                        Text
-                      </Button>
-                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('number')}>
-                        <Plus className="mr-1 h-3 w-3" />
-                        Number
-                      </Button>
-                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('date')}>
-                        <Plus className="mr-1 h-3 w-3" />
-                        Date
-                      </Button>
-                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('menu')}>
-                        <Plus className="mr-1 h-3 w-3" />
-                        Choice
-                      </Button>
+                  <div className="flex flex-col gap-2.5">
+                    <div>
+                      <label htmlFor="sb-page-words" className={FIELD_LABEL}>
+                        1. Word before the value on the page
+                      </label>
+                      <Input
+                        id="sb-page-words"
+                        value={pageWords}
+                        disabled={saving}
+                        onChange={(e) => changePageWords(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter') return;
+                          // Never the snippet form's own submit: the rail sits inside it.
+                          e.preventDefault();
+                          addPageField();
+                        }}
+                        placeholder="e.g. Customer"
+                        autoComplete="off"
+                        spellCheck={false}
+                        aria-describedby="sb-page-words-hint"
+                        aria-invalid={pageLinkError}
+                        className={cn(
+                          'h-8 rounded-[10px] px-2 text-[11px]',
+                          pageLinkError && 'border-danger focus:border-danger focus:ring-danger/20',
+                        )}
+                      />
+                      {pageLinkError ? (
+                        <p role="alert" className="mt-1 text-[11px] leading-tight text-danger">
+                          Type the word on the page first.
+                        </p>
+                      ) : (
+                        <p id="sb-page-words-hint" className="mt-1 text-[11px] leading-tight text-ink-subtle">
+                          Capitals and accents don&apos;t matter. Another spelling goes after a |,
+                          like Start date|Starts.
+                        </p>
+                      )}
                     </div>
+                    <div>
+                      <span className={FIELD_LABEL}>2. Add it as</span>
+                      <Segmented
+                        options={PAGE_KIND_OPTIONS}
+                        value={pageKind}
+                        onChange={setPageKind}
+                        ariaLabel="Kind of field"
+                        disabled={saving}
+                        className="w-full [&>button]:h-8 [&>button]:flex-1 [&>button]:px-1.5 [&>button]:text-[11px]"
+                      />
+                    </div>
+                    <Button type="button" size="sm" variant="primary" disabled={saving} onClick={addPageField}>
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add field
+                    </Button>
                   </div>
                 }
               >
                 <p className="text-[11px] text-ink-subtle leading-tight">
-                  The person filling the form pastes a page&apos;s link, and the fields fill
-                  themselves from what the page says. They check the answers before
-                  inserting.
+                  A field added here fills itself from a web page whose link is pasted in the
+                  fill form. The person filling it checks the answer before inserting.
                 </p>
-                <dl className="mt-2 flex flex-col gap-1.5">
-                  {LINK_FIELDS.map((f) => (
-                    <div key={f.label}>
-                      <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
-                      <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <p className="mt-2 rounded-[8px] border border-primary/25 bg-primary-light px-2 py-1.5 text-[11px] leading-tight text-ink">
+                  Page says <span className="font-mono">Customer: Anna Ruiz</span> → type{' '}
+                  <span className="font-mono">Customer</span>
+                </p>
+                <p className="mt-2 text-[11px] text-ink-subtle leading-tight">
+                  A field already in the snippet: open it in its window and tick Fill from a
+                  pasted link there.
+                </p>
+                {/* The fields that read a page, whichever window made them, so
+                    what is set up can be seen, changed and taken out from here. */}
+                <div className="mt-2.5">
+                  <ItemListSection
+                    body={form.content}
+                    onReplace={replaceRange}
+                    kinds={PAGE_KINDS}
+                    noun={PAGE_NOUN}
+                    only={readsPage}
+                    detail={pageDetail}
+                    onEdit={openItemWindow}
+                  />
+                </div>
               </Toggle>
             </div>
 
@@ -2500,19 +2580,23 @@ export function NewSnippetDialog() {
               open={menuFieldOpen}
               onOpenChange={(next) => {
                 windowOpenChange(setMenuFieldOpen)(next);
-                if (!next) setMenuLink('');
+                if (!next) {
+                  setMenuLink('');
+                  setMenuName('');
+                }
               }}
               suggestedName={nextMenuName(form.content)}
               initial={itemEdit?.kind === 'menu' ? itemEdit.cfg : null}
               newLink={menuLink}
+              newName={menuName}
               language={form.language}
               list={itemList(MENU_KINDS, MENU_NOUN)}
               readers={editReaders}
               onNew={() => setItemEdit(null)}
               onSubmit={(token) => {
                 submitItem(token);
-                // The section's label went to this menu, like any field it adds.
-                if (menuLink !== '') setPageLink((prev) => ({ ...prev, words: '' }));
+                // The entry's word went to this menu, like any field it adds.
+                if (menuLink !== '') setPageWords('');
               }}
             />
 
