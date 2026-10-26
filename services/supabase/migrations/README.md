@@ -78,7 +78,7 @@ These scripts are **not safe to apply until specific auth events happen**.
 
 | File | Status | Notes |
 |---|---|---|
-| `20261026120000_check_unfinished.sql` | ⏳ not applied yet | Adds `snippets.check_unfinished boolean not null default true`: the per-snippet "Don't warn me about this snippet again" switch for the unfinished-text warning. Additive; no policy, function or trigger touched; the review guard ignores it. `accessible_snippets()` returns `s.*`, so the extension and the phone receive it unchanged. **Apply before releasing dashboard and extension v3.85.0**: the dashboard and the extension's background sync name the column in their selects, and a select naming a missing column fails whole (the `is_shared` lesson, 2026-06-13). |
+| `20261026120000_check_unfinished.sql` | ✅ applied 2026-10-26 | Adds `snippets.check_unfinished boolean not null default true`: the per-snippet "Don't warn me about this snippet again" switch for the unfinished-text warning. Additive; no policy, function or trigger touched; the review guard ignores it. `accessible_snippets()` returns `s.*`, so the extension and the phone receive it unchanged. Applied before releasing dashboard and extension v3.85.0, because the dashboard and the extension's background sync name the column in their selects, and a select naming a missing column fails whole (the `is_shared` lesson, 2026-06-13). Recorded as `check_unfinished` (`20261026130339`). Verified after: the column is boolean, not null, default true; all 125 existing snippets read true, so every snippet keeps being checked; `accessible_snippets()` returns the column. |
 
 ## Adding a new migration
 
