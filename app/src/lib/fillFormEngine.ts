@@ -143,6 +143,13 @@ export interface SbFillFormViewModel {
   buttons: SbFillButton[];
   preview: string;
   /**
+   * The snippet's formatted layout filled with the same answers, every value
+   * escaped, or null: no layout was passed, or it asks for other fields than
+   * the text. A surface that can paste formatting inserts this, with
+   * `preview` as its plain text.
+   */
+  formatted: string | null;
+  /**
    * How each date and time field prints, ready to hand straight to
    * `resolveBody`. A surface that resolves the body itself must pass this too,
    * or what it produces prints differently from the preview it just showed.
@@ -179,6 +186,8 @@ export interface SbFillFormOptions {
    * `{ KEY: 'text' }`. Keeps Other ticked while the box is still empty.
    */
   other?: Record<string, string>;
+  /** The snippet's formatted layout (`body_html`), filled into `formatted`. */
+  formatted?: string | null;
 }
 
 /** Why a pasted link was refused before anything was sent. */

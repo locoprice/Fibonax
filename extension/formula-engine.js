@@ -645,9 +645,75 @@
   }
 
   // Appends a resolved field value, inflecting any greeting word ahead of it.
-  function sbEmitValue(out, value, lock) {
+  // `html` escapes the value for a formatted layout; the greeting is still
+  // inflected from the value as typed, across the tags that open around the
+  // value ("Querido <b>{NAME}</b>").
+  function sbEmitValue(out, value, lock, html) {
     var s = String(value);
-    return sbInflectGreeting(out, s, lock) + s;
+    if (!html) return sbInflectGreeting(out, s, lock) + s;
+    var tags = /(?:<[^>]*>)+$/.exec(out);
+    var cut = tags ? tags.index : out.length;
+    return sbInflectGreeting(out.slice(0, cut), s, lock) + out.slice(cut) + sbEscapeHtml(s);
+  }
+
+  // ── FORMATTED LAYOUT ────────────────────────────────────────────
+  // A snippet's layout (docs/FORMATTED_SNIPPETS_DESIGN.md) is resolved with
+  // `opts.html`. Every value printed into it is escaped, so text typed into a
+  // field or read from a web page stays text and can never become markup.
+  function sbEscapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // What a value prints as: escaped inside a layout, as it is everywhere else.
+  function _sbOut(value, html) {
+    return html ? sbEscapeHtml(value) : String(value);
+  }
+
+  var _HTML_PART_RE = /(<[^>]*>|&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);)/;
+  var _HTML_NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+  // Formatting that sits inside a line of text. Any other tag (a line break, a
+  // cell, a paragraph) separates the words on either side of it.
+  var _HTML_INLINE_RE = /^<\/?(?:a|b|strong|i|em|u|s|span|font|small|sub|sup|mark|code)\b/i;
+
+  // The character an entity stands for, or '' for a name this table does not
+  // know (that entity is kept as it is).
+  function _sbEntityChar(ent) {
+    var name = ent.slice(1, -1);
+    if (name.charAt(0) === '#') {
+      var code = /^#[xX]/.test(name) ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10);
+      return (code > 0 && code <= 0x10FFFF) ? String.fromCodePoint(code) : '';
+    }
+    return Object.prototype.hasOwnProperty.call(_HTML_NAMED, name) ? _HTML_NAMED[name] : '';
+  }
+
+  // {case:} inside a layout changes the letters of the text, never a tag or an
+  // entity. The text is cased as one run, so a sentence that a <b> splits
+  // still reads as one sentence; a tag that separates words (a line break, a
+  // cell) is cased as a line break. A mode that changes the length of the text
+  // (ß in capitals) is applied to each run of text on its own instead.
+  function _applyCaseModeHtml(s, mode, lang) {
+    if (!s || !mode) return s;
+    var parts = String(s).split(_HTML_PART_RE), text = '', marks = [], i, ch;
+    for (i = 0; i < parts.length; i++) {
+      if (i % 2 === 0) { text += parts[i]; continue; }
+      ch = parts[i].charAt(0) === '&' ? _sbEntityChar(parts[i]) : '';
+      if (ch) { text += ch; continue; }
+      var gap = parts[i].charAt(0) === '<' && !_HTML_INLINE_RE.test(parts[i]);
+      marks.push({ at: text.length, tag: parts[i], gap: gap });
+      if (gap) text += '\n';
+    }
+    var cased = _applyCaseMode(text, mode, lang);
+    if (cased.length !== text.length) {
+      return parts.map(function(p, k) {
+        return k % 2 ? p : sbEscapeHtml(_applyCaseMode(p, mode, lang));
+      }).join('');
+    }
+    var out = '', pos = 0;
+    for (i = 0; i < marks.length; i++) {
+      out += sbEscapeHtml(cased.slice(pos, marks[i].at)) + marks[i].tag;
+      pos = marks[i].at + (marks[i].gap ? 1 : 0);
+    }
+    return out + sbEscapeHtml(cased.slice(pos));
   }
 
   // {gender: FIELD; m=Querido; f=Querida[; u=Hola][; lang=IT]}
@@ -1131,10 +1197,11 @@
 
   // ── BODY RESOLVER ───────────────────────────────────────────────
   // `opts.lang` — the snippet's language, used only to gender ambiguous names
-  // in a {gender:} token that omits its own `lang=`.
+  // in a {gender:} token that omits its own `lang=`. `opts.html` resolves a
+  // formatted layout: every printed value is escaped (see sbEscapeHtml).
   function resolveBody(body, vals, opts) {
     if (!body) return '';
-    var out = '', i = 0, gLock = -1;
+    var out = '', i = 0, gLock = -1, html = !!(opts && opts.html);
     // Which fields print formatted is decided by the WHOLE body, not by the
     // fragment being resolved: an {if:} branch can print a field declared
     // outside it. So the map is built once at the outermost call and carried
@@ -1164,11 +1231,11 @@
           var dtok = body.slice(i+2, cll).replace(/^\s+|\s+$/g, '');
           if (dtok.charAt(0) === '=') {
             var dfv = (_o.formula || evalFormula)(dtok.slice(1).replace(/^\s+|\s+$/g, ''), vals);
-            out += dfv !== null ? String(dfv) : '';
+            out += dfv !== null ? _sbOut(dfv, html) : '';
           } else {
             var dval = _o.value ? _o.value(dtok, vals) : vals[dtok];
-            if (dval !== undefined && dval !== null) out = sbEmitValue(out, dval, gLock);
-            else out += '{{' + dtok + '}}';
+            if (dval !== undefined && dval !== null) out = sbEmitValue(out, dval, gLock, html);
+            else out += _sbOut('{{' + dtok + '}}', html);
           }
           i = cll + 2; continue;
         }
@@ -1191,11 +1258,11 @@
         }
         if (tok.charAt(0) === '=') {
           var fv = (_o.formula || evalFormula)(tok.slice(1), vals);
-          out += fv !== null ? String(fv) : '';
+          out += fv !== null ? _sbOut(fv, html) : '';
           i = cl+1; continue;
         }
         if (tok.slice(0,5).toLowerCase() === 'time:') {
-          out += sbParseTimeToken(tok.slice(5), vals, _o.lang);
+          out += _sbOut(sbParseTimeToken(tok.slice(5), vals, _o.lang), html);
           i = cl+1; continue;
         }
         var tokLow = tok.toLowerCase();
@@ -1221,7 +1288,7 @@
           // Unclosed: drop only the head so the rest still renders. The template
           // validator flags this shape as 'unclosed-case'.
           if (cClose === -1) { i = cl + 1; continue; }
-          out += _applyCaseMode(
+          out += (html ? _applyCaseModeHtml : _applyCaseMode)(
             resolveBody(body.slice(cl + 1, cClose), vals, subOpts),
             _caseMode(tok.slice(5)), _o.lang);
           i = cClose + CASE_CLOSE.length;
@@ -1246,16 +1313,16 @@
           }
           var fKey = _formFieldName(tokLow, tok.slice(9));
           var fRaw = fKey && vals[fKey] !== undefined ? vals[fKey] : '';
-          out = sbEmitValue(out, _emitField(fKey, fRaw, fmtMap), gLock);
+          out = sbEmitValue(out, _emitField(fKey, fRaw, fmtMap), gLock, html);
           i = cl+1; continue;
         }
         if (tokLow.slice(0,7) === 'gender:') {
           gLock = out.length;
-          out += sbResolveGenderToken(tok.slice(7), vals, opts);
+          out += _sbOut(sbResolveGenderToken(tok.slice(7), vals, opts), html);
           i = cl+1; continue;
         }
         if (_isGreetingHead(tokLow)) {
-          out += sbResolveGreetingToken(_greetingRest(tok), opts);
+          out += _sbOut(sbResolveGreetingToken(_greetingRest(tok), opts), html);
           i = cl+1; continue;
         }
         if (tok.slice(0,3) === 'if:') {
@@ -1277,7 +1344,7 @@
         }
         var fval = _o.value ? _o.value(tok, vals) : vals[tok];
         if (fval !== undefined && fval !== null) {
-          out = sbEmitValue(out, _emitField(tok, fval, fmtMap), gLock);
+          out = sbEmitValue(out, _emitField(tok, fval, fmtMap), gLock, html);
         }
         i = cl+1;
       } else {
@@ -2687,7 +2754,9 @@
     PERSON_NAME_WORDS: PERSON_NAME_WORDS,
     PERSON_NAME_STEMS: PERSON_NAME_STEMS,
     NOT_PERSON_WORDS:  NOT_PERSON_WORDS,
-    sbApplyCaseMode:   _applyCaseMode
+    sbApplyCaseMode:   _applyCaseMode,
+    sbApplyCaseModeHtml: _applyCaseModeHtml,
+    sbEscapeHtml:      sbEscapeHtml
   };
 
   // UMD: supports browser globals, CommonJS (Node), and AMD.

@@ -46,7 +46,7 @@ for (const [key, want] of TYPE_CASES) {
 console.log('OK Field kind inferred from the name (' + TYPE_CASES.length + ' cases)');
 
 // ── THE VIEW MODEL EVERY SURFACE READS ──────────────────────────────
-const SHAPE = ['fields', 'buttons', 'preview', 'layout', 'steps', 'fmtOverride', 'linkable'];
+const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'layout', 'steps', 'fmtOverride', 'linkable'];
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
                      'other', 'otherOn', 'otherText',
                      'cols', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
@@ -522,3 +522,38 @@ assert.equal(filled(OTHER_BODY, {}, {other:{CH:''}}).errors[0].key, 'CH');
 const input = {AMOUNT:'100'}; filled(chain, input); assert.deepEqual(input, {AMOUNT:'100'});
 assert.deepEqual(vmLong.sections.flatMap(s=>s.keys), vmLong.fields.map(f=>f.key));
 console.log('OK Empty optional lines, active calculation dependencies, zero, validation and ordered sections');
+
+// ── FORMATTED LAYOUT ────────────────────────────────────────────────
+// The layout (body_html) is filled from the same form as the text: the same
+// answers, defaults and calculations, every value escaped, and the markup and
+// its entities untouched. A layout that asks for other fields than the text is
+// not used at all, so no surface inserts a card with a field missing.
+const LT_TEXT = '{formtext: name=GUEST} x{formtext: name=PAX; type=number; default=2}\n' +
+  'In {formdate: name=IN; format=DD/MM/YYYY}, out {formdate: name=OUT; format=DD/MM/YYYY}\n' +
+  '{= datespan(IN, OUT, "between") } days\nTotal {=PAX * 10}';
+const LT_HTML = '<table><tr><td style="font-size:24px">{formtext: name=GUEST} x{formtext: name=PAX; type=number; default=2}</td></tr>' +
+  '<tr><td>&#10140; {formdate: name=IN; format=DD/MM/YYYY}</td><td>{formdate: name=OUT; format=DD/MM/YYYY}</td></tr>' +
+  '<tr><td>{= datespan(IN, OUT, &quot;between&quot;) } days &amp; nights</td><td><b>{=PAX * 10}</b></td></tr></table>';
+const ltVals = { GUEST: 'Ana <b>& co</b>', IN: '2026-11-14', OUT: '2026-11-17' };
+const lt = filled(LT_TEXT, ltVals, { formatted: LT_HTML });
+assert.equal(lt.preview, 'Ana <b>& co</b> x2\nIn 14/11/2026, out 17/11/2026\n3 days\nTotal 20');
+assert.equal(lt.formatted,
+  '<table><tr><td style="font-size:24px">Ana &lt;b&gt;&amp; co&lt;/b&gt; x2</td></tr>' +
+  '<tr><td>&#10140; 14/11/2026</td><td>17/11/2026</td></tr>' +
+  '<tr><td>3 days &amp; nights</td><td><b>20</b></td></tr></table>');
+// A field split by formatting is still the field it was written as.
+assert.equal(filled('{formtext: name=GUEST}', { GUEST: 'Ana' },
+  { formatted: '<i>{formtext: <b>name=GUEST</b>}</i>' }).formatted, '<i>Ana</i>');
+// Out of step, or no layout: nothing formatted, the text is what goes in.
+assert.equal(filled(LT_TEXT, ltVals, { formatted: LT_HTML.replace('<b>{=PAX * 10}</b>', '<b>{TIP}</b>') }).formatted, null);
+assert.equal(filled(LT_TEXT, ltVals).formatted, null);
+assert.equal(filled(LT_TEXT, ltVals, { formatted: '' }).formatted, null);
+// Filling the layout never changes what the text says or which fields are needed.
+const ltPlain = filled(LT_TEXT, ltVals);
+assert.equal(lt.preview, ltPlain.preview);
+assert.deepEqual(lt.errors, ltPlain.errors);
+const ltHole = Object.assign({}, ltVals, { PAX: '' });
+assert.deepEqual(filled(LT_TEXT, ltHole, { formatted: LT_HTML }).errors.map(e => e.key), ['PAX']);
+assert.deepEqual(filled(LT_TEXT, ltHole, { formatted: LT_HTML }).errors, filled(LT_TEXT, ltHole).errors);
+assert.match(filled(LT_TEXT, ltHole, { formatted: LT_HTML }).formatted, /<b>…<\/b>/);
+console.log('OK The formatted layout is filled from the same form as the text');

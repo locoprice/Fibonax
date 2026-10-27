@@ -508,7 +508,42 @@
       f.error = message;
       if (message) errors.push({ key: f.key, message: message });
     });
-    return { preview: preview, errors: errors };
+
+    // The formatted layout, filled with the same answers and calculations as
+    // the preview, every value escaped. Null without a layout, or when the
+    // layout no longer asks for the fields the text does (something saved the
+    // text alone): the surface then inserts the preview, never a card with a
+    // field missing. Lines left empty stay in a layout; only the text drops them.
+    var formatted = null;
+    if (opts.formatted && E.sbEscapeHtml) {
+      var layoutSrc = layoutSource(opts.formatted);
+      if (sameFields(E, src, layoutSrc)) {
+        var safe = {};
+        Object.keys(values).forEach(function(k) { safe[k] = E.sbEscapeHtml(values[k]); });
+        dependencies = Object.create(null);
+        formatted = E.resolveBody(E.interpolateSnippet(layoutSrc, safe), Object.assign({}, values),
+          Object.assign({}, resolveOpts, { html: true }));
+      }
+    }
+    return { preview: preview, errors: errors, formatted: formatted };
+  }
+
+  // ── FORMATTED LAYOUT ────────────────────────────────────────────
+  // A layout keeps its fields as text, so the HTML around them escaped their
+  // `&`, `<` and `>`, and a formatting change may have landed inside one. Each
+  // {…} is read back as the token it was written as before it is resolved.
+  var LAYOUT_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ' };
+  function layoutSource(html) {
+    return String(html).replace(/\{[^{}]*\}/g, function(tok) {
+      return tok.replace(/<[^>]*>/g, '').replace(/&(amp|lt|gt|quot|#39|nbsp);/g, function(m, name) {
+        return LAYOUT_ENTITIES[name];
+      });
+    });
+  }
+
+  // Whether a layout asks for exactly the fields its text asks for.
+  function sameFields(E, text, layoutSrc) {
+    return fieldKeys(E, text).slice().sort().join('\n') === fieldKeys(E, layoutSrc).slice().sort().join('\n');
   }
 
   function fillForm(text, values, opts) {
@@ -519,7 +554,7 @@
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, errors: [], sections: [], layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, errors: [], sections: [], layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -726,12 +761,16 @@
     // single-choice menu the operator never touched already reads as its first
     // option in the form, so resolving against raw values previewed a hole in a
     // sentence the surface was visibly showing as answered.
-    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride });
+    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride, formatted: o.formatted });
 
     return {
       fields: fields,
       buttons: E.extractButtons ? (E.extractButtons(src) || []) : [],
       preview: resolved.preview,
+      // `o.formatted` is the snippet's layout (body_html); this is it filled,
+      // or null. A surface that can paste formatting inserts this, with the
+      // preview as its plain text.
+      formatted: resolved.formatted,
       errors: resolved.errors,
       sections: sectionsFor(fields),
       // Hand straight to resolveBody alongside the values. A surface that
