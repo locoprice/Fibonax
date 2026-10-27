@@ -1,9 +1,20 @@
 # Pricing artwork
 
-Asset: `app/public/landing/assets/pricing/lifetime-credit-v1.jpg`
+The pricing page shows the brand's T mark as a live 3D animation, drawn by the inline module at the end of `scripts/templates/pricing.html`. It replaced the blue glass infinity image (`lifetime-credit-v1.jpg`) in v3.92.0. Decorative only: the figure is `aria-hidden` and the pricing text stays plain HTML.
 
-Created with the built-in image_gen tool. Original generated at 1254 × 1254; exported as JPEG quality 85 for the website. Decorative artwork; pricing text remains accessible HTML.
+## Source
 
-## Prompt
+The LeibTour T animation handoff, version B (`design_handoff_leibtour_t_animation`, 2026-10-27). The geometry helpers (`buildT`, `makeStudioEnv`) are ported unchanged from its `leibtour-t-model.js`, and every number in the scene is the handoff's final value:
 
-Use case: stylized-concept. Asset type: editorial 3D illustration for Fibonax's minimal SaaS pricing page. Create one elegant sculptural infinity loop made of thick polished azure-blue optical glass, a continuous ribbon with beautifully resolved edges and subtle internal refraction, floating just above a matte off-white seamless studio surface. Meaning: enduring value and credit that never expires. Premium precise industrial design / high-end product photography, sophisticated and restrained, physically plausible soft contact shadow and subtle blue caustic. Three-quarter perspective, infinity silhouette remains clearly readable, centered and fully visible with ample quiet space around it, square composition. Palette limited to Fibonax azure #1B4FD8, pale blue #EEF2FF, off-white #FAFAFA and light silver highlights. High definition sharp edges, smooth studio lighting. No words, letters, logos, UI, money, coins, cryptocurrency imagery, people, extra objects, particles, neon glow, purple, dark background or busy decorations. Save an image file for integration into the website.
+- Geometry: 5 extruded meshes traced from the ver.2 reference render, depth 0.16, bevel 0.012.
+- Material: `MeshStandardMaterial` color `#8a8b92`, metalness 1, roughness 0.16, lit by a procedural studio environment.
+- Renderer: transparent, ACES Filmic, exposure 1.25, pixel ratio at most 2.
+- Camera: FOV 28°, position (0, 0.15, 6.2), pulled back by `max(1, 1.15 / aspect)` in narrow boxes.
+- Motion: a 10 s seamless loop. Sway ±28°, a slight nod, stripes that separate in depth and close again, a light sweep twice per loop, and a tilt that follows the pointer across the window.
+
+## Runtime
+
+- three.js r184 loads from unpkg (`three.module.min.js` and `three.core.min.js`), pinned by version and by `sha384` integrity in the import map. A bumped version needs both hashes recomputed.
+- Reduced motion shows one still frame at phase 0, with no loop and no tilt.
+- The loop pauses while the mark is off screen.
+- If three.js cannot load or WebGL is off, the figure is removed, the error is logged, and the pricing table takes the full width.
