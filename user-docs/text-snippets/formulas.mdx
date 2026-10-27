@@ -77,52 +77,53 @@ A formula the steps can't show, such as one using `datespan`, opens as a box wit
 
 A **Show or hide** rule prints a piece of text only when an answer calls for it, the way a form shows a question only when it applies. Click **Build a rule** under **Logic** and fill in the three steps:
 
-| Step | What you choose |
+| Step | What you do |
 |---|---|
-| **IF** | A field and a check. Most checks also need a value. |
-| **THEN** | **Show** or **Hide**, and the text. The text can hold fields and formulas too. |
-| **ELSE** | The opposite happens. A shown text can print something else in its place: type it in **Print instead**. |
+| **1. When this answer** | Pick the field, the check and the answer to match, like `PLAN` `is` `annual`. |
+| **2. This text** | Type the text, and pick **Show it** or **Hide it**. The text can hold fields and formulas too. |
+| **3. Otherwise print** | Optional. What prints when the answer doesn't match. Left empty, nothing prints. With **Hide it** the text shows instead, so this step goes away. |
+
+Under the steps the rule reads back as one sentence, like `If PLAN is "annual", show "Two months free." Otherwise nothing`, and the panel lists it the same way.
 
 The checks:
 
 | Check | True when | Fields |
 |---|---|---|
-| Each option has its own text | the option picked is the one the text belongs to | Single Choice |
-| Equals | the answer is the value | Text, Number, Choice |
-| Does not equal | the answer is anything else | Text, Number, Choice |
-| Is greater than | the answer is a bigger number | Text, Number |
-| Is less than | the answer is a smaller number | Text, Number |
-| Contains | the value appears anywhere in the answer | Text, Choice |
-| Is filled | anything is typed or picked | Text, Number, Choice |
+| has a text for each option | the option picked is the one the text belongs to | Single Choice |
+| is | the answer is the one typed or picked | Text, Number, Choice |
+| is not | the answer is anything else | Text, Number, Choice |
+| is more than | the answer is a bigger number | Text, Number |
+| is less than | the answer is a smaller number | Text, Number |
+| contains | the typed text appears anywhere in the answer | Text, Choice |
+| is filled in | anything is typed or picked | Text, Number, Choice |
 
 - Capitals don't matter: `annual` matches `Annual`.
-- A Number field compares as a number, so `1.200,50` is greater than 1000. An empty Number counts as 0.
-- The value you compare with reads the same way: `1.500` means fifteen hundred.
-- On a Choice field you pick the value from its options. On a multiple choice, **Contains** checks whether that option was ticked.
+- A Number field compares as a number, so `1.200,50` is more than 1000. An empty Number counts as 0.
+- The answer you type reads the same way: `1.500` means fifteen hundred.
+- On a Choice field you pick the answer from its options. On a multiple choice, **contains** checks whether that option was ticked.
 - Date and time fields can't be checked.
-- **In plain words** shows the rule as one sentence before you insert it, like `IF SCORE is greater than 10 THEN hide "Section B" ELSE show it`.
 
 ### A text for each option
 
-On a Single Choice field the window opens on **Each option has its own text**. **THEN** lists the field's options, each with its own box. Fill them in, for example on a `PLAN` field:
+On a Single Choice field the window opens on **has a text for each option**. Step 2 lists the field's options, each with its own box. Fill them in, for example on a `PLAN` field:
 
 | Option | Text |
 |---|---|
 | Basic | Email support on weekdays. |
 | Pro | Phone and email support every day. |
 
-Only the text of the option picked prints. An option left empty prints nothing. One rule covers every option, and it reads back as one rule when you edit it.
+Only the text of the option picked prints. An option left empty prints nothing. One rule covers every option, and it reads back as one sentence: `If PLAN is "Basic", show "Email support on weekdays." Or if PLAN is "Pro", show "Phone and email support every day." Otherwise nothing`.
 
 ### Print the picked option
 
-On a Choice field the **IF** step also shows **Print the picked option**:
+On a Choice field step 1 also shows **Print the picked option**:
 
 - **On**: the option picked prints where the field sits, as well as the rule's text.
 - **Off**: the field only decides what prints. The form still asks, and the option stays out of the message.
 
-A new **Each option has its own text** rule starts with it off, since each text already says what was picked. Inserting or saving the rule changes the field too. The same switch is in the **Choice** window.
+A new **has a text for each option** rule starts with it off, since each text already says what was picked. Inserting or saving the rule changes the field too. The same switch is in the **Choice** window.
 
-Every rule in the snippet is listed in plain words at the top of the window, each with **Edit** and **Remove**, and under the **Show or hide** toggle in the panel. Click a rule there, or put the cursor inside one and click **Edit this rule**, to change it.
+Every rule in the snippet is listed at the top of the window, each with **Edit** and **Remove**, and under the **Show or hide** toggle in the panel. Click a rule there, or put the cursor inside one and click **Edit this rule**, to change it.
 
 <Note>
   A rule can't sit inside another condition. Put the cursor outside any `{if: ...}` before you insert one.

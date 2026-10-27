@@ -74,6 +74,7 @@ import {
   findRuleAt,
   rulesInBody,
   summarizeEntry,
+  summarizeRule,
   type RuleInBody,
 } from '@/lib/conditionRule';
 import { buildFormNumberToken, DEFAULT_CURRENCY, nextNumberName } from '@/lib/formNumberToken';
@@ -405,19 +406,16 @@ const MATH_FORMULAS: readonly {
   },
 ];
 
-// The parts of a show or hide rule, named as FormConditionDialog names them,
-// so the rail explains the window before it opens. The checks are the
-// builder's own (RULE_OPERATORS in @/lib/conditionRule).
-const RULE_FIELDS: { label: string; hint: string }[] = [
-  { label: 'If',
-    hint: 'A field and a check. On a choice, Each option gives every option its own text. The other checks compare with a value: Equals, Does not equal, Is greater than, Is less than, Contains or Is filled.' },
-  { label: 'Then',
-    hint: 'Show or hide the text you type. It can hold fields and formulas too.' },
-  { label: 'Else',
-    hint: 'The opposite happens. A shown text can print something else in its place.' },
-  { label: 'Rules',
-    hint: 'Every rule in the snippet is listed in plain words, below and in the window, with Edit and Remove.' },
-];
+// A show or hide rule as the window reads it back, so the entry shows what
+// one looks like before the window opens. Generic on purpose (🌍).
+const RULE_EXAMPLE = summarizeRule({
+  field: 'PLAN',
+  operator: 'equals',
+  value: 'annual',
+  action: 'show',
+  content: 'Two months free.',
+  otherwise: '',
+});
 
 // A > 0 is the safest opening condition to hand someone: it is true of any
 // filled number field, so the inserted block prints its text rather than
@@ -1974,8 +1972,8 @@ export function NewSnippetDialog() {
                 </Tooltip>
               </div>
               {/* Like Choice, the button edits the rule the cursor sits in.
-                  The rules already in the body are listed under the parts, in
-                  the same plain words the window uses, so the logic of a
+                  The rules already in the body are listed under the example,
+                  as the same sentence the window uses, so the logic of a
                   snippet reads without opening anything. */}
               <Toggle
                 label="Show or hide"
@@ -1998,18 +1996,11 @@ export function NewSnippetDialog() {
                 }
               >
                 <p className="text-[11px] text-ink-subtle leading-tight">
-                  Text that prints only when an answer calls for it, the way a form
-                  shows a question only when it applies. If a field equals, contains
-                  or passes a value, then the text shows or hides, else the opposite.
+                  Print a piece of text only when an answer calls for it.
                 </p>
-                <dl className="mt-2 flex flex-col gap-1.5">
-                  {RULE_FIELDS.map((f) => (
-                    <div key={f.label}>
-                      <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
-                      <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <div className="mt-2 rounded-[8px] border border-primary/25 bg-primary-light px-2 py-1.5">
+                  <RuleSummary parts={RULE_EXAMPLE} className="text-[11px]" />
+                </div>
                 {bodyRules.length > 0 && (
                   <div className="mt-2.5 border-t border-line pt-2">
                     <p className="font-mono text-[10px] text-ink">In this snippet</p>

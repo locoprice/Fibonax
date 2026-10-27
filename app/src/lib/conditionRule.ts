@@ -2,20 +2,20 @@
  * Show or hide rules for the snippet body editor.
  *
  * A rule is an ordinary `{if:}` block, written so it can be built from three
- * dropdowns and read back in plain words, the way a form builder shows a
- * question only when an earlier answer calls for it:
+ * dropdowns and read back as one everyday sentence, the way a form builder
+ * shows a question only when an earlier answer calls for it:
  *
  * ```
- * IF PLAN equals "annual" THEN show the text ELSE hide it
+ * If PLAN is "annual", show "Two months free." Otherwise nothing
  * {if: PLAN = "annual"}Two months free.{endif}
  *
- * IF SCORE is greater than 10 THEN hide the text ELSE show it
+ * If SCORE is more than 10, hide "Section B" Otherwise show it
  * {if: SCORE > 10}{else}Section B{endif}
  *
- * IF NOTE is filled THEN show "Note: {NOTE}" ELSE show "No note."
+ * If NOTE is filled in, show "Note: {NOTE}" Otherwise show "No note."
  * {if: NOTE != ""}Note: {NOTE}{else}No note.{endif}
  *
- * IF RATE is "Refundable" THEN show "Full refund." ELSE IF RATE is "Fixed" THEN show "No refund."
+ * If RATE is "Refundable", show "Full refund." Or if RATE is "Fixed", show "No refund." Otherwise nothing
  * {if: RATE = "Refundable"}Full refund.{elseif: RATE = "Fixed"}No refund.{endif}
  * ```
  *
@@ -64,9 +64,9 @@ export type RuleFieldKind = 'text' | 'number' | 'choice';
 
 export interface RuleOperatorSpec {
   id: RuleOperator;
-  /** The dropdown's wording. */
+  /** The dropdown's wording, read right after the field's name: `PLAN is`. */
   label: string;
-  /** The same check inside a sentence. */
+  /** The same check inside the sentence a rule reads back as. */
   phrase: string;
   needsValue: boolean;
   /** The value has to be a number. */
@@ -76,19 +76,19 @@ export interface RuleOperatorSpec {
 }
 
 export const RULE_OPERATORS: readonly RuleOperatorSpec[] = [
-  { id: 'eachOption', label: 'Each option has its own text', phrase: 'is', needsValue: false, numeric: false,
+  { id: 'eachOption', label: 'has a text for each option', phrase: 'is', needsValue: false, numeric: false,
     kinds: ['choice'] },
-  { id: 'equals', label: 'Equals', phrase: 'equals', needsValue: true, numeric: false,
+  { id: 'equals', label: 'is', phrase: 'is', needsValue: true, numeric: false,
     kinds: ['text', 'number', 'choice'] },
-  { id: 'notEquals', label: 'Does not equal', phrase: 'does not equal', needsValue: true, numeric: false,
+  { id: 'notEquals', label: 'is not', phrase: 'is not', needsValue: true, numeric: false,
     kinds: ['text', 'number', 'choice'] },
-  { id: 'greaterThan', label: 'Is greater than', phrase: 'is greater than', needsValue: true, numeric: true,
+  { id: 'greaterThan', label: 'is more than', phrase: 'is more than', needsValue: true, numeric: true,
     kinds: ['text', 'number'] },
-  { id: 'lessThan', label: 'Is less than', phrase: 'is less than', needsValue: true, numeric: true,
+  { id: 'lessThan', label: 'is less than', phrase: 'is less than', needsValue: true, numeric: true,
     kinds: ['text', 'number'] },
-  { id: 'contains', label: 'Contains', phrase: 'contains', needsValue: true, numeric: false,
+  { id: 'contains', label: 'contains', phrase: 'contains', needsValue: true, numeric: false,
     kinds: ['text', 'choice'] },
-  { id: 'isFilled', label: 'Is filled', phrase: 'is filled', needsValue: false, numeric: false,
+  { id: 'isFilled', label: 'is filled in', phrase: 'is filled in', needsValue: false, numeric: false,
     kinds: ['text', 'number', 'choice'] },
 ];
 
@@ -176,11 +176,11 @@ const UNSAFE_VALUE = /["'{}]/;
 export function ruleValueError(operator: RuleOperator, value: string, kind: RuleFieldKind): string {
   const spec = getRuleOperator(operator);
   if (!spec.needsValue) return '';
-  if (value.trim() === '') return 'Type the value to compare with.';
+  if (value.trim() === '') return 'Type the answer to match.';
   if (comparesNumbers(operator, kind)) {
     return parseRuleNumber(value) === null ? 'Type a number, like 10 or 2.5.' : '';
   }
-  return UNSAFE_VALUE.test(value) ? 'Quotes and curly brackets cannot go in a value.' : '';
+  return UNSAFE_VALUE.test(value) ? 'Quotes and curly brackets cannot go in the answer.' : '';
 }
 
 // What would close or split the block from inside it.
@@ -457,11 +457,20 @@ export function mergeEdits(body: string, edits: readonly BodyEdit[]): BodyEdit |
 
 /**
  * One piece of a rule's summary. The window draws each kind its own way: the
- * three keywords as tags, the field and the values in the body's monospace.
+ * keywords (If, Or if, Otherwise) as tags, the field and the values in the
+ * body's monospace.
  */
 export interface RuleSummaryPart {
   kind: 'keyword' | 'field' | 'value' | 'text';
   text: string;
+}
+
+/**
+ * Whether a part follows the one before it with no space, as a comma does:
+ * `"annual", show` rather than `"annual" , show`.
+ */
+export function joinsTight(text: string): boolean {
+  return /^[,.]/.test(text);
 }
 
 const EXCERPT_MAX = 40;
@@ -490,57 +499,55 @@ function summaryValue(rule: ConditionRule): string {
 }
 
 /**
- * `IF PLAN equals "annual" THEN show "Two months free." ELSE hide it`, as parts.
- * The ELSE always says what happens, so nobody has to work out that a shown
- * text is otherwise hidden.
+ * `If PLAN is "annual", show "Two months free." Otherwise nothing`, as parts.
+ * The Otherwise always says what happens, so nobody has to work out that a
+ * shown text is otherwise left out.
  */
 export function summarizeRule(rule: ConditionRule): RuleSummaryPart[] {
   if (rule.operator === 'eachOption') return summarizeEachOption(rule);
   const spec = getRuleOperator(rule.operator);
   const parts: RuleSummaryPart[] = [
-    { kind: 'keyword', text: 'IF' },
+    { kind: 'keyword', text: 'If' },
     { kind: 'field', text: rule.field },
     { kind: 'text', text: spec.phrase },
   ];
   if (spec.needsValue) parts.push({ kind: 'value', text: summaryValue(rule) });
   parts.push(
-    { kind: 'keyword', text: 'THEN' },
-    { kind: 'text', text: rule.action },
+    { kind: 'text', text: `, ${rule.action}` },
     { kind: 'value', text: quoted(ruleExcerpt(rule.content)) },
-    { kind: 'keyword', text: 'ELSE' },
+    { kind: 'keyword', text: 'Otherwise' },
   );
   if (rule.action === 'hide') parts.push({ kind: 'text', text: 'show it' });
-  else if (rule.otherwise.trim() === '') parts.push({ kind: 'text', text: 'hide it' });
+  else if (rule.otherwise.trim() === '') parts.push({ kind: 'text', text: 'nothing' });
   else parts.push({ kind: 'text', text: 'show' }, { kind: 'value', text: quoted(ruleExcerpt(rule.otherwise)) });
   return parts;
 }
 
 /**
- * `IF RATE is "Refundable" THEN show "Full refund." ELSE IF RATE is "Fixed" THEN
- * show "No refund." ELSE print nothing`, as parts. Options left empty are not
+ * `If RATE is "Refundable", show "Full refund." Or if RATE is "Fixed", show
+ * "No refund." Otherwise nothing`, as parts. Options left empty are not
  * written, so they are not read out either.
  */
 function summarizeEachOption(rule: ConditionRule): RuleSummaryPart[] {
   const parts: RuleSummaryPart[] = [];
   writtenCases(rule).forEach((c, i) => {
     parts.push(
-      { kind: 'keyword', text: i === 0 ? 'IF' : 'ELSE IF' },
+      { kind: 'keyword', text: i === 0 ? 'If' : 'Or if' },
       { kind: 'field', text: rule.field },
       { kind: 'text', text: 'is' },
       { kind: 'value', text: quoted(c.value.trim()) },
-      { kind: 'keyword', text: 'THEN' },
-      { kind: 'text', text: 'show' },
+      { kind: 'text', text: ', show' },
       { kind: 'value', text: quoted(ruleExcerpt(c.content)) },
     );
   });
-  parts.push({ kind: 'keyword', text: 'ELSE' }, { kind: 'text', text: 'print nothing' });
+  parts.push({ kind: 'keyword', text: 'Otherwise' }, { kind: 'text', text: 'nothing' });
   return parts;
 }
 
 /** A condition written by hand, which the builder lists and changes in its row. */
 export function summarizeCustomCondition(condition: string): RuleSummaryPart[] {
   return [
-    { kind: 'keyword', text: 'IF' },
+    { kind: 'keyword', text: 'If' },
     { kind: 'value', text: condition },
     { kind: 'text', text: '(written by hand)' },
   ];
@@ -548,7 +555,10 @@ export function summarizeCustomCondition(condition: string): RuleSummaryPart[] {
 
 /** The parts as one line, for screen readers and the Undo note. */
 export function summaryText(parts: readonly RuleSummaryPart[]): string {
-  return parts.map((p) => p.text).join(' ');
+  return parts.reduce(
+    (line, p, i) => line + (i > 0 && !joinsTight(p.text) ? ' ' : '') + p.text,
+    '',
+  );
 }
 
 /** A body entry's summary, whichever way it was written. */

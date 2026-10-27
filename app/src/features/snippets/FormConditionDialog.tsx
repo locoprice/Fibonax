@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
@@ -11,6 +11,7 @@ import {
   eachOptionError,
   getRuleOperator,
   isValidRule,
+  joinsTight,
   mergeEdits,
   operatorsFor,
   relocateRule,
@@ -97,27 +98,28 @@ function draftOf(rule: ConditionRule | null): RuleDraft {
 }
 
 const ACTION_OPTIONS: readonly { value: RuleAction; label: string }[] = [
-  { value: 'show', label: 'Show' },
-  { value: 'hide', label: 'Hide' },
+  { value: 'show', label: 'Show it' },
+  { value: 'hide', label: 'Hide it' },
 ];
 
 const RULE_NOUN = { one: 'rule', many: 'rules' };
 
+const STEP = 'mb-1.5 block text-xs font-medium text-ink';
 const TEXTAREA =
   'w-full resize-y rounded-[10px] border border-line bg-card px-3 py-2 font-mono text-sm leading-relaxed text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 const INVALID = 'border-danger focus:border-danger focus:ring-danger/20';
 
 const PART_CLASS: Record<RuleSummaryPart['kind'], string> = {
-  keyword: 'rounded-[4px] bg-primary px-1 py-px text-[10px] font-semibold tracking-wider text-white',
-  field: 'break-all rounded-[4px] bg-bg-alt px-1 font-mono text-[11px] text-ink',
-  value: 'break-all font-mono text-[11px] font-semibold text-primary',
+  keyword: 'inline-block rounded-[4px] bg-primary px-1 text-[10px] font-semibold leading-4 text-white',
+  field: 'break-words rounded-[4px] bg-bg-alt px-1 font-mono text-[11px] text-ink',
+  value: 'break-words font-mono text-[11px] font-semibold text-primary',
   text: 'text-ink-muted',
 };
 
 /**
- * A rule in plain words, `IF PLAN equals "annual" THEN show "…" ELSE hide it`,
- * with the three keywords as tags so the flow reads at a glance. Used by the
- * window and by the editor's sidebar, so a rule reads the same in both.
+ * A rule as one sentence, `If PLAN is "annual", show "…" Otherwise nothing`,
+ * with If and Otherwise as tags so the two halves read at a glance. Used by
+ * the window and by the editor's sidebar, so a rule reads the same in both.
  */
 export function RuleSummary({
   parts,
@@ -127,13 +129,16 @@ export function RuleSummary({
   className?: string;
 }) {
   return (
-    <p className={cn('flex flex-wrap items-baseline gap-x-1 gap-y-0.5 text-xs leading-relaxed', className)}>
+    <p className={cn('text-xs leading-relaxed', className)}>
       {/* Read as one sentence; the tags are drawn for the eye only. */}
       <span className="sr-only">{summaryText(parts)}</span>
       {parts.map((part, i) => (
-        <span key={i} aria-hidden className={PART_CLASS[part.kind]}>
-          {part.text}
-        </span>
+        <Fragment key={i}>
+          {i > 0 && !joinsTight(part.text) && ' '}
+          <span aria-hidden className={PART_CLASS[part.kind]}>
+            {part.text}
+          </span>
+        </Fragment>
       ))}
     </p>
   );
@@ -173,27 +178,6 @@ export function ConditionList({
   return <BodyListSection body={body} onReplace={onReplace} items={items} noun={CONDITION_NOUN} />;
 }
 
-/** One of the three steps of a rule, boxed under its keyword. */
-function RuleStep({
-  keyword,
-  caption,
-  children,
-}: {
-  keyword: string;
-  caption: string;
-  children: ReactNode;
-}) {
-  return (
-    <section aria-label={keyword} className="rounded-[10px] border border-line bg-card p-3">
-      <div className="mb-2.5 flex items-center gap-2">
-        <span className={PART_CLASS.keyword}>{keyword}</span>
-        <span className="text-[11px] text-ink-subtle">{caption}</span>
-      </div>
-      {children}
-    </section>
-  );
-}
-
 interface FormConditionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -211,9 +195,9 @@ interface FormConditionDialogProps {
 }
 
 /**
- * Builds a show or hide rule: IF a field's answer meets a check, THEN a text
- * shows or hides, ELSE the opposite. Every rule already in the snippet is listed
- * above the form in plain words, each with Edit and Remove.
+ * Builds a show or hide rule in three plain steps: the answer to check, the
+ * text to show or hide, and what prints otherwise. Every rule already in the
+ * snippet is listed above the form as a sentence, each with Edit and Remove.
  *
  * The rule is an ordinary `{if:}` block (`@/lib/conditionRule`), which every
  * expansion surface already resolves.
@@ -404,11 +388,11 @@ export function FormConditionDialog({
               : eachOption
                 ? eachOptionError(rule)
               : spec.needsValue && value.trim() === ''
-                ? 'Type the value to compare with.'
+                ? 'Type the answer to match in step 1.'
                 : valueError !== ''
-                  ? 'Check the value.'
+                  ? 'Check the answer in step 1.'
                   : draft.content.trim() === ''
-                    ? `Type the text to ${draft.action}.`
+                    ? 'Type the text in step 2.'
                     : 'Check the text marked in red.';
 
   // The plain-words line, readable before the rule is finished: a blank shows
@@ -500,7 +484,7 @@ export function FormConditionDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Show or hide"
-      description="Text that prints only when an answer calls for it. Every rule in this snippet is listed here in plain words."
+      description="Print a piece of text only when an answer calls for it."
       body={body}
       onReplace={onReplace}
       list={
@@ -537,31 +521,34 @@ export function FormConditionDialog({
             </EditingBanner>
           )}
 
-          <div className="flex flex-col gap-2">
-            <RuleStep keyword="IF" caption="The answer the rule checks.">
-              <label htmlFor="rule-field" className={SECTION_LABEL}>
-                Field
-              </label>
-              <select
-                id="rule-field"
-                value={fieldSel}
-                onChange={(e) =>
-                  update({ field: e.target.value, operator: null, value: '', cases: [], printPick: null })
-                }
-                className={cn(SELECT, fieldMissing && INVALID)}
-              >
-                {fieldMissing && <option value={fieldSel}>{fieldSel} (not in the snippet)</option>}
-                {fields.map((f) => (
-                  <option key={f.key} value={f.key}>
-                    {f.label !== '' && f.label !== f.key ? `${f.key} · ${f.label}` : f.key}
-                  </option>
-                ))}
-              </select>
-              <p className={HINT}>Text, Number and Choice fields. Dates and times cannot be checked.</p>
-
-              <div className={cn('mt-3 grid gap-2', spec.needsValue ? 'grid-cols-2' : 'grid-cols-1')}>
-                <div>
-                  <label htmlFor="rule-check" className={SECTION_LABEL}>
+          <div className="flex flex-col gap-4">
+            {/* One row that reads as a sentence: the field, the check, the
+                answer. Each box keeps a label for screen readers only. */}
+            <section aria-label="Step 1">
+              <p className={STEP}>1. When this answer</p>
+              <div className="flex gap-2">
+                <div className="min-w-0 flex-1">
+                  <label htmlFor="rule-field" className="sr-only">
+                    Field
+                  </label>
+                  <select
+                    id="rule-field"
+                    value={fieldSel}
+                    onChange={(e) =>
+                      update({ field: e.target.value, operator: null, value: '', cases: [], printPick: null })
+                    }
+                    className={cn(SELECT, fieldMissing && INVALID)}
+                  >
+                    {fieldMissing && <option value={fieldSel}>{fieldSel} (not in the snippet)</option>}
+                    {fields.map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label !== '' && f.label !== f.key ? `${f.key} · ${f.label}` : f.key}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={cn('min-w-0', spec.needsValue ? 'flex-1' : 'flex-[1.4]')}>
+                  <label htmlFor="rule-check" className="sr-only">
                     Check
                   </label>
                   <select
@@ -578,9 +565,9 @@ export function FormConditionDialog({
                   </select>
                 </div>
                 {spec.needsValue && (
-                  <div>
-                    <label htmlFor="rule-value" className={SECTION_LABEL}>
-                      Value
+                  <div className="min-w-0 flex-1">
+                    <label htmlFor="rule-value" className="sr-only">
+                      Answer to match
                     </label>
                     {pickValue ? (
                       <select
@@ -600,7 +587,7 @@ export function FormConditionDialog({
                         id="rule-value"
                         value={value}
                         inputMode={spec.numeric || kind === 'number' ? 'decimal' : 'text'}
-                        placeholder={spec.numeric || kind === 'number' ? '10' : 'Type a value'}
+                        placeholder={spec.numeric || kind === 'number' ? '10' : 'The answer'}
                         onChange={(e) => update({ value: e.target.value })}
                         onKeyDown={submitOnEnter}
                         aria-invalid={valueError !== ''}
@@ -612,15 +599,11 @@ export function FormConditionDialog({
               </div>
               {valueError !== '' ? (
                 <p className={ERROR}>{valueError}</p>
-              ) : eachOption ? (
-                <p className={HINT}>Write a text for each option below. Only the picked one prints.</p>
-              ) : spec.needsValue && !spec.numeric && kind !== 'number' ? (
-                <p className={HINT}>Capitals do not matter: annual matches Annual.</p>
-              ) : !spec.needsValue ? (
-                <p className={HINT}>True once anything is typed or picked.</p>
-              ) : (
+              ) : spec.needsValue && !pickValue && !spec.numeric && kind !== 'number' ? (
+                <p className={HINT}>Capitals don&apos;t matter: annual matches Annual.</p>
+              ) : spec.needsValue && (spec.numeric || kind === 'number') ? (
                 <p className={HINT}>An empty box counts as 0.</p>
-              )}
+              ) : null}
 
               {menuTokens.length > 0 && (
                 <div className="mt-3 border-t border-line pt-3">
@@ -642,10 +625,11 @@ export function FormConditionDialog({
                   </p>
                 </div>
               )}
-            </RuleStep>
+            </section>
 
             {eachOption ? (
-              <RuleStep keyword="THEN" caption="What prints for each option.">
+              <section aria-label="Step 2">
+                <p className={STEP}>2. The text for each option</p>
                 <div className="flex flex-col gap-2.5">
                   {caseRows.map((option, i) => {
                     const text = caseText(option);
@@ -654,7 +638,7 @@ export function FormConditionDialog({
                     return (
                       <div key={option}>
                         <label htmlFor={`rule-case-${i}`} className={SECTION_LABEL}>
-                          {option}
+                          <span className="font-mono text-ink">{option}</span>
                           {gone && <span className="font-normal text-ink-subtle"> (no longer an option)</span>}
                         </label>
                         <textarea
@@ -662,7 +646,7 @@ export function FormConditionDialog({
                           rows={2}
                           value={text}
                           onChange={(e) => updateCase(option, e.target.value)}
-                          placeholder={`The text to show for ${option}. Fields work here too, like {NAME}.`}
+                          placeholder="Fields work here too, like {NAME}."
                           aria-invalid={error !== ''}
                           className={cn(TEXTAREA, error !== '' && INVALID)}
                         />
@@ -671,17 +655,20 @@ export function FormConditionDialog({
                     );
                   })}
                 </div>
-                <p className={HINT}>Prints exactly as typed, spaces and line breaks included.</p>
-              </RuleStep>
+                <p className={HINT}>An option left empty prints nothing.</p>
+              </section>
             ) : (
-              <RuleStep keyword="THEN" caption="What happens when it is true.">
-                <Segmented
-                  options={ACTION_OPTIONS}
-                  value={draft.action}
-                  onChange={(next) => update({ action: next })}
-                  ariaLabel="Show or hide the text"
-                  className="mb-2 w-full [&>button]:flex-1"
-                />
+              <section aria-label="Step 2">
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <p className="text-xs font-medium text-ink">2. This text</p>
+                  <Segmented
+                    options={ACTION_OPTIONS}
+                    value={draft.action}
+                    onChange={(next) => update({ action: next })}
+                    ariaLabel="Show or hide the text"
+                    className="[&>button]:h-7 [&>button]:px-2.5 [&>button]:text-[11px]"
+                  />
+                </div>
                 <label htmlFor="rule-content" className="sr-only">
                   The text to {draft.action}
                 </label>
@@ -690,48 +677,37 @@ export function FormConditionDialog({
                   rows={3}
                   value={draft.content}
                   onChange={(e) => update({ content: e.target.value })}
-                  placeholder={`The text to ${draft.action}. Fields work here too, like {NAME}.`}
+                  placeholder="Fields work here too, like {NAME}."
                   aria-invalid={contentError !== ''}
                   className={cn(TEXTAREA, contentError !== '' && INVALID)}
                 />
-                {contentError !== '' ? (
-                  <p className={ERROR}>{contentError}</p>
-                ) : (
-                  <p className={HINT}>Prints exactly as typed, spaces and line breaks included.</p>
-                )}
-              </RuleStep>
+                {contentError !== '' && <p className={ERROR}>{contentError}</p>}
+              </section>
             )}
 
-            <RuleStep keyword="ELSE" caption="What happens when it is not.">
-              {eachOption ? (
-                <p className="text-xs text-ink">An option left empty prints nothing.</p>
-              ) : draft.action === 'hide' ? (
-                <p className="text-xs text-ink">The text shows.</p>
-              ) : (
-                <>
-                  <label htmlFor="rule-otherwise" className={SECTION_LABEL}>
-                    Print instead (optional)
-                  </label>
-                  <textarea
-                    id="rule-otherwise"
-                    rows={2}
-                    value={draft.otherwise}
-                    onChange={(e) => update({ otherwise: e.target.value })}
-                    placeholder="Left empty, the text is hidden."
-                    aria-invalid={otherwiseError !== ''}
-                    className={cn(TEXTAREA, otherwiseError !== '' && INVALID)}
-                  />
-                  {otherwiseError !== '' && <p className={ERROR}>{otherwiseError}</p>}
-                </>
-              )}
-            </RuleStep>
+            {/* A hidden text shows otherwise, and each option's text already
+                says what prints: only a shown text can print something else. */}
+            {!eachOption && draft.action === 'show' && (
+              <section aria-label="Step 3">
+                <label htmlFor="rule-otherwise" className={STEP}>
+                  3. Otherwise print <span className="font-normal text-ink-subtle">(optional)</span>
+                </label>
+                <textarea
+                  id="rule-otherwise"
+                  rows={2}
+                  value={draft.otherwise}
+                  onChange={(e) => update({ otherwise: e.target.value })}
+                  placeholder="Leave empty to print nothing."
+                  aria-invalid={otherwiseError !== ''}
+                  className={cn(TEXTAREA, otherwiseError !== '' && INVALID)}
+                />
+                {otherwiseError !== '' && <p className={ERROR}>{otherwiseError}</p>}
+              </section>
+            )}
           </div>
 
           {preview && (
             <div className="rounded-[10px] border border-primary/25 bg-primary-light px-3 py-2.5">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
-                In plain words
-              </p>
               <RuleSummary parts={preview} />
             </div>
           )}
