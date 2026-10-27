@@ -931,13 +931,24 @@
   // ── A LAYOUT ON SCREEN ──────────────────────────────────────────
   // What a preview draws for a formatted text (`formatted`): the layout read
   // in an inert document and rebuilt node by node, keeping lines, lists, Bold,
-  // Italic, Underline and https pictures. Layouts come from teammates too, so
-  // nothing in one runs, and no attribute but a picture's address, description
-  // and size comes through. Needs a browser; returns null without one.
+  // Italic, Underline, text colours and https pictures. Layouts come from
+  // teammates too, so nothing in one runs, and no attribute comes through but
+  // a picture's address, description and size, and a colour written as
+  // `#rgb`, `#rrggbb` or `rgb()`. Needs a browser; returns null without one.
   var LAYOUT_KEEP = { DIV: 'div', P: 'div', BR: 'br', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u',
     UL: 'ul', OL: 'ol', LI: 'li' };
   var LAYOUT_SKIP = { SCRIPT: 1, STYLE: 1, TEMPLATE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, HEAD: 1, TITLE: 1 };
   var PICTURE_WIDTH_SIZE = { 160: 'small', 320: 'medium', 600: 'full' };
+  var LAYOUT_COLOR_RE = /^(#[0-9a-f]{3}|#[0-9a-f]{6}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+)\s*)?\))$/i;
+
+  // The text colour an element sets, when it is one of the forms above:
+  // `color` in its style (not `background-color`), or `<font color>`.
+  function layoutColor(el) {
+    var styled = /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(el.getAttribute('style') || '');
+    var value = styled ? styled[1] : (el.tagName.toUpperCase() === 'FONT' ? el.getAttribute('color') : null);
+    value = value ? value.replace(/!important/i, '').trim() : '';
+    return LAYOUT_COLOR_RE.test(value) ? value : '';
+  }
 
   function layoutFragment(html, doc) {
     if (typeof DOMParser === 'undefined') return null;
@@ -961,8 +972,11 @@
           return;
         }
         var keep = LAYOUT_KEEP[tag];
-        if (!keep) { copy(n, to); return; }
-        var el = d.createElement(keep);
+        var color = layoutColor(n);
+        if (!keep && !color) { copy(n, to); return; }
+        var el = d.createElement(keep || 'span');
+        // Over whatever the page around the preview says about colour.
+        if (color) el.style.setProperty('color', color, 'important');
         to.appendChild(el);
         copy(n, el);
       });

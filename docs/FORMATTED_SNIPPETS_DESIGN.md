@@ -103,6 +103,7 @@ Built ahead of pasted layouts, on the same columns (migration live since 2026-10
 - Saved: `bodies_html` per language beside `bodies`, `body_html` its mirror; the save function gets the pair. Version history, duplicate, JSON export and import carry it (import rebuilds it through the model).
 - Surfaces pass `formatted: body_html` (extension caches `bodyHtml` / `bodiesHtml`; the phone reads `body_html` per language). Previews draw it with `layoutFragment` in `extension/shared/fill-form.js`, rebuilt node by node, so nothing in a layout runs. Undo after a formatted insert also takes out the lines and lists it left empty.
 - Pasting into the box takes text only. Formatting copied from elsewhere stays the Pro layout feature (steps 2 to 5 above).
+- **Text colour** (v3.97.0, free like the rest of the bar): an "A" button after Underline opens Default and nine colours (`app/src/features/snippets/TextColorButton.tsx`, palette in `app/src/lib/textColors.ts` and `docs/DESIGN_SYSTEM.md`). A run carries a palette key; `docToHtml` writes `<span style="color:#…">` around the marks, and `docFromNode` keeps only palette colours, by either shade, so anything else in a layout is dropped. Selected text is coloured through the model; with nothing selected, the browser's own typing colour is used and the box redraws its `<font>` at once. `layoutFragment` keeps a `color` written as `#rgb`, `#rrggbb` or `rgb()`, so every preview shows it; inserts and Copy carry the layout as it is. Plain text has no colour.
 
 ## 3. Order of work
 

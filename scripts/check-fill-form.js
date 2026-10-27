@@ -544,6 +544,10 @@ assert.equal(lt.formatted,
 // A field split by formatting is still the field it was written as.
 assert.equal(filled('{formtext: name=GUEST}', { GUEST: 'Ana' },
   { formatted: '<i>{formtext: <b>name=GUEST</b>}</i>' }).formatted, '<i>Ana</i>');
+// A text colour stays an inline style an email keeps, around the filled value too.
+assert.equal(filled('Hi {formtext: name=GUEST}', { GUEST: 'Ana & co' },
+  { formatted: '<div><span style="color:#D70015">Hi <b>{formtext: name=GUEST}</b></span></div>' }).formatted,
+  '<div><span style="color:#D70015">Hi <b>Ana &amp; co</b></span></div>');
 // Out of step, or no layout: nothing formatted, the text is what goes in.
 assert.equal(filled(LT_TEXT, ltVals, { formatted: LT_HTML.replace('<b>{=PAX * 10}</b>', '<b>{TIP}</b>') }).formatted, null);
 assert.equal(filled(LT_TEXT, ltVals).formatted, null);

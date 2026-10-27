@@ -30,6 +30,7 @@ import {
   type SbPicture,
   type SbUnfinishedItem,
 } from '@/lib/fillFormEngine';
+import { textColorOf, TEXT_COLORS } from '@/lib/textColors';
 
 /**
  * Live preview of a snippet body — the fields it asks for, and the message it
@@ -103,13 +104,22 @@ function PreviewPicture({ picture }: { picture: SbPicture }) {
 
 /**
  * A formatted text as it will look, drawn from the shared engine's safe copy
- * of the layout (lines, lists, marks, https pictures), never from its HTML.
+ * of the layout (lines, lists, marks, colours, https pictures), never from its
+ * HTML. A text colour from the palette shows in the body box's shade of it,
+ * so it stays readable on the dark theme; Copy still gives the email's.
  */
 function LayoutResult({ html }: { html: string }) {
   const ref = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const fragment = layoutFragment(html);
-    if (ref.current && fragment) ref.current.replaceChildren(fragment);
+    if (!ref.current || !fragment) return;
+    fragment.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
+      const color = textColorOf(el.style.color);
+      if (!color) return;
+      el.style.removeProperty('color');
+      el.classList.add(...TEXT_COLORS[color].text.split(' '));
+    });
+    ref.current.replaceChildren(fragment);
   }, [html]);
   return (
     <div

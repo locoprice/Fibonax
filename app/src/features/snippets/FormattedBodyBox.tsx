@@ -12,9 +12,12 @@ import {
 } from 'react';
 import { Bold, Italic, List, ListOrdered, Underline, type LucideIcon } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
+import { TextColorButton } from '@/features/snippets/TextColorButton';
 import {
   blockText,
   chipLabel,
+  colorAt,
+  colorRange,
   docFromNode,
   docFromPlain,
   docToHtml,
@@ -25,13 +28,14 @@ import {
   syncDoc,
   type Block,
   type FormattedDoc,
-  type Mark,
+  type Run,
 } from '@/lib/formattedBody';
+import { TEXT_COLORS, type TextColor } from '@/lib/textColors';
 import { cn } from '@/lib/utils';
 
 /**
  * The snippet body box: text shown as it will look, with Bold, Italic,
- * Underline and the two lists, and every field as a chip.
+ * Underline, a text colour and the two lists, and every field as a chip.
  *
  * It keeps the contract of the plain text box it replaced, so every window in
  * the side panel works unchanged: `value`, `selectionStart` / `selectionEnd`
@@ -88,21 +92,28 @@ function docFromLayout(html: string | null, plain: string): FormattedDoc {
   return syncDoc(docFromNode(parsed.body), plain);
 }
 
-function wrapMarks(node: Node, marks: readonly Mark[]): Node {
-  return [...marks].reverse().reduce<Node>((inner, mark) => {
+/** A piece of a line in its run's marks, and its colour around them, as the layout writes it. */
+function wrapLook(node: Node, run: Pick<Run, 'marks' | 'color'>): Node {
+  const marked = [...run.marks].reverse().reduce<Node>((inner, mark) => {
     const el = document.createElement(mark);
     el.appendChild(inner);
     return el;
   }, node);
+  if (!run.color) return marked;
+  const span = document.createElement('span');
+  span.dataset.color = run.color;
+  span.className = TEXT_COLORS[run.color].text;
+  span.appendChild(marked);
+  return span;
 }
 
-function marksAtChar(block: Block, char: number): Mark[] {
+function lookAtChar(block: Block, char: number): Pick<Run, 'marks' | 'color'> {
   let at = 0;
   for (const run of block.runs) {
-    if (char < at + run.text.length) return run.marks;
+    if (char < at + run.text.length) return run;
     at += run.text.length;
   }
-  return [];
+  return { marks: [] };
 }
 
 /** One line's text and chips. An empty line holds a `<br>` so it keeps its height. */
@@ -121,7 +132,7 @@ function fillLine(line: HTMLElement, block: Block) {
       chip.title = seg.raw;
       chip.className = CHIP;
       chip.textContent = chipLabel(seg.raw);
-      line.appendChild(wrapMarks(chip, marksAtChar(block, pos)));
+      line.appendChild(wrapLook(chip, lookAtChar(block, pos)));
       pos += seg.raw.length;
       continue;
     }
@@ -130,7 +141,7 @@ function fillLine(line: HTMLElement, block: Block) {
     for (const run of block.runs) {
       const from = Math.max(pos, at);
       const to = Math.min(end, at + run.text.length);
-      if (to > from) line.appendChild(wrapMarks(document.createTextNode(text.slice(from, to)), run.marks));
+      if (to > from) line.appendChild(wrapLook(document.createTextNode(text.slice(from, to)), run));
       at += run.text.length;
     }
     pos = end;
@@ -244,6 +255,7 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
   // way a text box keeps its own.
   const selRef = useRef({ start: value.length, end: value.length });
   const [active, setActive] = useState<Partial<Record<Command, boolean>>>({});
+  const [color, setColor] = useState<TextColor | null>(null);
   const [empty, setEmpty] = useState(value === '');
 
   const draw = useCallback(() => {
@@ -333,15 +345,24 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
         insertUnorderedList: document.queryCommandState('insertUnorderedList'),
         insertOrderedList: document.queryCommandState('insertOrderedList'),
       });
+      setColor(colorAt(docRef.current, now.start, now.end));
     };
     document.addEventListener('selectionchange', onSelectionChange);
     return () => document.removeEventListener('selectionchange', onSelectionChange);
   }, [readSelection, onCaret]);
 
-  function handleInput() {
+  function handleInput(composing = false) {
     const root = rootRef.current;
     if (!root) return;
     docRef.current = docFromNode(root);
+    // Text typed after a colour was picked with nothing selected arrives in
+    // the browser's own <font>: drawn again the way the box draws a colour,
+    // so the dark theme shows its shade, with the caret where it was.
+    if (!composing && root.querySelector('font')) {
+      const at = readSelection();
+      draw();
+      if (at) setSelection(at.start, at.end);
+    }
     const plain = docToPlain(docRef.current);
     setEmpty(plain === '');
     onChange(plain);
@@ -357,6 +378,26 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
     }
     document.execCommand(command);
     handleInput();
+  }
+
+  // Selected text takes the colour at once. With nothing selected, what is
+  // typed next does, as with Bold; Default goes back to the box's own colour.
+  function applyColor(next: TextColor | null) {
+    const root = rootRef.current;
+    if (!root || disabled) return;
+    const { start, end } = readSelection() ?? selRef.current;
+    root.focus();
+    if (start === end) {
+      setSelection(start, end);
+      document.execCommand('foreColor', false, next ? TEXT_COLORS[next].hex : getComputedStyle(root).color);
+      setColor(next);
+      return;
+    }
+    docRef.current = colorRange(docRef.current, start, end, next);
+    draw();
+    setSelection(start, end);
+    setColor(next);
+    onLayoutChange(layoutOf(docRef.current));
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -412,7 +453,12 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
       <div role="toolbar" aria-label="Formatting" aria-controls={id} className="flex shrink-0 items-center gap-0.5 border-b border-line px-1.5 py-1">
         {TOOLS.map(({ command, label, keys, Icon }, i) => (
           <span key={command} className="flex items-center">
-            {i === 3 && <span aria-hidden className="mx-1 h-4 w-px bg-line" />}
+            {i === 3 && (
+              <>
+                <TextColorButton value={color} disabled={disabled} onPick={applyColor} />
+                <span aria-hidden className="mx-1 h-4 w-px bg-line" />
+              </>
+            )}
             <Tooltip label={keys ? `${label} (${keys})` : label} placement="top" className="flex">
               <button
                 type="button"
@@ -445,7 +491,7 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
         contentEditable={!disabled}
         suppressContentEditableWarning
         spellCheck
-        onInput={handleInput}
+        onInput={(e) => handleInput((e.nativeEvent as InputEvent).isComposing)}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
         onDrop={(e) => e.preventDefault()}
@@ -454,6 +500,8 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
         className={cn(
           'min-h-0 flex-1 overflow-y-auto px-3.5 py-3 text-sm leading-relaxed text-ink focus:outline-none',
           '[&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6',
+          // A field in coloured text shows that colour: its value prints in it.
+          '[&_[data-color]_[data-token]]:[color:inherit]',
           empty &&
             'relative before:pointer-events-none before:absolute before:left-3.5 before:top-3 before:whitespace-pre-line before:text-ink-subtle before:content-[attr(data-placeholder)]',
         )}

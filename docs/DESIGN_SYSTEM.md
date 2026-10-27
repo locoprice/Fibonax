@@ -119,6 +119,24 @@ Badges keep their light tints in dark mode, matching every shipped chip on the d
 
 **Sub-labels (LABELS-002).** A label may nest one level under another (`labels.parent_id`, max depth 2 — see `app/src/lib/labelTree.ts`). Nesting is rendered as a **14 px indent per level**, the same step the folder rail uses, in the label manager, the picker, and the filter menu. No new tokens: a sub-label draws from the same eight-key palette, and a new child defaults to its parent's key so a family reads as one group. The chip itself always shows the **bare child name** — a table row has no room for a path — with the full `Parent / Child` on hover. Selecting a parent in the filter also matches its children, matching how selecting a parent folder lists its subtree.
 
+### Text colour palette (snippet body)
+
+The nine colours of the Text colour menu in the snippet body's formatting bar, in Notion's order after **Default**. A closed set: the editor keeps the key, and the layout an email gets carries the email hex inline (`<span style="color:#…">`), because email clients drop classes and stylesheets. The body box and the editor preview show the dark shade on the dark theme. The dashboard resolver is `app/src/lib/textColors.ts`, the only place in `app/` these values may appear. The extension and the phone draw whatever colour a layout carries and need no copy of the palette.
+
+| Key      | Name   | Email (light) | Dark theme | Origin |
+| -------- | ------ | ------------- | ---------- | ------ |
+| `grey`   | Grey   | `#6E6E73` | `#AEAEB2` | `ink-muted`, light and dark |
+| `brown`  | Brown  | `#8B5E3C` | `#C8A07E` | New |
+| `orange` | Orange | `#C2410C` | `#FB923C` | ES language / label orange |
+| `yellow` | Yellow | `#A16207` | `#FACC15` | New: `warning-deep` misses 4.5:1 as text on white |
+| `green`  | Green  | `#15803D` | `#4ADE80` | IT language / label green |
+| `blue`   | Blue   | `#1B4FD8` | `#6E96F0` | `primary`; dark is `--activity-4` |
+| `purple` | Purple | `#7C3AED` | `#C084FC` | MULTI language / label violet |
+| `pink`   | Pink   | `#BE185D` | `#F472B6` | New |
+| `red`    | Red    | `#D70015` | `#F87171` | `danger` |
+
+Every email value holds 4.5:1 on white and every dark value 4.5:1 on the dark `card` (`#2C2C2E`). In the menu each row is an "A" in its colour beside the colour's name, and the button names the colour in use ("Text colour: Red"), so a colour is never told by its shade alone.
+
 ### Prompt strategy chips
 
 One label per prompt, shown on the dashboard prompt cards, the `/mobile/` prompt list and the extension popup. It replaced the separate one-shot / few-shot type badge when the editor's Type box was removed, since Strategy already carries both.

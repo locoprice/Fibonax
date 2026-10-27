@@ -1,6 +1,6 @@
 /**
- * A snippet body with formatting: Bold, Italic, Underline, bullet and
- * numbered lists. The model behind the editor's formatted box.
+ * A snippet body with formatting: Bold, Italic, Underline, a text colour,
+ * bullet and numbered lists. The model behind the editor's formatted box.
  *
  * The plain body stays the source that every builder, list and rule reads.
  * Each of its lines is one block here, and a list line carries its prefix in
@@ -14,6 +14,7 @@
  */
 
 import { changedSpan } from '@/lib/bodyItems';
+import { isTextColor, textColorOf, TEXT_COLORS, type TextColor } from '@/lib/textColors';
 
 export type Mark = 'b' | 'i' | 'u';
 export type ListKind = 'none' | 'bullet' | 'number';
@@ -22,6 +23,15 @@ export interface Run {
   text: string;
   /** In MARK_ORDER, no repeats. */
   marks: Mark[];
+  /** Left out for the default colour. */
+  color?: TextColor;
+}
+
+/** How a run looks, without its text. */
+type Look = Omit<Run, 'text'>;
+
+function makeRun(text: string, look: Look): Run {
+  return look.color ? { text, marks: look.marks, color: look.color } : { text, marks: look.marks };
 }
 
 export interface Block {
@@ -47,15 +57,15 @@ export function blockText(block: Block): string {
   return block.runs.map((r) => r.text).join('');
 }
 
-/** Joins neighbouring runs with the same marks and drops empty ones. */
+/** Joins neighbouring runs that look the same and drops empty ones. */
 function normalizeRuns(runs: readonly Run[]): Run[] {
   const out: Run[] = [];
   for (const run of runs) {
     if (run.text === '') continue;
     const marks = sortMarks(run.marks);
     const last = out[out.length - 1];
-    if (last && sameMarks(last.marks, marks)) last.text += run.text;
-    else out.push({ text: run.text, marks });
+    if (last && sameMarks(last.marks, marks) && last.color === run.color) last.text += run.text;
+    else out.push(makeRun(run.text, { marks, color: run.color }));
   }
   return out;
 }
@@ -84,7 +94,7 @@ export function docFromPlain(plain: string): FormattedDoc {
 
 /** Whether anything in the document is formatted, so a layout is worth saving. */
 export function hasFormatting(doc: FormattedDoc): boolean {
-  return doc.some((b) => b.list !== 'none' || b.runs.some((r) => r.marks.length > 0));
+  return doc.some((b) => b.list !== 'none' || b.runs.some((r) => r.marks.length > 0 || !!r.color));
 }
 
 // ── Layout (body_html) ──────────────────────────────────────────────────────
@@ -93,20 +103,34 @@ function escapeText(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function markedHtml(r: Run): string {
+  const open = r.marks.map((m) => `<${m}>`).join('');
+  const close = [...r.marks].reverse().map((m) => `</${m}>`).join('');
+  return open + escapeText(r.text) + close;
+}
+
+/** A line's runs, neighbours of one colour inside one `<span>`. */
 function inlineHtml(block: Block): string {
-  return block.runs
-    .map((r) => {
-      const open = r.marks.map((m) => `<${m}>`).join('');
-      const close = [...r.marks].reverse().map((m) => `</${m}>`).join('');
-      return open + escapeText(r.text) + close;
-    })
-    .join('');
+  let out = '';
+  let i = 0;
+  while (i < block.runs.length) {
+    const color = block.runs[i]?.color;
+    let inner = '';
+    while (i < block.runs.length && block.runs[i]?.color === color) {
+      inner += markedHtml(block.runs[i] as Run);
+      i += 1;
+    }
+    out += color ? `<span style="color:${TEXT_COLORS[color].hex}">${inner}</span>` : inner;
+  }
+  return out;
 }
 
 /**
  * The layout an email gets: one `<div>` per line (an empty line keeps its
  * height with a `<br>`), list lines in `<ul>` / `<ol>`, marks as `<b>`, `<i>`,
- * `<u>`. Fields stay as their codes, escaped like any text.
+ * `<u>`, a colour as `<span style="color:#…">` around them, inline because
+ * email clients drop stylesheets. Fields stay as their codes, escaped like
+ * any text.
  */
 export function docToHtml(doc: FormattedDoc): string {
   let out = '';
@@ -143,10 +167,24 @@ function isPlaceholderBreak(br: Element): boolean {
 }
 
 /**
+ * The colour an element gives its text: a palette colour, null for any other
+ * colour (the text goes back to the default), undefined when it sets none.
+ * Read from the box's own `data-color`, a `color` in `style`, or `<font color>`.
+ */
+export function elementColor(el: Pick<Element, 'tagName' | 'getAttribute'>): TextColor | null | undefined {
+  const key = el.getAttribute('data-color');
+  if (key !== null) return isTextColor(key) ? key : null;
+  // `color` at the start or after a `;`, so `background-color` is not it.
+  const styled = /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(el.getAttribute('style') ?? '')?.[1];
+  const value = styled ?? (el.tagName.toUpperCase() === 'FONT' ? el.getAttribute('color') : null);
+  return value === null || value === undefined ? undefined : textColorOf(value);
+}
+
+/**
  * Reads a document from a DOM tree: the editor's own box, or a saved layout
- * parsed into an inert document. Only lines, lists, marks and field chips
- * (`data-token`) are read; every other element is passed through for its text,
- * and scripts, styles and frames are skipped whole.
+ * parsed into an inert document. Only lines, lists, marks, palette colours
+ * and field chips (`data-token`) are read; every other element is passed
+ * through for its text, and scripts, styles and frames are skipped whole.
  */
 export function docFromNode(root: Node): FormattedDoc {
   const blocks: Block[] = [];
@@ -157,24 +195,26 @@ export function docFromNode(root: Node): FormattedDoc {
     blocks.push(current);
     return current;
   };
-  const add = (text: string, marks: Mark[], list: ListKind) => {
+  const add = (text: string, look: Look, list: ListKind) => {
     if (text === '') return;
-    (current ?? open(list)).runs.push({ text, marks });
+    (current ?? open(list)).runs.push(makeRun(text, look));
   };
 
-  const walk = (node: Node, marks: Mark[], list: ListKind) => {
+  const walk = (node: Node, inherited: Look, list: ListKind) => {
     node.childNodes.forEach((child) => {
       if (child.nodeType === 3) {
-        add((child.textContent ?? '').replace(/\r?\n/g, ' '), marks, list);
+        add((child.textContent ?? '').replace(/\r?\n/g, ' '), inherited, list);
         return;
       }
       if (child.nodeType !== 1) return;
       const el = child as Element;
       const tag = el.tagName.toUpperCase();
       if (SKIP_TAGS.has(tag)) return;
+      const color = elementColor(el);
+      const look: Look = color === undefined ? inherited : { marks: inherited.marks, color: color ?? undefined };
       const token = el.getAttribute('data-token');
       if (token !== null) {
-        add(token, marks, list);
+        add(token, look, list);
         return;
       }
       if (tag === 'BR') {
@@ -186,7 +226,7 @@ export function docFromNode(root: Node): FormattedDoc {
       }
       const mark = MARK_TAGS[tag];
       if (mark) {
-        walk(el, marks.includes(mark) ? marks : [...marks, mark], list);
+        walk(el, look.marks.includes(mark) ? look : { ...look, marks: [...look.marks, mark] }, list);
         return;
       }
       if (tag === 'UL' || tag === 'OL') {
@@ -195,10 +235,10 @@ export function docFromNode(root: Node): FormattedDoc {
         el.childNodes.forEach((item) => {
           if (item.nodeType === 1 && (item as Element).tagName.toUpperCase() === 'LI') {
             open(kind);
-            walk(item, marks, kind);
+            walk(item, look, kind);
             current = null;
           } else if (item.nodeType === 1) {
-            walk(item, marks, kind);
+            walk(item, look, kind);
           }
         });
         current = null;
@@ -206,7 +246,7 @@ export function docFromNode(root: Node): FormattedDoc {
       }
       if (tag === 'LI') {
         open(list === 'none' ? 'bullet' : list);
-        walk(el, marks, list === 'none' ? 'bullet' : list);
+        walk(el, look, list === 'none' ? 'bullet' : list);
         current = null;
         return;
       }
@@ -215,16 +255,16 @@ export function docFromNode(root: Node): FormattedDoc {
         // line; a box holding no text at all is an empty line.
         current = null;
         const before = blocks.length;
-        walk(el, marks, list);
+        walk(el, look, list);
         if (blocks.length === before) open(list);
         current = null;
         return;
       }
-      walk(el, marks, list);
+      walk(el, look, list);
     });
   };
 
-  walk(root, [], 'none');
+  walk(root, { marks: [] }, 'none');
   const doc = blocks.map((b) => ({ list: b.list, runs: normalizeRuns(b.runs) }));
   return doc.length > 0 ? doc : [{ list: 'none', runs: [] }];
 }
@@ -259,29 +299,29 @@ function sliceRuns(runs: readonly Run[], from: number, to: number): Run[] {
     const end = at + run.text.length;
     const a = Math.max(from, at);
     const b = Math.min(to, end);
-    if (b > a) out.push({ text: run.text.slice(a - at, b - at), marks: run.marks });
+    if (b > a) out.push(makeRun(run.text.slice(a - at, b - at), run));
     at = end;
   }
   return out;
 }
 
-/** The marks text typed at `char` takes: those of the character before it, else after. */
-function marksAt(runs: readonly Run[], char: number): Mark[] {
+/** The look text typed at `char` takes: that of the character before it, else after. */
+function lookAt(runs: readonly Run[], char: number): Look {
   let at = 0;
   for (const run of runs) {
     const end = at + run.text.length;
-    if (char > at && char <= end) return run.marks;
+    if (char > at && char <= end) return run;
     at = end;
   }
-  return runs[0]?.marks ?? [];
+  return runs[0] ?? { marks: [] };
 }
 
 /** A new line written as plain text: a "• " or "1. " at its start makes it a list line. */
-function blockFromLine(line: string, marks: Mark[]): Block {
-  if (line.startsWith(BULLET_PREFIX)) return { list: 'bullet', runs: normalizeRuns([{ text: line.slice(2), marks }]) };
+function blockFromLine(line: string, look: Look): Block {
+  if (line.startsWith(BULLET_PREFIX)) return { list: 'bullet', runs: normalizeRuns([makeRun(line.slice(2), look)]) };
   const n = NUMBER_PREFIX.exec(line);
-  if (n) return { list: 'number', runs: normalizeRuns([{ text: line.slice(n[0].length), marks }]) };
-  return { list: 'none', runs: normalizeRuns([{ text: line, marks }]) };
+  if (n) return { list: 'number', runs: normalizeRuns([makeRun(line.slice(n[0].length), look)]) };
+  return { list: 'none', runs: normalizeRuns([makeRun(line, look)]) };
 }
 
 /** Swaps the plain body's `start`..`end` for `text`, keeping the formatting around it. */
@@ -290,7 +330,7 @@ export function replacePlainRange(doc: FormattedDoc, start: number, end: number,
   const b = positionAt(doc, Math.max(start, end));
   const first = doc[a.block] as Block;
   const last = doc[b.block] as Block;
-  const marks = marksAt(first.runs, a.char);
+  const look = lookAt(first.runs, a.char);
   const head = sliceRuns(first.runs, 0, a.char);
   const tail = sliceRuns(last.runs, b.char, blockText(last).length);
   // Taking out whole lines from the start of one up to the start of another
@@ -303,11 +343,11 @@ export function replacePlainRange(doc: FormattedDoc, start: number, end: number,
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
   const made: Block[] = [];
   if (lines.length === 1) {
-    made.push({ list, runs: normalizeRuns([...head, { text: lines[0] ?? '', marks }, ...tail]) });
+    made.push({ list, runs: normalizeRuns([...head, makeRun(lines[0] ?? '', look), ...tail]) });
   } else {
-    made.push({ list: first.list, runs: normalizeRuns([...head, { text: lines[0] ?? '', marks }]) });
-    for (const line of lines.slice(1, -1)) made.push(blockFromLine(line, marks));
-    const lastLine = blockFromLine(lines[lines.length - 1] ?? '', marks);
+    made.push({ list: first.list, runs: normalizeRuns([...head, makeRun(lines[0] ?? '', look)]) });
+    for (const line of lines.slice(1, -1)) made.push(blockFromLine(line, look));
+    const lastLine = blockFromLine(lines[lines.length - 1] ?? '', look);
     made.push({ list: lastLine.list, runs: normalizeRuns([...lastLine.runs, ...tail]) });
   }
   return [...doc.slice(0, a.block), ...made, ...doc.slice(b.block + 1)];
@@ -354,14 +394,41 @@ export function syncDoc(doc: FormattedDoc, plain: string): FormattedDoc {
       else block.list = 'none';
     }
     const span = changedSpan(blockText(block), text);
-    const marks = marksAt(block.runs, span.start);
     block.runs = normalizeRuns([
       ...sliceRuns(block.runs, 0, span.start),
-      { text: span.text, marks },
+      makeRun(span.text, lookAt(block.runs, span.start)),
       ...sliceRuns(block.runs, span.end, blockText(block).length),
     ]);
   }
   return out;
+}
+
+// ── Text colour ─────────────────────────────────────────────────────────────
+
+/** The plain body's `start`..`end` in a colour, or back to the default with null. */
+export function colorRange(doc: FormattedDoc, start: number, end: number, color: TextColor | null): FormattedDoc {
+  const a = positionAt(doc, Math.min(start, end));
+  const b = positionAt(doc, Math.max(start, end));
+  return doc.map((block, i) => {
+    if (i < a.block || i > b.block) return block;
+    const length = blockText(block).length;
+    const from = i === a.block ? a.char : 0;
+    const to = i === b.block ? b.char : length;
+    if (to <= from) return block;
+    const recoloured = sliceRuns(block.runs, from, to).map((run) => makeRun(run.text, { marks: run.marks, color: color ?? undefined }));
+    return {
+      list: block.list,
+      runs: normalizeRuns([...sliceRuns(block.runs, 0, from), ...recoloured, ...sliceRuns(block.runs, to, length)]),
+    };
+  });
+}
+
+/** The colour at the selection: of its first character, or of the one before the caret. Null for the default. */
+export function colorAt(doc: FormattedDoc, start: number, end: number): TextColor | null {
+  const pos = positionAt(doc, Math.min(start, end));
+  const block = doc[pos.block];
+  if (!block) return null;
+  return lookAt(block.runs, start === end ? pos.char : pos.char + 1).color ?? null;
 }
 
 // ── Field chips ─────────────────────────────────────────────────────────────
