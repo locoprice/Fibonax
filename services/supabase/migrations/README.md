@@ -115,6 +115,12 @@ From the 2026-10-26 global audit. Rules, one new table of timestamps and indexes
 |---|---|---|
 | `20261027130000_snippet_pictures_storage.sql` | ⏳ not applied | Storage for the snippet editor's Add a picture, which ships locked (Pro, `snippetPictures` in `app/src/lib/proFeatures.ts`, `docs/pro-features/README.md`). A public bucket `snippet-pictures` (5 MB; PNG, JPEG, GIF, WebP), because the person reading an email loads the picture from its address. Each person writes, reads and deletes only their own folder (`<uid>/…`); no SELECT policy for everyone, so nobody can list other people's pictures, while a public bucket still serves each file by its address. Additive: a new bucket and three policies, nothing existing changes. Nothing calls it while the switch is off. **Apply before switching Add a picture on**, together with the `delete-account` deploy that empties the folder (`USER_BUCKETS`). **Undo:** `services/supabase/rollbacks/20261027130000_snippet_pictures_storage.undo.sql` drops the policies, and the bucket once it is empty. |
 
+## Review prompt (v3.95.0)
+
+| File | Status | Notes |
+|---|---|---|
+| `20261027140000_review_prompt.sql` | ⏳ written 2026-10-27, not applied | Asks free accounts for a Chrome Web Store review after 10 sign-ins, at most 5 times. `app.review_prompt` (one row per person: sign-ins, views, stopped; `view_count` is held to 0..5 by a CHECK), a trigger on `auth_audit_log` that adds 1 per recorded `login` row (one per real session, so a repeat adds nothing), and three functions keyed on `auth.uid()` with no user id parameter, granted to `authenticated` only: `review_prompt_status()`, `review_prompt_record_view()` (counts one view while the row is not stopped, under 5 and not yet counted in this session), `review_prompt_stop(reason)`. The plan is `app_metadata.plan` (service role only), `free` when absent. Earlier sign-ins are not backfilled, so nobody sees it on the day this ships. Additive. Rehearsed on in-memory Postgres (PGlite): 25 of 25 checks, covering login 9 and 10, views 1 to 5, the sixth refused (also by the CHECK), click-through and Don't ask again, a paid plan, signed-out and anon callers, no direct table access, and the row going with a deleted account. **Apply before releasing the dashboard banner and the popup card**: without it the three calls fail and the prompt stays hidden. **Undo:** the drop statements in the file's header. |
+
 
 ## Adding a new migration
 

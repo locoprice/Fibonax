@@ -32,7 +32,7 @@ CI runs all three on every push to `develop`.
 | Part of the product | Where it lives in the code | Page |
 |---|---|---|
 | Sign-up, sign-in, first snippet | `app/src/routes/{SignupPage,LoginPage}.tsx`, `app/src/components/auth/` | `quickstart` |
-| Extension install, sign-in, popup, popup settings, popup footer (saint of the day, days to Christmas), the one-time note after the update from SprintBrain | `extension/popup/`, `extension/shared/saint-of-day.js`, `extension/manifest.json`, `extension/background/background.js` (onInstalled) | `install-extension` |
+| Extension install, sign-in, popup, popup settings, popup footer (saint of the day, days to Christmas), the one-time note after the update from SprintBrain, the review request (popup card and dashboard banner) | `extension/popup/`, `extension/shared/saint-of-day.js`, `extension/shared/review-prompt.js`, `app/src/features/reviewPrompt/`, `extension/manifest.json`, `extension/background/background.js` (onInstalled) | `install-extension` |
 | Typing triggers, the menu, fill form, right-click, Undo, capitalization | `extension/content/content.js`, `extension/background/background.js`, `extension/shared/fill-form.js` | `text-snippets/insert` |
 | Snippet editor, folders, labels, list, bulk actions, unused notice | `app/src/features/snippets/`, `app/src/features/org/`, `app/src/features/labels/` | `text-snippets/create-and-organize` |
 | Field builders: Text, Number, Date/Time, Automatic, Range, Choice, Button, and their Edit and Remove lists | `app/src/features/snippets/Form*Dialog.tsx`, `app/src/lib/form*Token.ts`, `app/src/lib/bodyItems.ts`, `app/src/lib/menuPresets.ts`, `extension/formula-engine.js` | `text-snippets/dynamic-fields` |

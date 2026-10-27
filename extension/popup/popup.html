@@ -443,6 +443,18 @@ html,body{
 }
 .ina-msg,.wel-msg{font-size:var(--sb-fs-11);color:var(--sb-ink);line-height:1.5;margin-bottom:8px}
 .ina-row{display:flex;align-items:center;gap:8px}
+
+/* ── REVIEW REQUEST ──
+   The Save this chat card's geometry. The review link is a .cap-btn that is an
+   <a>; "Don't ask again" is a plain text button on the right. */
+.rev-link{display:inline-flex;align-items:center;text-decoration:none}
+.rev-stop{
+  height:30px;padding:0 4px;margin-left:auto;font-family:inherit;
+  font-size:var(--sb-fs-11);font-weight:600;color:var(--sb-azure);cursor:pointer;
+  background:none;border:0;border-radius:var(--sb-r-sm);
+}
+.rev-stop:hover{text-decoration:underline}
+.rev-stop:focus-visible,.rev-link:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px}
 .ina-btn{
   height:30px;padding:0 12px;flex-shrink:0;font-family:inherit;
   font-size:var(--sb-fs-11);font-weight:600;cursor:pointer;
@@ -593,6 +605,18 @@ html,body{
     <div class="cap-head"><span class="cap-title">SprintBrain is now Fibonax</span></div>
     <div class="wel-msg">Same account, same snippets and prompts. New: your Brains are here too, in the third tab.</div>
     <button class="cap-btn" id="wel-ok" type="button">Got it</button>
+  </div>
+
+  <!-- REVIEW REQUEST: asks a free account for a Chrome Web Store review after 10
+       sign-ins, at most 5 times (shared/review-prompt.js holds the rule). Drawn
+       by showReviewPrompt() in popup.js, and only once the server has counted
+       the view. The words come from the shared module, not from here. -->
+  <div class="cap-card" id="rev-card" role="region" aria-label="Review Fibonax" style="display:none">
+    <div class="wel-msg" id="rev-msg"></div>
+    <div class="cap-row">
+      <a class="cap-btn rev-link" id="rev-go" target="_blank" rel="noopener noreferrer"></a>
+      <button class="rev-stop" id="rev-stop" type="button"></button>
+    </div>
   </div>
 
   <!-- SAVE THIS CHAT — only rendered when the active tab is a supported AI chat
@@ -774,6 +798,7 @@ html,body{
 <script src="../shared/inactivity.js"></script>
 <script src="../shared/interactive-steps.js"></script>
 <script src="../shared/saint-of-day.js"></script>
+<script src="../shared/review-prompt.js"></script>
 <script src="popup.js"></script>
 
 <!-- ═══ CHANGELOG MODAL ═══ -->

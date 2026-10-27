@@ -829,6 +829,7 @@ function boot() {
     });
 
     showWelcome();
+    showReviewPrompt();
 }
 
 // UI REFRESH
@@ -2560,6 +2561,67 @@ function dismissWelcome(){
   chrome.storage.local.set(next);
 }
 
+// ── REVIEW REQUEST ─────────────────────────────────────────────────
+// A free account is asked for a Chrome Web Store review after 10 sign-ins, at
+// most 5 times. shared/review-prompt.js holds the rule; the server holds the
+// counts (review_prompt_* functions), so they follow the person to any device.
+// The card is drawn only when the server says it counted the view, so a sixth
+// can never be shown whatever this code decided. Any failure leaves it hidden.
+function revRpc(name, body) {
+  return new Promise(function(resolve) {
+    sbAuthHeaders(function(err, headers) {
+      if (err || !headers) { resolve(null); return; }
+      fetch(SB_SUPA_URL + '/rest/v1/rpc/' + name, {
+        method: 'POST',
+        headers: { apikey: headers.apikey, Authorization: headers.Authorization, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {})
+      }).then(function(r) {
+        if (!r.ok) { console.warn('[Fibonax] Review request: ' + name + ' answered HTTP ' + r.status); return null; }
+        return r.text().then(function(t) { try { return t ? JSON.parse(t) : null; } catch(e) { return null; } });
+      }).then(resolve, function(e) {
+        console.warn('[Fibonax] Review request: ' + name + ' failed', e);
+        resolve(null);
+      });
+    });
+  });
+}
+function showReviewPrompt() {
+  var R = SBReviewPrompt;
+  revRpc('review_prompt_status').then(function(body) {
+    if (!R.shouldShow(R.readStatus(body))) return null;
+    return revRpc('review_prompt_record_view');
+  }).then(function(counted) {
+    var card = gi('rev-card');
+    if (counted !== true || !card) return;
+    gi('rev-msg').textContent = R.MESSAGE;
+    var go = gi('rev-go');
+    go.textContent = R.REVIEW_LABEL;
+    go.href = R.REVIEW_URL;
+    go.setAttribute('aria-label', R.REVIEW_ARIA_LABEL);
+    gi('rev-stop').textContent = R.STOP_LABEL;
+    card.style.display = '';
+  });
+}
+// The popup closes when the review tab takes focus, which can cut a request
+// short, so the review link waits for the stop to be saved (1.5 s at most)
+// before it opens the tab.
+function stopReviewPrompt(reason) {
+  var card = gi('rev-card'); if (card) card.style.display = 'none';
+  return revRpc('review_prompt_stop', { p_reason: reason });
+}
+function openReviewPage() {
+  var opened = false;
+  function open() {
+    if (opened) return;
+    opened = true;
+    var url = SBReviewPrompt.REVIEW_URL;
+    try { chrome.tabs.create({ url: url }); }
+    catch(e) { try { window.open(url, '_blank'); } catch(e2) {} }
+  }
+  stopReviewPrompt(SBReviewPrompt.STOP_REVIEWED).then(open);
+  setTimeout(open, 1500);
+}
+
 // ── MODE SWITCHER ──────────────────────────────────────────────────
 function setMode(m) {
   activeMode = m;
@@ -2672,6 +2734,8 @@ on('sq','input', function(e){
   else { selIdx=-1; renderList(e.target.value); }
 });
 on('wel-ok','click', dismissWelcome);
+on('rev-go','click', function(e){ e.preventDefault(); openReviewPage(); });
+on('rev-stop','click', function(){ stopReviewPrompt(SBReviewPrompt.STOP_DISMISSED); });
 on('cfg-default-lang','change', function(e){ userPrefs.defaultLang = e.target.value; saveUserPrefs(); });
 on('tcfg-saint','change', function(e){ saintOn = e.target.checked; SBSaintOfDay.saveEnabled(saintOn); showSaint(); });
 // Interactive Steps switch in the Prompts tab.
