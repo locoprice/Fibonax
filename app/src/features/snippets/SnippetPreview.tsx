@@ -15,6 +15,8 @@ import {
   linkUrl,
   loadFillFormEngine,
   otherPlaceholder,
+  pictureCount,
+  pictureText,
   readFromPage,
   runFormButton,
   unfinishedItems,
@@ -24,6 +26,7 @@ import {
   type SbFillField,
   type SbFillFormViewModel,
   type SbLinkResult,
+  type SbPicture,
   type SbUnfinishedItem,
 } from '@/lib/fillFormEngine';
 
@@ -67,6 +70,34 @@ function inputType(field: SbFillField): string {
 /** `PRICE_PER_UNIT` reads as a label, not as a variable name. */
 function fieldLabel(key: string): string {
   return key.replace(/_/g, ' ');
+}
+
+/** How wide each picture size draws in the result, as in the email. */
+const PICTURE_WIDTH: Record<SbPicture['size'], string> = {
+  small: 'w-[160px]',
+  medium: 'w-[320px]',
+  full: 'w-full',
+};
+
+/** A picture in the result, at its size; its description where it will not load. */
+function PreviewPicture({ picture }: { picture: SbPicture }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span className="my-1 inline-block rounded-lg border border-dashed border-line px-2.5 py-1.5 font-sans text-[11px] text-ink-subtle">
+        {pictureText('missing', 1)}
+        {picture.alt ? `: ${picture.alt}` : ''}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={picture.src}
+      alt={picture.alt}
+      onError={() => setFailed(true)}
+      className={cn('my-1 inline-block h-auto max-w-full rounded align-bottom', PICTURE_WIDTH[picture.size])}
+    />
+  );
 }
 
 /** The title a row shows: a stored display name, the prose before it, else the key. */
@@ -406,7 +437,7 @@ export function SnippetPreview({
   }
 
   async function handleCopy() {
-    if (!view?.preview) return;
+    if (!view?.preview && !view?.parts) return;
     setAttempted(true);
     if (view.errors?.length) {
       focusRow(view.errors[0]?.key ?? '');
@@ -444,10 +475,21 @@ export function SnippetPreview({
   }
 
   async function copyNow() {
-    if (!view?.preview) return;
+    if (!view?.preview && !view?.parts) return;
     if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
     try {
-      await navigator.clipboard.writeText(view.preview);
+      // With pictures, the formatted copy goes too: an email takes the
+      // pictures, a chat the text alone.
+      if (view.parts && view.formatted) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/plain': new Blob([view.preview], { type: 'text/plain' }),
+            'text/html': new Blob([view.formatted], { type: 'text/html' }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(view.preview);
+      }
       setCopied('done');
     } catch {
       // The browser refused the clipboard — say so rather than looking idle.
@@ -580,7 +622,7 @@ export function SnippetPreview({
           <button
             type="button"
             onClick={handleCopy}
-            disabled={!view?.preview}
+            disabled={!view?.preview && !view?.parts}
             className={cn(
               'ml-auto inline-flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors',
               'hover:border-primary/30 hover:text-primary disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-muted',
@@ -600,11 +642,24 @@ export function SnippetPreview({
           <div
             className={cn(
               'min-h-[max(100%,120px)] whitespace-pre-wrap break-words rounded-[10px] border border-line bg-card px-3 py-2.5 font-mono text-xs leading-relaxed',
-              view?.preview ? 'text-ink' : 'italic text-ink-subtle',
+              view?.preview || view?.parts ? 'text-ink' : 'italic text-ink-subtle',
             )}
           >
-            {view?.preview || 'The finished message appears here as you type.'}
+            {view?.parts
+              ? view.parts.map((part, i) =>
+                  'picture' in part ? (
+                    <PreviewPicture key={`${i} ${part.picture.src}`} picture={part.picture} />
+                  ) : (
+                    <span key={i}>{part.text}</span>
+                  ),
+                )
+              : view?.preview || 'The finished message appears here as you type.'}
           </div>
+          {view?.parts && (
+            <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
+              {pictureText('copy', pictureCount(view))}
+            </p>
+          )}
         </div>
 
         {/* ── Before it goes out ── */}

@@ -330,6 +330,50 @@
     return true;
   }
 
+  // ── PREVIEW ─────────────────────────────────────────────────────
+  // The finished message in a preview box: the text, and each picture in its
+  // place. Built from nodes, never from markup: the text comes from people and
+  // web pages. A picture the page will not load (some sites refuse outside
+  // pictures) shows as a labelled box. Pictures already drawn are kept, so
+  // typing in the form does not make them blink.
+  function showPreview(box, vm) {
+    if (!box) return;
+    if (!vm.parts) { box.textContent = vm.preview; return; }
+    var drawn = {};
+    Array.prototype.forEach.call(box.querySelectorAll('[data-ff-pic]'), function(n) {
+      (drawn[n.dataset.ffPic] = drawn[n.dataset.ffPic] || []).push(n);
+    });
+    box.textContent = '';
+    vm.parts.forEach(function(part) {
+      if (!part.picture) { box.appendChild(document.createTextNode(part.text)); return; }
+      var pic = part.picture, key = pic.size + ' ' + pic.src + ' ' + pic.alt;
+      var again = drawn[key] && drawn[key].shift();
+      if (again) { box.appendChild(again); return; }
+      var img = document.createElement('img');
+      img.className = 'ff-pic ff-pic--' + pic.size;
+      img.alt = pic.alt;
+      img.dataset.ffPic = key;
+      img.addEventListener('error', function() {
+        var label = document.createElement('span');
+        label.className = 'ff-pic-missing';
+        label.dataset.ffPic = key;
+        label.textContent = root.SBFillForm.pictureText('missing') + (pic.alt ? ': ' + pic.alt : '');
+        if (img.parentNode) img.parentNode.replaceChild(label, img);
+      });
+      img.src = pic.src;
+      box.appendChild(img);
+    });
+  }
+
+  // The line that says where the pictures go ('left-out', 'copy', 'share').
+  // Hidden while the text has none.
+  function pictureNote(el, vm, key) {
+    if (!el) return;
+    var n = root.SBFillForm.pictureCount(vm);
+    el.hidden = n === 0;
+    el.textContent = n ? root.SBFillForm.pictureText(key, n) : '';
+  }
+
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
-    unfinishedDialog: unfinishedDialog, flag: flag };
+    unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote };
 })(typeof window !== 'undefined' ? window : this);

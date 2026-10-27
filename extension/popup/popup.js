@@ -1362,12 +1362,15 @@ function detailActiveBody(s){
 // Live-update the open detail's preview from the current field inputs.
 function updateDetailPreview(id){
   var s=findSnip(id); if(!s) return;
-  var body=detailActiveBody(s);
-  var out=resolveFilled(body, detailActiveLang(s));
+  var vm=detailForm(detailActiveBody(s), detailActiveLang(s));
   var wrap=document.querySelector('.detail[data-detail="'+id+'"]');
   var pv=wrap?wrap.querySelector('.d-body'):null;
-  if(wrap) window.SBFillFormUI.refresh(wrap.querySelector('.d-fields'), detailForm(body, detailActiveLang(s)));
-  if(pv){ pv.textContent=out; if(out.trim()) pv.classList.remove('plain'); else pv.classList.add('plain'); }
+  if(wrap) window.SBFillFormUI.refresh(wrap.querySelector('.d-fields'), vm);
+  if(pv){
+    window.SBFillFormUI.showPreview(pv, vm);
+    if(vm.preview.trim()||vm.parts) pv.classList.remove('plain'); else pv.classList.add('plain');
+  }
+  if(wrap) window.SBFillFormUI.pictureNote(wrap.querySelector('.ff-picnote'), vm, 'copy');
 }
 function copyFilled(id){
   var s=findSnip(id); if(!s) return;
@@ -1377,8 +1380,23 @@ function copyFilled(id){
   if(!window.SBFillFormUI.validate(form,vm)) return;
   var out=vm.preview;
   checkThenCopy(s, out, vm, form, function(){
-    try{ navigator.clipboard.writeText(out||''); }catch(e){}
+    copyWithPictures(out, vm.parts?vm.formatted:null);
     showToast('Copied filled text');
+  });
+}
+// The text, and with a text that has pictures its formatted copy too: an email
+// takes the pictures, a chat or a plain box the text alone.
+function copyWithPictures(text, html){
+  if(!html||typeof ClipboardItem!=='function'||!navigator.clipboard.write){
+    try{ navigator.clipboard.writeText(text||''); }catch(e){}
+    return;
+  }
+  navigator.clipboard.write([new ClipboardItem({
+    'text/plain': new Blob([text||''], { type:'text/plain' }),
+    'text/html': new Blob([html], { type:'text/html' })
+  })]).catch(function(e){
+    console.error('copyWithPictures: the formatted copy was refused, copying the text', e);
+    navigator.clipboard.writeText(text||'').catch(function(e2){ console.error('copyWithPictures:', e2); });
   });
 }
 // Enter inside an open detail copies the primary action (filled when the body
@@ -1641,6 +1659,8 @@ function renderDetailHtml(s){
       ? 'Fill the fields, then <b>Copy filled</b> \u2014 same result as expanding <b>'+esc(trig)+esc(shortWord(s.shortcut))+'</b> in a page.'
       : '<b>Copy filled</b> resolves dates &amp; formulas \u2014 same result as expanding <b>'+esc(trig)+esc(shortWord(s.shortcut))+'</b> in a page.';
     h+='<div class="'+pvCls+'">'+esc(resolved)+'</div>'
+      // Where the pictures go when the copy is pasted; only with pictures.
+      +(vm.parts?'<p class="ff-picnote" role="status" hidden></p>':'')
       +'<div class="d-note">'+note+'</div>'
       +'<div class="d-acts">'
         +'<button class="d-btn pri" type="button" data-copyfilled="'+esc(s.id)+'">'+copyIco+'Copy filled</button>'
@@ -1897,6 +1917,10 @@ function wireListRows(el){
   });
   bindDetailAdjust(el);
   bindDetailLink(el);
+  // The open snippet's pictures are drawn into its preview once it is on screen.
+  el.querySelectorAll('.detail[data-detail]').forEach(function(wrap){
+    if(wrap.querySelector('.ff-picnote')) updateDetailPreview(wrap.getAttribute('data-detail'));
+  });
 }
 
 // What one field holds right now, read off its control. A menu is every

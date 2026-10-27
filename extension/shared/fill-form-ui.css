@@ -75,5 +75,15 @@
 .detail:has(.d-fields){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;}
 .detail .d-fields.ff-form{max-height:320px;overflow-y:auto;min-width:0;padding-right:4px;}
 .detail:has(.d-fields) .d-body{max-height:320px;height:320px;min-width:0;margin:0;}
-.detail:has(.d-fields) .d-acts,.detail:has(.d-fields) .d-note,.detail:has(.d-fields) .d-link,.detail:has(.d-fields) .d-langs,.detail:has(.d-fields) .d-warn{grid-column:1/-1;}
+.detail:has(.d-fields) .d-acts,.detail:has(.d-fields) .d-note,.detail:has(.d-fields) .d-link,.detail:has(.d-fields) .d-langs,.detail:has(.d-fields) .d-warn,.detail:has(.d-fields) .ff-picnote{grid-column:1/-1;}
 #view-detail #prev-text{max-height:none;overflow:visible;}
+
+/* Pictures in a preview, and the line that says where they go. Host pages style
+   img freely, so the sizes hold with !important. */
+.ff-pic{display:inline-block!important;vertical-align:bottom!important;max-width:100%!important;height:auto!important;margin:4px 0!important;border:0!important;border-radius:4px;}
+.ff-pic--small{width:160px!important;}
+.ff-pic--medium{width:320px!important;}
+.ff-pic--full{width:100%!important;}
+.ff-pic-missing{display:inline-block;margin:4px 0;padding:6px 10px;border:1px dashed var(--sb-line,#E5E5EA);border-radius:8px;font-size:12px;line-height:1.4;color:var(--sb-ink-muted,#6E6E73);}
+.ff-picnote{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--sb-ink-muted,#6E6E73);}
+.ff-picnote[hidden]{display:none!important;}

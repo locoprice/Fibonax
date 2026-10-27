@@ -135,6 +135,19 @@ export interface SbFillButton {
   errors: string[];
 }
 
+/** A picture in a snippet, as `{picture: …}` holds it. */
+export interface SbPicture {
+  src: string;
+  alt: string;
+  size: 'small' | 'medium' | 'full';
+}
+
+/** One piece of a finished text: some text, or a picture. */
+export type SbPreviewPart = { text: string } | { picture: SbPicture };
+
+/** Where a text's pictures go, in the shared words (`pictureText`). */
+export type SbPictureTextKey = 'left-out' | 'left-out-done' | 'copy' | 'share' | 'missing';
+
 /** The view model every fill surface renders. Mirrors SHAPE in the gate. */
 export interface SbFillFormViewModel {
   errors?: Array<{ key: string; message: string }>;
@@ -146,9 +159,14 @@ export interface SbFillFormViewModel {
    * The snippet's formatted layout filled with the same answers, every value
    * escaped, or null: no layout was passed, or it asks for other fields than
    * the text. A surface that can paste formatting inserts this, with
-   * `preview` as its plain text.
+   * `preview` as its plain text. A plain text with pictures fills it too.
    */
   formatted: string | null;
+  /**
+   * The text with its pictures in order, or null when it has none. What a
+   * preview draws: `preview` leaves the pictures out.
+   */
+  parts: SbPreviewPart[] | null;
   /**
    * How each date and time field prints, ready to hand straight to
    * `resolveBody`. A surface that resolves the body itself must pass this too,
@@ -290,6 +308,8 @@ interface SbFillFormApi {
   linkText(key: string): string;
   linkSummary(read: SbLinkRead): string;
   linkNote(result: SbLinkResult | null | undefined): string;
+  pictureText(key: SbPictureTextKey, count: number): string;
+  pictureCount(vm: SbFillFormViewModel): number;
 }
 
 interface SbFormulaEngineApi {
@@ -583,4 +603,14 @@ export function linkSummary(read: SbLinkRead): string {
 /** The note beside one field after a read, or '' for a field filled cleanly. */
 export function linkNote(result: SbLinkResult | null | undefined): string {
   return window.SBFillForm?.linkNote(result) ?? '';
+}
+
+/** What every surface says about a text's pictures, for `count` of them. */
+export function pictureText(key: SbPictureTextKey, count: number): string {
+  return window.SBFillForm?.pictureText(key, count) ?? '';
+}
+
+/** How many pictures a view model's text shows. */
+export function pictureCount(vm: SbFillFormViewModel): number {
+  return window.SBFillForm?.pictureCount(vm) ?? 0;
 }

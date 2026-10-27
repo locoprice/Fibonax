@@ -12,6 +12,8 @@ One switch per feature, in `app/src/lib/proFeatures.ts`. `scripts/check-pro-gate
 | Suggest labels | `labels` | The Suggest labels button under the label picker in the snippet editor | `suggest-labels`, **not deployed** | none (already left out of the manual) |
 | Read a picture | `picture`, and `PICTURE_AVAILABLE` in `app/public/mobile/index.html` | The **Read a picture** row in the phone's Save to Brain, with the lock and the label in plain sight; under it, a tip to copy a picture's text with Live Text or Google Lens instead | `read-picture`, **not deployed** | `read-picture.mdx`, a section of the phone page rather than a page of its own |
 
+| Add a picture (v3.94.0, calls no AI service: the cost is storage) | `snippetPictures` | **Add picture** in the snippet editor's Pictures section; the window is not mounted while locked. Pictures already in a snippet are still listed with Remove, and every fill surface shows them | none; needs the `snippet-pictures` bucket (`20261027130000_snippet_pictures_storage.sql`, **not applied**) and the `delete-account` deploy that empties it | `snippet-pictures.mdx`, a section of `user-docs/text-snippets/dynamic-fields.mdx` |
+
 The two features whose function is not deployed need that deploy before their switch can go on. Before any switch goes on, the Anthropic account behind `ANTHROPIC_API_KEY` needs credit: with none, every call fails with "Your credit balance is too low".
 
 ## Switching a feature on

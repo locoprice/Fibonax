@@ -1609,6 +1609,8 @@ svg.brain-type-icon{stroke-width:1.8}
     <div class="mobile-preview-pane">
       <div class="sec-lbl">Preview</div>
       <div class="prev-card"><pre id="prev-text"></pre></div>
+      <p class="ff-picnote" id="prev-picnote" role="status" hidden></p>
+      <p class="ff-picnote" id="prev-picnote-share" hidden></p>
     </div>
   </div>
   <div class="copy-foot">
@@ -2883,7 +2885,28 @@ svg.brain-type-icon{stroke-width:1.8}
           Object.assign({}, resolveOpts, { html: true }));
       }
     }
-    return { preview: preview, errors: errors, formatted: formatted };
+
+    // A text with pictures: the same finished text with each picture in its
+    // place, as `parts` for a preview to draw and as `formatted` for a surface
+    // that can paste or copy formatting. The preview leaves the pictures out.
+    var parts = null;
+    if (!opts.formatted && E.sbPictureHtml && /\{\s*picture:/i.test(src)) {
+      var pics = [];
+      resolveOpts.picture = function(p) { pics.push(p); return '' + (pics.length - 1) + ''; };
+      var marked = finished(values);
+      delete resolveOpts.picture;
+      if (pics.length) {
+        parts = [];
+        marked.split(/(\d+)/).forEach(function(piece, k) {
+          if (k % 2) parts.push({ picture: pics[+piece] });
+          else if (piece) parts.push({ text: piece });
+        });
+        formatted = parts.map(function(part) {
+          return part.picture ? E.sbPictureHtml(part.picture) : E.sbEscapeHtml(part.text).replace(/\n/g, '<br>');
+        }).join('');
+      }
+    }
+    return { preview: preview, errors: errors, formatted: formatted, parts: parts };
   }
 
   // ── FORMATTED LAYOUT ────────────────────────────────────────────
@@ -2912,7 +2935,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, errors: [], sections: [], layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -3127,8 +3150,11 @@ svg.brain-type-icon{stroke-width:1.8}
       preview: resolved.preview,
       // `o.formatted` is the snippet's layout (body_html); this is it filled,
       // or null. A surface that can paste formatting inserts this, with the
-      // preview as its plain text.
+      // preview as its plain text. A plain text with pictures fills it too.
       formatted: resolved.formatted,
+      // The text with its pictures, in order: [{ text } | { picture }], or
+      // null when there is no picture. What a preview draws.
+      parts: resolved.parts,
       errors: resolved.errors,
       sections: sectionsFor(fields),
       // Hand straight to resolveBody alongside the values. A surface that
@@ -3233,6 +3259,31 @@ svg.brain-type-icon{stroke-width:1.8}
   /** The words for one LINK_TEXT key, falling back to the generic failure. */
   function linkText(key) {
     return Object.prototype.hasOwnProperty.call(LINK_TEXT, key) ? LINK_TEXT[key] : LINK_TEXT.failed;
+  }
+
+  // ── PICTURES: WHAT EVERY SURFACE SAYS ───────────────────────────
+  // Where a text's pictures go, in the same words on the page, the popup, the
+  // editor and the phone. One picture, then several.
+  var PICTURE_TEXT = {
+    'left-out': ['This box takes text only, so the picture is left out.',
+                 'This box takes text only, so the pictures are left out.'],
+    'left-out-done': ['This box takes text only, so the picture was left out.',
+                      'This box takes text only, so the pictures were left out.'],
+    'copy': ['Paste into an email and the picture goes in too. Chats get the text only.',
+             'Paste into an email and the pictures go in too. Chats get the text only.'],
+    'share': ['Share sends the text only. Use Copy to paste the picture into an email.',
+              'Share sends the text only. Use Copy to paste the pictures into an email.'],
+    'missing': ['Picture', 'Picture']
+  };
+
+  function pictureText(key, count) {
+    var pair = Object.prototype.hasOwnProperty.call(PICTURE_TEXT, key) ? PICTURE_TEXT[key] : PICTURE_TEXT.missing;
+    return pair[count > 1 ? 1 : 0];
+  }
+
+  /** How many pictures a view model's text shows. */
+  function pictureCount(vm) {
+    return vm && vm.parts ? vm.parts.filter(function(p) { return !!p.picture; }).length : 0;
   }
 
   // Comparison form of a piece of page text or of the author's word: case,
@@ -3744,6 +3795,8 @@ svg.brain-type-icon{stroke-width:1.8}
     linkUrl: linkUrl,
     readFromPage: readFromPage,
     linkText: linkText,
+    pictureText: pictureText,
+    pictureCount: pictureCount,
     linkSummary: linkSummary,
     linkNote: linkNote,
     LINK_TEXT: LINK_TEXT,
@@ -3851,8 +3904,18 @@ svg.brain-type-icon{stroke-width:1.8}
 .detail:has(.d-fields){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;}
 .detail .d-fields.ff-form{max-height:320px;overflow-y:auto;min-width:0;padding-right:4px;}
 .detail:has(.d-fields) .d-body{max-height:320px;height:320px;min-width:0;margin:0;}
-.detail:has(.d-fields) .d-acts,.detail:has(.d-fields) .d-note,.detail:has(.d-fields) .d-link,.detail:has(.d-fields) .d-langs,.detail:has(.d-fields) .d-warn{grid-column:1/-1;}
+.detail:has(.d-fields) .d-acts,.detail:has(.d-fields) .d-note,.detail:has(.d-fields) .d-link,.detail:has(.d-fields) .d-langs,.detail:has(.d-fields) .d-warn,.detail:has(.d-fields) .ff-picnote{grid-column:1/-1;}
 #view-detail #prev-text{max-height:none;overflow:visible;}
+
+/* Pictures in a preview, and the line that says where they go. Host pages style
+   img freely, so the sizes hold with !important. */
+.ff-pic{display:inline-block!important;vertical-align:bottom!important;max-width:100%!important;height:auto!important;margin:4px 0!important;border:0!important;border-radius:4px;}
+.ff-pic--small{width:160px!important;}
+.ff-pic--medium{width:320px!important;}
+.ff-pic--full{width:100%!important;}
+.ff-pic-missing{display:inline-block;margin:4px 0;padding:6px 10px;border:1px dashed var(--sb-line,#E5E5EA);border-radius:8px;font-size:12px;line-height:1.4;color:var(--sb-ink-muted,#6E6E73);}
+.ff-picnote{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--sb-ink-muted,#6E6E73);}
+.ff-picnote[hidden]{display:none!important;}
 </style>
 <script>
 // DOM presentation shared by the overlay, popup and mobile fill forms.
@@ -4187,8 +4250,52 @@ svg.brain-type-icon{stroke-width:1.8}
     return true;
   }
 
+  // ── PREVIEW ─────────────────────────────────────────────────────
+  // The finished message in a preview box: the text, and each picture in its
+  // place. Built from nodes, never from markup: the text comes from people and
+  // web pages. A picture the page will not load (some sites refuse outside
+  // pictures) shows as a labelled box. Pictures already drawn are kept, so
+  // typing in the form does not make them blink.
+  function showPreview(box, vm) {
+    if (!box) return;
+    if (!vm.parts) { box.textContent = vm.preview; return; }
+    var drawn = {};
+    Array.prototype.forEach.call(box.querySelectorAll('[data-ff-pic]'), function(n) {
+      (drawn[n.dataset.ffPic] = drawn[n.dataset.ffPic] || []).push(n);
+    });
+    box.textContent = '';
+    vm.parts.forEach(function(part) {
+      if (!part.picture) { box.appendChild(document.createTextNode(part.text)); return; }
+      var pic = part.picture, key = pic.size + ' ' + pic.src + ' ' + pic.alt;
+      var again = drawn[key] && drawn[key].shift();
+      if (again) { box.appendChild(again); return; }
+      var img = document.createElement('img');
+      img.className = 'ff-pic ff-pic--' + pic.size;
+      img.alt = pic.alt;
+      img.dataset.ffPic = key;
+      img.addEventListener('error', function() {
+        var label = document.createElement('span');
+        label.className = 'ff-pic-missing';
+        label.dataset.ffPic = key;
+        label.textContent = root.SBFillForm.pictureText('missing') + (pic.alt ? ': ' + pic.alt : '');
+        if (img.parentNode) img.parentNode.replaceChild(label, img);
+      });
+      img.src = pic.src;
+      box.appendChild(img);
+    });
+  }
+
+  // The line that says where the pictures go ('left-out', 'copy', 'share').
+  // Hidden while the text has none.
+  function pictureNote(el, vm, key) {
+    if (!el) return;
+    var n = root.SBFillForm.pictureCount(vm);
+    el.hidden = n === 0;
+    el.textContent = n ? root.SBFillForm.pictureText(key, n) : '';
+  }
+
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
-    unfinishedDialog: unfinishedDialog, flag: flag };
+    unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote };
 })(typeof window !== 'undefined' ? window : this);
 </script>
 <!-- SB_FILL_FORM_UI:END -->
@@ -5817,6 +5924,45 @@ function sbEscapeHtml(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 function sbOut(value,html){return html?sbEscapeHtml(value):String(value);}
+/* ── PICTURES ── {picture: src=https://…; alt=…; size=small|medium|full}
+   shows where formatted text can go and is left out of plain text, with the
+   line it stands on. MIRRORED from sbParsePicture, sbPictureHtml and
+   _dropOwnLine in extension/formula-engine.js; scripts/check-snippets.js pins
+   the two. */
+var SB_PICTURE_SIZES={small:160,medium:320,full:600};
+var SB_PICTURE_SRC_RE=/^https:\/\/[^\s"'<>{};\\]+$/i;
+function sbIsPictureHead(tokLow){return tokLow.slice(0,8)==='picture:';}
+function sbParsePicture(rest){
+  var p={src:'',alt:'',size:'medium'},parts=String(rest).split(';');
+  for(var i=0;i<parts.length;i++){
+    var eq=parts[i].indexOf('=');
+    if(eq===-1)continue;
+    var k=parts[i].slice(0,eq).replace(/^\s+|\s+$/g,'').toLowerCase();
+    var v=parts[i].slice(eq+1).replace(/^\s+|\s+$/g,'');
+    if(k==='src')p.src=SB_PICTURE_SRC_RE.test(v)?v:'';
+    else if(k==='alt')p.alt=v;
+    else if(k==='size'&&Object.prototype.hasOwnProperty.call(SB_PICTURE_SIZES,v.toLowerCase()))p.size=v.toLowerCase();
+  }
+  return p;
+}
+function sbPictureHtml(p){
+  if(!p||!SB_PICTURE_SRC_RE.test(p.src||''))return '';
+  var w=SB_PICTURE_SIZES[p.size]||SB_PICTURE_SIZES.medium;
+  var attr=function(s){return sbEscapeHtml(s).replace(/"/g,'&quot;');};
+  return '<img src="'+attr(p.src)+'" alt="'+attr(p.alt||'')+'" width="'+w+
+    '" style="width:'+w+'px;max-width:100%;height:auto;border:0">';
+}
+/* A token that prints nothing and stands alone on its line takes the line with
+   it. `i` is just past the token. */
+function sbDropOwnLine(out,body,i){
+  var b=/(^|\n)[ \t]*$/.exec(out),a=/^[ \t]*(\r?\n|$)/.exec(body.slice(i));
+  if(b&&a){
+    out=out.slice(0,out.length-(b[0].length-b[1].length));
+    i+=a[0].length;
+    if(a[1]===''&&b[1]==='\n')out=out.slice(0,-1);
+  }
+  return {out:out,i:i};
+}
 var SB_HTML_PART_RE=/(<[^>]*>|&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);)/;
 var SB_HTML_NAMED={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' '};
 var SB_HTML_INLINE_RE=/^<\/?(?:a|b|strong|i|em|u|s|span|font|small|sub|sup|mark|code)\b/i;
@@ -6691,7 +6837,8 @@ function sbTokenFieldKey(t){
      t.slice(0,3)==='if:'||t.slice(0,4)==='var:'||
      tLow.slice(0,7)==='elseif:'||
      tLow.slice(0,5)==='time:'||
-     sbIsButtonHead(tLow)||sbIsCaseHead(tLow)||sbIsGreetingHead(tLow))return '';
+     sbIsButtonHead(tLow)||sbIsCaseHead(tLow)||sbIsGreetingHead(tLow)||
+     sbIsPictureHead(tLow))return '';
   if(tLow.slice(0,7)==='gender:')return sbGenderTokenField(t.slice(7));
   if(sbIsFormToken(tLow))return sbFormTokenName(tLow,t.slice(9));
   return t;
@@ -6969,18 +7116,23 @@ function resolveBody(body,vals,opts){
       }
       if(tok==='/case'){i=cl+1;continue;}
 
+      /* {picture: …} — markup in a layout, the fill form's place marker when it
+         asks (opts.picture), otherwise nothing, line and all. */
+      if(sbIsPictureHead(tokLow)){
+        var pic=sbParsePicture(tok.slice(8));
+        if(pic.src&&html)out+=sbPictureHtml(pic);
+        else if(pic.src&&_o.picture)out+=_o.picture(pic);
+        else{var pD=sbDropOwnLine(out,body,cl+1);out=pD.out;i=pD.i;continue;}
+        i=cl+1;continue;
+      }
+
       /* {formtext/formdate/formmenu: …} — emits the value of the field it declares */
       if(sbIsFormToken(tokLow)){
         /* A menu set to print=no prints nothing, and alone on its line takes
            the line with it. Mirrors resolveBody in the engine. */
         if(tokLow.slice(0,9)==='formmenu:'&&!sbMenuSpec(tok.slice(9)).print){
-          i=cl+1;
-          var qB=/(^|\n)[ \t]*$/.exec(out),qA=/^[ \t]*(\r?\n|$)/.exec(body.slice(i));
-          if(qB&&qA){
-            out=out.slice(0,out.length-(qB[0].length-qB[1].length));
-            i+=qA[0].length;
-            if(qA[1]===''&&qB[1]==='\n')out=out.slice(0,-1);
-          }
+          var qD=sbDropOwnLine(out,body,cl+1);
+          out=qD.out;i=qD.i;
           continue;
         }
         var fk=sbFormTokenName(tokLow,tok.slice(9));
@@ -7039,6 +7191,10 @@ window.SBFillFormEngine = {
   /* A formatted layout escapes what it interpolates with the same function
      the resolver escapes with. */
   sbEscapeHtml:      sbEscapeHtml,
+  /* Pictures: the fill form builds the formatted copy of a plain snippet
+     with these. */
+  sbParsePicture:    sbParsePicture,
+  sbPictureHtml:     sbPictureHtml,
   interpolateSnippet: function(body){ return body; },
   parsePlaceholders: function(){ return []; },
   extractButtons:    function(){ return []; }
@@ -10000,7 +10156,10 @@ function detailFilled(){
 function updatePrev(){
   if(!curSnip)return;
   var vm=currentForm();
-  document.getElementById('prev-text').textContent=vm.preview;
+  window.SBFillFormUI.showPreview(document.getElementById('prev-text'),vm);
+  /* Where the pictures go: Copy takes them into an email, Share sends text. */
+  window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote'),vm,'copy');
+  window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote-share'),navigator.share?vm:null,'share');
   window.SBFillFormUI.refresh(document.getElementById('fform'),vm);
 }
 
@@ -10163,7 +10322,7 @@ document.getElementById('copy-btn').addEventListener('click',function(){
   var btn=this,s=curSnip,vm=currentForm();
   checkThenGo(s,vm.preview,vm,document.getElementById('fform'),'copy-anyway',function(){
     logSnipUse(s,detailFilled());
-    copyText(vm.preview,function(){flashFootBtn(btn,'Copied!');});
+    copyWithPictures(vm.preview,vm.parts?vm.formatted:null,function(){flashFootBtn(btn,'Copied!');});
   });
 });
 document.getElementById('share-btn').addEventListener('click',function(){
@@ -10808,6 +10967,19 @@ function copyText(t,cb,onFail){
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(t).then(cb).catch(function(){fbCopy(t,cb,onFail);});
   }else{fbCopy(t,cb,onFail);}
+}
+/* The text, and with a text that has pictures its formatted copy too: an email
+   takes the pictures, a chat the text alone. Where the phone refuses the
+   formatted copy, the text is copied as before. */
+function copyWithPictures(t,html,cb){
+  if(!html||typeof ClipboardItem!=='function'||!navigator.clipboard||!navigator.clipboard.write){copyText(t,cb);return;}
+  navigator.clipboard.write([new ClipboardItem({
+    'text/plain':new Blob([t],{type:'text/plain'}),
+    'text/html':new Blob([html],{type:'text/html'})
+  })]).then(cb).catch(function(e){
+    console.error('Copy: the formatted copy was refused, copying the text',e);
+    copyText(t,cb);
+  });
 }
 
 /* Hand finished text to the phone's Share menu: WhatsApp, Mail or an AI app

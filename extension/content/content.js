@@ -993,9 +993,12 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
     var text = resolveBody(snip.body, {}, { lang: snip.lang });
     var _isCE = el && (el.isContentEditable || (el.getAttribute &&
       (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
+    var pics = _pictureForm(snip);
+    var html = pics && _takesFormatting(el) ? pics.formatted : null;
     // Going back from the warning is the summary card's Cancel: the trigger
     // comes out and nothing goes in.
     _checkThenInsert(el, snip, text, function(note) {
+      note = _pictureNote(note, pics, html);
       if (_isCE) {
         // For CE: deleteChars only SET the selection spanning the trigger.
         // Insert synchronously NOW while that selection is still live — execCommand
@@ -1003,8 +1006,8 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
         // purely informational; onConfirm only logs. onUndo deletes the inserted
         // region (see restoreFieldState) so the field returns to its pre-trigger state.
         var before = _ceMeasureBefore(el);
-        insertText(el, text);
-        _markSyncInserted(fieldSnapshot, el, before, text);
+        insertText(el, text, html);
+        _markSyncInserted(fieldSnapshot, el, before, text, html ? pics : null);
         showCelebration(
           text,
           function onConfirm() {           // timer expired or user clicked OK
@@ -1426,7 +1429,9 @@ function _ceBringBackTrigger(held) {
 // joined to another line's text, with the line it was typed on left empty. So the
 // trigger is put back, selected (_ceBringBackTrigger), and the body replaces it
 // as a one-line body does.
-function _cePasteInsert(el, text) {
+// `html`, when given, is the text with its pictures (see _takesFormatting): it
+// goes in the same paste as text/html, and the editor picks the richer one.
+function _cePasteInsert(el, text, html) {
   var host = _ceHost(el);
   if (!host || typeof DataTransfer !== 'function' || typeof ClipboardEvent !== 'function') return false;
 
@@ -1434,6 +1439,7 @@ function _cePasteInsert(el, text) {
   try {
     dt = new DataTransfer();
     dt.setData('text/plain', text);
+    if (html) dt.setData('text/html', html);
   } catch(e) { return false; }
 
   if (_isLexicalHost(host)) {
@@ -1468,21 +1474,50 @@ function _cePasteLand(el, host, dt, text) {
   // Confirm the body actually landed once the editor has had time to reconcile
   // (Lexical writes to the DOM a microtask later), and fall back to the
   // per-line path if it did not. Probe on the first non-empty line so the check
-  // means "the snippet is in the field", not "the field grew".
+  // means "the snippet is in the field", not "the field grew". Spaces are
+  // compared loosely: formatted text lands with runs of spaces joined or kept
+  // as non-breaking ones, and a strict compare would insert the body twice.
   var probe = '';
   var lines = text.split('\n');
   for (var i = 0; i < lines.length; i++) {
     if (lines[i]) { probe = lines[i].slice(0, 24); break; }
   }
   if (probe) {
+    var loose = function(s) { return String(s).replace(/[\s ]+/g, ' '); };
     setTimeout(function() {
-      if (_ceHost(el).textContent.indexOf(probe) === -1) _ceLineInsert(text);
+      if (loose(_ceHost(el).textContent).indexOf(loose(probe)) === -1) _ceLineInsert(text);
     }, 120);
   }
   return true;
 }
 
-function insertText(el, text) {
+// Whether a field takes formatted text, and with it a snippet's pictures: a
+// contenteditable editor (Gmail, Outlook web). Inputs, textareas and WhatsApp's
+// editor (Lexical) take the text only, and the pictures are left out.
+function _takesFormatting(el) {
+  return _isCEEl(el) && !_isLexicalHost(_ceHost(el));
+}
+
+// The fill form of a snippet with pictures, or null without one. A snippet
+// with no fields expands without the overlay, so this is where its formatted
+// copy, and the count of pictures a plain box leaves out, come from.
+function _pictureForm(snip) {
+  if (!_SBFF || !/\{\s*picture:/i.test(snip.body || '')) return null;
+  var vm = _SBFF.fillForm(snip.body, {}, { fieldCfg: snip.fieldCfg || {}, lang: snip.lang });
+  return vm.parts ? vm : null;
+}
+
+// The Undo card's note, with a line added when a plain box left pictures out.
+function _pictureNote(note, vm, html) {
+  var n = vm && !html ? _SBFF.pictureCount(vm) : 0;
+  if (!n) return note;
+  var line = _SBFF.pictureText('left-out-done', n);
+  return note ? note + ' ' + line : line;
+}
+
+// `html` is the formatted copy of a text with pictures, for a field that takes
+// formatting (_takesFormatting); null everywhere else.
+function insertText(el, text, html) {
   if (!el) return;
   // Normalize CRLF/CR to LF first. A body carrying Windows line endings (JSON
   // import, text pasted from a desktop editor) otherwise splits into lines that
@@ -1491,7 +1526,9 @@ function insertText(el, text) {
   // entirely, collapsing paragraphs into one block.
   text = String(text == null ? '' : text).replace(/\r\n?/g, '\n');
   // Read the caret's surroundings BEFORE anything below focuses or moves it.
-  if (_shouldAutoCap(el)) text = _autoCapitalize(text);
+  // Not for formatted text: its copy would keep the small letter, and the
+  // landing check would read the body as missing and insert it again.
+  if (!html && _shouldAutoCap(el)) text = _autoCapitalize(text);
   var isCE = el.isContentEditable || el.getAttribute && (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '');
   try {
     if (isCE) {
@@ -1515,6 +1552,7 @@ function insertText(el, text) {
       if (document.activeElement !== el && !document.activeElement.contains(el)) {
         try { el.focus(); } catch(_) {}
       }
+      if (html && !_isLexicalHost(_ceHost(el)) && _cePasteInsert(el, text, html)) return;
       if ((text.indexOf('\n') > -1 || _isLexicalHost(_ceHost(el))) && _cePasteInsert(el, text)) return;
       _ceLineInsert(text);
       return;
@@ -1961,6 +1999,8 @@ function showOverlay(targetEl, snip, scLen, done) {
       '<section class="sb-preview" aria-labelledby="sb-preview-label">' +
         '<div class="sb-preview-heading"><h3 id="sb-preview-label">Message preview</h3><span>Live preview</span></div>' +
         '<div class="sb-prev" id="sb-prev"></div>' +
+        // Only where the pictures cannot go: said before Insert, not after.
+        (_takesFormatting(targetEl) ? '' : '<p class="ff-picnote" id="sb-picnote" role="status" hidden></p>') +
       '</section>' +
     '</div>' +
     '<div class="sb-foot">' +
@@ -2353,8 +2393,10 @@ function updatePrev(snip) {
   var box = document.getElementById('sb-prev');
   if (!box || !overlayEl) return;
   var vm = overlayForm(snip);
-  box.textContent = vm.preview;
-  if (window.SBFillFormUI) window.SBFillFormUI.refresh(overlayEl.querySelector('.sb-fields'), vm);
+  if (!window.SBFillFormUI) { box.textContent = vm.preview; return; }
+  window.SBFillFormUI.showPreview(box, vm);
+  window.SBFillFormUI.pictureNote(document.getElementById('sb-picnote'), vm, 'left-out');
+  window.SBFillFormUI.refresh(overlayEl.querySelector('.sb-fields'), vm);
 }
 
 function _showFieldsPane() {
@@ -2409,6 +2451,9 @@ function doInsert(targetEl, snip, checked) {
   // resolveBody the preview used, or what lands in the field prints in a
   // different format from the preview the operator just approved.
   var text = vm.preview;
+  // The text with its pictures, for a field that takes formatting.
+  var html = vm.parts && _takesFormatting(targetEl) ? vm.formatted : null;
+  note = _pictureNote(note, vm.parts ? vm : null, html);
   var fillCount = Object.keys(vals).length;
   closeOverlay();
   if (!targetEl) return;
@@ -2420,9 +2465,9 @@ function doInsert(targetEl, snip, checked) {
   // path in _proceedInsert (see restoreFieldState).
   function insertSyncCE() {
     var before = _ceMeasureBefore(targetEl);
-    insertText(targetEl, text);
+    insertText(targetEl, text, html);
     var snapshot = captureFieldState(targetEl, overlayTriggerLen);
-    _markSyncInserted(snapshot, targetEl, before, text);
+    _markSyncInserted(snapshot, targetEl, before, text, html ? vm : null);
     showCelebration(
       text,
       function onConfirm() { logEvent(snip, fillCount); },
@@ -2636,7 +2681,10 @@ function _ceMeasureBefore(el) {
   return {
     start: _ceCaretCharOffset(host, true),
     end: _ceCaretCharOffset(host),
-    total: host ? _ceVisibleText(host).length : -1
+    total: host ? _ceVisibleText(host).length : -1,
+    // The pictures and line breaks already there, so Undo never takes one of them.
+    imgs: host ? Array.prototype.slice.call(host.querySelectorAll('img')) : [],
+    brs: host ? Array.prototype.slice.call(host.querySelectorAll('br')) : []
   };
 }
 
@@ -2655,10 +2703,19 @@ function _ceMeasureBefore(el) {
 // what was typed before the snippet ("Hola " came back as "Hol"), or left the
 // snippet's first letter behind. The count stays as the fallback for an editor
 // that has not written the text yet when this runs.
-function _markSyncInserted(snapshot, el, before, text) {
+// `vm` is the fill form of a formatted insert, whose pictures Undo takes out
+// too (_ceRemovePictures); null for text alone.
+function _markSyncInserted(snapshot, el, before, text, vm) {
   var host = _ceHost(el);
   var startCO = before ? before.start : -1;
   snapshot.syncInserted = true;
+  if (vm && vm.parts && before) {
+    snapshot.pictures = {
+      before: before.imgs,
+      brs: before.brs,
+      list: vm.parts.filter(function(p) { return !!p.picture; }).map(function(p) { return p.picture; })
+    };
+  }
   snapshot.visibleLen = String(text).replace(/[\r\n]/g, '').length;
   if (_isLexicalHost(host) && startCO >= 0) {
     snapshot.endCharOffset = startCO + snapshot.visibleLen;
@@ -2699,6 +2756,35 @@ function _ceHoldSpace(at) {
     var drawn = r.getClientRects();
     if (drawn.length && drawn[0].width === 0) node.replaceData(k - 1, 1, '\u00a0');
   } catch(e) { console.error('[Fibonax] could not keep the space before the snippet', e); }
+}
+
+// Takes out the pictures a formatted insert put in: the ones that were not in
+// the field before it and show one of the snippet's pictures (by address, or by
+// description where the editor moved the picture to its own address). Text
+// offsets cannot find them, a picture holds no characters. The line break the
+// insert put beside a picture goes with it, or a picture at the end of the
+// snippet would leave an empty line. Returns how many pictures went.
+function _ceRemovePictures(host, snapshot) {
+  var p = snapshot.pictures;
+  if (!host || !p) return 0;
+  var removed = 0;
+  var newBreak = function(img, side) {
+    var node = img[side];
+    while (node && node.nodeType === 3 && node.nodeValue === '') node = node[side];
+    return node && node.nodeName === 'BR' && p.brs.indexOf(node) === -1 ? node : null;
+  };
+  Array.prototype.slice.call(host.querySelectorAll('img')).forEach(function(img) {
+    if (p.before.indexOf(img) !== -1) return;
+    var mine = p.list.some(function(pic) {
+      return img.getAttribute('src') === pic.src || (!!pic.alt && img.getAttribute('alt') === pic.alt);
+    });
+    if (!mine || !img.parentNode) return;
+    var br = newBreak(img, 'previousSibling') || newBreak(img, 'nextSibling');
+    if (br) br.parentNode.removeChild(br);
+    img.parentNode.removeChild(img);
+    removed++;
+  });
+  return removed;
 }
 
 function restoreFieldState(snapshot) {
@@ -2762,6 +2848,7 @@ function restoreFieldState(snapshot) {
             _ok = true;
           } catch(_) {}
         }
+        if (_ceRemovePictures(hostU, snapshot)) _ok = true;
         if (!_ok) {
           // Offsets unavailable (selection wasn't captured) — best-effort native undo.
           try { document.execCommand('undo', false, null); } catch(_) {}
@@ -3487,13 +3574,16 @@ function selectTriggerItem(idx) {
         var text = resolveBody(item.body, {}, { lang: item.lang });
         var _isCE2 = el && (el.isContentEditable || (el.getAttribute &&
           (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
+        var pics = _pictureForm(item);
+        var html = pics && _takesFormatting(el) ? pics.formatted : null;
         // Checked first, as a typed trigger is (see _proceedInsert).
         _checkThenInsert(el, item, text, function(note) {
+          note = _pictureNote(note, pics, html);
           if (_isCE2) {
             // Same sync-insert fix as _proceedInsert: insert while selection is live.
             var before = _ceMeasureBefore(el);
-            insertText(el, text);
-            _markSyncInserted(fieldSnapshot, el, before, text);
+            insertText(el, text, html);
+            _markSyncInserted(fieldSnapshot, el, before, text, html ? pics : null);
             showCelebration(
               text,
               function onConfirm() {     // timer expired or user clicked OK
@@ -4070,19 +4160,22 @@ function _proceedContextInsert(el, snip) {
     var isCE = el && (el.isContentEditable || (el.getAttribute &&
       (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
     var isValueField = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+    var pics = _pictureForm(snip);
+    var html = pics && _takesFormatting(el) ? pics.formatted : null;
 
     // Nothing is in the field yet, so going back from the warning has nothing
     // to undo. Held as processing while it is open, like any other insert.
     processing = true;
     _checkThenInsert(el, snip, text, function(note) {
+      note = _pictureNote(note, pics, html);
       if (isCE) {
         // Insert synchronously, then celebrate with Undo — same proven mechanism as
         // the trigger paths' CE sync-insert (see _proceedInsert): capture the inserted
         // region so restoreFieldState can Range-delete it. onUndo skips logEvent.
         var snapCE = captureFieldState(el, 0);
         var before = _ceMeasureBefore(el);
-        insertText(el, text);
-        _markSyncInserted(snapCE, el, before, text);
+        insertText(el, text, html);
+        _markSyncInserted(snapCE, el, before, text, html ? pics : null);
         showCelebration(
           text,
           function onConfirm() { logEvent(snip, 0); processing = false; },

@@ -525,7 +525,28 @@
           Object.assign({}, resolveOpts, { html: true }));
       }
     }
-    return { preview: preview, errors: errors, formatted: formatted };
+
+    // A text with pictures: the same finished text with each picture in its
+    // place, as `parts` for a preview to draw and as `formatted` for a surface
+    // that can paste or copy formatting. The preview leaves the pictures out.
+    var parts = null;
+    if (!opts.formatted && E.sbPictureHtml && /\{\s*picture:/i.test(src)) {
+      var pics = [];
+      resolveOpts.picture = function(p) { pics.push(p); return '' + (pics.length - 1) + ''; };
+      var marked = finished(values);
+      delete resolveOpts.picture;
+      if (pics.length) {
+        parts = [];
+        marked.split(/(\d+)/).forEach(function(piece, k) {
+          if (k % 2) parts.push({ picture: pics[+piece] });
+          else if (piece) parts.push({ text: piece });
+        });
+        formatted = parts.map(function(part) {
+          return part.picture ? E.sbPictureHtml(part.picture) : E.sbEscapeHtml(part.text).replace(/\n/g, '<br>');
+        }).join('');
+      }
+    }
+    return { preview: preview, errors: errors, formatted: formatted, parts: parts };
   }
 
   // ── FORMATTED LAYOUT ────────────────────────────────────────────
@@ -554,7 +575,7 @@
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, errors: [], sections: [], layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -769,8 +790,11 @@
       preview: resolved.preview,
       // `o.formatted` is the snippet's layout (body_html); this is it filled,
       // or null. A surface that can paste formatting inserts this, with the
-      // preview as its plain text.
+      // preview as its plain text. A plain text with pictures fills it too.
       formatted: resolved.formatted,
+      // The text with its pictures, in order: [{ text } | { picture }], or
+      // null when there is no picture. What a preview draws.
+      parts: resolved.parts,
       errors: resolved.errors,
       sections: sectionsFor(fields),
       // Hand straight to resolveBody alongside the values. A surface that
@@ -875,6 +899,31 @@
   /** The words for one LINK_TEXT key, falling back to the generic failure. */
   function linkText(key) {
     return Object.prototype.hasOwnProperty.call(LINK_TEXT, key) ? LINK_TEXT[key] : LINK_TEXT.failed;
+  }
+
+  // ── PICTURES: WHAT EVERY SURFACE SAYS ───────────────────────────
+  // Where a text's pictures go, in the same words on the page, the popup, the
+  // editor and the phone. One picture, then several.
+  var PICTURE_TEXT = {
+    'left-out': ['This box takes text only, so the picture is left out.',
+                 'This box takes text only, so the pictures are left out.'],
+    'left-out-done': ['This box takes text only, so the picture was left out.',
+                      'This box takes text only, so the pictures were left out.'],
+    'copy': ['Paste into an email and the picture goes in too. Chats get the text only.',
+             'Paste into an email and the pictures go in too. Chats get the text only.'],
+    'share': ['Share sends the text only. Use Copy to paste the picture into an email.',
+              'Share sends the text only. Use Copy to paste the pictures into an email.'],
+    'missing': ['Picture', 'Picture']
+  };
+
+  function pictureText(key, count) {
+    var pair = Object.prototype.hasOwnProperty.call(PICTURE_TEXT, key) ? PICTURE_TEXT[key] : PICTURE_TEXT.missing;
+    return pair[count > 1 ? 1 : 0];
+  }
+
+  /** How many pictures a view model's text shows. */
+  function pictureCount(vm) {
+    return vm && vm.parts ? vm.parts.filter(function(p) { return !!p.picture; }).length : 0;
   }
 
   // Comparison form of a piece of page text or of the author's word: case,
@@ -1386,6 +1435,8 @@
     linkUrl: linkUrl,
     readFromPage: readFromPage,
     linkText: linkText,
+    pictureText: pictureText,
+    pictureCount: pictureCount,
     linkSummary: linkSummary,
     linkNote: linkNote,
     LINK_TEXT: LINK_TEXT,

@@ -46,7 +46,7 @@ for (const [key, want] of TYPE_CASES) {
 console.log('OK Field kind inferred from the name (' + TYPE_CASES.length + ' cases)');
 
 // ── THE VIEW MODEL EVERY SURFACE READS ──────────────────────────────
-const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'layout', 'steps', 'fmtOverride', 'linkable'];
+const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'layout', 'steps', 'fmtOverride', 'linkable'];
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
                      'other', 'otherOn', 'otherText',
                      'cols', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
@@ -557,3 +557,36 @@ assert.deepEqual(filled(LT_TEXT, ltHole, { formatted: LT_HTML }).errors.map(e =>
 assert.deepEqual(filled(LT_TEXT, ltHole, { formatted: LT_HTML }).errors, filled(LT_TEXT, ltHole).errors);
 assert.match(filled(LT_TEXT, ltHole, { formatted: LT_HTML }).formatted, /<b>…<\/b>/);
 console.log('OK The formatted layout is filled from the same form as the text');
+
+// ── PICTURES ────────────────────────────────────────────────────────
+// A text with a picture: the preview (plain text) leaves it out, `parts` puts
+// it back in its place for a preview to draw, and `formatted` is the same text
+// escaped, with line breaks and the picture, for a rich editor or a Copy.
+const PIC = '{picture: src=https://a.co/logo.png; alt=Logo; size=small}';
+const PIC_IMG = '<img src="https://a.co/logo.png" alt="Logo" width="160" style="width:160px;max-width:100%;height:auto;border:0">';
+const pic = filled('Hi {formtext: name=WHO}\n' + PIC + '\n{formtext: name=N; type=number} x2 = {=N * 2} & <more>',
+  { WHO: 'Ana <b>', N: '3' });
+assert.equal(pic.preview, 'Hi Ana <b>\n3 x2 = 6 & <more>');
+assert.deepEqual(pic.parts, [
+  { text: 'Hi Ana <b>\n' },
+  { picture: { src: 'https://a.co/logo.png', alt: 'Logo', size: 'small' } },
+  { text: '\n3 x2 = 6 & <more>' },
+]);
+assert.equal(pic.formatted, 'Hi Ana &lt;b&gt;<br>' + PIC_IMG + '<br>3 x2 = 6 &amp; &lt;more&gt;');
+assert.deepEqual(pic.fields.map(f => f.key), ['WHO', 'N']);
+// A picture alone: nothing to type, the picture is the whole message.
+const only = filled(PIC, {});
+assert.equal(only.preview, '');
+assert.equal(only.formatted, PIC_IMG);
+// Inside a rule, a picture shows only when the rule does.
+const RULED = 'Hi {formtext: name=N; type=number}\n{if: N > 1}' + PIC + '\n{endif}Bye';
+assert.equal(filled(RULED, { N: '0' }).parts, null);
+assert.equal(filled(RULED, { N: '0' }).formatted, null);
+assert.equal(filled(RULED, { N: '2' }).formatted, 'Hi 2<br>' + PIC_IMG + '<br>Bye');
+// No picture, or an address that is not https: nothing changes.
+assert.equal(filled('Hi', {}).parts, null);
+assert.equal(filled('Hi\n{picture: src=http://a.co/l.png}', {}).parts, null);
+assert.equal(filled('Hi\n{picture: src=http://a.co/l.png}', {}).preview, 'Hi');
+// With a layout, the layout is what is formatted.
+assert.equal(filled('Hi ' + PIC, {}, { formatted: '<b>Hi</b> ' + PIC }).parts, null);
+console.log('OK A text with pictures keeps them out of the plain text and in the formatted copy');

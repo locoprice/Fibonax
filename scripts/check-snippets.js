@@ -48,6 +48,11 @@ const cases = [
   { name: 'other prints typed', body: 'Via {formmenu: Email,Phone; name=R; other=Other}.', vals: { R: 'Fax' }, expect: 'Via Fax.' },
   { name: 'other in a rule',    body: '{formmenu: Email,Phone; name=R; other=Other}{if: R = "Fax"} by fax{endif}', vals: { R: 'Fax' }, expect: 'Fax by fax' },
   { name: 'other picks option', body: '{formmenu: Email,Phone; name=R; other=Other} {R}', vals: { R: 'Phone' }, expect: 'Phone Phone' },
+  // A picture is left out of plain text, and alone on its line takes the line.
+  { name: 'picture own line',   body: 'Hi\n{picture: src=https://a.co/l.png; alt=Logo}\nBye', vals: {}, expect: 'Hi\nBye' },
+  { name: 'picture last line',  body: 'Hi\n{picture: src=https://a.co/l.png}', vals: {}, expect: 'Hi' },
+  { name: 'picture first line', body: '{picture: src=https://a.co/l.png; size=full}\nHi {N}', vals: { N: 'Ann' }, expect: 'Hi Ann' },
+  { name: 'picture is no field', body: 'A{picture: src=https://a.co/l.png}B', vals: {}, expect: 'AB' },
 ];
 
 let ok = 0;
@@ -595,6 +600,11 @@ const expansionCases = [
   ['Via {formmenu: Email,Phone; name=R; other=Other}.', { R: 'Fax' }],
   ['{formmenu: Email,Phone; name=R; other=Other; multiple=yes} and {R}', { R: 'Email, Fax' }],
   ['{formmenu: REFUNDABLE,NOT REFUNDABLE; name=R; other=Other}\n' + RATE_RULE, { R: 'Partial' }],
+  ['Hi\n{picture: src=https://a.co/l.png; alt=Logo; size=small}\nBye', {}],
+  ['Hi\n  {picture: src=https://a.co/l.png}  \r\nBye', {}],
+  ['{picture: src=https://a.co/l.png}\nHi', {}],
+  ['Hi\n{picture: src=http://a.co/l.png}', {}],
+  ['{if: A > 1}{picture: src=https://a.co/l.png}\n{endif}Done', { A: '2' }],
 ];
 let expOk = 0;
 for (const [body, vals] of expansionCases) {
@@ -1864,6 +1874,13 @@ const LAYOUT_CASES = [
   ['Querido {formtext: name=NOMBRE}', { NOMBRE: 'María' }, { lang: 'ES' }, 'Querida María'],
   ['<td>Querido <b><i>{formtext: name=NOMBRE}</i></b></td>', { NOMBRE: 'María' }, { lang: 'ES' }, '<td>Querida <b><i>María</i></b></td>'],
   ['{gender: NOMBRE; m=Querido; f=Querida} <b>{NOMBRE}</b>', { NOMBRE: 'María' }, { lang: 'ES' }, 'Querida <b>María</b>'],
+  // A picture is markup in a layout; its description is escaped, and an
+  // address that is not https prints nothing.
+  ['<td>{picture: src=https://a.co/l.png; alt=Tom "&" <Jerry>; size=small}</td>', {}, {},
+    '<td><img src="https://a.co/l.png" alt="Tom &quot;&amp;&quot; &lt;Jerry&gt;" width="160" style="width:160px;max-width:100%;height:auto;border:0"></td>'],
+  ['{picture: src=https://a.co/l.png}', {}, {},
+    '<img src="https://a.co/l.png" alt="" width="320" style="width:320px;max-width:100%;height:auto;border:0">'],
+  ['<p>{picture: src=javascript:alert(1)}</p><p>{picture: src=https://a.co/x".png}</p>', {}, {}, '<p></p><p></p>'],
 ];
 let layoutOk = 0;
 for (const [body, vals, opts, want] of LAYOUT_CASES) {

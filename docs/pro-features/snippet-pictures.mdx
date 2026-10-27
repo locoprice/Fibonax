@@ -1,0 +1,29 @@
+{/*
+  NOT PUBLISHED. Add a picture is locked for Pro ("Available to Pro users soon") since it was built in
+  v3.94.0, and the manual documents only what works. The section below goes into
+  user-docs/text-snippets/dynamic-fields.mdx, before "## Change or remove a field", the day it turns on:
+  1. apply services/supabase/migrations/20261027130000_snippet_pictures_storage.sql and deploy
+     delete-account (it empties the snippet-pictures folder),
+  2. switch 'snippetPictures' on in app/src/lib/proFeatures.ts,
+  3. check the section against the shipped feature, then paste it in.
+  scripts/check-pro-gate.js fails until the switch and the page agree.
+*/}
+
+## Pictures
+
+A logo, a map or a photo, sent with the text. Open **Pictures** in the panel on the left of the editor and click **Add picture**:
+
+1. **Choose the picture**: drop it in, or choose a file. PNG, JPG, GIF or WebP, up to 5 MB. Large photos are made smaller for you.
+2. **Say what it shows**, like `Company logo`. People who cannot see pictures hear this, and it shows where the picture does not load.
+3. **Size**: Small, Medium or Full width.
+
+Click **Insert picture**. The picture goes in at the cursor.
+
+Where the snippet lands decides what goes in:
+
+- **Emails** (Gmail, Outlook on the web) get the text and the picture.
+- **Chats and plain text boxes** (WhatsApp, most forms) get the text only. The fill form says so before you insert.
+- **Copy**, in the popup, the editor's preview and the phone, copies both: paste into an email and the picture goes in too.
+- **Share** on the phone sends the text only.
+
+Pictures already in the snippet are listed under the button, with **Edit** and **Remove**. A picture you remove stays online, so emails you already sent keep showing it.

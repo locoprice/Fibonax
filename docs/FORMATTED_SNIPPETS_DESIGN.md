@@ -90,6 +90,10 @@ Consequences that come for free:
 
 ---
 
+### 2.7 Already built by pictures (v3.94.0)
+
+Pictures in snippets (`{picture:}`, `docs/pro-features/snippet-pictures.mdx`) needed the same insert and Copy paths, so they exist now: `fillForm` returns `formatted` for a plain text with pictures too, and `parts` for previews; the overlay pastes `text/html` into editors that take it (`_takesFormatting`, not Lexical) on all three entry points, and Undo removes the inserted pictures (`_ceRemovePictures`); the popup, the editor preview and the phone copy both formats. Steps 3 and 4 reuse them for layouts. The formatting toolbar (Bold, Italic, Underline, lists) was approved on 2026-10-27 as part of step 2: free, shown as it will look.
+
 ## 3. Order of work
 
 One feature, built in five steps. Each step passes the gates and bumps the version. The editor's **Use a formatted layout** entry stays hidden until step 4 is done, so develop never offers a layout that a fill surface cannot insert (⚡ Authoring and Expansion Parity). Nothing is promoted to `main` before step 5.

@@ -54,6 +54,7 @@ import { FormInterestDialog } from '@/features/snippets/FormInterestDialog';
 import { FormDateRangeDialog } from '@/features/snippets/FormDateRangeDialog';
 import { FormMenuDialog } from '@/features/snippets/FormMenuDialog';
 import { FormNumberDialog } from '@/features/snippets/FormNumberDialog';
+import { FormPictureDialog } from '@/features/snippets/FormPictureDialog';
 import { FormTextDialog } from '@/features/snippets/FormTextDialog';
 import { FormTimeDialog } from '@/features/snippets/FormTimeDialog';
 import { SnippetPreview } from '@/features/snippets/SnippetPreview';
@@ -234,6 +235,8 @@ const MATH_HINT =
   'Calculated for you. A discounted price, a total, an average: math resolves as the snippet expands, from the numbers filled in. Open one below to see what it does.';
 const LOGIC_HINT =
   'Worked out on its own. A line that shows or hides depending on an answer, the greeting the hour calls for: logic resolves as the snippet expands. Open one below to see what it does.';
+const PICTURES_HINT =
+  'Shown, not typed. A logo, a map or a photo goes into an email with the text. Chats and plain text boxes get the text only.';
 
 // The four inputs the menu builder actually offers, so the rail explains the
 // dialog before it opens rather than after.
@@ -445,6 +448,7 @@ const BUTTON_KINDS: readonly BodyItemKind[] = ['button'];
 const DATE_KINDS: readonly BodyItemKind[] = ['date', 'time'];
 const AUTO_KINDS: readonly BodyItemKind[] = ['auto'];
 const GREETING_KINDS: readonly BodyItemKind[] = ['greeting'];
+const PICTURE_KINDS: readonly BodyItemKind[] = ['picture'];
 const TEXT_NOUN = { one: 'text field', many: 'text fields' };
 const NUMBER_NOUN = { one: 'number field', many: 'number fields' };
 const MENU_NOUN = { one: 'choice field', many: 'choice fields' };
@@ -452,6 +456,7 @@ const BUTTON_NOUN = { one: 'button', many: 'buttons' };
 const DATE_NOUN = { one: 'date or time field', many: 'date and time fields' };
 const AUTO_NOUN = { one: 'automatic date', many: 'automatic dates' };
 const GREETING_NOUN = { one: 'greeting', many: 'greetings' };
+const PICTURE_NOUN = { one: 'picture', many: 'pictures' };
 const RANGE_NOUN = { one: 'date range count', many: 'date range counts' };
 const isRangeCount = (expression: string) => /^datespan\(/i.test(expression);
 
@@ -636,6 +641,8 @@ export function NewSnippetDialog() {
   const [numberFieldOpen, setNumberFieldOpen] = useState(false);
   // Action-button builder — writes a {button}…{/button} token at the cursor.
   const [actionButtonOpen, setActionButtonOpen] = useState(false);
+  // Add a picture — uploads one and writes a {picture:} token at the cursor.
+  const [pictureOpen, setPictureOpen] = useState(false);
   // Which formula window is open: a line of a quote from a price, or a calculator.
   const [formulaWindow, setFormulaWindow] = useState<FormulaWindow | null>(null);
   // Show or hide builder — writes an {if:} block at the cursor, or rewrites the
@@ -827,6 +834,7 @@ export function NewSnippetDialog() {
   const translateSlot =
     form.language === 'IT' || form.language === 'ES' || form.language === 'FR';
   const translateAvailable = isProFeatureAvailable('translate');
+  const picturesAvailable = isProFeatureAvailable('snippetPictures');
 
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -1960,7 +1968,7 @@ export function NewSnippetDialog() {
             </div>
 
             {/* Logic */}
-            <div className="flex-1 p-4">
+            <div className="p-4 border-b border-line">
               <div className="flex items-center gap-1.5">
                 <p className={SIDEBAR_LABEL}>Logic</p>
                 <Tooltip
@@ -2100,6 +2108,83 @@ export function NewSnippetDialog() {
                     onReplace={replaceRange}
                     kinds={GREETING_KINDS}
                     noun={GREETING_NOUN}
+                  />
+                </div>
+              </Toggle>
+            </div>
+
+            {/* Pictures — Pro, locked until the plan exists (lib/proFeatures).
+                Pictures already in the body are listed either way, and can
+                always be taken out. */}
+            <div className="flex-1 p-4">
+              <div className="flex items-center gap-1.5">
+                <p className={SIDEBAR_LABEL}>Pictures</p>
+                <Tooltip
+                  label={PICTURES_HINT}
+                  placement="right"
+                  className="flex items-center text-ink-subtle hover:text-ink transition-colors"
+                >
+                  <Info className="h-3 w-3" aria-hidden />
+                </Tooltip>
+              </div>
+              <Toggle
+                label="Picture"
+                className="mb-2.5 mt-2.5"
+                footer={
+                  picturesAvailable ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="primary"
+                      disabled={saving}
+                      onClick={() => {
+                        setItemEdit(null);
+                        setPictureOpen(true);
+                      }}
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add picture
+                    </Button>
+                  ) : (
+                    <ProSoon>
+                      <button
+                        type="button"
+                        aria-disabled="true"
+                        onClick={(event) => event.preventDefault()}
+                        className={cn(
+                          'inline-flex h-8 items-center gap-1.5 rounded-[10px] border border-line bg-card px-3 text-xs font-medium text-ink-muted',
+                          PRO_SOON_CONTROL,
+                        )}
+                      >
+                        <Plus className="h-3 w-3" aria-hidden />
+                        Add picture
+                        <ProSoonLock />
+                      </button>
+                    </ProSoon>
+                  )
+                }
+              >
+                <p className="text-[11px] text-ink-subtle leading-tight">
+                  A logo, a map or a photo, sent with the text. It shows in emails; chats and
+                  plain text boxes get the text only.
+                </p>
+                <p className="mt-2 rounded-[8px] border border-primary/25 bg-primary-light px-2 py-1.5 text-[11px] leading-tight text-ink">
+                  Your logo above the signature
+                </p>
+                <div className="mt-2.5">
+                  <ItemListSection
+                    body={form.content}
+                    onReplace={replaceRange}
+                    kinds={PICTURE_KINDS}
+                    noun={PICTURE_NOUN}
+                    onEdit={
+                      picturesAvailable
+                        ? (item) => {
+                            setItemEdit(item);
+                            setPictureOpen(true);
+                          }
+                        : undefined
+                    }
                   />
                 </div>
               </Toggle>
@@ -2599,6 +2684,17 @@ export function NewSnippetDialog() {
               onNew={() => setItemEdit(null)}
               onInsert={submitItem}
             />
+
+            {picturesAvailable && (
+              <FormPictureDialog
+                open={pictureOpen}
+                onOpenChange={windowOpenChange(setPictureOpen)}
+                initial={itemEdit?.kind === 'picture' ? itemEdit.cfg : null}
+                list={itemList(PICTURE_KINDS, PICTURE_NOUN)}
+                onNew={() => setItemEdit(null)}
+                onInsert={submitItem}
+              />
+            )}
 
             <FormDateDialog
               open={dateFieldOpen}

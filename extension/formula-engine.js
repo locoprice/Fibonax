@@ -669,6 +669,67 @@
     return html ? sbEscapeHtml(value) : String(value);
   }
 
+  // ── PICTURES ────────────────────────────────────────────────────
+  // {picture: src=https://…; alt=Company logo; size=small}
+  // A picture shows where formatted text can go (an email, a Copy pasted into
+  // one) and is left out of plain text, with the line it stands on. Only an
+  // https address is a picture: anything else prints nothing anywhere.
+  //
+  // MIRRORED in app/public/mobile/index.html (sbParsePicture, sbPictureHtml)
+  // and app/src/lib/pictureToken.ts. scripts/check-snippets.js pins the phone.
+  var PICTURE_SIZES = { small: 160, medium: 320, full: 600 };
+  var PICTURE_SRC_RE = /^https:\/\/[^\s"'<>{};\\]+$/i;
+
+  function _isPictureHead(tokLow) { return tokLow.slice(0, 8) === 'picture:'; }
+
+  function sbParsePicture(rest) {
+    var p = { src: '', alt: '', size: 'medium' };
+    var parts = String(rest).split(';');
+    for (var i = 0; i < parts.length; i++) {
+      var eq = parts[i].indexOf('=');
+      if (eq === -1) continue;
+      var k = _sTrim(parts[i].slice(0, eq)).toLowerCase();
+      var v = _sTrim(parts[i].slice(eq + 1));
+      if (k === 'src') p.src = PICTURE_SRC_RE.test(v) ? v : '';
+      else if (k === 'alt') p.alt = v;
+      else if (k === 'size' && Object.prototype.hasOwnProperty.call(PICTURE_SIZES, v.toLowerCase())) p.size = v.toLowerCase();
+    }
+    return p;
+  }
+
+  // The picture as it goes into an email. Its width is an attribute as well as
+  // a style: Outlook reads only the attribute.
+  function sbPictureHtml(p) {
+    if (!p || !PICTURE_SRC_RE.test(p.src || '')) return '';
+    var w = PICTURE_SIZES[p.size] || PICTURE_SIZES.medium;
+    var attr = function(s) { return sbEscapeHtml(s).replace(/"/g, '&quot;'); };
+    return '<img src="' + attr(p.src) + '" alt="' + attr(p.alt || '') + '" width="' + w +
+      '" style="width:' + w + 'px;max-width:100%;height:auto;border:0">';
+  }
+
+  // The token the editor writes. ';', braces and line breaks would end a
+  // setting or the token, so the description loses them.
+  function buildPictureToken(cfg) {
+    var c = cfg || {};
+    var alt = _sTrim(String(c.alt || '').replace(/[;{}\r\n]/g, ' ').replace(/\s+/g, ' '));
+    var size = Object.prototype.hasOwnProperty.call(PICTURE_SIZES, c.size) ? c.size : 'medium';
+    return '{picture: src=' + String(c.src || '') + (alt ? '; alt=' + alt : '') + '; size=' + size + '}';
+  }
+
+  // A token that prints nothing and stands alone on its line takes the line
+  // with it, so no empty line is left where it sat. `i` is just past the token.
+  function _dropOwnLine(out, body, i) {
+    var before = /(^|\n)[ \t]*$/.exec(out);
+    var after = /^[ \t]*(\r?\n|$)/.exec(body.slice(i));
+    if (before && after) {
+      out = out.slice(0, out.length - (before[0].length - before[1].length));
+      i += after[0].length;
+      // Last line of the text: the break before it goes instead.
+      if (after[1] === '' && before[1] === '\n') out = out.slice(0, -1);
+    }
+    return { out: out, i: i };
+  }
+
   var _HTML_PART_RE = /(<[^>]*>|&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);)/;
   var _HTML_NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
   // Formatting that sits inside a line of text. Any other tag (a line break, a
@@ -1295,20 +1356,20 @@
           continue;
         }
         if (tok === '/case') { i = cl + 1; continue; }
+        // A picture: markup in a layout, whatever `opts.picture` prints for it
+        // (the fill form's place marker), and otherwise nothing, line and all.
+        if (_isPictureHead(tokLow)) {
+          var pic = sbParsePicture(tok.slice(8));
+          if (pic.src && html) out += sbPictureHtml(pic);
+          else if (pic.src && _o.picture) out += _o.picture(pic);
+          else { var pDrop = _dropOwnLine(out, body, cl + 1); out = pDrop.out; i = pDrop.i; continue; }
+          i = cl + 1; continue;
+        }
         if (tokLow.slice(0,9) === 'formtext:' || tokLow.slice(0,9) === 'formdate:' || tokLow.slice(0,9) === 'formmenu:') {
           if (tokLow.slice(0,9) === 'formmenu:' && !_parseMenuSettings(tok.slice(9)).print) {
-            // A menu set to print=no prints nothing. Standing alone on its
-            // line, it takes the line with it, so no empty line is left where
-            // the question sat.
-            i = cl + 1;
-            var qBefore = /(^|\n)[ \t]*$/.exec(out);
-            var qAfter = /^[ \t]*(\r?\n|$)/.exec(body.slice(i));
-            if (qBefore && qAfter) {
-              out = out.slice(0, out.length - (qBefore[0].length - qBefore[1].length));
-              i += qAfter[0].length;
-              // Last line of the text: the break before it goes instead.
-              if (qAfter[1] === '' && qBefore[1] === '\n') out = out.slice(0, -1);
-            }
+            // A menu set to print=no prints nothing, and takes its line along.
+            var qDrop = _dropOwnLine(out, body, cl + 1);
+            out = qDrop.out; i = qDrop.i;
             continue;
           }
           var fKey = _formFieldName(tokLow, tok.slice(9));
@@ -2035,7 +2096,7 @@
         t.slice(0,7).toLowerCase() === 'elseif:' ||
         t.slice(0,5).toLowerCase() === 'time:' ||
         _isButtonHead(t.toLowerCase()) || _isCaseHead(t.toLowerCase()) ||
-        _isGreetingHead(t.toLowerCase())) return '';
+        _isGreetingHead(t.toLowerCase()) || _isPictureHead(t.toLowerCase())) return '';
     var tokLow = t.toLowerCase();
     // A {gender:} token is not a field itself — it reads one, so surface that
     // field instead. It is usually declared elsewhere too; callers de-duplicate.
@@ -2756,7 +2817,11 @@
     NOT_PERSON_WORDS:  NOT_PERSON_WORDS,
     sbApplyCaseMode:   _applyCaseMode,
     sbApplyCaseModeHtml: _applyCaseModeHtml,
-    sbEscapeHtml:      sbEscapeHtml
+    sbEscapeHtml:      sbEscapeHtml,
+    sbParsePicture:    sbParsePicture,
+    sbPictureHtml:     sbPictureHtml,
+    buildPictureToken: buildPictureToken,
+    PICTURE_SIZES:     PICTURE_SIZES
   };
 
   // UMD: supports browser globals, CommonJS (Node), and AMD.

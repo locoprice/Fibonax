@@ -36,11 +36,13 @@ import { resolve } from 'node:path';
 // them against a recording document — the same "evaluate the real source"
 // stance formulaConditions.test.ts and deletionSync.test.ts take.
 
-type InsertText = (el: unknown, text: string) => void;
+type InsertText = (el: unknown, text: string, html?: string) => void;
 
 interface PasteRecord {
   type: string;
   text: string;
+  /** Only when the paste carried formatted text (a text with pictures). */
+  html?: string;
 }
 interface InputRecord {
   type: string;
@@ -81,6 +83,8 @@ interface Options {
   between?: 'element' | 'newline';
   // the page will not hand over its selection
   selectionThrows?: boolean;
+  // the formatted copy of a text with pictures, for an editor that takes it
+  html?: string;
 }
 interface DispatchedEvent {
   type: string;
@@ -131,9 +135,9 @@ const fnSource = [
   'function _ceLineInsert(text) {',
   'function _ceHoldSelection() {',
   'function _ceBringBackTrigger(held) {',
-  'function _cePasteInsert(el, text) {',
+  'function _cePasteInsert(el, text, html) {',
   'function _cePasteLand(el, host, dt, text) {',
-  'function insertText(el, text) {',
+  'function insertText(el, text, html) {',
 ]
   .map((sig) => sliceFunction(source, sig))
   .join('\n');
@@ -156,6 +160,7 @@ function run(text: string, opts: Options = {}): Recorded {
     movesCaret = false,
     between,
     selectionThrows = false,
+    html,
   } = opts;
   const cmds: Recorded['cmds'] = [];
   const pastes: PasteRecord[] = [];
@@ -190,7 +195,8 @@ function run(text: string, opts: Options = {}): Recorded {
         return !claimsDeletion; // false: preventDefault, the editor claimed it
       }
       const pasted = ev.clipboardData ? ev.clipboardData.getData('text/plain') : '';
-      pastes.push({ type: ev.type, text: pasted });
+      const pastedHtml = ev.clipboardData ? ev.clipboardData.getData('text/html') : '';
+      pastes.push(pastedHtml ? { type: ev.type, text: pasted, html: pastedHtml } : { type: ev.type, text: pasted });
       if (!claimsPaste) return true; // not prevented: the editor ignored it
       if (!swallowsPaste) fieldText += pasted;
       return false; // preventDefault → the editor claimed it
@@ -341,7 +347,7 @@ function run(text: string, opts: Options = {}): Recorded {
     win,
     StubInputEvent,
     StubStaticRange,
-  )(el, text);
+  )(el, text, html);
 
   return { cmds, pastes, inputs, order, inserted: textOf(cmds), firstWrite };
 }
@@ -397,6 +403,36 @@ describe('snippet expansion — line-break fidelity', () => {
     expect(run(indented, { contentEditable: false }).cmds).toEqual([
       { cmd: 'insertText', value: indented },
     ]);
+  });
+});
+
+describe('snippet expansion: a text with pictures', () => {
+  const HTML = 'Hi<br><img src="https://a.co/l.png" alt="Logo"><br>Bye';
+
+  it('pastes the formatted copy beside the text into an editor that takes it', () => {
+    const { pastes, cmds } = run('Hi\nBye', { claimsPaste: true, html: HTML });
+    expect(pastes).toEqual([{ type: 'paste', text: 'Hi\nBye', html: HTML }]);
+    // Only the trigger's removal; the body went in through the paste.
+    expect(cmds).toEqual([{ cmd: 'insertText', value: '' }]);
+  });
+
+  it('pastes a one-line text with its picture too, not just multi-line bodies', () => {
+    expect(run('Hi', { claimsPaste: true, html: HTML }).pastes).toEqual([{ type: 'paste', text: 'Hi', html: HTML }]);
+  });
+
+  it('gives WhatsApp (Lexical) the text alone', () => {
+    const { pastes } = run('Hi\nBye', { claimsPaste: true, lexical: true, html: HTML });
+    expect(pastes).toEqual([{ type: 'paste', text: 'Hi\nBye' }]);
+  });
+
+  it('gives a textarea the text alone', () => {
+    expect(run('Hi\nBye', { contentEditable: false, html: HTML }).cmds).toEqual([{ cmd: 'insertText', value: 'Hi\nBye' }]);
+  });
+
+  it('falls back to the text when the editor ignores the formatted paste', () => {
+    const { inserted, pastes } = run('Hi\nBye', { claimsPaste: false, html: HTML });
+    expect(pastes[0]).toEqual({ type: 'paste', text: 'Hi\nBye', html: HTML });
+    expect(inserted).toBe('Hi\nBye');
   });
 });
 
@@ -981,6 +1017,7 @@ describe('Undo keeps the space in front of the snippet', () => {
           'function _isLexicalHost(host) {',
           'function _ceCharOffsetToPoint(host, target, atStart) {',
           'function _ceHoldSpace(at) {',
+          'function _ceRemovePictures(host, snapshot) {',
           'function restoreFieldState(snapshot) {',
         ]
           .map((sig) => sliceFunction(source, sig))
