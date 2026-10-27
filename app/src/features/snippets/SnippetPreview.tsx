@@ -12,6 +12,7 @@ import {
   linkNote,
   linkSummary,
   linkText,
+  layoutFragment,
   linkUrl,
   loadFillFormEngine,
   otherPlaceholder,
@@ -100,6 +101,28 @@ function PreviewPicture({ picture }: { picture: SbPicture }) {
   );
 }
 
+/**
+ * A formatted text as it will look, drawn from the shared engine's safe copy
+ * of the layout (lines, lists, marks, https pictures), never from its HTML.
+ */
+function LayoutResult({ html }: { html: string }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const fragment = layoutFragment(html);
+    if (ref.current && fragment) ref.current.replaceChildren(fragment);
+  }, [html]);
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'whitespace-normal font-sans text-sm [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5',
+        '[&_.ff-pic]:my-1 [&_.ff-pic]:inline-block [&_.ff-pic]:h-auto [&_.ff-pic]:max-w-full [&_.ff-pic]:rounded',
+        '[&_.ff-pic--small]:w-[160px] [&_.ff-pic--medium]:w-[320px] [&_.ff-pic--full]:w-full',
+      )}
+    />
+  );
+}
+
 /** The title a row shows: a stored display name, the prose before it, else the key. */
 function rowTitle(field: SbFillField): string {
   return field.label || field.before.replace(/^[\s>→\-·]+/, '').replace(/[\s:：-]+$/, '') || fieldLabel(field.key);
@@ -142,6 +165,8 @@ function flagText(items: readonly SbUnfinishedItem[]): string {
 interface SnippetPreviewProps {
   /** The body being edited, in the active language slot. */
   body: string;
+  /** Its formatted layout (Bold, lists); none while nothing is formatted. */
+  layout?: string | null;
   /** Language code, or '' for a Multi body which carries no single language. */
   lang: string;
   /** The snippet's "Warn me if it looks unfinished" switch, saved with it. */
@@ -153,6 +178,7 @@ interface SnippetPreviewProps {
 
 export function SnippetPreview({
   body,
+  layout = null,
   lang,
   checkUnfinished,
   onCheckUnfinishedChange,
@@ -179,6 +205,7 @@ export function SnippetPreview({
   // The body lags the textarea by one debounce, so typing does not re-parse on
   // every keystroke. Everything below reads this, never the raw prop.
   const [debouncedBody, setDebouncedBody] = useState(body);
+  const [debouncedLayout, setDebouncedLayout] = useState(layout);
   // Fill from link. `linked` marks the fields whose value came from a page and
   // nobody has touched since; `linkResults` keeps how each field fared on the
   // last read, for the note beside it. Both lose a field the moment it is
@@ -219,9 +246,12 @@ export function SnippetPreview({
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedBody(body), REBUILD_DELAY_MS);
+    const timer = window.setTimeout(() => {
+      setDebouncedBody(body);
+      setDebouncedLayout(layout);
+    }, REBUILD_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [body]);
+  }, [body, layout]);
 
   useEffect(
     () => () => {
@@ -246,8 +276,8 @@ export function SnippetPreview({
 
   const view: SbFillFormViewModel | null = useMemo(() => {
     if (!engineReady) return null;
-    return fillForm(debouncedBody, values, { lang, fieldFmt: fmts, linked, other: others });
-  }, [engineReady, debouncedBody, values, fmts, lang, linked, others]);
+    return fillForm(debouncedBody, values, { lang, fieldFmt: fmts, linked, other: others, formatted: debouncedLayout });
+  }, [engineReady, debouncedBody, debouncedLayout, values, fmts, lang, linked, others]);
 
   // A page arrives after the Fill that asked for it, and is read against the
   // form on screen THEN: the body may have changed while it loaded.
@@ -480,7 +510,7 @@ export function SnippetPreview({
     try {
       // With pictures, the formatted copy goes too: an email takes the
       // pictures, a chat the text alone.
-      if (view.parts && view.formatted) {
+      if (view.formatted) {
         await navigator.clipboard.write([
           new ClipboardItem({
             'text/plain': new Blob([view.preview], { type: 'text/plain' }),
@@ -642,10 +672,12 @@ export function SnippetPreview({
           <div
             className={cn(
               'min-h-[max(100%,120px)] whitespace-pre-wrap break-words rounded-[10px] border border-line bg-card px-3 py-2.5 font-mono text-xs leading-relaxed',
-              view?.preview || view?.parts ? 'text-ink' : 'italic text-ink-subtle',
+              view?.preview || view?.parts || view?.formatted ? 'text-ink' : 'italic text-ink-subtle',
             )}
           >
-            {view?.parts
+            {view?.formatted && !view.parts ? (
+              <LayoutResult html={view.formatted} />
+            ) : view?.parts
               ? view.parts.map((part, i) =>
                   'picture' in part ? (
                     <PreviewPicture key={`${i} ${part.picture.src}`} picture={part.picture} />
@@ -655,7 +687,7 @@ export function SnippetPreview({
                 )
               : view?.preview || 'The finished message appears here as you type.'}
           </div>
-          {view?.parts && (
+          {view && pictureCount(view) > 0 && (
             <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
               {pictureText('copy', pictureCount(view))}
             </p>

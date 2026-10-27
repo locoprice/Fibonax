@@ -338,6 +338,11 @@
   // typing in the form does not make them blink.
   function showPreview(box, vm) {
     if (!box) return;
+    // A formatted text draws its layout; anything else, its text.
+    var layout = vm.formatted && !vm.parts && root.SBFillForm.layoutFragment
+      ? root.SBFillForm.layoutFragment(vm.formatted) : null;
+    box.classList.toggle('ff-layout', !!layout);
+    if (layout) { box.textContent = ''; box.appendChild(layout); return; }
     if (!vm.parts) { box.textContent = vm.preview; return; }
     var drawn = {};
     Array.prototype.forEach.call(box.querySelectorAll('[data-ff-pic]'), function(n) {

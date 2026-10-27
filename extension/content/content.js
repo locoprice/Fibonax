@@ -573,6 +573,7 @@ function _bodiesViews(row) {
     for (var k in row) view[k] = row[k];
     view.lang = l;
     view.body = txt;
+    view.bodyHtml = (row.bodiesHtml && row.bodiesHtml[l]) || '';
     out[l] = view;
   });
   return out;
@@ -1483,7 +1484,7 @@ function _cePasteLand(el, host, dt, text) {
     if (lines[i]) { probe = lines[i].slice(0, 24); break; }
   }
   if (probe) {
-    var loose = function(s) { return String(s).replace(/[\s ]+/g, ' '); };
+    var loose = function(s) { return String(s).replace(/[\s\u00a0]+/g, ' '); };
     setTimeout(function() {
       if (loose(_ceHost(el).textContent).indexOf(loose(probe)) === -1) _ceLineInsert(text);
     }, 120);
@@ -1498,18 +1499,34 @@ function _takesFormatting(el) {
   return _isCEEl(el) && !_isLexicalHost(_ceHost(el));
 }
 
-// The fill form of a snippet with pictures, or null without one. A snippet
-// with no fields expands without the overlay, so this is where its formatted
-// copy, and the count of pictures a plain box leaves out, come from.
+// The fill form of a formatted snippet (a layout, or pictures), or null for
+// plain text. A snippet with no fields expands without the overlay, so this is
+// where its formatted copy, and the count of pictures a plain box leaves out,
+// come from.
 function _pictureForm(snip) {
-  if (!_SBFF || !/\{\s*picture:/i.test(snip.body || '')) return null;
-  var vm = _SBFF.fillForm(snip.body, {}, { fieldCfg: snip.fieldCfg || {}, lang: snip.lang });
-  return vm.parts ? vm : null;
+  if (!_SBFF || (!snip.bodyHtml && !/\{\s*picture:/i.test(snip.body || ''))) return null;
+  var vm = _SBFF.fillForm(snip.body, {}, { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, formatted: snip.bodyHtml || null });
+  return vm.formatted ? vm : null;
+}
+
+// The pictures a formatted insert carries, { src, alt }: from the text's parts,
+// or read off its layout's <img> tags.
+function _formattedPictures(vm) {
+  if (vm.parts) {
+    return vm.parts.filter(function(p) { return !!p.picture; }).map(function(p) { return p.picture; });
+  }
+  return (String(vm.formatted || '').match(/<img\b[^>]*>/gi) || []).map(function(tag) {
+    var attr = function(name) {
+      var m = new RegExp('\\s' + name + '="([^"]*)"', 'i').exec(tag);
+      return m ? m[1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') : '';
+    };
+    return { src: attr('src'), alt: attr('alt') };
+  });
 }
 
 // The Undo card's note, with a line added when a plain box left pictures out.
 function _pictureNote(note, vm, html) {
-  var n = vm && !html ? _SBFF.pictureCount(vm) : 0;
+  var n = vm && vm.formatted && !html && _SBFF ? _SBFF.pictureCount(vm) : 0;
   if (!n) return note;
   var line = _SBFF.pictureText('left-out-done', n);
   return note ? note + ' ' + line : line;
@@ -1849,7 +1866,7 @@ function _sbBindLink(el, snip) {
         // Read against the form as it is now, not as it opened: a closing date
         // is checked against the opening date the form holds now, which the
         // operator may have changed since.
-        var now = _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang });
+        var now = _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, formatted: snip.bodyHtml || null });
         apply(_SBFF.readFromPage(now.fields, res.pieces));
         settle(true);
       });
@@ -1893,7 +1910,7 @@ function showOverlay(targetEl, snip, scLen, done) {
   // choices could not be picked at all. Keeping it inside means no future entry
   // point can forget.
   var vm = _SBFF
-    ? _SBFF.fillForm(snip.body, {}, { fieldCfg: snip.fieldCfg || {}, lang: snip.lang })
+    ? _SBFF.fillForm(snip.body, {}, { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, formatted: snip.bodyHtml || null })
     : { fields: [], buttons: [] };
 
   var fhtml = '';
@@ -2387,7 +2404,7 @@ function overlayForm(snip) {
     var box = overlayEl.querySelector('.sb-othertxt[data-otherkey="' + ctrl.dataset.key + '"]');
     other[ctrl.dataset.key] = box ? box.value : '';
   });
-  return _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, fieldFmt: getFmts(), other: other });
+  return _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, fieldFmt: getFmts(), other: other, formatted: snip.bodyHtml || null });
 }
 function updatePrev(snip) {
   var box = document.getElementById('sb-prev');
@@ -2452,8 +2469,8 @@ function doInsert(targetEl, snip, checked) {
   // different format from the preview the operator just approved.
   var text = vm.preview;
   // The text with its pictures, for a field that takes formatting.
-  var html = vm.parts && _takesFormatting(targetEl) ? vm.formatted : null;
-  note = _pictureNote(note, vm.parts ? vm : null, html);
+  var html = vm.formatted && _takesFormatting(targetEl) ? vm.formatted : null;
+  note = _pictureNote(note, vm, html);
   var fillCount = Object.keys(vals).length;
   closeOverlay();
   if (!targetEl) return;
@@ -2682,9 +2699,11 @@ function _ceMeasureBefore(el) {
     start: _ceCaretCharOffset(host, true),
     end: _ceCaretCharOffset(host),
     total: host ? _ceVisibleText(host).length : -1,
-    // The pictures and line breaks already there, so Undo never takes one of them.
+    // The pictures, line breaks, lines and lists already there, so Undo never
+    // takes one of them.
     imgs: host ? Array.prototype.slice.call(host.querySelectorAll('img')) : [],
-    brs: host ? Array.prototype.slice.call(host.querySelectorAll('br')) : []
+    brs: host ? Array.prototype.slice.call(host.querySelectorAll('br')) : [],
+    blocks: host ? Array.prototype.slice.call(host.querySelectorAll(_CE_BLOCKS)) : []
   };
 }
 
@@ -2703,18 +2722,14 @@ function _ceMeasureBefore(el) {
 // what was typed before the snippet ("Hola " came back as "Hol"), or left the
 // snippet's first letter behind. The count stays as the fallback for an editor
 // that has not written the text yet when this runs.
-// `vm` is the fill form of a formatted insert, whose pictures Undo takes out
-// too (_ceRemovePictures); null for text alone.
+// `vm` is the fill form of a formatted insert, whose pictures, lines and lists
+// Undo takes out too (_ceRemoveFormatted); null for text alone.
 function _markSyncInserted(snapshot, el, before, text, vm) {
   var host = _ceHost(el);
   var startCO = before ? before.start : -1;
   snapshot.syncInserted = true;
-  if (vm && vm.parts && before) {
-    snapshot.pictures = {
-      before: before.imgs,
-      brs: before.brs,
-      list: vm.parts.filter(function(p) { return !!p.picture; }).map(function(p) { return p.picture; })
-    };
+  if (vm && vm.formatted && before) {
+    snapshot.formatted = { imgs: before.imgs, brs: before.brs, blocks: before.blocks, pictures: _formattedPictures(vm) };
   }
   snapshot.visibleLen = String(text).replace(/[\r\n]/g, '').length;
   if (_isLexicalHost(host) && startCO >= 0) {
@@ -2758,14 +2773,19 @@ function _ceHoldSpace(at) {
   } catch(e) { console.error('[Fibonax] could not keep the space before the snippet', e); }
 }
 
-// Takes out the pictures a formatted insert put in: the ones that were not in
-// the field before it and show one of the snippet's pictures (by address, or by
-// description where the editor moved the picture to its own address). Text
-// offsets cannot find them, a picture holds no characters. The line break the
-// insert put beside a picture goes with it, or a picture at the end of the
-// snippet would leave an empty line. Returns how many pictures went.
-function _ceRemovePictures(host, snapshot) {
-  var p = snapshot.pictures;
+// The elements a formatted insert adds as lines and lists.
+var _CE_BLOCKS = 'div,p,ul,ol,li';
+
+// Takes out what a formatted insert left once its text is gone, all of it new
+// since the insert. The pictures that show one of the snippet's pictures (by
+// address, or by description where the editor moved the picture to its own
+// address): text offsets cannot find them, a picture holds no characters. The
+// line break beside such a picture, or one at the end of the snippet would
+// leave an empty line. Then the lines and lists left with nothing in them, the
+// innermost first, or an empty numbered item stays behind. Returns how many
+// pictures went.
+function _ceRemoveFormatted(host, snapshot) {
+  var p = snapshot.formatted;
   if (!host || !p) return 0;
   var removed = 0;
   var newBreak = function(img, side) {
@@ -2774,8 +2794,8 @@ function _ceRemovePictures(host, snapshot) {
     return node && node.nodeName === 'BR' && p.brs.indexOf(node) === -1 ? node : null;
   };
   Array.prototype.slice.call(host.querySelectorAll('img')).forEach(function(img) {
-    if (p.before.indexOf(img) !== -1) return;
-    var mine = p.list.some(function(pic) {
+    if (p.imgs.indexOf(img) !== -1) return;
+    var mine = p.pictures.some(function(pic) {
       return img.getAttribute('src') === pic.src || (!!pic.alt && img.getAttribute('alt') === pic.alt);
     });
     if (!mine || !img.parentNode) return;
@@ -2783,6 +2803,11 @@ function _ceRemovePictures(host, snapshot) {
     if (br) br.parentNode.removeChild(br);
     img.parentNode.removeChild(img);
     removed++;
+  });
+  Array.prototype.slice.call(host.querySelectorAll(_CE_BLOCKS)).reverse().forEach(function(block) {
+    if (p.blocks.indexOf(block) !== -1 || !block.parentNode) return;
+    if (block.textContent.replace(/[\s\u00a0]+/g, '') !== '' || block.querySelector('img')) return;
+    block.parentNode.removeChild(block);
   });
   return removed;
 }
@@ -2848,7 +2873,7 @@ function restoreFieldState(snapshot) {
             _ok = true;
           } catch(_) {}
         }
-        if (_ceRemovePictures(hostU, snapshot)) _ok = true;
+        if (_ceRemoveFormatted(hostU, snapshot)) _ok = true;
         if (!_ok) {
           // Offsets unavailable (selection wasn't captured) — best-effort native undo.
           try { document.execCommand('undo', false, null); } catch(_) {}

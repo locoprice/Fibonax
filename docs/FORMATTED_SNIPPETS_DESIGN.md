@@ -94,6 +94,16 @@ Consequences that come for free:
 
 Pictures in snippets (`{picture:}`, `docs/pro-features/snippet-pictures.mdx`) needed the same insert and Copy paths, so they exist now: `fillForm` returns `formatted` for a plain text with pictures too, and `parts` for previews; the overlay pastes `text/html` into editors that take it (`_takesFormatting`, not Lexical) on all three entry points, and Undo removes the inserted pictures (`_ceRemovePictures`); the popup, the editor preview and the phone copy both formats. Steps 3 and 4 reuse them for layouts. The formatting toolbar (Bold, Italic, Underline, lists) was approved on 2026-10-27 as part of step 2: free, shown as it will look.
 
+### 2.8 The formatting bar (v3.95.0)
+
+Built ahead of pasted layouts, on the same columns (migration live since 2026-10-27):
+
+- `app/src/features/snippets/FormattedBodyBox.tsx` replaces the body textarea for every snippet: a contenteditable with the bar, fields as chips, keeping the textarea's contract (`value`, `selectionStart`, `setSelectionRange`, `focus`) so every builder, list, Remove and Undo works unchanged.
+- `app/src/lib/formattedBody.ts` is the model: one block per plain line, list lines carrying "• " / "N. " in the plain body, `docToHtml` for the layout (`<div>` lines, `<ul>`/`<ol>`, `<b>`/`<i>`/`<u>`, fields as text), `syncDoc` bringing a change made outside the box in while keeping the formatting around it. A body with no formatting saves no layout.
+- Saved: `bodies_html` per language beside `bodies`, `body_html` its mirror; the save function gets the pair. Version history, duplicate, JSON export and import carry it (import rebuilds it through the model).
+- Surfaces pass `formatted: body_html` (extension caches `bodyHtml` / `bodiesHtml`; the phone reads `body_html` per language). Previews draw it with `layoutFragment` in `extension/shared/fill-form.js`, rebuilt node by node, so nothing in a layout runs. Undo after a formatted insert also takes out the lines and lists it left empty.
+- Pasting into the box takes text only. Formatting copied from elsewhere stays the Pro layout feature (steps 2 to 5 above).
+
 ## 3. Order of work
 
 One feature, built in five steps. Each step passes the gates and bumps the version. The editor's **Use a formatted layout** entry stays hidden until step 4 is done, so develop never offers a layout that a fill surface cannot insert (⚡ Authoring and Expansion Parity). Nothing is promoted to `main` before step 5.

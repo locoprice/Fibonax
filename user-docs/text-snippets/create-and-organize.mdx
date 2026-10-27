@@ -20,7 +20,7 @@ description: "Write snippets in the dashboard editor, then keep the library tidy
     A trigger uses letters, numbers, `_` and `-`, up to 60 characters. The box in front of it shows your prefix, so you can read the whole shortcut, like `::quote_english`.
   </Step>
   <Step title="Write the body">
-    Type the text in **Body**. Use the panel on the left to add [fields](/text-snippets/dynamic-fields), [formulas](/text-snippets/formulas) and conditions at the cursor.
+    Type the text in **Body**, and [format it](#format-the-text) with the bar above it. Use the panel on the left to add [fields](/text-snippets/dynamic-fields), [formulas](/text-snippets/formulas) and conditions at the cursor.
   </Step>
   <Step title="Save">
     Click **Create snippet**. It's ready to use in the extension and on your phone.
@@ -38,6 +38,19 @@ The editor also holds:
 - **Warn me if it looks unfinished**: on for every snippet. Untick it for a snippet whose text is meant to look like that, and Fibonax stops warning about it everywhere. Ticking **Don't warn me about this snippet again** on the warning unticks it too. Saved with **Save changes**.
 
 To edit a snippet, click its row. **Save changes** keeps the old wording in [version history](/text-snippets/version-history).
+
+## Format the text
+
+The bar above **Body** has five buttons: **Bold**, **Italic**, **Underline**, **Bullet list** and **Numbered list**. Select some words and click a button, or click it and keep typing. <kbd>Ctrl</kbd>+<kbd>B</kbd>, <kbd>Ctrl</kbd>+<kbd>I</kbd> and <kbd>Ctrl</kbd>+<kbd>U</kbd> work too (<kbd>Cmd</kbd> on a Mac).
+
+Fields show in the body as blue chips with their name. Click a chip to put the cursor right after it. A field written by hand, like `{formtext: name=CITY}`, becomes a chip when you click outside the body.
+
+Where the snippet goes decides how it looks:
+
+- **Emails** (Gmail, Outlook on the web) keep the formatting, and so does **Copy** pasted into an email.
+- **Chats and plain text boxes**, like WhatsApp, get plain text. List lines start with `•` or `1.`.
+
+Each language keeps its own formatting. A snippet with no formatting stays plain text, exactly as before.
 
 ## Folders
 

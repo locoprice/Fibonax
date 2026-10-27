@@ -587,6 +587,20 @@ assert.equal(filled(RULED, { N: '2' }).formatted, 'Hi 2<br>' + PIC_IMG + '<br>By
 assert.equal(filled('Hi', {}).parts, null);
 assert.equal(filled('Hi\n{picture: src=http://a.co/l.png}', {}).parts, null);
 assert.equal(filled('Hi\n{picture: src=http://a.co/l.png}', {}).preview, 'Hi');
-// With a layout, the layout is what is formatted.
-assert.equal(filled('Hi ' + PIC, {}, { formatted: '<b>Hi</b> ' + PIC }).parts, null);
+// With a layout, the layout is what is formatted, and its pictures still count.
+const inLayout = filled('Hi ' + PIC, {}, { formatted: '<b>Hi</b> ' + PIC });
+assert.equal(inLayout.parts, null);
+assert.equal(ff.pictureCount(inLayout), 1);
+assert.equal(ff.pictureCount(filled('<b>Hi</b>', {}, { formatted: '<b>Hi</b>' })), 0);
 console.log('OK A text with pictures keeps them out of the plain text and in the formatted copy');
+
+// ── A FORMATTED TEXT (the editor's Bold, lists) ─────────────────────
+// The text carries its list lines with their prefix; the layout carries the
+// same fields, so it is filled from the same answers, every value escaped.
+const FMT_TEXT = 'Hi {formtext: name=WHO}, your order is confirmed:\n1. We pack it today\n2. You get a link';
+const FMT_HTML = '<div>Hi {formtext: name=WHO}, your order is <b>confirmed</b>:</div><ol><li>We pack it <u>today</u></li><li>You get a link</li></ol>';
+const fmt = filled(FMT_TEXT, { WHO: 'Ana & <b>' }, { formatted: FMT_HTML });
+assert.equal(fmt.preview, 'Hi Ana & <b>, your order is confirmed:\n1. We pack it today\n2. You get a link');
+assert.equal(fmt.formatted, '<div>Hi Ana &amp; &lt;b&gt;, your order is <b>confirmed</b>:</div><ol><li>We pack it <u>today</u></li><li>You get a link</li></ol>');
+assert.equal(fmt.parts, null);
+console.log('OK A formatted text is filled from the same form, its plain copy keeping list lines');

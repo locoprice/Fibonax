@@ -128,6 +128,9 @@ var DB = {
             user_id: s.user_id || null,
             body: s.body || '', lang: s.lang || 'EN',
             bodies: (s.bodies && typeof s.bodies === 'object') ? s.bodies : {},
+            // The formatted layout (Bold, lists), active language and per language.
+            bodyHtml: s.body_html || '',
+            bodiesHtml: (s.bodies_html && typeof s.bodies_html === 'object') ? s.bodies_html : {},
             folder: s.folder_id || '', fieldCfg: s.field_cfg || {}, lang_group_id: s.lang_group_id || s.id,
             sort_order: s.sort_order || 0,
             notion_page_id: s.notion_page_id || null,
@@ -1309,6 +1312,13 @@ function renderSkeleton(el){
 // the raw row (whose `.body` is empty when content lives in `bodies`), then any
 // sibling-row variant, then the primary row's own body. Mirrors the dashboard
 // editor, which reads bodies[lang] first.
+// The formatted layout (Bold, lists) of the body detailBody gives, or ''.
+function detailLayout(s, lang, vars){
+  var lm=(s.bodiesHtml && typeof s.bodiesHtml==='object') ? s.bodiesHtml[lang] : null;
+  if(typeof lm==='string' && lm) return lm;
+  if(vars[lang] && vars[lang].bodyHtml) return vars[lang].bodyHtml;
+  return (lang===(s.lang||'EN')) ? (s.bodyHtml||'') : '';
+}
 function detailBody(s, lang, vars){
   var bm = (s.bodies && typeof s.bodies==='object') ? s.bodies[lang] : null;
   if(typeof bm==='string' && bm.trim()) return bm;
@@ -1336,7 +1346,9 @@ function detailForm(body, lang){
     var box = ctrl.closest('.d-fields').querySelector('.d-othertxt[data-otherkey="' + ctrl.getAttribute('data-fkey') + '"]');
     other[ctrl.getAttribute('data-fkey')] = box ? box.value : '';
   });
-  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked, other: other }); }
+  var open=findSnip(expandedId);
+  var layout=open ? detailLayout(open, lang, findVariants(open)) : '';
+  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked, other: other, formatted: layout||null }); }
   catch(e){ return { fields:[], buttons:[], preview:body, errors:[], sections:[], layout:'flat', steps:[] }; }
 }
 // Effective values for a body: what the operator entered, else each field's
@@ -1369,7 +1381,7 @@ function updateDetailPreview(id){
   if(wrap) window.SBFillFormUI.refresh(wrap.querySelector('.d-fields'), vm);
   if(pv){
     window.SBFillFormUI.showPreview(pv, vm);
-    if(vm.preview.trim()||vm.parts) pv.classList.remove('plain'); else pv.classList.add('plain');
+    if(vm.preview.trim()||vm.formatted) pv.classList.remove('plain'); else pv.classList.add('plain');
   }
   if(wrap) window.SBFillFormUI.pictureNote(wrap.querySelector('.ff-picnote'), vm, 'copy');
 }
@@ -1381,7 +1393,7 @@ function copyFilled(id){
   if(!window.SBFillFormUI.validate(form,vm)) return;
   var out=vm.preview;
   checkThenCopy(s, out, vm, form, function(){
-    copyWithPictures(out, vm.parts?vm.formatted:null);
+    copyWithPictures(out, vm.formatted);
     showToast('Copied filled text');
   });
 }
@@ -1590,7 +1602,8 @@ function renderDetailHtml(s){
   var vm=detailForm(body, active);
   var hasFields=vm.fields.length>0;
   var resolved=vm.preview;
-  var isDynamic=hasFields || (resolved!==body);
+  // A formatted text is shown and copied as it looks, even with nothing to fill.
+  var isDynamic=hasFields || (resolved!==body) || !!vm.formatted;
 
   var h='<div class="detail" data-detail="'+esc(s.id)+'">'
     +(s.review_status==='deprecated'?'<div class="d-warn" role="alert">'+esc(REVIEW_DEPRECATED_NOTE)+'</div>':'')
@@ -1661,7 +1674,7 @@ function renderDetailHtml(s){
       : '<b>Copy filled</b> resolves dates &amp; formulas \u2014 same result as expanding <b>'+esc(trig)+esc(shortWord(s.shortcut))+'</b> in a page.';
     h+='<div class="'+pvCls+'">'+esc(resolved)+'</div>'
       // Where the pictures go when the copy is pasted; only with pictures.
-      +(vm.parts?'<p class="ff-picnote" role="status" hidden></p>':'')
+      +(vm.formatted?'<p class="ff-picnote" role="status" hidden></p>':'')
       +'<div class="d-note">'+note+'</div>'
       +'<div class="d-acts">'
         +'<button class="d-btn pri" type="button" data-copyfilled="'+esc(s.id)+'">'+copyIco+'Copy filled</button>'

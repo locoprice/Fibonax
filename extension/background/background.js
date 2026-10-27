@@ -962,6 +962,7 @@ chrome.contextMenus.onClicked.addListener(function(info, tab) {
         title:     s.title,
         shortcut:  s.shortcut || '',
         body:      s.body || '',
+        bodyHtml:  s.body_html || '',
         lang:      s.lang || 'EN',
         folder:    s.folder_id || '',
         fieldCfg:  s.field_cfg || {},
@@ -1021,6 +1022,9 @@ function writeExpansionCache(rows) {
           shortcut: s.shortcut || '',
           body: s.body || '',
           bodies: (s.bodies && typeof s.bodies === 'object') ? s.bodies : {},
+          // The formatted layout (Bold, lists), active language and per language.
+          bodyHtml: s.body_html || '',
+          bodiesHtml: (s.bodies_html && typeof s.bodies_html === 'object') ? s.bodies_html : {},
           lang: s.lang || 'EN',
           folder: s.folder_id || '',
           fieldCfg: s.field_cfg || {},

@@ -3281,9 +3281,53 @@ svg.brain-type-icon{stroke-width:1.8}
     return pair[count > 1 ? 1 : 0];
   }
 
-  /** How many pictures a view model's text shows. */
+  /** How many pictures a view model's text shows, in its parts or its layout. */
   function pictureCount(vm) {
-    return vm && vm.parts ? vm.parts.filter(function(p) { return !!p.picture; }).length : 0;
+    if (!vm) return 0;
+    if (vm.parts) return vm.parts.filter(function(p) { return !!p.picture; }).length;
+    return vm.formatted ? (String(vm.formatted).match(/<img\b/gi) || []).length : 0;
+  }
+
+  // ── A LAYOUT ON SCREEN ──────────────────────────────────────────
+  // What a preview draws for a formatted text (`formatted`): the layout read
+  // in an inert document and rebuilt node by node, keeping lines, lists, Bold,
+  // Italic, Underline and https pictures. Layouts come from teammates too, so
+  // nothing in one runs, and no attribute but a picture's address, description
+  // and size comes through. Needs a browser; returns null without one.
+  var LAYOUT_KEEP = { DIV: 'div', P: 'div', BR: 'br', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u',
+    UL: 'ul', OL: 'ol', LI: 'li' };
+  var LAYOUT_SKIP = { SCRIPT: 1, STYLE: 1, TEMPLATE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, HEAD: 1, TITLE: 1 };
+  var PICTURE_WIDTH_SIZE = { 160: 'small', 320: 'medium', 600: 'full' };
+
+  function layoutFragment(html, doc) {
+    if (typeof DOMParser === 'undefined') return null;
+    var d = doc || document;
+    var source = new DOMParser().parseFromString(String(html), 'text/html').body;
+    var out = d.createDocumentFragment();
+    (function copy(from, to) {
+      Array.prototype.forEach.call(from.childNodes, function(n) {
+        if (n.nodeType === 3) { to.appendChild(d.createTextNode(n.textContent)); return; }
+        if (n.nodeType !== 1) return;
+        var tag = n.tagName.toUpperCase();
+        if (LAYOUT_SKIP[tag]) return;
+        if (tag === 'IMG') {
+          var src = n.getAttribute('src') || '';
+          if (!/^https:\/\/[^\s"'<>]+$/i.test(src)) return;
+          var img = d.createElement('img');
+          img.className = 'ff-pic ff-pic--' + (PICTURE_WIDTH_SIZE[n.getAttribute('width')] || 'medium');
+          img.alt = n.getAttribute('alt') || '';
+          img.src = src;
+          to.appendChild(img);
+          return;
+        }
+        var keep = LAYOUT_KEEP[tag];
+        if (!keep) { copy(n, to); return; }
+        var el = d.createElement(keep);
+        to.appendChild(el);
+        copy(n, el);
+      });
+    })(source, out);
+    return out;
   }
 
   // Comparison form of a piece of page text or of the author's word: case,
@@ -3797,6 +3841,7 @@ svg.brain-type-icon{stroke-width:1.8}
     linkText: linkText,
     pictureText: pictureText,
     pictureCount: pictureCount,
+    layoutFragment: layoutFragment,
     linkSummary: linkSummary,
     linkNote: linkNote,
     LINK_TEXT: LINK_TEXT,
@@ -3916,6 +3961,15 @@ svg.brain-type-icon{stroke-width:1.8}
 .ff-pic-missing{display:inline-block;margin:4px 0;padding:6px 10px;border:1px dashed var(--sb-line,#E5E5EA);border-radius:8px;font-size:12px;line-height:1.4;color:var(--sb-ink-muted,#6E6E73);}
 .ff-picnote{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--sb-ink-muted,#6E6E73);}
 .ff-picnote[hidden]{display:none!important;}
+/* A formatted text in a preview: its lines and lists, whatever the page styles. */
+.ff-layout{white-space:normal!important;}
+.ff-layout ul,.ff-layout ol{margin:4px 0!important;padding-left:1.5em!important;}
+.ff-layout ul{list-style:disc!important;}
+.ff-layout ol{list-style:decimal!important;}
+.ff-layout li{display:list-item!important;}
+.ff-layout b{font-weight:700!important;}
+.ff-layout i{font-style:italic!important;}
+.ff-layout u{text-decoration:underline!important;}
 </style>
 <script>
 // DOM presentation shared by the overlay, popup and mobile fill forms.
@@ -4258,6 +4312,11 @@ svg.brain-type-icon{stroke-width:1.8}
   // typing in the form does not make them blink.
   function showPreview(box, vm) {
     if (!box) return;
+    // A formatted text draws its layout; anything else, its text.
+    var layout = vm.formatted && !vm.parts && root.SBFillForm.layoutFragment
+      ? root.SBFillForm.layoutFragment(vm.formatted) : null;
+    box.classList.toggle('ff-layout', !!layout);
+    if (layout) { box.textContent = ''; box.appendChild(layout); return; }
     if (!vm.parts) { box.textContent = vm.preview; return; }
     var drawn = {};
     Array.prototype.forEach.call(box.querySelectorAll('[data-ff-pic]'), function(n) {
@@ -9429,6 +9488,8 @@ function bodyVariants(snip){
     if(typeof txt!=='string'||!txt.trim())return;
     var view={}; for(var k in snip)view[k]=snip[k];
     view.lang=l; view.body=txt; view._vid=snip.id+'::'+l;
+    /* Each language's own formatted layout (Bold, lists), or none. */
+    view.body_html=(snip.bodies_html&&snip.bodies_html[l])||'';
     out.push(view);
   });
   return out;
@@ -10132,7 +10193,7 @@ function currentForm() {
     var box=document.querySelector('#fform .field-othertxt[data-otherf="'+ctrl.getAttribute('data-f')+'"]');
     other[ctrl.getAttribute('data-f')]=box?box.value:'';
   });
-  return window.SBFillForm.fillForm(curSnip.body||'',getRawVals(),{lang:curSnip.lang,fieldCfg:curSnip.field_cfg||{},fieldFmt:getFmts(),other:other});
+  return window.SBFillForm.fillForm(curSnip.body||'',getRawVals(),{lang:curSnip.lang,fieldCfg:curSnip.field_cfg||{},fieldFmt:getFmts(),other:other,formatted:curSnip.body_html||null});
 }
 function validateDetail() {
   var vm=currentForm();
@@ -10182,7 +10243,7 @@ var linkMarks=Object.create(null), linkResults=Object.create(null);
    the fields a page is read against are always the same answer. */
 function detailForm(snip,vals){
   return window.SBFillForm.fillForm(snip.body||'', vals||{},
-    { fieldCfg: snip.field_cfg||{}, lang: snip.lang||'', linked: linkMarks });
+    { fieldCfg: snip.field_cfg||{}, lang: snip.lang||'', linked: linkMarks, formatted: snip.body_html||null });
 }
 function detailOpen(){
   return document.getElementById('view-detail').classList.contains('active');
@@ -10322,7 +10383,7 @@ document.getElementById('copy-btn').addEventListener('click',function(){
   var btn=this,s=curSnip,vm=currentForm();
   checkThenGo(s,vm.preview,vm,document.getElementById('fform'),'copy-anyway',function(){
     logSnipUse(s,detailFilled());
-    copyWithPictures(vm.preview,vm.parts?vm.formatted:null,function(){flashFootBtn(btn,'Copied!');});
+    copyWithPictures(vm.preview,vm.formatted,function(){flashFootBtn(btn,'Copied!');});
   });
 });
 document.getElementById('share-btn').addEventListener('click',function(){

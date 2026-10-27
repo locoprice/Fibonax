@@ -55,6 +55,7 @@ import { FormDateRangeDialog } from '@/features/snippets/FormDateRangeDialog';
 import { FormMenuDialog } from '@/features/snippets/FormMenuDialog';
 import { FormNumberDialog } from '@/features/snippets/FormNumberDialog';
 import { FormPictureDialog } from '@/features/snippets/FormPictureDialog';
+import { FormattedBodyBox, type BodyBoxHandle } from '@/features/snippets/FormattedBodyBox';
 import { FormTextDialog } from '@/features/snippets/FormTextDialog';
 import { FormTimeDialog } from '@/features/snippets/FormTimeDialog';
 import { SnippetPreview } from '@/features/snippets/SnippetPreview';
@@ -180,6 +181,7 @@ const EMPTY_FORM: SnippetFormValues = {
   trigger: '',
   content: '',
   bodies: {},
+  bodies_html: {},
   folder_id: null,
   language: 'EN',
   pinned: false,
@@ -555,6 +557,8 @@ export function NewSnippetDialog() {
   const open = mode === 'edit' ? editingSnippet !== null : newOpen;
 
   const [form, setForm] = useState<SnippetFormValues>(EMPTY_FORM);
+  // Counts the bodies loaded into the box, so a new opening reloads it.
+  const [bodyLoads, setBodyLoads] = useState(0);
   // Labels are an association, not snippet content: they save alongside the
   // snippet but never enter the revision RPC, so assigning one doesn't create a
   // version entry. Hence local state rather than a SnippetFormValues field.
@@ -717,6 +721,7 @@ export function NewSnippetDialog() {
         trigger:              sanitizeTriggerInput(editingSnippet.triggers[0] ?? ''),
         content:              initialBodies[editingSnippet.language] ?? '',
         bodies:               initialBodies,
+        bodies_html:          editingSnippet.bodies_html ?? {},
         folder_id:            editingSnippet.folder_id,
         language:             editingSnippet.language,
         pinned:               editingSnippet.pinned,
@@ -746,6 +751,8 @@ export function NewSnippetDialog() {
       setForm(EMPTY_FORM);
       setLabelIds([]);
     }
+    // Every opening is a new body on screen: the box reloads from its layout.
+    setBodyLoads((n) => n + 1);
   }, [open, editingSnippetId]);
 
   // Check the body against its own flag while it is being written, so a wrong
@@ -836,7 +843,13 @@ export function NewSnippetDialog() {
   const translateAvailable = isProFeatureAvailable('translate');
   const picturesAvailable = isProFeatureAvailable('snippetPictures');
 
-  const contentRef = useRef<HTMLTextAreaElement | null>(null);
+  const contentRef = useRef<BodyBoxHandle | null>(null);
+
+  // The box reports the layout of the language on screen after every change;
+  // a language with nothing formatted has none.
+  const updateLayout = useCallback((html: string | null) => {
+    setForm((prev) => ({ ...prev, bodies_html: setBodySlot(prev.bodies_html ?? {}, prev.language, html ?? '') }));
+  }, []);
 
   // Insert `value` at the textarea cursor (or append if focus is elsewhere),
   // then re-focus so the user can keep typing without losing position.
@@ -2518,22 +2531,18 @@ export function NewSnippetDialog() {
                   })}
                 </div>
               </div>
-              <textarea
+              <FormattedBodyBox
                 id="snippet-content"
                 ref={contentRef}
-                rows={12}
                 value={form.content}
-                onChange={(e) => {
-                  updateBody(e.target.value);
-                  setCaret(e.currentTarget.selectionStart);
-                }}
+                html={form.bodies_html?.[form.language] ?? null}
+                slot={`${bodyLoads}:${form.language}`}
+                onChange={updateBody}
+                onLayoutChange={updateLayout}
                 // Caret position decides whether the menu chip inserts or edits.
-                onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
+                onCaret={setCaret}
                 disabled={saving}
-                className={cn(
-                  'w-full flex-1 min-h-[160px] resize-none rounded-[10px] border border-line bg-card px-3.5 py-3 text-sm text-ink font-mono leading-relaxed placeholder:text-ink-subtle focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50',
-                  contentError && 'border-danger focus:border-danger focus:ring-danger/20',
-                )}
+                invalid={!!contentError}
                 placeholder={BODY_PLACEHOLDER[form.language]}
               />
               {/* Footer: the error and the count share one line. Stacking them
@@ -2793,6 +2802,7 @@ export function NewSnippetDialog() {
               <div className="w-px bg-line shrink-0" />
               <SnippetPreview
                 body={form.content}
+                layout={form.bodies_html?.[form.language] ?? null}
                 lang={form.language === 'MULTI' ? '' : form.language}
                 checkUnfinished={form.check_unfinished}
                 onCheckUnfinishedChange={(on) => updateField('check_unfinished', on)}

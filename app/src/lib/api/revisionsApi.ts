@@ -20,6 +20,7 @@ type DbRevision = {
   title: string;
   body: string;
   bodies: Record<string, unknown> | null;
+  bodies_html: Record<string, unknown> | null;
   edit_note: string | null;
   created_at: string;
 };
@@ -47,6 +48,7 @@ function dbRevisionToRevision(r: DbRevision): SnippetRevision {
     title: r.title,
     body: r.body,
     bodies,
+    bodies_html: toBodies(r.bodies_html),
     edit_note: r.edit_note,
     created_at: r.created_at,
   };
@@ -69,6 +71,11 @@ export interface SaveRevisionParams {
   shortcut: string;
   body: string;
   bodies: SnippetBodies;
+  /**
+   * The formatted layout per language; empty when nothing is formatted. Saved
+   * as a pair with its active mirror. Left out, the saved layout stays as it is.
+   */
+  bodies_html?: SnippetBodies;
   lang: string;
   folder_id: string | null;
   pinned: boolean;
@@ -100,7 +107,7 @@ export const revisionsApi: RevisionsApi = {
     const { data, error } = await supabase
       .from('snippet_revisions')
       .select(
-        'id, snippet_id, version_number, editor_id, editor_display, title, body, bodies, edit_note, created_at',
+        'id, snippet_id, version_number, editor_id, editor_display, title, body, bodies, bodies_html, edit_note, created_at',
       )
       .eq('snippet_id', snippetId)
       .order('version_number', { ascending: false });
@@ -141,6 +148,14 @@ export const revisionsApi: RevisionsApi = {
       p_alternative_queries: params.alternative_queries,
       p_editor_display: editorDisplay,
       p_edit_note: editNote ?? null,
+      // Sent as a pair, so a save writes the layout the editor shows: '' with
+      // {} takes it away (20261027120000_formatted_snippet_layouts.sql).
+      ...(params.bodies_html
+        ? {
+            p_body_html: params.bodies_html[params.lang as keyof SnippetBodies] ?? '',
+            p_bodies_html: params.bodies_html,
+          }
+        : {}),
     });
     if (error) throw toApiError(error);
     return data as number;

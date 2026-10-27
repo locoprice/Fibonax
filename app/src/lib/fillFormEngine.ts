@@ -310,6 +310,8 @@ interface SbFillFormApi {
   linkNote(result: SbLinkResult | null | undefined): string;
   pictureText(key: SbPictureTextKey, count: number): string;
   pictureCount(vm: SbFillFormViewModel): number;
+  /** A formatted text rebuilt for the screen: lines, lists, marks, https pictures, nothing else. */
+  layoutFragment(html: string): DocumentFragment | null;
 }
 
 interface SbFormulaEngineApi {
@@ -613,4 +615,9 @@ export function pictureText(key: SbPictureTextKey, count: number): string {
 /** How many pictures a view model's text shows. */
 export function pictureCount(vm: SbFillFormViewModel): number {
   return window.SBFillForm?.pictureCount(vm) ?? 0;
+}
+
+/** A formatted text rebuilt for the screen, or null before the engine has loaded. */
+export function layoutFragment(html: string): DocumentFragment | null {
+  return window.SBFillForm?.layoutFragment(html) ?? null;
 }

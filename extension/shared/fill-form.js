@@ -921,9 +921,53 @@
     return pair[count > 1 ? 1 : 0];
   }
 
-  /** How many pictures a view model's text shows. */
+  /** How many pictures a view model's text shows, in its parts or its layout. */
   function pictureCount(vm) {
-    return vm && vm.parts ? vm.parts.filter(function(p) { return !!p.picture; }).length : 0;
+    if (!vm) return 0;
+    if (vm.parts) return vm.parts.filter(function(p) { return !!p.picture; }).length;
+    return vm.formatted ? (String(vm.formatted).match(/<img\b/gi) || []).length : 0;
+  }
+
+  // ── A LAYOUT ON SCREEN ──────────────────────────────────────────
+  // What a preview draws for a formatted text (`formatted`): the layout read
+  // in an inert document and rebuilt node by node, keeping lines, lists, Bold,
+  // Italic, Underline and https pictures. Layouts come from teammates too, so
+  // nothing in one runs, and no attribute but a picture's address, description
+  // and size comes through. Needs a browser; returns null without one.
+  var LAYOUT_KEEP = { DIV: 'div', P: 'div', BR: 'br', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u',
+    UL: 'ul', OL: 'ol', LI: 'li' };
+  var LAYOUT_SKIP = { SCRIPT: 1, STYLE: 1, TEMPLATE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, HEAD: 1, TITLE: 1 };
+  var PICTURE_WIDTH_SIZE = { 160: 'small', 320: 'medium', 600: 'full' };
+
+  function layoutFragment(html, doc) {
+    if (typeof DOMParser === 'undefined') return null;
+    var d = doc || document;
+    var source = new DOMParser().parseFromString(String(html), 'text/html').body;
+    var out = d.createDocumentFragment();
+    (function copy(from, to) {
+      Array.prototype.forEach.call(from.childNodes, function(n) {
+        if (n.nodeType === 3) { to.appendChild(d.createTextNode(n.textContent)); return; }
+        if (n.nodeType !== 1) return;
+        var tag = n.tagName.toUpperCase();
+        if (LAYOUT_SKIP[tag]) return;
+        if (tag === 'IMG') {
+          var src = n.getAttribute('src') || '';
+          if (!/^https:\/\/[^\s"'<>]+$/i.test(src)) return;
+          var img = d.createElement('img');
+          img.className = 'ff-pic ff-pic--' + (PICTURE_WIDTH_SIZE[n.getAttribute('width')] || 'medium');
+          img.alt = n.getAttribute('alt') || '';
+          img.src = src;
+          to.appendChild(img);
+          return;
+        }
+        var keep = LAYOUT_KEEP[tag];
+        if (!keep) { copy(n, to); return; }
+        var el = d.createElement(keep);
+        to.appendChild(el);
+        copy(n, el);
+      });
+    })(source, out);
+    return out;
   }
 
   // Comparison form of a piece of page text or of the author's word: case,
@@ -1437,6 +1481,7 @@
     linkText: linkText,
     pictureText: pictureText,
     pictureCount: pictureCount,
+    layoutFragment: layoutFragment,
     linkSummary: linkSummary,
     linkNote: linkNote,
     LINK_TEXT: LINK_TEXT,

@@ -87,3 +87,12 @@
 .ff-pic-missing{display:inline-block;margin:4px 0;padding:6px 10px;border:1px dashed var(--sb-line,#E5E5EA);border-radius:8px;font-size:12px;line-height:1.4;color:var(--sb-ink-muted,#6E6E73);}
 .ff-picnote{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--sb-ink-muted,#6E6E73);}
 .ff-picnote[hidden]{display:none!important;}
+/* A formatted text in a preview: its lines and lists, whatever the page styles. */
+.ff-layout{white-space:normal!important;}
+.ff-layout ul,.ff-layout ol{margin:4px 0!important;padding-left:1.5em!important;}
+.ff-layout ul{list-style:disc!important;}
+.ff-layout ol{list-style:decimal!important;}
+.ff-layout li{display:list-item!important;}
+.ff-layout b{font-weight:700!important;}
+.ff-layout i{font-style:italic!important;}
+.ff-layout u{text-decoration:underline!important;}

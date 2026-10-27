@@ -1017,7 +1017,7 @@ describe('Undo keeps the space in front of the snippet', () => {
           'function _isLexicalHost(host) {',
           'function _ceCharOffsetToPoint(host, target, atStart) {',
           'function _ceHoldSpace(at) {',
-          'function _ceRemovePictures(host, snapshot) {',
+          'function _ceRemoveFormatted(host, snapshot) {',
           'function restoreFieldState(snapshot) {',
         ]
           .map((sig) => sliceFunction(source, sig))

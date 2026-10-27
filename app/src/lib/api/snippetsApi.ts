@@ -62,6 +62,8 @@ type DbSnippetJoined = {
   shortcut: string;
   body: string;
   bodies: Record<string, unknown> | null;
+  body_html: string | null;
+  bodies_html: Record<string, unknown> | null;
   lang: string;
   lang_group_id: string | null;
   folder_id: string | null;
@@ -137,6 +139,7 @@ function dbSnippetToSnippetRow(
     name: row.title ?? '',
     content: body,
     bodies,
+    bodies_html: normalizeBodies(row.bodies_html, language, row.body_html ?? ''),
     // Schema has a single `shortcut`; dashboard expects an array.
     triggers: row.shortcut ? [row.shortcut] : [],
     // Derived: body contains a formula placeholder.
@@ -189,7 +192,7 @@ async function readLanguage(id: string): Promise<Snippet['language']> {
 }
 
 const SNIPPET_SELECT =
-  'id, user_id, title, shortcut, body, bodies, lang, lang_group_id, folder_id, field_cfg, sort_order, updated_at, updated_by, notion_page_id, pinned, is_active, check_unfinished, is_malformed, alternative_queries, created_at, organization_id, review_status, reviewed_by, reviewed_at, folders(name)';
+  'id, user_id, title, shortcut, body, bodies, body_html, bodies_html, lang, lang_group_id, folder_id, field_cfg, sort_order, updated_at, updated_by, notion_page_id, pinned, is_active, check_unfinished, is_malformed, alternative_queries, created_at, organization_id, review_status, reviewed_by, reviewed_at, folders(name)';
 
 /**
  * Expansion counts per snippet, from the `snippet_usage_counts()` RPC.
@@ -287,6 +290,7 @@ function buildSnippetInsert(
   sortOrder: number,
 ): Record<string, unknown> {
   const bodies = mergeActiveBody(payload.bodies, payload.language, payload.content);
+  const layouts = payload.bodies_html ?? {};
   return {
     id: crypto.randomUUID(),
     user_id: userId,
@@ -294,6 +298,8 @@ function buildSnippetInsert(
     shortcut: payload.trigger,
     body: payload.content,
     bodies,
+    body_html: layouts[payload.language] || null,
+    bodies_html: layouts,
     lang: payload.language,
     folder_id: payload.folder_id,
     field_cfg: {},
@@ -393,6 +399,11 @@ export const snippetsApi: SnippetsApi = {
       const merged = mergeActiveBody(patch.bodies, language, activeBody);
       update['body'] = activeBody;
       update['bodies'] = merged;
+      // The layout goes with the text it formats, as a pair, when the patch has one.
+      if (patch.bodies_html !== undefined) {
+        update['body_html'] = patch.bodies_html[language] || null;
+        update['bodies_html'] = patch.bodies_html;
+      }
       // Re-derive on every body write — a fix has to clear the flag as reliably
       // as a mistake sets it.
       update['is_malformed'] = malformedFlag(merged, activeBody);
@@ -499,6 +510,8 @@ export const snippetsApi: SnippetsApi = {
       shortcut: `${source.shortcut}_copy`,
       body: source.body,
       bodies: source.bodies ?? {},
+      body_html: source.body_html ?? null,
+      bodies_html: source.bodies_html ?? {},
       lang: source.lang,
       folder_id: source.folder_id,
       field_cfg: source.field_cfg ?? {},

@@ -131,6 +131,13 @@ export interface Snippet extends ReviewFields {
   name: string;
   content: string;
   bodies: SnippetBodies;
+  /**
+   * The formatted layout per language (`bodies_html`, with `body_html` its
+   * active-language mirror): Bold, Italic, Underline and lists, fields as their
+   * codes. A language with no formatting has no entry, and its plain body is
+   * all there is (lib/formattedBody.ts).
+   */
+  bodies_html?: SnippetBodies;
   triggers: string[];
   is_formula: boolean;
   formula: string | null;
@@ -272,6 +279,8 @@ export interface SnippetRevision {
   title: string;
   body: string;
   bodies: SnippetBodies;
+  /** The formatted layout per language at this save (`bodies_html`); empty when none. */
+  bodies_html?: SnippetBodies;
   edit_note: string | null;
   created_at: IsoDateTime;
 }
