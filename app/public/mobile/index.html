@@ -53,9 +53,13 @@ body{
 .view{display:none}
 .view.active{display:flex;flex-direction:column;min-height:100dvh}
 
-/* Home and library pages scroll as a single mobile canvas. */
-#view-home,#view-list{overflow-y:auto;-webkit-overflow-scrolling:touch;
+/* Home and the three library pages scroll as a single mobile canvas. */
+#view-home,#view-list,#view-prompts,#view-memory{overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+/* A library page settles into place as it opens. */
+.lib-page.active{animation:lib-in .24s ease-out}
+@keyframes lib-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.lib-page.active{animation:none}}
 
 /* Task-first home (Concept B): a navy band with the brand, the workspace and
    three starting points, then the user's pinned work on the light page. */
@@ -162,23 +166,31 @@ body{
 }
 @media(prefers-reduced-motion:reduce){.home-task{transition:none}.home-task:active{transform:none}}
 
-/* ── GRADIENT HERO ───────────────────────────── */
-.mhero{
-  padding:0 20px 44px;
-  background:linear-gradient(160deg,#1B4FD8 0%,#1440B0 100%);
-  color:#fff;position:relative;overflow:hidden
-}
-.mhero::after{content:"";position:absolute;right:-40px;top:-40px;width:220px;height:220px;
-  background:radial-gradient(circle,rgba(255,255,255,.16),transparent 60%);pointer-events:none}
-.mhero::before{content:"";position:absolute;left:-30px;bottom:-60px;width:180px;height:180px;
-  background:radial-gradient(circle,rgba(79,127,232,.55),transparent 65%);pointer-events:none}
-/* Single hero row — greeting + name (left), counter (pushed right), header
-   button. Identical structure on the snippets home and the prompts page. */
-.mhello{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
-.mhello>div:first-child{display:flex;align-items:baseline;gap:6px;min-width:0}
-.mgreet{font-size:13px;opacity:.78;font-weight:500;letter-spacing:.1px;white-space:nowrap}
-.mname{font-size:20px;font-weight:700;letter-spacing:-.4px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ── LIBRARY BAND (snippets, prompts, Brains) ── */
+/* The home band's frame on the three library pages: navy, the greeting and
+   the account button on top, the page's name with how many it holds, then
+   search with Filters beside it. The filter panel drops out of the band as a
+   light card, and the quick-action bar below overlaps the band's bottom edge.
+   Identical structure on all three pages. */
+.lib-band{position:relative;overflow:hidden;background:var(--navy);color:#fff;
+  padding:calc(14px + env(safe-area-inset-top)) 20px 44px}
+.lib-band::before{content:"";position:absolute;right:-70px;top:-90px;width:260px;height:260px;border-radius:50%;
+  background:radial-gradient(circle,rgba(79,127,232,.42),transparent 62%);pointer-events:none}
+.lib-band::after{content:"";position:absolute;left:-60px;bottom:-110px;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(27,79,216,.30),transparent 65%);pointer-events:none}
+.lib-band>*{position:relative;z-index:1}
+.lib-band :focus-visible{outline:2px solid #D8E3FF;outline-offset:2px}
+.lib-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.lib-greet{display:flex;align-items:baseline;gap:5px;min-width:0;font-size:13.5px;line-height:1.4;color:var(--navy-copy)}
+.mgreet{font-weight:500;white-space:nowrap}
+.mname{font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+.lib-title{font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1.1;color:#fff}
+/* How many the page holds, as a quiet pill beside the title. */
+.mstatbig{display:inline-flex;align-items:baseline;gap:5px;flex-shrink:0;
+  padding:6px 12px;border-radius:9999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+  font-size:14px;font-weight:700;letter-spacing:-.2px;line-height:1.2;font-variant-numeric:tabular-nums}
+.mstatbig .mstatbig-unit{font-size:12.5px;font-weight:600;color:var(--navy-copy)}
 .hdr-btn{
   width:42px;height:42px;min-width:42px;border-radius:50%;border:none;
   background:rgba(255,255,255,.18);color:#fff;cursor:pointer;
@@ -188,79 +200,66 @@ body{
 }
 .hdr-btn:active{background:rgba(255,255,255,.32)}
 .hdr-btn svg{width:18px;height:18px;display:block}
-.mstatbig{
-  font-size:26px;font-weight:800;letter-spacing:-.8px;line-height:1;
-  font-variant-numeric:tabular-nums;position:relative;z-index:1;
-  display:flex;align-items:baseline;gap:6px;
-  margin-left:auto;flex-shrink:0
+/* Search rides on the band as a translucent field, 16px so iOS never zooms
+   on focus; the clear button and the Filters pill take the same glass. */
+.lib-search{display:flex;align-items:center;gap:8px;margin-top:16px}
+.lib-search .psearch-wrap{flex:1;min-width:0}
+.lib-search input{
+  width:100%;height:48px;background-color:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;padding:0 14px 0 42px;font-size:16px;
+  color:#fff;outline:none;font-family:inherit;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-opacity='.78' stroke-width='2.1' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:14px center;
+  transition:border-color .15s,background-color .15s,box-shadow .15s
 }
-.mstatbig .mstatbig-unit{font-size:14px;font-weight:600;opacity:.78;letter-spacing:-.3px}
-/* Filters: the collapsed top edge of the panel that will drop down from here,
-   so it is flush to the screen edge and full bleed. Nothing sits above it: the
-   hero gives up its top padding below, and the only remaining inset is the
-   notch, which is clearance rather than decoration.
-   Static on purpose until that panel exists, so it is not a button. */
+.lib-search input::-webkit-search-decoration,
+.lib-search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.lib-search input::placeholder{color:rgba(255,255,255,.62)}
+.lib-search input:focus{background-color:rgba(255,255,255,.16);border-color:#D8E3FF;box-shadow:0 0 0 3px rgba(216,227,255,.22)}
+.lib-search .psearch-clear{color:#fff;background:rgba(255,255,255,.14)}
+.lib-search .psearch-clear:active{background:rgba(255,255,255,.28)}
+.lib-filter-slot{display:flex;flex-shrink:0}
+/* Filters: the pill beside the search box. It turns white while its panel is
+   out, and carries how many filters are on, so an active filter is never
+   invisible behind a shut panel. */
 .mfilters{
-  position:relative;z-index:3;
-  display:flex;align-items:center;justify-content:center;gap:7px;
-  width:calc(100% + 40px);margin:0 -20px;
-  padding:calc(6px + env(safe-area-inset-top)) 16px 6px;
-  background:linear-gradient(180deg,rgba(255,255,255,.10) 0%,rgba(0,0,0,.20) 100%);
-  border:none;border-bottom:1px solid rgba(0,0,0,.20);
-  box-shadow:0 1px 0 rgba(255,255,255,.26) inset,
-    0 -6px 9px rgba(0,0,0,.10) inset,
-    0 3px 7px rgba(0,0,0,.15);
-  color:#fff;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.3px;
-  text-shadow:0 1px 1px rgba(0,0,0,.30);
-  white-space:nowrap;user-select:none;
-  cursor:pointer;-webkit-tap-highlight-color:transparent;
-  transition:background .15s,box-shadow .15s
+  position:relative;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;
+  height:48px;padding:0 14px 0 12px;border-radius:14px;
+  border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.10);color:#fff;
+  font-family:inherit;font-size:13.5px;font-weight:650;letter-spacing:-.1px;
+  white-space:nowrap;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:background .15s,border-color .15s,color .15s,transform .1s
 }
-.mfilters svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.30))}
-/* Pressed, and held pressed while the panel is out: the strip sinks into the
-   hero and stops casting, the same read as a pushed quick-action key. */
-.mfilters:active,
-.mfilters[aria-expanded="true"]{
-  background:linear-gradient(180deg,rgba(0,0,0,.26) 0%,rgba(0,0,0,.16) 100%);
-  box-shadow:0 3px 6px rgba(0,0,0,.28) inset,
-    0 1px 0 rgba(255,255,255,.08) inset
+.mfilters:active{transform:scale(.97)}
+.mfilters[aria-expanded="true"]{background:#fff;border-color:#fff;color:var(--navy)}
+.mfilters svg{width:15px;height:15px;flex-shrink:0;
+  stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.mfilters-caret{opacity:.75;transition:transform .28s ease}
+.mfilters[aria-expanded="true"] .mfilters-caret{transform:rotate(180deg)}
+.mfilters-count{
+  min-width:18px;height:18px;padding:0 5px;border-radius:9999px;
+  background:var(--primary);color:#fff;
+  font-size:10.5px;font-weight:800;line-height:18px;text-align:center;flex-shrink:0
 }
-/* The panel drops from the strip. Row-sizing 0fr to 1fr animates to whatever
-   the content is, so the real filter list will not need a hardcoded height. */
-/* The panel is its own surface, not a tint of the hero: the Menu ground a
-   shade darker, so the two blues stop competing. It carries the light-page
-   palette, which is also why the chips inside need no overrides at all. */
+.mfilters-count.sb-hidden{display:none}
+/* The panel drops out of the band as a light card. Row-sizing 0fr to 1fr
+   animates to whatever the facets are, and the shut panel is also hidden from
+   the keyboard, so nothing inside it can take focus unseen. */
 .mfilters-panel{
-  position:relative;z-index:1;
-  display:grid;grid-template-rows:0fr;
-  margin:0 -20px 12px;
-  background:linear-gradient(180deg,var(--card) 0%,var(--bg-alt) 42%);
-  transition:grid-template-rows .28s ease
+  display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;
+  transition:grid-template-rows .28s ease,opacity .2s ease,margin-top .28s ease,visibility 0s linear .28s
 }
-.mfilters-panel.open{grid-template-rows:1fr}
-/* The strip above throws a shadow into the recess. Both the shading and the
-   bottom lip live inside the clipped box so they vanish when it is shut. */
-.mfilters-panel-in{overflow:hidden;
-  box-shadow:0 6px 9px rgba(0,0,0,.09) inset}
+.mfilters-panel.open{grid-template-rows:1fr;opacity:1;visibility:visible;margin-top:12px;
+  transition:grid-template-rows .28s ease,opacity .2s ease,margin-top .28s ease,visibility 0s}
+.mfilters-panel-in{overflow:hidden;border-radius:var(--r);background:var(--card);color:var(--text);
+  box-shadow:0 10px 24px rgba(5,10,25,.30)}
 .mfilters-panel-txt{
   padding:18px 20px;text-align:center;
   color:var(--text2);font-size:12.5px;font-weight:600;letter-spacing:.2px
 }
-.mfilters svg{width:13px;height:13px;flex-shrink:0;
-  stroke:currentColor;fill:none;stroke-width:2;
-  stroke-linecap:round;stroke-linejoin:round}
-.mfilters-caret{opacity:.7;transition:transform .28s ease}
-/* How many filters are on. Without this an active filter is invisible behind a
-   shut panel and the short list looks like a bug. */
-.mfilters-count{
-  min-width:16px;height:16px;padding:0 5px;border-radius:9999px;
-  background:#fff;color:var(--primary-dk);
-  font-size:10px;font-weight:800;line-height:16px;text-align:center;
-  text-shadow:none;flex-shrink:0
-}
-.mfilters-count.sb-hidden{display:none}
 /* The panel scrolls once the facets outgrow it rather than clipping inside the
-   hero, which is overflow:hidden. */
+   band, which is overflow:hidden. */
 .mfilters-scroll{max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .mfacet{padding:12px 16px 11px;border-top:1px solid var(--border)}
 .mfacet:first-child{border-top:none}
@@ -272,8 +271,8 @@ body{
   cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mfacet-clr.sb-hidden{display:none}
 .mfilters-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:11px 16px calc(11px + env(safe-area-inset-bottom));
-  border-top:1px solid var(--border);background:rgba(0,0,0,.025)}
+  padding:11px 16px;
+  border-top:1px solid var(--border);background:var(--bg)}
 .mfilters-sum{font-size:11.5px;font-weight:600;color:var(--text3)}
 .mfilters-clear{
   border:1px solid var(--border);background:var(--card);
@@ -290,7 +289,7 @@ body{
 .mfilters-panel .ftabs-arrow{display:none !important}
 /* Label chips follow the folder pills exactly, so the panel reads as one set
    of controls. The label keeps its identity in the dot, not the chip, which
-   is what lets selected and unselected stay legible on the gradient. */
+   is what lets selected and unselected stay legible. */
 .mlabels{display:flex;flex-wrap:wrap;gap:6px}
 /* The pill itself comes from the shared chip rule; only the colour dot and the
    dead state are particular to a label. */
@@ -313,14 +312,11 @@ body{
   -webkit-tap-highlight-color:transparent}
 .mlabel-seg button.on{background:var(--text);color:var(--bg)}
 .mfacet-empty{font-size:12.5px;font-weight:500;color:var(--text2);line-height:1.5}
-.mfilters[aria-expanded="true"] .mfilters-caret{transform:rotate(180deg)}
-/* Every hero gives its top padding to the strip, which carries the notch inset
-   itself. */
-.mstatsub{font-size:13px;opacity:.9;font-weight:500;
-  display:flex;align-items:center;gap:8px;position:relative;z-index:1}
-.mstatup{
-  background:rgba(52,199,89,.28);color:#A7F0BA;
-  padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;letter-spacing:.2px
+@media(max-width:350px){
+  .lib-band{padding-left:16px;padding-right:16px}
+  .lib-title{font-size:27px}
+  .mfilters{padding:0 11px 0 10px}
+  .mfilters-caret{display:none}
 }
 
 /* ── PAGE FOOTER ─────────────────────────────── */
@@ -342,73 +338,42 @@ body{
 .mpage-footer-company{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.05px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 
-/* ── FLOATING QUICK-ACTION GRID (overlaps hero) ── */
-.mqa{padding:0 16px;margin-top:-22px;position:relative;z-index:2;flex-shrink:0}
+/* ── FLOATING QUICK-ACTION BAR (overlaps the band) ── */
+/* One flat segmented control for the three library pages: the page in view is
+   the filled azure tile, the other two stay quiet. Written once by
+   mountQuickActions() and mounted on all three pages, so it cannot drift. */
+.mqa{padding:0 16px;margin-top:-26px;position:relative;z-index:2;flex-shrink:0}
 .mqa-grid{
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
-  background:var(--card);border-radius:18px;padding:10px;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;
+  background:var(--card);border-radius:18px;padding:6px;
   box-shadow:var(--shadow-md)
 }
 .mqa-tile{
   display:flex;padding:0;border:none;background:transparent;font-family:inherit;
-  border-radius:14px;
+  border-radius:13px;
   cursor:pointer;-webkit-tap-highlight-color:transparent;
-  transition:transform .12s,opacity .12s
+  transition:transform .12s
 }
-.mqa-tile:active{transform:scale(.95);opacity:.9}
-/* 3D key: one extruded surface carrying both the icon and the label, so the
-   word belongs to the button instead of floating under it. Soft outer drop
-   plus an inner top-highlight / bottom-shade bevel. Icon over label rather
-   than beside it: three across leaves no room for a side-by-side row on a
-   narrow phone, and it gives the second line somewhere to sit. */
+.mqa-tile:active{transform:scale(.96)}
+.mqa-tile:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .mqa-ico{
-  flex:1;min-height:64px;border-radius:14px;padding:8px 4px;
-  background:linear-gradient(158deg,var(--card) 0%,var(--primary-lt) 100%);
-  color:var(--primary-copy);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  border:1px solid rgba(27,79,216,.10);
-  box-shadow:0 4px 8px rgba(27,79,216,.16),
-    0 1px 0 rgba(255,255,255,.95) inset,
-    0 -3px 6px rgba(27,79,216,.08) inset;
-  transition:transform .14s,box-shadow .14s,background .14s,color .14s
+  flex:1;min-height:58px;border-radius:13px;padding:8px 4px;
+  background:transparent;color:var(--text2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  transition:background .18s,color .18s,box-shadow .18s
 }
-.mqa-ico svg{width:20px;height:20px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
-  filter:drop-shadow(0 1px 1px rgba(27,79,216,.22))}
-/* The label takes the surface's own colour, so it flips to white with it. */
-.mqa-lbl{font-size:12.5px;font-weight:700;color:inherit;text-align:center;
-  letter-spacing:-.2px;line-height:1;white-space:nowrap}
-/* Pushed / active (current page): the key presses IN, solid azure, white face. */
-.mqa-tile.on .mqa-ico{
-  background:linear-gradient(158deg,var(--primary-grad) 0%,var(--primary-dk) 100%);
-  color:#fff;border-color:transparent;transform:translateY(1px);
-  box-shadow:0 1px 2px rgba(20,64,176,.35),
-    0 3px 7px rgba(20,64,176,.35) inset,
-    0 1px 1px rgba(0,0,0,.18) inset
-}
-.mqa-tile.on .mqa-ico svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.28))}
-.mqa-tile.on .mqa-lbl{text-shadow:0 1px 1px rgba(0,0,0,.22)}
-
-/* ── SEARCH ──────────────────────────────────── */
-.search-bar{padding:18px 16px 8px}
-.search-bar input{
-  width:100%;background:var(--card);border:1px solid var(--border);
-  border-radius:12px;padding:10px 14px 10px 38px;font-size:15px;
-  color:var(--text);outline:none;font-family:inherit;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23596478' stroke-width='2.2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:12px center;
-  transition:border-color .15s
-}
-.search-bar input:focus{border-color:var(--primary-border)}
-.search-bar input::placeholder{color:var(--text2)}
-/* On the hero the field floats on the gradient: the grey hairline reads as dirt
-   on blue, so it becomes a soft shadow. z-index clears the hero's glow circles. */
-.mhero .search-bar{padding:16px 0 0;position:relative;z-index:1}
-.mhero .search-bar input{border-color:transparent;box-shadow:var(--shadow-sm)}
-.mhero .search-bar input:focus{border-color:#fff}
+.mqa-ico svg{width:20px;height:20px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* The label takes the tile's own colour, so it flips to white with it. */
+.mqa-lbl{font-size:12.5px;font-weight:650;color:inherit;text-align:center;
+  letter-spacing:-.15px;line-height:1;white-space:nowrap}
+@media(hover:hover){.mqa-tile:not(.on):hover .mqa-ico{background:var(--primary-lt);color:var(--primary-copy)}}
+/* Current page: the filled azure tile. */
+.mqa-tile.on .mqa-ico{background:var(--primary);color:#fff;box-shadow:0 6px 14px rgba(27,79,216,.28)}
+.mqa-tile.on .mqa-lbl{font-weight:700}
 
 /* ── SECTION HEADING ─────────────────────────── */
-.msec{padding:14px 16px 6px;display:flex;align-items:flex-end;justify-content:space-between}
-.msec-t{font-size:19px;font-weight:800;letter-spacing:-.5px;color:var(--text)}
+.msec{padding:18px 16px 8px;display:flex;align-items:flex-end;justify-content:space-between}
+.msec-t{font-size:19px;font-weight:750;letter-spacing:-.5px;color:var(--text)}
 .msec-a{font-size:13px;color:var(--primary-copy);font-weight:600}
 
 /* ── UBER-STYLE CHIPS (folder + lang) ────────── */
@@ -434,8 +399,12 @@ body{
 }
 .folder-pill.on .folder-pill-cnt,
 .mlabel-pill.on .mlabel-cnt{background:rgba(255,255,255,.22);color:#fff}
-/* selected-folder header (touch has no hover, so descriptions live here) */
-.fhead{padding:10px 16px 2px}
+/* selected-folder header (touch has no hover, so descriptions live here).
+   A card under the section heading; the open Brain's header takes the same
+   slot. On All Brains it holds one action alone, so it drops the card. */
+.fhead{margin:6px 16px 0;padding:14px 16px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-card);box-shadow:var(--shadow-sm)}
+.fhead.is-acts-only{margin-top:10px;padding:0;background:none;border:0;box-shadow:none}
 .fhead-crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin-bottom:2px}
 .fhead-crumb{font-size:12px;font-weight:600;color:var(--text3);background:none;border:0;padding:3px 5px;border-radius:6px;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .fhead-crumb:active{background:var(--bg-alt);color:var(--text)}
@@ -482,16 +451,25 @@ body{
 .snip-more-n{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:0}
 .snip-more-i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;
   stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
-.snip-card{
+/* A snippet, prompt, Brain or item row: one card rule for all of them, with a
+   hairline, a tint while pressed, a lift on a pointer and a visible focus ring. */
+.snip-card,.prompt-card{
   position:relative;background:var(--card);border-radius:var(--r-card);
   padding:14px;padding-right:52px;
   display:flex;align-items:center;gap:12px;cursor:pointer;
-  box-shadow:var(--shadow-sm);border:none;width:100%;text-align:left;
+  box-shadow:var(--shadow-sm);border:1px solid var(--border);width:100%;text-align:left;
   font-family:inherit;-webkit-tap-highlight-color:transparent;
-  transition:transform .1s,opacity .1s
+  transition:transform .14s,box-shadow .14s,border-color .14s,background .14s
 }
-.snip-card:active{transform:scale(.98);opacity:.85}
-.snip-icon-well,.prompt-icon{position:relative}
+.snip-card:active,.prompt-card:active{transform:scale(.985);background:var(--primary-lt);border-color:#C8D3F0}
+.snip-card:focus-visible,.prompt-card:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
+@media(hover:hover){
+  .snip-card:hover,.prompt-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-color:#C8D3F0}
+}
+@media(prefers-reduced-motion:reduce){
+  .snip-card,.prompt-card,.mqa-tile,.mqa-ico,.mfilters,.mfilters-panel{transition:none}
+}
+.snip-icon-well,.prompt-icon{position:relative;box-shadow:0 0 0 1px rgba(27,79,216,.07) inset}
 .snip-icon-well{width:44px;height:44px;flex:0 0 44px;border-radius:13px;background:var(--primary-lt);color:var(--primary-copy);
   display:flex;align-items:center;justify-content:center;font-size:20px}
 .snip-icon-well svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -572,8 +550,9 @@ body{
 .snip-pin-flag svg,.prompt-pin-flag svg{width:17px;height:17px;display:block;
   stroke:currentColor;fill:var(--primary-lt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-/* Empty state */
-.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+/* Empty state: a card in the list's own slot, so the page never looks blank. */
+.empty{text-align:center;padding:44px 20px;color:var(--text2);
+  background:var(--card);border:1px dashed var(--border);border-radius:var(--r-card)}
 .empty .emo{font-size:48px;margin-bottom:12px}
 .empty p{font-size:16px}
 
@@ -1201,26 +1180,19 @@ svg.brain-type-icon{stroke-width:1.8}
 
 /* ── PROMPTS VIEW ─────────────────────────────── */
 /* The Memory page is built from the same pieces: page body, list, cards. */
-#prompt-body,#mem-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 #prompt-list,#mem-list{padding:6px 16px 24px;display:flex;flex-direction:column;gap:10px}
 /* Interactive Steps row above the list: a prompt card's surface with the fill
    form's checkbox, and the whole row is the tap target. */
-.psteps{margin:10px 16px 0;padding:14px;display:flex;align-items:center;gap:12px;
-  background:var(--card);border-radius:var(--r-card);box-shadow:var(--shadow-sm);
-  cursor:pointer;-webkit-tap-highlight-color:transparent}
+.psteps{margin:12px 16px 0;padding:14px;display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);box-shadow:var(--shadow-sm);
+  cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .14s,background .14s}
+.psteps:active{background:var(--primary-lt);border-color:#C8D3F0}
+.psteps:focus-within{outline:2px solid var(--primary-border);outline-offset:2px}
 .psteps-txt{flex:1;min-width:0}
 .psteps-t{display:block;font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.2px}
 .psteps-d{display:block;font-size:13px;color:var(--text2);margin-top:3px;line-height:1.4}
-.psteps input{flex:none;width:18px;height:18px;accent-color:var(--primary-copy)}
-.prompt-card{
-  background:var(--card);border-radius:var(--r-card);
-  padding:14px;display:flex;align-items:flex-start;gap:12px;
-  box-shadow:var(--shadow-sm);cursor:pointer;border:none;width:100%;text-align:left;
-  font-family:inherit;-webkit-tap-highlight-color:transparent;
-  transition:transform .1s,opacity .1s
-}
-.prompt-card:active{transform:scale(.98);opacity:.85}
+.psteps input{flex:none;width:20px;height:20px;accent-color:var(--primary-copy)}
+.prompt-card{align-items:flex-start}
 .prompt-icon{
   width:44px;height:44px;border-radius:13px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;font-size:22px;
@@ -1253,10 +1225,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .share-folder{background:var(--primary-lt);color:var(--primary-copy)}
 .share-team{background:#F0FDF4;color:#15803D}
 
-/* ── PROMPTS + MEMORY: fixed gradient hero (mirrors snippets home) ── */
-#view-prompts .mhero,#view-memory .mhero{flex-shrink:0}
-
-/* ── SEARCH: clear button + prompt result counter (home and prompts) ── */
+/* ── SEARCH: clear button (every band) ── */
 .psearch-wrap{position:relative}
 .psearch-clear{
   position:absolute;top:50%;right:8px;transform:translateY(-50%);
@@ -1268,10 +1237,6 @@ svg.brain-type-icon{stroke-width:1.8}
 .psearch-clear:active{background:rgba(0,0,0,.06)}
 .psearch-wrap.has-text .psearch-clear{display:flex}
 .psearch-wrap.has-text input{padding-right:40px}
-.psearch-meta{
-  padding:0 16px 8px;font-size:12px;font-weight:600;color:var(--text3);
-  position:sticky;top:0;z-index:6;background:var(--bg-alt);display:none
-}
 
 /* ── PROMPT CARD: pin flag + menu + last-used footer ── */
 .prompt-card{position:relative;padding-right:48px}
@@ -1304,10 +1269,11 @@ svg.brain-type-icon{stroke-width:1.8}
 }
 .empty-sug-chip:active{transform:scale(.96)}
 
-/* ── PROMPTS + MEMORY: 2-column grid on medium devices ── */
+/* ── SNIPPETS + PROMPTS + MEMORY: 2-column grid on medium devices ── */
 @media (min-width:600px){
-  #prompt-list,#mem-list{display:grid;grid-template-columns:repeat(2,1fr);
+  #snip-list,#prompt-list,#mem-list{display:grid;grid-template-columns:repeat(2,1fr);
     align-items:start;gap:12px}
+  #snip-list .snip-more,#snip-list .empty,#prompt-list .empty,#mem-list .empty{grid-column:1/-1}
 }
 
 /* ── MEMORY: the open Brain's header ── */
@@ -1526,39 +1492,39 @@ svg.brain-type-icon{stroke-width:1.8}
 </div>
 
 <!-- LIST -->
-<div id="view-list" class="view">
+<div id="view-list" class="view lib-page">
 
-  <!-- Gradient hero -->
-  <div class="mhero">
-    <!-- The filter strip and its panel are mounted here by mountFilterHeader(). -->
-    <div class="mhello">
-      <div>
-        <div class="mgreet">Welcome</div>
-        <div class="mname">Fibonax</div>
-      </div>
-      <div class="mstatbig">
-        <span id="cnt">0</span>
-        <span class="mstatbig-unit">snippets</span>
-      </div>
+  <!-- Library band: the home band's frame. The Filters pill and its panel
+       are mounted into the two slots by mountFilterHeader(). -->
+  <header class="lib-band">
+    <div class="lib-top">
+      <p class="lib-greet"><span class="mgreet">Welcome</span> <span class="mname">Fibonax</span></p>
+      <button class="home-account lib-account" type="button" data-lib-action="account" aria-label="Open your account">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </button>
     </div>
-
-    <!-- Search rides on the hero, directly under the greeting. -->
-    <div class="search-bar">
+    <div class="lib-title-row">
+      <h1 class="lib-title">Snippets</h1>
+      <span class="mstatbig"><span id="cnt">0</span><span class="mstatbig-unit">snippets</span></span>
+    </div>
+    <div class="lib-search">
       <div class="psearch-wrap" id="srch-wrap">
-        <input id="srch" type="search" placeholder="Search snippets…"
+        <input id="srch" type="search" placeholder="Search snippets…" aria-label="Search snippets"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" id="srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
-        <button type="button" class="ask-row sb-hidden" data-ask-for="srch">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-          <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
-          <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </button>
+      <span class="lib-filter-slot" data-filter-slot></span>
     </div>
-  </div>
+    <button type="button" class="ask-row sb-hidden" data-ask-for="srch">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+      <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
+      <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </button>
+    <div data-filter-panel-slot></div>
+  </header>
 
-  <!-- Floating quick-action grid (overlaps hero). One bar for every page,
-       written once by mountQuickActions(). -->
+  <!-- Quick-action bar (overlaps the band). One bar for every page, written
+       once by mountQuickActions(); the tile of the page in view stays filled. -->
   <div class="mqa" data-mqa></div>
 
   <!-- All snippets section -->
@@ -1652,35 +1618,38 @@ svg.brain-type-icon{stroke-width:1.8}
 </div>
 
 <!-- PROMPTS VIEW -->
-<div id="view-prompts" class="view">
-  <!-- Gradient hero (mirrors the snippets home so the header stays visible) -->
-  <div class="mhero">
-    <div class="mhello">
-      <div>
-        <div class="mgreet">Welcome</div>
-        <div class="mname">Fibonax</div>
-      </div>
-      <div class="mstatbig">
-        <span id="prompts-count">0</span>
-        <span class="mstatbig-unit">prompts</span>
-      </div>
+<div id="view-prompts" class="view lib-page">
+  <!-- Library band: the home band's frame. The Filters pill and its panel
+       are mounted into the two slots by mountFilterHeader(). -->
+  <header class="lib-band">
+    <div class="lib-top">
+      <p class="lib-greet"><span class="mgreet">Welcome</span> <span class="mname">Fibonax</span></p>
+      <button class="home-account lib-account" type="button" data-lib-action="account" aria-label="Open your account">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </button>
     </div>
-
-    <!-- Search rides on the hero, directly under the greeting. -->
-    <div class="search-bar">
+    <div class="lib-title-row">
+      <h1 class="lib-title">Prompts</h1>
+      <span class="mstatbig"><span id="prompts-count">0</span><span class="mstatbig-unit">prompts</span></span>
+    </div>
+    <div class="lib-search">
       <div class="psearch-wrap" id="prompt-srch-wrap">
-        <input id="prompt-srch" type="search" placeholder="Search prompts…"
+        <input id="prompt-srch" type="search" placeholder="Search prompts…" aria-label="Search prompts"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" id="prompt-srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
-        <button type="button" class="ask-row sb-hidden" data-ask-for="prompt-srch">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-          <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
-          <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </button>
+      <span class="lib-filter-slot" data-filter-slot></span>
     </div>
-  </div>
-  <!-- Quick-action bar (same bar as home; Prompts tile stays pushed on this page) -->
+    <button type="button" class="ask-row sb-hidden" data-ask-for="prompt-srch">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+      <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
+      <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </button>
+    <div data-filter-panel-slot></div>
+  </header>
+
+  <!-- Quick-action bar (overlaps the band). One bar for every page, written
+       once by mountQuickActions(); the tile of the page in view stays filled. -->
   <div class="mqa" data-mqa></div>
   <div id="prompt-body">
     <!-- Interactive Steps: device setting, decided by the SB_INTERACTIVE_STEPS block. -->
@@ -1691,8 +1660,7 @@ svg.brain-type-icon{stroke-width:1.8}
       </span>
       <input type="checkbox" id="psteps-on">
     </label>
-    <div class="msec"><span class="msec-t">All prompts</span></div>
-    <div class="psearch-meta" id="prompt-srch-meta"></div>
+    <div class="msec"><span class="msec-t">All prompts</span><span class="msec-a" id="prompt-srch-meta" hidden></span></div>
     <div id="prompt-list"></div>
 
     <!-- Page footer -->
@@ -1710,34 +1678,38 @@ svg.brain-type-icon{stroke-width:1.8}
 <!-- MEMORY VIEW: the Brains list, and one Brain's contents when it is open.
      Same shell as the prompts page; the Brain header takes the slot the
      selected-folder header has on the snippets page. -->
-<div id="view-memory" class="view">
-  <div class="mhero">
-    <div class="mhello">
-      <div>
-        <div class="mgreet">Welcome</div>
-        <div class="mname">Fibonax</div>
-      </div>
-      <div class="mstatbig">
-        <span id="memory-count">0</span>
-        <span class="mstatbig-unit" id="memory-count-unit">Brains</span>
-      </div>
+<div id="view-memory" class="view lib-page">
+  <!-- Library band: the home band's frame. The Filters pill and its panel
+       are mounted into the two slots by mountFilterHeader(). -->
+  <header class="lib-band">
+    <div class="lib-top">
+      <p class="lib-greet"><span class="mgreet">Welcome</span> <span class="mname">Fibonax</span></p>
+      <button class="home-account lib-account" type="button" data-lib-action="account" aria-label="Open your account">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </button>
     </div>
-
-    <!-- Search rides on the hero, directly under the greeting. -->
-    <div class="search-bar">
+    <div class="lib-title-row">
+      <h1 class="lib-title">Brains</h1>
+      <span class="mstatbig"><span id="memory-count">0</span><span class="mstatbig-unit" id="memory-count-unit">Brains</span></span>
+    </div>
+    <div class="lib-search">
       <div class="psearch-wrap" id="mem-srch-wrap">
-        <input id="mem-srch" type="search" placeholder="Search Brains…"
+        <input id="mem-srch" type="search" placeholder="Search Brains…" aria-label="Search Brains"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" id="mem-srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
-        <button type="button" class="ask-row sb-hidden" data-ask-for="mem-srch">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-          <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
-          <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </button>
+      <span class="lib-filter-slot" data-filter-slot></span>
     </div>
-  </div>
-  <!-- Quick-action bar (same bar as home; Brains tile stays pushed on this page) -->
+    <button type="button" class="ask-row sb-hidden" data-ask-for="mem-srch">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+      <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
+      <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </button>
+    <div data-filter-panel-slot></div>
+  </header>
+
+  <!-- Quick-action bar (overlaps the band). One bar for every page, written
+       once by mountQuickActions(); the tile of the page in view stays filled. -->
   <div class="mqa" data-mqa></div>
   <div id="mem-body">
     <div class="fhead" id="mem-head" hidden></div>
@@ -7730,12 +7702,8 @@ function renderPromptList(){
   if(meta){
     // Any facet narrows the list, not only the search box.
     var narrowed=!!q||curCategory!=='ALL'||!!curLabels.length;
-    if(narrowed){
-      meta.textContent=filtered.length+' of '+total+' result'+(total!==1?'s':'');
-      meta.style.display='block';
-    }else{
-      meta.style.display='none';
-    }
+    meta.textContent=filtered.length+' of '+total;
+    meta.hidden=!narrowed;
   }
 
   if(!filtered.length){
@@ -8192,6 +8160,7 @@ function memPasteActHtml(){
    Paste & save alone, once there is a Brain to save into. */
 function renderMemHead(brain){
   var el=document.getElementById('mem-head');
+  el.classList.toggle('is-acts-only',!brain);
   if(!brain){
     if(memLoaded&&allBrains.length){
       el.innerHTML='<div class="mbrain-acts">'+memPasteActHtml()+'</div>';
@@ -8300,7 +8269,6 @@ function openBrain(id){
   history.pushState({memBrain:id},'');
   curBrain=id;
   renderMemory();refreshOpenFilterPanel();syncFilterHeader();
-  document.getElementById('mem-body').scrollTop=0;
   window.scrollTo(0,0);
 }
 function closeBrain(){
@@ -11448,12 +11416,11 @@ document.getElementById('sb-profile-signout').addEventListener('click',function(
 })();
 
 /* ── TAB BAR ────────────────────────────────────── */
-/* The filter header is one header shown on every surface: snippets and prompts
-   today, memory when that page lands. It is built here and mounted into every
-   hero rather than pasted into each one, so the real filter list is written
-   once and every surface gets the same one. A new surface needs no wiring, only
-   a .mhero. The panel is a placeholder until those filters exist; the open and
-   shut mechanics are already the ones they will use. */
+/* The Filters pill and its panel are one header shown on every library page:
+   snippets, prompts and Brains. They are built here and mounted into each
+   band's two slots rather than pasted into each one, so the filter list is
+   written once and every page gets the same one. A new page needs no wiring,
+   only a .lib-band with the slots. */
 /* Label palette. The DB stores a key and never a hex, so every surface
    resolves it: the dashboard in app/src/lib/labelColors.ts, this file for
    mobile. Values are the dot colours from that module and must track it. */
@@ -11676,7 +11643,7 @@ function renderCurrentSurface(){
    no longer in view keeps that page's facets rather than taking this one's. */
 function refreshOpenFilterPanel(){
   document.querySelectorAll('.mfilters-panel.open').forEach(function(panel){
-    var hero=panel.closest('.mhero');
+    var hero=panel.closest('.lib-band');
     if(hero)renderFilterPanel(panel,heroSurface(hero));
   });
 }
@@ -11780,7 +11747,7 @@ function renderFilterPanel(panel,surface){
 function syncFilterHeader(){
   // Each strip counts its own page's filters, so a page never shows another
   // page's number when you switch to it.
-  document.querySelectorAll('.mhero').forEach(function(hero){
+  document.querySelectorAll('.lib-band').forEach(function(hero){
     var n=activeFilterCount(heroSurface(hero));
     hero.querySelectorAll('.mfilters-count').forEach(function(b){
       b.textContent=String(n);
@@ -11794,8 +11761,11 @@ function syncFilterHeader(){
 }
 function mountFilterHeader(){
   var seq=0;
-  document.querySelectorAll('.mhero').forEach(function(hero){
+  document.querySelectorAll('.lib-band').forEach(function(hero){
     if(hero.querySelector('.mfilters'))return;
+    var btnSlot=hero.querySelector('[data-filter-slot]');
+    var panelSlot=hero.querySelector('[data-filter-panel-slot]');
+    if(!btnSlot||!panelSlot)return;
     var id='mfilters-'+(seq++);
     var surface=heroSurface(hero);
     var btn=document.createElement('button');
@@ -11820,8 +11790,8 @@ function mountFilterHeader(){
       +'<div class="mfilters-foot"><span class="mfilters-sum"></span>'
       +'<button type="button" class="mfilters-clear">Clear all</button></div>'
       +'</div>';
-    hero.insertBefore(panel,hero.firstChild);
-    hero.insertBefore(btn,hero.firstChild);
+    btnSlot.appendChild(btn);
+    panelSlot.appendChild(panel);
     btn.addEventListener('click',function(){
       var open=panel.classList.toggle('open');
       btn.setAttribute('aria-expanded',open?'true':'false');
@@ -11893,6 +11863,11 @@ document.addEventListener('click',function(e){
   var menu=document.getElementById('mobile-more-menu');
   if(!menu||menu.hidden||e.target.closest('#mobile-more-menu,.mtab [data-nav="more"]'))return;
   closeMobileMore();
+});
+/* The account button on the three library bands: the same profile sheet as
+   the one on Home. */
+document.addEventListener('click',function(e){
+  if(e.target.closest('[data-lib-action="account"]'))openProfileSheet();
 });
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape')closeMobileMore(true);
@@ -12198,8 +12173,9 @@ function applyHomeHeader(){
   var email=(u&&u.email)||'';
   var name=(meta.display_name||meta.full_name||meta.name||'').trim();
   var initials=profileInitials(name,email);
-  var btn=document.getElementById('home-account');
-  if(btn)paintAvatar(btn,initials!=='👤'?initials:'');
+  document.querySelectorAll('#home-account,.lib-account').forEach(function(btn){
+    paintAvatar(btn,initials!=='👤'?initials:'');
+  });
 }
 /* The session read from storage is a snapshot from when this phone signed in,
    so a company name or logo chosen later in the dashboard is missing from it.
