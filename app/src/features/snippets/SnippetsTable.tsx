@@ -36,6 +36,7 @@ import {
   type TemplateValidation,
 } from '@/lib/statusSignals';
 import { attributionTitle, useUserNameResolver } from '@/lib/useUserNames';
+import { useCanPushToNotion } from '@/lib/useCanPushToNotion';
 import { cn } from '@/lib/utils';
 
 interface MenuState {
@@ -198,6 +199,8 @@ export function SnippetsTable() {
   }, [library]);
   const pushSnippetToNotion = useSnippetStore((s) => s.pushSnippetToNotion);
   const notionPushingIds = useSnippetStore((s) => s.notionPushingIds);
+  // Only the team whose Notion database the push writes to sees the column.
+  const canPushNotion = useCanPushToNotion();
   // The search text lives in the header bar now (SEARCH-001), so "Clear
   // filters" has to reach across and empty a box this page does not own.
   const clearSearch = useSearchStore((s) => s.clear);
@@ -356,12 +359,14 @@ export function SnippetsTable() {
             <th className="sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5 text-right">
               <SortableColumnHeader column="usage_count" label="Usage" />
             </th>
-            <th
-              className="sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-4 text-center"
-              title="Mirror snippets to your Notion database (not team sharing)"
-            >
-              <Send className="mx-auto h-3.5 w-3.5 text-ink-subtle" />
-            </th>
+            {canPushNotion && (
+              <th
+                className="sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-4 text-center"
+                title="Mirror snippets to your team's Notion database (not team sharing)"
+              >
+                <Send className="mx-auto h-3.5 w-3.5 text-ink-subtle" />
+              </th>
+            )}
             <th
               className="sticky top-0 z-10 w-[96px] border-b border-line bg-bg-alt pl-2 pr-4 py-3"
               aria-label="Actions"
@@ -521,34 +526,36 @@ export function SnippetsTable() {
                 >
                   {groupUsage.toLocaleString()}
                 </td>
-                <td className="px-3 py-3 2xl:px-4 text-center">
-                  {notionPushingIds.has(row.id) ? (
-                    <Loader2 className="mx-auto h-4 w-4 animate-spin text-ink-subtle" />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={(e) => void handleNotionPush(e, row.id)}
-                      aria-label={
-                        row.notion_page_id
-                          ? `Update ${displayName} in Notion`
-                          : `Push ${displayName} to Notion`
-                      }
-                      title={
-                        row.notion_page_id
-                          ? 'Mirrored to your Notion database — click to update (not team sharing)'
-                          : 'Mirror to your Notion database (not team sharing)'
-                      }
-                      className={
-                        'inline-flex h-8 w-8 items-center justify-center rounded-[8px] transition-colors ' +
-                        (row.notion_page_id
-                          ? 'bg-primary-light text-primary hover:bg-primary-light/70'
-                          : 'text-ink-subtle opacity-0 hover:bg-primary-light hover:text-primary focus-visible:opacity-100 group-hover:opacity-100')
-                      }
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
-                  )}
-                </td>
+                {canPushNotion && (
+                  <td className="px-3 py-3 2xl:px-4 text-center">
+                    {notionPushingIds.has(row.id) ? (
+                      <Loader2 className="mx-auto h-4 w-4 animate-spin text-ink-subtle" />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => void handleNotionPush(e, row.id)}
+                        aria-label={
+                          row.notion_page_id
+                            ? `Update ${displayName} in Notion`
+                            : `Push ${displayName} to Notion`
+                        }
+                        title={
+                          row.notion_page_id
+                            ? "Mirrored to your team's Notion database. Click to update (not team sharing)"
+                            : "Mirror to your team's Notion database (not team sharing)"
+                        }
+                        className={
+                          'inline-flex h-8 w-8 items-center justify-center rounded-[8px] transition-colors ' +
+                          (row.notion_page_id
+                            ? 'bg-primary-light text-primary hover:bg-primary-light/70'
+                            : 'text-ink-subtle opacity-0 hover:bg-primary-light hover:text-primary focus-visible:opacity-100 group-hover:opacity-100')
+                        }
+                      >
+                        <Send className="h-4 w-4" />
+                      </button>
+                    )}
+                  </td>
+                )}
                 <td
                   className="pl-2 pr-4 py-3"
                   onClick={(e) => e.stopPropagation()}

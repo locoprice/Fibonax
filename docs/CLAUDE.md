@@ -37,7 +37,7 @@
 - **Field overlays** for collecting user input before snippet insertion
 - **Multi-language snippet groups** (EN, ES, IT, MULTI)
 - **Real-time cloud sync** via Supabase as primary source of truth
-- **Push to Notion** (dashboard only): sends a snippet to the team Notion database through an edge function. The extension's pull from Notion was retired in v3.86.0
+- **Push to Notion** (dashboard only, shown to the team that owns that database): sends a snippet to the team Notion database through an edge function. The extension's pull from Notion was retired in v3.86.0
 - **Context menu** integration for right-click snippet insertion
 
 **Goal**: Replace tools like TextBlaze / TextExpander / Magical, emphasizing dynamic formulas, AI prompts, and reliable sync.

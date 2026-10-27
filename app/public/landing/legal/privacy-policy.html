@@ -141,7 +141,7 @@
     <div class="doc-meta">
       <span class="badge badge-gdpr">GDPR</span>
       <span class="badge badge-ccpa">CCPA</span>
-      <span class="doc-date">Last Updated: May 22, 2026</span>
+      <span class="doc-date">Last Updated: October 26, 2026</span>
     </div>
 
     <h1>Privacy Policy</h1>
@@ -178,7 +178,7 @@
         <tbody>
           <tr>
             <td>storage</td>
-            <td>Persist your snippet library, settings, and Notion sync configuration between browser sessions</td>
+            <td>Persist your snippet library and settings between browser sessions</td>
             <td>Your snippet data and config, stored locally in <code>chrome.storage.local</code> only — never synced to external servers</td>
           </tr>
           <tr>
@@ -208,13 +208,10 @@
       <ul>
         <li><strong>Snippets and templates</strong> — the shortcut triggers and expansion text you create and store.</li>
         <li><strong>Account credentials</strong> — your email address and hashed password used to authenticate with Supabase. Passwords are never stored in plain text.</li>
-        <li><strong>Notion integration token</strong> — if you connect Notion, your personal integration token and database ID are stored encrypted in <code>chrome.storage.local</code> on your device only.</li>
       </ul>
 
       <h3>B. Data collected automatically</h3>
       <ul>
-        <li><strong>Extension version identifier</strong> — used for compatibility verification during Notion sync operations.</li>
-        <li><strong>Sync timestamps</strong> — the last successful Notion sync time, stored locally on your device.</li>
         <li><strong>Error logs</strong> — technical error messages written to the extension's internal log for debugging; these do not contain personal data or browsing history.</li>
       </ul>
 
@@ -231,11 +228,10 @@
     <!-- 5 -->
     <div class="section" id="processing">
       <h2>05 &nbsp;Processing Purpose</h2>
-      <p>All data processing is initiated <strong>solely via your explicit user action</strong> — invoking a keyboard shortcut, selecting a context menu option, clicking a button in the extension popup, or triggering a Notion sync. Fibonax runs no background processes that read or transmit data without your knowledge.</p>
+      <p>All data processing is initiated <strong>solely via your explicit user action</strong>: invoking a keyboard shortcut, selecting a context menu option, or clicking a button in the extension popup. Fibonax runs no background processes that read or transmit data without your knowledge.</p>
       <p>Specific processing purposes:</p>
       <ul>
         <li><strong>Snippet expansion</strong> — matching your typed trigger against the local library and inserting the expansion into the active field.</li>
-        <li><strong>Notion synchronization</strong> — when you trigger a sync, your snippet library is fetched from your designated Notion database using your personal integration token and written to <code>chrome.storage.local</code>.</li>
         <li><strong>Authentication</strong> — your email and password are transmitted over HTTPS to Supabase to verify your identity and retrieve your account configuration.</li>
       </ul>
       <p>The legal basis for processing under GDPR is <strong>performance of a contract</strong> (Art. 6(1)(b)) for service delivery, and <strong>legitimate interests</strong> (Art. 6(1)(f)) for error logging and security.</p>
@@ -252,7 +248,7 @@
     <!-- 7 -->
     <div class="section" id="third-parties">
       <h2>07 &nbsp;Third-Party Services</h2>
-      <p>Fibonax currently integrates with the following two third-party services. Each integration is opt-in and strictly purpose-limited.</p>
+      <p>Fibonax currently integrates with the following third-party service. The integration is strictly purpose-limited.</p>
 
       <div class="third-party-card">
         <div class="tp-header">
@@ -260,14 +256,6 @@
           <div class="tp-role">Authentication &amp; account storage</div>
         </div>
         <p class="tp-desc">Supabase manages user authentication and stores account-level configuration (email address, session token, account preferences). Supabase is GDPR-compliant, operates under a Data Processing Agreement, and hosts EU user data in the eu-central-1 (Frankfurt) region. Privacy policy: <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a>.</p>
-      </div>
-
-      <div class="third-party-card">
-        <div class="tp-header">
-          <div class="tp-name">Notion</div>
-          <div class="tp-role">Snippet source — optional integration</div>
-        </div>
-        <p class="tp-desc">If you connect your Notion workspace, Fibonax reads snippet content from your designated Notion database using the Notion API and your personal integration token. This connection is optional, configured by you, and uses only the specific database you designate. Fibonax does not write data back to Notion. Privacy policy: <a href="https://www.notion.so/privacy" target="_blank" rel="noopener">notion.so/privacy</a>.</p>
       </div>
 
       <div class="info-box">

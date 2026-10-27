@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Copy, Pencil, Pin, PinOff, Power, Send, Trash2 } from 'lucide-react';
 import type { SnippetRow } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { useCanPushToNotion } from '@/lib/useCanPushToNotion';
 import { useSnippetStore } from '@/stores/snippetStore';
 import { useUiStore } from '@/stores/uiStore';
 
@@ -24,6 +25,7 @@ export function SnippetContextMenu({ snippet, x, y, onClose }: SnippetContextMen
   const duplicateSnippet = useSnippetStore((s) => s.duplicateSnippet);
   const removeSnippet = useSnippetStore((s) => s.removeSnippet);
   const pushSnippetToNotion = useSnippetStore((s) => s.pushSnippetToNotion);
+  const canPushNotion = useCanPushToNotion();
 
   const ref = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState({ x, y });
@@ -146,12 +148,14 @@ export function SnippetContextMenu({ snippet, x, y, onClose }: SnippetContextMen
         onClick={handleToggleActive}
         disabled={working}
       />
-      <MenuItem
-        icon={<Send className="h-3.5 w-3.5" />}
-        label={snippet.notion_page_id ? 'Update in Notion' : 'Push to Notion'}
-        onClick={handleNotionPush}
-        disabled={working}
-      />
+      {canPushNotion && (
+        <MenuItem
+          icon={<Send className="h-3.5 w-3.5" />}
+          label={snippet.notion_page_id ? 'Update in Notion' : 'Push to Notion'}
+          onClick={handleNotionPush}
+          disabled={working}
+        />
+      )}
       <div className="my-1 h-px bg-line" />
       <MenuItem
         icon={<Trash2 className="h-3.5 w-3.5" />}
