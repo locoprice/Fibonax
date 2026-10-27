@@ -1,21 +1,27 @@
 import { useRef, useState } from 'react';
-import { AlertCircle, ImagePlus, ImageUp, Trash2, UploadCloud, X } from 'lucide-react';
+import { AlertCircle, ImagePlus, UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { pickHttpsUrl, COVER_INPUT_ACCEPT, validateCoverSource } from '@/lib/branding';
 import { coverPresetClass, isImageCover, TEAM_COVER_PRESETS } from '@/lib/teamCoverPresets';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { TeamSwitcher } from '@/features/org/TeamSwitcher';
 import { useAuthStore } from '@/stores/authStore';
 import { useOrgStore } from '@/stores/orgStore';
 import { useUiStore } from '@/stores/uiStore';
 
-const DESCRIPTION = 'Your team, everything you share, and who can use it — in one place.';
-
 /**
- * Notion-style header for the Team page (TEAM-COVER-001). Renders the team
- * cover (a preset gradient or an uploaded image) with the org identity card
- * overlapping its lower edge. Admins get hover controls + a gallery picker to
- * change, upload, or remove the cover; everyone else sees it read-only. The
- * cover is one value per organization, so the whole team sees the same choice.
+ * Header of the Team page (TEAM-COVER-001): the team cover (a preset gradient
+ * or an uploaded image) with the logo card straddling its lower edge and the
+ * team name beside it. Admins get one visible **Change cover** button that
+ * opens the gallery in a window, where Upload image and Remove cover live
+ * too; everyone else sees the cover read-only. The cover is one value per
+ * organization, so the whole team sees the same choice.
  *
  * Breaks out of the dashboard content padding (`-mx-8 -mt-8`) so the cover
  * spans full width and meets the top edge, the way a Notion cover does.
@@ -39,13 +45,16 @@ export function TeamCover() {
   const orgName = activeOrg?.name ?? 'Team';
   const initial = orgName.slice(0, 1).toUpperCase();
 
-  async function applyCover(next: string | null) {
+  /** Point the team at a preset or at nothing. True when it landed. */
+  async function applyCover(next: string | null): Promise<boolean> {
     setBusy(true);
     setError(null);
     try {
       await setCover(next);
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update the cover.');
+      return false;
     } finally {
       setBusy(false);
     }
@@ -76,9 +85,15 @@ export function TeamCover() {
   }
 
   async function onRemove() {
-    await applyCover(null);
-    setPickerOpen(false);
-    if (!error) showToast('Cover removed');
+    if (await applyCover(null)) {
+      setPickerOpen(false);
+      showToast('Cover removed');
+    }
+  }
+
+  function openPicker() {
+    setError(null);
+    setPickerOpen(true);
   }
 
   const coverStyle = isImageCover(cover)
@@ -88,53 +103,37 @@ export function TeamCover() {
 
   return (
     <div className="mb-6">
-      {/* Cover band (full-bleed) or, for admins with no cover, an "Add cover" affordance */}
-      {hasCover ? (
+      {hasCover && (
         <div
-          className={cn(
-            'group relative -mx-8 -mt-8 h-[210px] overflow-hidden',
-            coverClass,
-          )}
+          className={cn('relative -mx-8 -mt-8 h-[150px] overflow-hidden', coverClass)}
           style={coverStyle}
         >
+          {/* Always in view, never only on hover: a control people cannot see
+              is a control they never use. White on any artwork, in both
+              themes, so it never depends on the cover behind it. */}
           {isAdmin && (
-            <div className="absolute right-5 top-4 flex gap-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-              <CoverButton onClick={() => setPickerOpen((v) => !v)} disabled={busy}>
-                <ImageUp className="h-3.5 w-3.5" />
-                Change cover
-              </CoverButton>
-              <CoverButton onClick={onRemove} disabled={busy}>
-                <Trash2 className="h-3.5 w-3.5" />
-                Remove
-              </CoverButton>
-            </div>
+            <button
+              type="button"
+              onClick={openPicker}
+              disabled={busy}
+              className="absolute bottom-3 right-5 inline-flex items-center gap-1.5 rounded-[8px] border border-black/10 bg-white/90 px-2.5 py-1.5 text-xs font-semibold text-black shadow-sm backdrop-blur-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
+            >
+              <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" />
+              Change cover
+            </button>
           )}
         </div>
-      ) : isAdmin ? (
-        <div className="-mt-2 mb-3">
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            disabled={busy}
-            className="inline-flex items-center gap-2 rounded-[10px] border border-dashed border-line px-3 py-2 text-sm font-medium text-ink-subtle transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-          >
-            <ImagePlus className="h-4 w-4" />
-            Add cover
-          </button>
-        </div>
-      ) : null}
+      )}
 
-      {/* Identity: logo/initial card + eyebrow + org name + description.
-          Notion rule: only the logo card overlaps the cover (it carries its own
-          card surface) — the text sits fully below the cover edge, so title
-          contrast never depends on the cover art or photo behind it.
-          `relative z-10` is load-bearing: the cover above is positioned, and a
-          positioned sibling paints over a static one regardless of DOM order —
-          without it the cover swallows the overlapping card. */}
+      {/* Identity: the logo card straddles the cover edge (it carries its own
+          card surface), the name sits fully below it, so its contrast never
+          depends on the artwork. `relative z-10` is load-bearing: the cover
+          above is positioned, and a positioned sibling paints over a static
+          one regardless of DOM order. */}
       <div
         className={cn(
-          'relative z-10 flex items-start gap-4',
-          hasCover ? 'mt-3 px-1' : 'mt-0',
+          'relative z-10 flex gap-4',
+          hasCover ? 'mt-4 items-end px-1' : 'items-center',
         )}
       >
         <div
@@ -144,7 +143,7 @@ export function TeamCover() {
             // (same treatment as the topbar co-brand chip). The initial-letter
             // fallback is azure, so it reads on the normal card surface.
             companyLogo ? 'bg-white' : 'bg-card',
-            hasCover && '-mt-[46px]',
+            hasCover && '-mt-[34px]',
           )}
         >
           {companyLogo ? (
@@ -158,25 +157,31 @@ export function TeamCover() {
             <span className="text-2xl font-bold text-primary">{initial}</span>
           )}
         </div>
-        <div className="min-w-0 pb-0.5">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-            Team
-          </div>
-          {/* The title is the switcher: the name of the team you are looking
-              at is also the control that changes it. Falls back to plain text
-              when the user has no team (the create panel owns that case). */}
-          {/* No `truncate` here: it sets overflow:hidden, which clipped the
-              switcher's dropdown and cut the team name short well before it
-              ran out of room. The switcher handles its own overflow. */}
-          <h1 className="mt-0.5 max-w-full">
-            {activeOrg ? (
-              <TeamSwitcher name={orgName} />
-            ) : (
-              <span className="text-2xl font-bold tracking-tight text-ink">{orgName}</span>
-            )}
-          </h1>
-          <p className="mt-1 text-sm text-ink-muted">{DESCRIPTION}</p>
-        </div>
+
+        {/* The title is the switcher: the name of the team you are looking
+            at is also the control that changes it. Falls back to plain text
+            when the user has no team (the create panel owns that case). No
+            `truncate` here: it sets overflow:hidden, which once clipped the
+            switcher's menu. The switcher handles its own overflow. */}
+        <h1 className="min-w-0 max-w-full">
+          {activeOrg ? (
+            <TeamSwitcher name={orgName} />
+          ) : (
+            <span className="text-2xl font-bold tracking-tight text-ink">{orgName}</span>
+          )}
+        </h1>
+
+        {isAdmin && !hasCover && (
+          <button
+            type="button"
+            onClick={openPicker}
+            disabled={busy}
+            className="ml-auto inline-flex items-center gap-2 rounded-[10px] border border-dashed border-line px-3 py-2 text-sm font-medium text-ink-subtle transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+          >
+            <ImagePlus className="h-4 w-4" aria-hidden="true" />
+            Add cover
+          </button>
+        )}
       </div>
 
       {/* Hidden file input for uploads */}
@@ -189,44 +194,38 @@ export function TeamCover() {
         aria-label="Upload team cover"
       />
 
-      {/* Gallery picker (admins only) */}
-      {isAdmin && pickerOpen && (
-        <section
-          className="mt-4 rounded-[16px] border border-line bg-card p-4 shadow-md"
-          aria-label="Cover gallery"
-        >
-          <div className="mb-3 flex items-center">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-              Cover gallery
-            </span>
-            <button
-              type="button"
-              onClick={() => setPickerOpen(false)}
-              aria-label="Close gallery"
-              className="ml-auto rounded-[6px] p-1 text-ink-subtle transition-colors hover:text-ink"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+      {/* Gallery (admins only) */}
+      <Dialog
+        open={isAdmin && pickerOpen}
+        onOpenChange={(open) => {
+          if (!busy) setPickerOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Team cover</DialogTitle>
+            <DialogDescription>Everyone in the team sees the same cover.</DialogDescription>
+          </DialogHeader>
 
-          <div className="flex flex-wrap gap-2.5">
+          <div className="grid grid-cols-3 gap-2.5">
             {TEAM_COVER_PRESETS.map((p) => {
               const active = cover === p.key;
               return (
                 <button
                   key={p.key}
                   type="button"
-                  onClick={() => applyCover(p.key)}
+                  onClick={() => void applyCover(p.key)}
                   disabled={busy}
                   aria-pressed={active}
                   title={p.label}
                   className={cn(
-                    'relative h-[52px] w-[104px] overflow-hidden rounded-[10px] border border-line disabled:opacity-60',
+                    'relative h-[64px] overflow-hidden rounded-[10px] border border-line transition-shadow disabled:opacity-60',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ring-offset-2 ring-offset-card',
                     coverPresetClass(p.key),
-                    active && 'ring-2 ring-primary ring-offset-2 ring-offset-card',
+                    active && 'ring-2 ring-primary',
                   )}
                 >
-                  <span className="absolute bottom-1 left-2 text-[10px] font-semibold text-white [text-shadow:0_1px_2px_rgba(0,0,0,.4)]">
+                  <span className="absolute bottom-1.5 left-2 text-[11px] font-semibold text-white [text-shadow:0_1px_2px_rgba(0,0,0,.4)]">
                     {p.label}
                   </span>
                 </button>
@@ -234,21 +233,21 @@ export function TeamCover() {
             })}
           </div>
 
-          <div className="mt-4 flex items-center gap-3 border-t border-line pt-3">
+          <div className="flex items-center gap-3 border-t border-line pt-4">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={busy}
               className="inline-flex items-center gap-2 rounded-[10px] border border-dashed border-line px-3 py-2 text-[12.5px] font-medium text-ink-muted transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
             >
-              <UploadCloud className="h-4 w-4" />
+              <UploadCloud className="h-4 w-4" aria-hidden="true" />
               {busy ? 'Working…' : 'Upload image'}
               <span className="text-[11px] font-normal text-ink-subtle">PNG/JPG/WebP · 2 MB</span>
             </button>
             {hasCover && (
               <button
                 type="button"
-                onClick={onRemove}
+                onClick={() => void onRemove()}
                 disabled={busy}
                 className="ml-auto rounded-[8px] px-2 py-1.5 text-[12.5px] font-semibold text-ink-subtle transition-colors hover:text-danger disabled:opacity-60"
               >
@@ -256,36 +255,15 @@ export function TeamCover() {
               </button>
             )}
           </div>
-        </section>
-      )}
 
-      {error && (
-        <div className="mt-3 flex items-start gap-2 rounded-[10px] border border-danger/30 bg-danger/5 p-3 text-xs text-danger">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+          {error && (
+            <div className="flex items-start gap-2 rounded-[10px] border border-danger/30 bg-danger/5 p-3 text-xs text-danger">
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{error}</span>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
-  );
-}
-
-function CoverButton({
-  children,
-  onClick,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex items-center gap-1.5 rounded-[8px] border border-black/10 bg-white/90 px-2.5 py-1.5 text-xs font-semibold text-[#1C1C1E] shadow-sm backdrop-blur-sm transition-colors hover:bg-white disabled:opacity-60"
-    >
-      {children}
-    </button>
   );
 }
