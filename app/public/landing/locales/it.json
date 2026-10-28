@@ -1194,13 +1194,13 @@
   ],
   "pricingEntries": [
     {
-      "find": "Pricing · Coming soon — Fibonax",
-      "replace": "Prezzo · Coming soon — Fibonax",
+      "find": "Pricing — Fibonax",
+      "replace": "Prezzo — Fibonax",
       "count": 1
     },
     {
-      "find": "Fibonax pricing is coming soon. No subscription. Genuine pay per use. Lifetime credit.",
-      "replace": "Il prezzo di Fibonax sarà disponibile a breve. Nessun abbonamento. Solo pagamento a consumo. Credito senza scadenza.",
+      "find": "Fibonax is free for life for anyone who joins by December 31, 2026. Pro adds the AI features. Genuine pay per use. Lifetime credit.",
+      "replace": "Fibonax è gratis a vita per chi si iscrive entro il 31 dicembre 2026. Pro aggiunge le funzioni AI. Autentico pagamento a consumo. Credito senza scadenza.",
       "count": 1
     },
     {
@@ -1211,6 +1211,16 @@
     {
       "find": ">Pricing<",
       "replace": ">Prezzo<",
+      "count": 1
+    },
+    {
+      "find": "Free for life. <span>Pro</span> when you want more.",
+      "replace": "Gratis a vita. <span>Pro</span> quando vuoi di più.",
+      "count": 1
+    },
+    {
+      "find": "Everything Fibonax does today is free. Pro will add the AI features, priced for what you use.",
+      "replace": "Tutto ciò che Fibonax fa oggi è gratis. Pro aggiungerà le funzioni AI, pagando solo quello che usi.",
       "count": 1
     },
     {
@@ -1236,6 +1246,246 @@
     {
       "find": "Revenue invested in top Developers and Ai coding model",
       "replace": "Ricavi investiti nei migliori sviluppatori e modelli AI per il coding",
+      "count": 1
+    },
+    {
+      "find": "Choose your plan",
+      "replace": "Scegli il tuo piano",
+      "count": 1
+    },
+    {
+      "find": "Billing period",
+      "replace": "Periodo di fatturazione",
+      "count": 1
+    },
+    {
+      "find": ">Monthly<",
+      "replace": ">Mensile<",
+      "count": 1
+    },
+    {
+      "find": ">Yearly <",
+      "replace": ">Annuale <",
+      "count": 1
+    },
+    {
+      "find": "Save 20%",
+      "replace": "Risparmi il 20%",
+      "count": 1
+    },
+    {
+      "find": ">Free<",
+      "replace": ">Gratis<",
+      "count": 2
+    },
+    {
+      "find": "For anyone who writes the same things every day.",
+      "replace": "Per chi scrive le stesse cose ogni giorno.",
+      "count": 1
+    },
+    {
+      "find": ">forever<",
+      "replace": ">per sempre<",
+      "count": 1
+    },
+    {
+      "find": "Free for life for anyone who joins by December 31, 2026.",
+      "replace": "Gratis a vita per chi si iscrive entro il 31 dicembre 2026.",
+      "count": 1
+    },
+    {
+      "find": "Create your free lifetime account →",
+      "replace": "Crea il tuo account gratis a vita →",
+      "count": 1
+    },
+    {
+      "find": "Unlimited snippets, prompts and Brains",
+      "replace": "Snippet, prompt e Brain illimitati",
+      "count": 1
+    },
+    {
+      "find": "Chrome extension, web dashboard and phone",
+      "replace": "Estensione Chrome, dashboard web e telefono",
+      "count": 1
+    },
+    {
+      "find": "Form fields, formulas and rules",
+      "replace": "Campi da compilare, formule e regole",
+      "count": 2
+    },
+    {
+      "find": "Shared folders for your team",
+      "replace": "Cartelle condivise per il tuo team",
+      "count": 1
+    },
+    {
+      "find": "Recommended",
+      "replace": "Consigliato",
+      "count": 1
+    },
+    {
+      "find": "Everything in Free, plus the AI that writes with you.",
+      "replace": "Tutto ciò che c’è in Gratis, più l’AI che scrive con te.",
+      "count": 1
+    },
+    {
+      "find": "per person, per month",
+      "replace": "a persona, al mese",
+      "count": 1
+    },
+    {
+      "find": "Billed monthly. Stop whenever you like.",
+      "replace": "Fatturato ogni mese. Smetti quando vuoi.",
+      "count": 1
+    },
+    {
+      "find": "€96 billed yearly. Stop whenever you like.",
+      "replace": "€96 fatturati ogni anno. Smetti quando vuoi.",
+      "count": 1
+    },
+    {
+      "find": "Start free, upgrade when Pro opens →",
+      "replace": "Inizia gratis, passa a Pro quando arriva →",
+      "count": 1
+    },
+    {
+      "find": "Ask Fibonax, Draft with AI and Translate",
+      "replace": "Chiedi a Fibonax, Scrivi con l’AI e Traduci",
+      "count": 1
+    },
+    {
+      "find": "Read a picture on your phone",
+      "replace": "Leggi un’immagine dal telefono",
+      "count": 2
+    },
+    {
+      "find": "Pictures in snippets",
+      "replace": "Immagini negli snippet",
+      "count": 2
+    },
+    {
+      "find": "Pay only for what you use beyond the included allowance",
+      "replace": "Paghi solo ciò che usi oltre la quota inclusa",
+      "count": 1
+    },
+    {
+      "find": "Pro opens in 2027, and its price is indicative until then. Until it opens, every account has everything in Free.",
+      "replace": "Pro arriva nel 2027 e fino ad allora il suo prezzo è indicativo. Fino a quel momento ogni account ha tutto ciò che c’è in Gratis.",
+      "count": 1
+    },
+    {
+      "find": "Compare plans",
+      "replace": "Confronta i piani",
+      "count": 1
+    },
+    {
+      "find": "What each plan includes",
+      "replace": "Cosa include ogni piano",
+      "count": 1
+    },
+    {
+      "find": "What you get",
+      "replace": "Cosa ottieni",
+      "count": 1
+    },
+    {
+      "find": "Your library",
+      "replace": "La tua libreria",
+      "count": 1
+    },
+    {
+      "find": "Snippets, prompts and Brains",
+      "replace": "Snippet, prompt e Brain",
+      "count": 1
+    },
+    {
+      "find": ">Unlimited<",
+      "replace": ">Illimitati<",
+      "count": 2
+    },
+    {
+      "find": ">Included<",
+      "replace": ">Incluso<",
+      "count": 26
+    },
+    {
+      "find": ">Not included<",
+      "replace": ">Non incluso<",
+      "count": 6
+    },
+    {
+      "find": "Folders, labels and search",
+      "replace": "Cartelle, etichette e ricerca",
+      "count": 1
+    },
+    {
+      "find": "Formatted text and language variants",
+      "replace": "Testo formattato e varianti di lingua",
+      "count": 1
+    },
+    {
+      "find": "Where it works",
+      "replace": "Dove funziona",
+      "count": 1
+    },
+    {
+      "find": ">Chrome extension<",
+      "replace": ">Estensione Chrome<",
+      "count": 1
+    },
+    {
+      "find": ">Web dashboard<",
+      "replace": ">Dashboard web<",
+      "count": 1
+    },
+    {
+      "find": ">Phone<",
+      "replace": ">Telefono<",
+      "count": 1
+    },
+    {
+      "find": "Brains as context for any AI",
+      "replace": "I Brain come contesto per qualsiasi AI",
+      "count": 1
+    },
+    {
+      "find": ">Teams<",
+      "replace": ">Team<",
+      "count": 1
+    },
+    {
+      "find": ">Shared folders<",
+      "replace": ">Cartelle condivise<",
+      "count": 1
+    },
+    {
+      "find": "Invite people and choose their role",
+      "replace": "Invita persone e scegli il loro ruolo",
+      "count": 1
+    },
+    {
+      "find": "Team analytics",
+      "replace": "Analisi del team",
+      "count": 1
+    },
+    {
+      "find": ">Ask Fibonax<",
+      "replace": ">Chiedi a Fibonax<",
+      "count": 1
+    },
+    {
+      "find": ">Draft with AI<",
+      "replace": ">Scrivi con l’AI<",
+      "count": 1
+    },
+    {
+      "find": "Translate from English",
+      "replace": "Traduci dall’inglese",
+      "count": 1
+    },
+    {
+      "find": "Suggested labels",
+      "replace": "Etichette suggerite",
       "count": 1
     }
   ]

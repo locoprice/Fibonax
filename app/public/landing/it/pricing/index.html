@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#1B4FD8">
-<title>Prezzo · Coming soon — Fibonax</title>
-<meta name="description" content="Il prezzo di Fibonax sarà disponibile a breve. Nessun abbonamento. Solo pagamento a consumo. Credito senza scadenza.">
+<title>Prezzo — Fibonax</title>
+<meta name="description" content="Fibonax è gratis a vita per chi si iscrive entro il 31 dicembre 2026. Pro aggiunge le funzioni AI. Autentico pagamento a consumo. Credito senza scadenza.">
 <link rel="canonical" href="https://fibonax.com/it/pricing/">
 <link rel="alternate" hreflang="en" href="https://fibonax.com/pricing/">
 <link rel="alternate" hreflang="es" href="https://fibonax.com/es/pricing/">
@@ -269,6 +269,7 @@ footer{padding:28px 20px}
 /* Pricing-specific content; shared navigation and footer are generated from home. */
 .pricing-page{flex:1}
 .pricing-page .hero-eyebrow::before{animation:none}
+.pricing-lead{max-width:640px;margin:0 auto;font-size:clamp(17px,2vw,20px);line-height:1.5;color:var(--text2)}
 .pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
 .pricing-artwork{margin:0;min-width:0;aspect-ratio:1}
 .pricing-artwork canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .6s ease}
@@ -277,6 +278,41 @@ footer{padding:28px 20px}
 .pricing-page .pricing-table{width:100%;margin:0;border-collapse:collapse;text-align:left}
 .pricing-table td{padding:var(--space-6) 0;border-top:1px solid var(--border);font-size:clamp(17px,2vw,20px);line-height:1.6;font-weight:500}
 .pricing-table tr:last-child td{border-bottom:1px solid var(--border)}
+/* Plans: a billing switch, two plan cards and the comparison table. Tokens only. */
+.plans{margin-top:var(--space-16);text-align:left}
+.plans h2{font-size:clamp(28px,3.4vw,40px);font-weight:800;letter-spacing:-.025em;line-height:1.1;text-align:center;margin-bottom:var(--space-6);color:var(--text)}
+.billing-row{text-align:center;margin-bottom:var(--space-8)}
+.billing{display:inline-flex;gap:var(--space-1);padding:var(--space-1);background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--r-pill)}
+.billing-option{display:inline-flex;align-items:center;gap:var(--space-2);min-height:44px;padding:0 18px;font:inherit;font-size:15px;font-weight:600;color:var(--text2);background:transparent;border:0;border-radius:var(--r-pill);cursor:pointer;transition:background .15s,color .15s}
+.billing-option[aria-pressed="true"]{background:var(--card);color:var(--text);box-shadow:var(--shadow-sm)}
+.billing-save{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:var(--r-pill)}
+.plan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-6);max-width:860px;margin:0 auto}
+.plan{position:relative;display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-8);background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.plan-featured{border-color:var(--primary);box-shadow:var(--shadow-md)}
+.plan-badge{position:absolute;top:calc(-1 * var(--space-3));left:var(--space-8);padding:4px 12px;font-size:12px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff;background:var(--primary);border-radius:var(--r-pill)}
+.plan-name{font-size:22px;font-weight:700;color:var(--text)}
+.plan-tagline{font-size:15px;color:var(--text2)}
+.plan-price{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
+.plan-amount{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--text)}
+.plan-per{font-size:14px;color:var(--text2)}
+.plan-note{font-size:14px;color:var(--text3)}
+.plans[data-billing="yearly"] .price-monthly,.plans[data-billing="monthly"] .price-yearly{display:none}
+.plan-cta{width:100%;white-space:normal;text-align:center}
+.plan-list{list-style:none;display:grid;gap:var(--space-3);padding-top:var(--space-4);border-top:1px solid var(--border);font-size:15px}
+.plan-list li{display:flex;gap:var(--space-3);align-items:flex-start}
+.plan-list li::before{content:"✓" / "";color:var(--primary);font-weight:700;flex:none}
+.plans-opening{max-width:640px;margin:var(--space-6) auto 0;text-align:center;font-size:15px;color:var(--text2)}
+.compare-title{margin-top:var(--space-16)}
+.compare-wrap{max-width:860px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm);overflow:hidden}
+.compare{width:100%;border-collapse:collapse;font-size:15px}
+.compare th,.compare td{padding:var(--space-4) var(--space-6);border-top:1px solid var(--border);text-align:left;vertical-align:middle}
+.compare thead th{border-top:0;font-size:14px;font-weight:700;color:var(--text2);background:var(--bg-alt)}
+.compare thead th.is-featured{color:var(--primary)}
+.compare tbody th{font-weight:500;color:var(--text)}
+.compare td,.compare thead th:not(:first-child){width:132px;text-align:center;font-weight:600}
+.compare-group th{padding-top:var(--space-3);padding-bottom:var(--space-3);font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text2);background:var(--bg-alt)}
+.tick{color:var(--primary);font-weight:700}
+.dash{color:var(--text3)}
 body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 .pricing-layout .nav,.pricing-layout>footer{flex:none}
 .pricing-layout a:focus-visible,.pricing-layout button:focus-visible{outline:3px solid var(--primary);outline-offset:4px}
@@ -284,8 +320,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 .skip-link{position:absolute;left:var(--space-4);top:-80px;padding:var(--space-3) var(--space-4);background:var(--card);color:var(--primary);z-index:70;border-radius:var(--r-btn)}
 .skip-link:focus{top:var(--space-3)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media(max-width:800px){.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.pricing-table td{padding:var(--space-6) 0}}
-@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}}
+@media(max-width:800px){.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.pricing-table td{padding:var(--space-6) 0}.plans{margin-top:var(--space-12)}.plan-grid{grid-template-columns:1fr}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.compare th,.compare td{padding:var(--space-3) var(--space-4)}.compare td,.compare thead th:not(:first-child){width:76px}}
+@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.billing-option{transition:none}}
 </style>
 </head>
 <body class="pricing-layout">
@@ -367,7 +403,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 <main id="pricing" class="hero pricing-page" tabindex="-1">
   <div class="hero-inner">
   <div class="hero-eyebrow">Prezzo</div>
-  <h1>Coming soon.</h1>
+  <h1>Gratis a vita. <span>Pro</span> quando vuoi di più.</h1>
+  <p class="pricing-lead">Tutto ciò che Fibonax fa oggi è gratis. Pro aggiungerà le funzioni AI, pagando solo quello che usi.</p>
   <div class="pricing-content">
   <figure class="pricing-artwork" aria-hidden="true">
     <canvas></canvas>
@@ -382,6 +419,80 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     </tbody>
   </table>
   </div>
+
+  <section class="plans" id="plans" data-billing="yearly" aria-labelledby="plans-title">
+    <h2 id="plans-title">Scegli il tuo piano</h2>
+    <div class="billing-row">
+      <div class="billing" role="group" aria-label="Periodo di fatturazione">
+        <button type="button" class="billing-option" data-billing="monthly" aria-pressed="false">Mensile</button>
+        <button type="button" class="billing-option" data-billing="yearly" aria-pressed="true">Annuale <span class="billing-save">Risparmi il 20%</span></button>
+      </div>
+    </div>
+    <div class="plan-grid">
+      <article class="plan" aria-labelledby="plan-free">
+        <h3 class="plan-name" id="plan-free">Gratis</h3>
+        <p class="plan-tagline">Per chi scrive le stesse cose ogni giorno.</p>
+        <p class="plan-price"><span class="plan-amount">€0</span><span class="plan-per">per sempre</span></p>
+        <p class="plan-note">Gratis a vita per chi si iscrive entro il 31 dicembre 2026.</p>
+        <a class="btn btn-ghost plan-cta" href="https://app.fibonax.com/signup">Crea il tuo account gratis a vita →</a>
+        <ul class="plan-list">
+          <li>Snippet, prompt e Brain illimitati</li>
+          <li>Estensione Chrome, dashboard web e telefono</li>
+          <li>Campi da compilare, formule e regole</li>
+          <li>Cartelle condivise per il tuo team</li>
+        </ul>
+      </article>
+      <article class="plan plan-featured" aria-labelledby="plan-pro">
+        <p class="plan-badge">Consigliato</p>
+        <h3 class="plan-name" id="plan-pro">Pro</h3>
+        <p class="plan-tagline">Tutto ciò che c’è in Gratis, più l’AI che scrive con te.</p>
+        <p class="plan-price"><span class="plan-amount price-monthly">€10</span><span class="plan-amount price-yearly">€8</span><span class="plan-per">a persona, al mese</span></p>
+        <p class="plan-note price-monthly">Fatturato ogni mese. Smetti quando vuoi.</p>
+        <p class="plan-note price-yearly">€96 fatturati ogni anno. Smetti quando vuoi.</p>
+        <a class="btn btn-primary plan-cta" href="https://app.fibonax.com/signup">Inizia gratis, passa a Pro quando arriva →</a>
+        <ul class="plan-list">
+          <li>Chiedi a Fibonax, Scrivi con l’AI e Traduci</li>
+          <li>Leggi un’immagine dal telefono</li>
+          <li>Immagini negli snippet</li>
+          <li>Paghi solo ciò che usi oltre la quota inclusa</li>
+        </ul>
+      </article>
+    </div>
+    <p class="plans-opening">Pro arriva nel 2027 e fino ad allora il suo prezzo è indicativo. Fino a quel momento ogni account ha tutto ciò che c’è in Gratis.</p>
+
+    <h2 class="compare-title" id="compare-title">Confronta i piani</h2>
+    <div class="compare-wrap">
+    <table class="compare" aria-labelledby="compare-title">
+      <caption class="sr-only">Cosa include ogni piano</caption>
+      <thead>
+        <tr><th scope="col">Cosa ottieni</th><th scope="col">Gratis</th><th scope="col" class="is-featured">Pro</th></tr>
+      </thead>
+      <tbody>
+        <tr class="compare-group"><th scope="colgroup" colspan="3">La tua libreria</th></tr>
+        <tr><th scope="row">Snippet, prompt e Brain</th><td>Illimitati</td><td>Illimitati</td></tr>
+        <tr><th scope="row">Cartelle, etichette e ricerca</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Campi da compilare, formule e regole</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Testo formattato e varianti di lingua</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr class="compare-group"><th scope="colgroup" colspan="3">Dove funziona</th></tr>
+        <tr><th scope="row">Estensione Chrome</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Dashboard web</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Telefono</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">I Brain come contesto per qualsiasi AI</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr class="compare-group"><th scope="colgroup" colspan="3">Team</th></tr>
+        <tr><th scope="row">Cartelle condivise</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Invita persone e scegli il loro ruolo</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Analisi del team</th><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr class="compare-group"><th scope="colgroup" colspan="3">AI</th></tr>
+        <tr><th scope="row">Chiedi a Fibonax</th><td><span class="dash" aria-hidden="true">—</span><span class="sr-only">Non incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Scrivi con l’AI</th><td><span class="dash" aria-hidden="true">—</span><span class="sr-only">Non incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Traduci dall’inglese</th><td><span class="dash" aria-hidden="true">—</span><span class="sr-only">Non incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Etichette suggerite</th><td><span class="dash" aria-hidden="true">—</span><span class="sr-only">Non incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Leggi un’immagine dal telefono</th><td><span class="dash" aria-hidden="true">—</span><span class="sr-only">Non incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+        <tr><th scope="row">Immagini negli snippet</th><td><span class="dash" aria-hidden="true">—</span><span class="sr-only">Non incluso</span></td><td><span class="tick" aria-hidden="true">✓</span><span class="sr-only">Incluso</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
   </div>
 </main>
 <footer>
@@ -581,7 +692,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.98.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.99.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
@@ -590,6 +701,21 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   if(verEl&&verEl.textContent.indexOf('{{')>-1)verEl.textContent=' · '+FALLBACK_VERSION;
   var updEl=document.getElementById('foot-updated');
   if(updEl&&updEl.textContent.indexOf('{{')>-1)updEl.textContent=' · Aggiornato '+FALLBACK_MONTH;
+})();
+</script>
+<script>
+// Billing switch: the chosen period is an attribute on the plans section, and
+// the stylesheet shows the matching price. Without JavaScript the page shows
+// the yearly price, the default in the markup.
+(function () {
+  var plans = document.getElementById('plans');
+  var options = plans.querySelectorAll('.billing-option');
+  options.forEach(function (option) {
+    option.addEventListener('click', function () {
+      plans.setAttribute('data-billing', option.getAttribute('data-billing'));
+      options.forEach(function (other) { other.setAttribute('aria-pressed', String(other === option)); });
+    });
+  });
 })();
 </script>
 <script type="importmap">

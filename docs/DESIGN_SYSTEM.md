@@ -402,6 +402,10 @@ review rows, empty states and the default Brain cards use this identity.
 Decorative SVGs are hidden from assistive technology and not focusable.
 The extension popup Brains tab uses the same layers glyph. Icon-free Context controls remain icon-free.
 
+### Landing pricing page (v3.99.0)
+
+`scripts/templates/pricing.html` carries the plans below the hero: a Monthly / Yearly switch (two `aria-pressed` buttons in a `bg-alt` pill, 44 px tall, `Save 20%` as a `primary-lt` chip), two plan cards (`card`, `border`, `r`, `shadow-sm`; the recommended Pro card takes `primary` as its border, `shadow-md` and a filled `primary` pill badge) and the comparison table (`card` frame, `bg-alt` group rows, ticks in `primary`, dashes in `text3`, each with screen-reader text so meaning never rides on the glyph alone). The chosen period is a `data-billing` attribute on the section and the stylesheet shows the matching price, so the page shows the yearly price without JavaScript. Every value is an existing token; the section introduces no colour, radius, shadow or spacing of its own. The 3D T mark and the four principle lines above it are unchanged (`scripts/templates/pricing-artwork.md`). Prices are indicative until the Pro plan opens.
+
 ### Landing platforms and security (v3.49.0)
 
 The approved landing composition merges the three platform cards and security section into four tabs: Chrome Extension, Web Dashboard, Mobile Website, and Security. It retains the existing copy and azure palette. `#platforms` scopes the styling; the blue, ink, muted text and paper aliases inherit the landing's `--primary`, `--text`, `--text2` and `--card`. The section registers `--sb-line: #dde2ef`, `--sb-bg: #f7f8fc` and `--sb-radius: 24px`. The pale azure gradients, translucent backplates and cube shading are decorative artwork, local to this marketing composition. They do not introduce new product status colours.
