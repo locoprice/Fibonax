@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { ActivityData, ActivityDay } from '@/types/database';
@@ -10,6 +10,8 @@ interface ActivityHeatmapProps {
   showOverview: boolean;
   onChangePrivate: (next: boolean) => void;
   onChangeOverview: (next: boolean) => void;
+  /** The breakdown under the grid; hidden with the "Activity overview" switch. */
+  children?: ReactNode;
 }
 
 const CELL = 11; // px — square size (matches GitHub)
@@ -45,6 +47,7 @@ export function ActivityHeatmap({
   showOverview,
   onChangePrivate,
   onChangeOverview,
+  children,
 }: ActivityHeatmapProps) {
   const [hover, setHover] = useState<HoverState | null>(null);
 
@@ -217,6 +220,10 @@ export function ActivityHeatmap({
           <span>More</span>
         </div>
       </div>
+
+      {showOverview && children ? (
+        <div className="mt-5 space-y-5 border-t border-line pt-5">{children}</div>
+      ) : null}
 
       {hover && (
         <div
