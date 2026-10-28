@@ -1369,8 +1369,58 @@
       "count": 1
     },
     {
-      "find": "Start free. Buy credits once when you need more. A monthly plan comes later for people who prefer one fixed price.",
-      "replace": "Parti gratis. Compra crediti una volta quando ti serve di più. Un piano mensile arriverà per chi preferisce un prezzo fisso.",
+      "find": "Start free. Buy credits once when you need more, or have them added every month. A monthly plan comes later for people who prefer one fixed price.",
+      "replace": "Parti gratis. Compra crediti una volta quando ti serve di più, o fatteli aggiungere ogni mese. Un piano mensile arriverà per chi preferisce un prezzo fisso.",
+      "count": 1
+    },
+    {
+      "find": "Top-up method",
+      "replace": "Metodo di ricarica",
+      "count": 1
+    },
+    {
+      "find": "One-time top-up",
+      "replace": "Ricarica singola",
+      "count": 1
+    },
+    {
+      "find": "Monthly auto top-up <span",
+      "replace": "Ricarica automatica mensile <span",
+      "count": 1
+    },
+    {
+      "find": "Bonus credits",
+      "replace": "Crediti bonus",
+      "count": 1
+    },
+    {
+      "find": "per month, stop any time",
+      "replace": "al mese, smetti quando vuoi",
+      "count": 1
+    },
+    {
+      "find": "</span> added every month: <strong",
+      "replace": "</span> aggiunti ogni mese: <strong",
+      "count": 1
+    },
+    {
+      "find": "</strong> credits plus bonus credits, announced before launch. Stop whenever you like.",
+      "replace": "</strong> crediti più crediti bonus, annunciati prima del lancio. Smetti quando vuoi.",
+      "count": 1
+    },
+    {
+      "find": "</strong> added every month, with bonus credits on top",
+      "replace": "</strong> aggiunti ogni mese, con crediti bonus in più",
+      "count": 1
+    },
+    {
+      "find": "Only with monthly auto top-up, and you can stop any time",
+      "replace": "Solo con la ricarica automatica mensile, e puoi smettere quando vuoi",
+      "count": 1
+    },
+    {
+      "find": "data-open=\"Compare plans\" data-close=\"Hide the comparison\">Hide the comparison<",
+      "replace": "data-open=\"Confronta i piani\" data-close=\"Nascondi il confronto\">Nascondi il confronto<",
       "count": 1
     },
     {
@@ -1451,6 +1501,11 @@
     {
       "find": "Credits, bought once",
       "replace": "Crediti, comprati una volta",
+      "count": 1
+    },
+    {
+      "find": "Credits, added every month",
+      "replace": "Crediti, aggiunti ogni mese",
       "count": 1
     },
     {
@@ -1981,7 +2036,7 @@
     {
       "find": ">2,500<",
       "replace": ">2.500<",
-      "count": 3
+      "count": 4
     }
   ]
 }

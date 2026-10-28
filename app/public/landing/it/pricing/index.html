@@ -309,8 +309,17 @@ footer{padding:28px 20px}
 .founding-benefits{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-6);padding-top:var(--space-6);border-top:1px solid var(--navy-soft)}
 .founding-benefits h3{font-size:16px;font-weight:700;margin:0 0 var(--space-1);letter-spacing:0;line-height:1.4}
 .founding-benefits p{font-size:14px;line-height:1.6}
+/* Top-up switch above the cards: the chosen method is an attribute on the
+   plans section and the stylesheet shows the matching wording. */
+.topup-row{text-align:center;margin-top:var(--space-6)}
+.topup{display:inline-flex;gap:var(--space-1);padding:var(--space-1);background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--r-pill)}
+.topup-option{display:inline-flex;align-items:center;gap:var(--space-2);min-height:44px;padding:0 18px;font:inherit;font-size:15px;font-weight:600;color:var(--text2);background:transparent;border:0;border-radius:var(--r-pill);cursor:pointer;transition:background .15s,color .15s}
+.topup-option[aria-pressed="true"]{background:var(--card);color:var(--text);box-shadow:var(--shadow-sm)}
+.topup-bonus{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:var(--r-pill)}
+#plans[data-topup="once"] .topup-monthly,#plans[data-topup="monthly"] .topup-once{display:none}
 /* Plan cards: three ways to pay. */
 .plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-6);margin-top:var(--space-8)}
+.plan-list li:empty{display:none}
 .plan{position:relative;display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-8);background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm)}
 .plan-featured{border-color:var(--primary);box-shadow:var(--shadow-md)}
 .plan-badge{position:absolute;top:calc(-1 * var(--space-3));left:var(--space-8);padding:4px 12px;font-size:12px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff;background:var(--primary);border-radius:var(--r-pill)}
@@ -327,7 +336,9 @@ footer{padding:28px 20px}
 .plan-list li::before{content:"✓" / "";color:var(--primary);font-weight:700;flex:none}
 .plan-list li>span{min-width:0}
 .plan-list strong{font-weight:700;color:var(--text)}
-/* Comparison: columns on desktop, one card per row on a phone. */
+/* Comparison: hidden behind Compare plans, columns on desktop, one card per row on a phone. */
+.compare-toggle-row{text-align:center;margin-top:var(--space-6)}
+.compare-body[hidden]{display:none}
 .compare-wrap{margin-top:var(--space-8);background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm);overflow:hidden}
 .compare{width:100%;border-collapse:collapse;font-size:15px;line-height:1.5}
 .compare th,.compare td{padding:var(--space-4) var(--space-6);border-top:1px solid var(--border);text-align:left;vertical-align:top}
@@ -397,7 +408,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   .compare td{padding:var(--space-3) 0 0;border:0}
   .compare td::before{display:block}
   .pm-dialog{padding:var(--space-6)}}
-@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.pm-tab,.pr-faq summary::after{transition:none}}
+@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.pm-tab,.topup-option,.pr-faq summary::after{transition:none}}
 </style>
 </head>
 <body class="pricing-layout">
@@ -521,9 +532,15 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     </div>
   </section>
 
-  <section class="pr-section" id="plans" aria-labelledby="plans-title">
+  <section class="pr-section" id="plans" aria-labelledby="plans-title" data-topup="once">
     <h2 id="plans-title">Scegli come pagare</h2>
-    <p class="pr-intro">Parti gratis. Compra crediti una volta quando ti serve di più. Un piano mensile arriverà per chi preferisce un prezzo fisso.</p>
+    <p class="pr-intro">Parti gratis. Compra crediti una volta quando ti serve di più, o fatteli aggiungere ogni mese. Un piano mensile arriverà per chi preferisce un prezzo fisso.</p>
+    <div class="topup-row">
+      <div class="topup" role="group" aria-label="Metodo di ricarica">
+        <button type="button" class="topup-option" data-topup="once" aria-pressed="true">Ricarica singola</button>
+        <button type="button" class="topup-option" data-topup="monthly" aria-pressed="false">Ricarica automatica mensile <span class="topup-bonus">Crediti bonus</span></button>
+      </div>
+    </div>
     <div class="plan-grid">
       <article class="plan" aria-labelledby="plan-free">
         <p class="plan-kind">Gratis</p>
@@ -542,13 +559,15 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <article class="plan plan-featured" aria-labelledby="plan-payg">
         <p class="plan-badge">Consigliato</p>
         <p class="plan-kind">A consumo</p>
-        <h3 class="plan-name" id="plan-payg">Crediti, comprati una volta</h3>
-        <p class="plan-price"><span class="plan-amount"><span data-pricing="topUpEuros">€25</span></span><span class="plan-per">a ricarica</span></p>
-        <p class="plan-tagline">Ricarica <span data-pricing="topUpEuros">€25</span> e ricevi <strong data-pricing="creditsPerTopUp">2.500</strong> crediti. Li usi solo quando la quota giornaliera gratuita è finita. Niente di ricorrente.</p>
+        <h3 class="plan-name" id="plan-payg"><span class="topup-once">Crediti, comprati una volta</span><span class="topup-monthly">Crediti, aggiunti ogni mese</span></h3>
+        <p class="plan-price"><span class="plan-amount"><span data-pricing="topUpEuros">€25</span></span><span class="plan-per topup-once">a ricarica</span><span class="plan-per topup-monthly">al mese, smetti quando vuoi</span></p>
+        <p class="plan-tagline topup-once">Ricarica <span data-pricing="topUpEuros">€25</span> e ricevi <strong data-pricing="creditsPerTopUp">2.500</strong> crediti. Li usi solo quando la quota giornaliera gratuita è finita. Niente di ricorrente.</p>
+        <p class="plan-tagline topup-monthly"><span data-pricing="topUpEuros">€25</span> aggiunti ogni mese: <strong data-pricing="creditsPerTopUp">2.500</strong> crediti più crediti bonus, annunciati prima del lancio. Smetti quando vuoi.</p>
         <a class="btn btn-primary plan-cta" href="https://app.fibonax.com/signup">Compra crediti</a>
         <p class="plan-note">Le ricariche aprono il 1º gennaio 2027. Crea ora il tuo account e il tuo sconto da fondatore sarà pronto quel giorno.</p>
         <ul class="plan-list">
-          <li><span>Ricarica a passi di <strong data-pricing="topUpEuros">€25</strong>, tutte le volte che vuoi</span></li>
+          <li class="topup-once"><span>Ricarica a passi di <strong data-pricing="topUpEuros">€25</strong>, tutte le volte che vuoi</span></li>
+          <li class="topup-monthly"><span><strong data-pricing="topUpEuros">€25</strong> aggiunti ogni mese, con crediti bonus in più</span></li>
           <li><span>1 credito = <strong data-pricing="euroPerCredit">€0.01</strong></span></li>
           <li><span>Un costo fisso in crediti per ogni uso</span></li>
           <li><span>Saldo e cronologia nel tuo account</span></li>
@@ -560,7 +579,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <h3 class="plan-name" id="plan-monthly">Un prezzo fisso</h3>
         <p class="plan-price"><span class="plan-amount">Più avanti</span><span class="plan-per">pagamento ricorrente</span></p>
         <p class="plan-tagline">Per chi preferisce un prezzo mensile con crediti inclusi. Piani e prezzi vengono annunciati prima dell’apertura.</p>
-        <a class="btn btn-ghost plan-cta" href="#compare">Confronta i piani</a>
+        <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Confronta i piani</a>
         <ul class="plan-list">
           <li><span>Un prezzo mensile chiaro</span></li>
           <li><span>Crediti inclusi ogni mese</span></li>
@@ -574,6 +593,10 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   <section class="pr-section" id="compare" aria-labelledby="compare-title">
     <h2 id="compare-title">Confronta le tre opzioni</h2>
     <p class="pr-intro">La quota gratuita viene prima in ogni opzione. Crediti e piani coprono solo ciò che usi oltre.</p>
+    <div class="compare-toggle-row">
+      <button type="button" class="btn btn-ghost" id="compare-toggle" aria-expanded="true" aria-controls="compare-body" data-open="Confronta i piani" data-close="Nascondi il confronto">Nascondi il confronto</button>
+    </div>
+    <div class="compare-body" id="compare-body">
     <div class="compare-wrap">
     <table class="compare">
       <caption class="sr-only">Cosa include ogni opzione</caption>
@@ -582,7 +605,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       </thead>
       <tbody>
         <tr><th scope="row">Prezzo</th><td data-label="Gratis"><strong>€0</strong></td><td data-label="A consumo"><strong>Da <span data-pricing="topUpEuros">€25</span> a ricarica</strong></td><td data-label="Abbonamento mensile">Annunciato prima del lancio</td></tr>
-        <tr><th scope="row">Pagamento ricorrente</th><td data-label="Gratis">No</td><td data-label="A consumo">No</td><td data-label="Abbonamento mensile">Sì, ogni mese</td></tr>
+        <tr><th scope="row">Pagamento ricorrente</th><td data-label="Gratis">No</td><td data-label="A consumo">Solo con la ricarica automatica mensile, e puoi smettere quando vuoi</td><td data-label="Abbonamento mensile">Sì, ogni mese</td></tr>
         <tr><th scope="row">Crediti acquistati</th><td data-label="Gratis">No</td><td data-label="A consumo"><strong data-pricing="creditsPerTopUp">2.500</strong> per ogni <span data-pricing="topUpEuros">€25</span></td><td data-label="Abbonamento mensile">Inclusi nel piano</td></tr>
         <tr><th scope="row">Quota giornaliera gratuita</th><td data-label="Gratis"><strong data-pricing="freeSnippetsPerDay">15</strong> snippet, <strong data-pricing="freePromptsPerDay">10</strong> prompt, <strong data-pricing="freeBrainsPerDay">5</strong> Brain</td><td data-label="A consumo">Prima la quota gratuita, poi i crediti</td><td data-label="Abbonamento mensile">Prima la quota gratuita, poi il piano</td></tr>
         <tr><th scope="row">Costo per uso</th><td data-label="Gratis">Niente entro la quota</td><td data-label="A consumo"><strong data-pricing="creditsPerSnippet">1</strong> credito per snippet, <strong data-pricing="creditsPerPrompt">2</strong> per prompt, <strong data-pricing="creditsPerBrain">3</strong> per Brain</td><td data-label="Abbonamento mensile">Annunciato prima del lancio</td></tr>
@@ -592,6 +615,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     </table>
     </div>
     <p class="pr-note">Valore dei crediti e tariffe vengono confermati prima dell’apertura delle ricariche il 1º gennaio 2027. La quota gratuita vale da oggi.</p>
+    </div>
   </section>
 
   <section class="pr-section" id="credits" aria-labelledby="credits-title">
@@ -962,6 +986,39 @@ var PRICING = {
   window.addEventListener('pageshow', tick);
   window.addEventListener('pagehide', function () { clearTimeout(timeout); });
   tick();
+})();
+
+// Top-up switch: the chosen method is an attribute on the plans section and
+// the stylesheet shows the matching wording. Without JavaScript the page
+// shows the one-time top-up, the default in the markup.
+(function () {
+  var plans = document.getElementById('plans');
+  var options = Array.from(plans.querySelectorAll('.topup-option'));
+  options.forEach(function (option) {
+    option.addEventListener('click', function () {
+      plans.setAttribute('data-topup', option.getAttribute('data-topup'));
+      options.forEach(function (other) { other.setAttribute('aria-pressed', String(other === option)); });
+    });
+  });
+})();
+
+// The comparison starts folded behind Compare plans, as on the reference
+// page; without JavaScript it stays open. The third card's button and the
+// address #compare open it.
+(function () {
+  var toggle = document.getElementById('compare-toggle');
+  var body = document.getElementById('compare-body');
+  function set(open) {
+    body.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = toggle.getAttribute(open ? 'data-close' : 'data-open');
+  }
+  toggle.addEventListener('click', function () { set(body.hidden); });
+  Array.from(document.querySelectorAll('[data-compare-open]')).forEach(function (link) {
+    link.addEventListener('click', function () { set(true); });
+  });
+  set(location.hash === '#compare');
+  window.addEventListener('hashchange', function () { if (location.hash === '#compare') set(true); });
 })();
 
 // Condizioni e contatti dialog: two tabs, Escape closes, focus returns to the
