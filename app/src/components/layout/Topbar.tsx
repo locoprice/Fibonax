@@ -1,5 +1,3 @@
-import { CheckCircle2 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { MasterSearch } from '@/features/search/MasterSearch';
@@ -8,16 +6,12 @@ import { MasterSearch } from '@/features/search/MasterSearch';
  * Top bar — design system v1.1.
  * Spans the dashboard width at 60px; brand sits on the left (mirrors the
  * mockup at design_handoff_design_system/mockups/harmonized-final.html),
- * search anchors the middle, and the sync pill + theme + bell stay on the right.
+ * search anchors the middle, and the theme toggle stays on the right.
  */
 export function Topbar() {
-  const notionSync = useSettingsStore((s) => s.notionSync);
   const profile = useSettingsStore((s) => s.profile);
   const companyName = profile?.company_name ?? '';
   const companyLogo = profile?.company_logo_url ?? null;
-  const lastSyncLabel = notionSync?.last_sync_at
-    ? `Notion · synced ${formatDistanceToNow(new Date(notionSync.last_sync_at), { addSuffix: true })}`
-    : 'Notion · never synced';
 
   return (
     <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-line bg-card px-6">
@@ -55,15 +49,6 @@ export function Topbar() {
       <MasterSearch />
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        {/* Notion mirror status pill — distinct from team sharing */}
-        <div
-          title="Status of the optional Notion mirror. Team sharing is separate — share a folder from the Team page."
-          className="inline-flex items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-xs font-medium text-success"
-        >
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          {lastSyncLabel}
-        </div>
-
         <ThemeToggle />
       </div>
     </header>

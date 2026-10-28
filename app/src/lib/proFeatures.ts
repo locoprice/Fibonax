@@ -1,4 +1,5 @@
-// Features that call the AI service: Pro, coming soon.
+// Pro features, coming soon: the ones that call the AI service, and pictures in
+// snippets, which are kept in storage.
 //
 // Each use costs real money, and the paid plan that will cover it does not
 // exist yet. Until it does, every entry point stays where people will find it,
@@ -16,7 +17,7 @@
 export const PRO_SOON_LABEL = 'Available to Pro users soon';
 
 export type ProFeature =
-  /** Ask Fibonax: the search panel's answer row. */
+  /** FiboChat: the search panel's answer row. */
   | 'ask'
   /** Draft from text, in the snippet, prompt and Brain item editors. */
   | 'draft'
@@ -26,7 +27,11 @@ export type ProFeature =
   | 'labels'
   /** Read a picture, in the phone's Save to Brain. On the phone only, which
       carries this switch as PICTURE_AVAILABLE. */
-  | 'picture';
+  | 'picture'
+  /** Add a picture, in the snippet editor's side panel. Uploads to storage;
+      calls no AI service. The fill surfaces show pictures already in a
+      snippet whatever this says. */
+  | 'snippetPictures';
 
 // Typed `boolean`, not left to infer `false`, so every call site reads as a
 // live condition instead of dead code.
@@ -36,6 +41,7 @@ const AVAILABLE: Record<ProFeature, boolean> = {
   translate: false,
   labels: false,
   picture: false,
+  snippetPictures: false,
 };
 
 /** Whether this feature may run. False for every feature until the Pro plan exists. */

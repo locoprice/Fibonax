@@ -20,7 +20,7 @@ description: "Write snippets in the dashboard editor, then keep the library tidy
     A trigger uses letters, numbers, `_` and `-`, up to 60 characters. The box in front of it shows your prefix, so you can read the whole shortcut, like `::quote_english`.
   </Step>
   <Step title="Write the body">
-    Type the text in **Body**. Use the panel on the left to add [fields](/text-snippets/dynamic-fields), [formulas](/text-snippets/formulas) and conditions at the cursor.
+    Type the text in **Body**, and [format it](#format-the-text) with the bar above it. Use the panel on the left to add [fields](/text-snippets/dynamic-fields), [formulas](/text-snippets/formulas) and conditions at the cursor.
   </Step>
   <Step title="Save">
     Click **Create snippet**. It's ready to use in the extension and on your phone.
@@ -34,8 +34,25 @@ The editor also holds:
 - **Alternative queries**: extra words that insert the same snippet. Press <kbd>Enter</kbd> or a comma after each one. A warning appears if one of them is already another snippet's trigger.
 - **Language pills** (EN, IT, ES, FR, Multi) above the body. See [Languages](/text-snippets/multilanguage).
 - **Preview**: shows the fill form and the finished text while you write. Choose **Expand** for fields and the full message side by side; **Close expanded view** returns to the editor. Copy checks missing calculation inputs before copying the finished message. When a field reads from a link, the preview has the **Fill from link** box too, so you can try a real page before saving.
+- **May not be finished**: under the preview, a list of anything in the text that looks like a gap, such as `[xxx]`, `XXX` or `TBD`, while you write. Copy also names the boxes left empty, with **Fix it** and **Copy anyway**. See [Check before it goes out](/text-snippets/insert#check-before-it-goes-out).
+- **Warn me if it looks unfinished**: on for every snippet. Untick it for a snippet whose text is meant to look like that, and Fibonax stops warning about it everywhere. Ticking **Don't warn me about this snippet again** on the warning unticks it too. Saved with **Save changes**.
 
 To edit a snippet, click its row. **Save changes** keeps the old wording in [version history](/text-snippets/version-history).
+
+## Format the text
+
+The bar above **Body** has six buttons: **Bold**, **Italic**, **Underline**, **Text colour**, **Bullet list** and **Numbered list**. Select some words and click a button, or click it and keep typing. <kbd>Ctrl</kbd>+<kbd>B</kbd>, <kbd>Ctrl</kbd>+<kbd>I</kbd> and <kbd>Ctrl</kbd>+<kbd>U</kbd> work too (<kbd>Cmd</kbd> on a Mac).
+
+**Text colour** is the **A** with a coloured line under it. It opens a list of nine colours: Grey, Brown, Orange, Yellow, Green, Blue, Purple, Pink and Red. To take a colour off, select the words and choose **Default**. A field inside coloured text takes the colour too, so the value it prints shows in that colour.
+
+Fields show in the body as blue chips with their name. Click a chip to put the cursor right after it. A field written by hand, like `{formtext: name=CITY}`, becomes a chip when you click outside the body.
+
+Where the snippet goes decides how it looks:
+
+- **Emails** (Gmail, Outlook on the web) keep the formatting and the colours, and so does **Copy** pasted into an email.
+- **Chats and plain text boxes**, like WhatsApp, get plain text with no colour. List lines start with `•` or `1.`.
+
+Each language keeps its own formatting. A snippet with no formatting stays plain text, exactly as before.
 
 ## Folders
 

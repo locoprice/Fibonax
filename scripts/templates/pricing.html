@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#1B4FD8">
-<title>Pricing · Coming soon — Fibonax</title>
-<meta name="description" content="Fibonax pricing is coming soon. No subscription. Genuine pay per use. Lifetime credit.">
+<title>Pricing — Fibonax</title>
+<meta name="description" content="Fibonax is free every day: 15 snippets, 10 prompts and 5 Brains. Beyond that, buy FiboTokens once and keep them forever, or go unlimited with a small monthly plan. Founding Members who join by December 31, 2026 keep their benefits for life.">
 <link rel="canonical" href="https://fibonax.com/pricing/">
 <link rel="alternate" hreflang="en" href="https://fibonax.com/pricing/">
 <link rel="alternate" hreflang="es" href="https://fibonax.com/es/pricing/">
@@ -15,22 +15,161 @@
 <style>
 {{SITE_CSS}}
 /* Pricing-specific content; shared navigation and footer are generated from home. */
+/* The navy family is the mobile home band's (docs/DESIGN_SYSTEM.md, Concept B). */
+.pricing-layout{--navy:#101C39;--navy-soft:#203151;--navy-line:#6B7C9C;--navy-copy:#C1CBE0}
 .pricing-page{flex:1}
+.pricing-page .btn,.pm-dialog .btn{min-height:44px}
 .pricing-page .hero-eyebrow::before{animation:none}
+.pricing-lead{max-width:680px;margin:0 auto;font-size:clamp(17px,2vw,20px);line-height:1.5;color:var(--text2)}
+/* Exchange-rate card under the lead: the FiboToken rate, read like a currency board. */
+.rate-board{max-width:640px;margin:var(--space-8) auto 0;padding:var(--space-6) var(--space-8);background:var(--card);border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:var(--r);box-shadow:var(--shadow-md);text-align:center}
+.rate-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--space-2) var(--space-3)}
+.rate-label{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.rate-chip{display:inline-flex;align-items:center;gap:var(--space-1);padding:4px 10px;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill)}
+.rate-main{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:var(--space-3);margin-top:var(--space-4);font-family:var(--sb-mono);font-variant-numeric:tabular-nums;color:var(--text)}
+.rate-unit{font-size:clamp(22px,3vw,30px);font-weight:700}
+.rate-eq{font-size:clamp(22px,3vw,30px);color:var(--text3)}
+.rate-value{font-size:clamp(44px,7vw,72px);font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--primary)}
+.rate-sub{margin-top:var(--space-3);font-size:15px;color:var(--text2)}
+.rate-sub strong{font-family:var(--sb-mono);font-weight:700;color:var(--text)}
+.rate-note{max-width:520px;margin:var(--space-4) auto 0;padding-top:var(--space-4);border-top:1px solid var(--border);font-size:14px;line-height:1.6;color:var(--text2)}
 .pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
-.pricing-artwork{margin:0;min-width:0;mix-blend-mode:multiply}
-.pricing-artwork img{width:100%;height:auto}
+.pricing-artwork{margin:0;min-width:0;aspect-ratio:1}
+.pricing-artwork canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .6s ease}
+.pricing-artwork.is-ready canvas{opacity:1}
+.pricing-content:not(:has(.pricing-artwork)){grid-template-columns:minmax(0,1fr)}
 .pricing-page .pricing-table{width:100%;margin:0;border-collapse:collapse;text-align:left}
 .pricing-table td{padding:var(--space-6) 0;border-top:1px solid var(--border);font-size:clamp(17px,2vw,20px);line-height:1.6;font-weight:500}
 .pricing-table tr:last-child td{border-bottom:1px solid var(--border)}
+/* Sections below the hero share one rhythm. Tokens only. */
+.pr-section{margin-top:var(--space-16);text-align:left}
+.pr-section h2{font-size:clamp(28px,3.4vw,40px);font-weight:800;letter-spacing:-.025em;line-height:1.1;text-align:center;color:var(--text)}
+.pr-intro{max-width:640px;margin:var(--space-4) auto 0;text-align:center;font-size:17px;line-height:1.6;color:var(--text2)}
+.pr-note{max-width:640px;margin:var(--space-6) auto 0;text-align:center;font-size:15px;color:var(--text2)}
+.pr-note a{color:var(--primary);font-weight:600}
+/* Founding Members: a navy panel with the countdown. */
+.founding{margin-top:var(--space-12);padding:var(--space-10);background:var(--navy);color:#fff;border-radius:var(--r);box-shadow:var(--shadow-md);text-align:left;display:grid;grid-template-columns:1.1fr 1fr;gap:var(--space-8) var(--space-12);align-items:center;position:relative;overflow:hidden}
+.founding::before,.founding::after{content:"";position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(27,79,216,.55),rgba(27,79,216,0))}
+.founding::before{width:520px;height:520px;right:-180px;top:-260px}
+.founding::after{width:420px;height:420px;left:-200px;bottom:-280px}
+.founding>*{position:relative}
+.founding-badge{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--navy-copy)}
+.founding h2,.founding h3{font-size:clamp(26px,3vw,36px);font-weight:800;letter-spacing:-.025em;line-height:1.13;margin:var(--space-4) 0 var(--space-3);color:#fff;text-align:left}
+.founding p{font-size:16px;line-height:1.7;color:var(--navy-copy)}
+.founding .btn-primary{margin-top:var(--space-6);white-space:normal;text-align:center}
+.founding .btn-primary:focus-visible,.founding a:focus-visible{outline-color:#fff}
+.countdown-label{font-size:13px;font-weight:600;color:var(--navy-copy);margin-bottom:var(--space-4)}
+.countdown{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
+.countdown-unit{min-width:0;padding:var(--space-4) var(--space-1);text-align:center;background:var(--navy-soft);border:1px solid var(--navy-line);border-radius:var(--r-btn)}
+.countdown-number{display:block;font-variant-numeric:tabular-nums;font-size:clamp(28px,3.5vw,44px);font-weight:600;line-height:1.1;letter-spacing:-.03em;color:#fff}
+.countdown-unit-label{display:block;margin-top:var(--space-2);font-size:11px;font-weight:500;color:var(--navy-copy)}
+.countdown-date{font-size:12px;line-height:1.7;color:var(--navy-copy);margin-top:var(--space-4)}
+.founding noscript{display:block;font-size:12px;color:var(--navy-copy);margin-top:var(--space-3)}
+[data-countdown][data-closed="true"] .countdown,[data-countdown][data-closed="true"] .countdown-date{display:none}
+.founding-benefits{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-6);padding-top:var(--space-6);border-top:1px solid var(--navy-soft)}
+.founding-benefits h3{font-size:16px;font-weight:700;margin:0 0 var(--space-1);letter-spacing:0;line-height:1.4}
+.founding-benefits p{font-size:14px;line-height:1.6}
+/* Plan cards: three ways to pay. */
+.plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-6);margin-top:var(--space-8)}
+.plan-list li:empty{display:none}
+.plan{position:relative;display:flex;flex-direction:column;gap:var(--space-4);padding:var(--space-8);background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.plan-featured{border-color:var(--primary);box-shadow:var(--shadow-md)}
+.plan-badge{position:absolute;top:calc(-1 * var(--space-3));left:var(--space-8);padding:4px 12px;font-size:12px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff;background:var(--primary);border-radius:var(--r-pill)}
+.plan-kind{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+.plan-name{font-size:22px;font-weight:700;color:var(--text)}
+.plan-price{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
+.plan-amount{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--text)}
+.plan-per{font-size:14px;color:var(--text2)}
+.plan-tagline{font-size:15px;line-height:1.55;color:var(--text2)}
+.plan-from{font-size:14px;color:var(--text2)}
+.plan-flag{display:inline-flex;align-items:center;padding:4px 10px;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill)}
+/* FiboToken packs inside the Pay as you go card. */
+.packs{list-style:none;display:grid;gap:var(--space-2)}
+.packs li{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--r-btn);font-size:15px;color:var(--text2)}
+.pack-price{font-size:17px;font-weight:800;color:var(--text)}
+.pack-tokens{text-align:right}
+.pack-tokens strong{font-weight:700;color:var(--text)}
+.pack-bonus{display:inline-block;margin-left:var(--space-2);font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:var(--r-pill)}
+.plan-cta{width:100%;white-space:normal;text-align:center}
+.plan-note{font-size:13px;line-height:1.5;color:var(--text3)}
+.plan-list{list-style:none;display:grid;gap:var(--space-3);padding-top:var(--space-4);border-top:1px solid var(--border);font-size:15px;line-height:1.5}
+.plan-list li{display:flex;gap:var(--space-3);align-items:flex-start}
+.plan-list li::before{content:"✓" / "";color:var(--primary);font-weight:700;flex:none}
+.plan-list li>span{min-width:0}
+.plan-list strong{font-weight:700;color:var(--text)}
+/* Comparison: hidden behind Compare plans, columns on desktop, one card per row on a phone. */
+.compare-toggle-row{text-align:center;margin-top:var(--space-6)}
+.compare-body[hidden]{display:none}
+.compare-wrap{margin-top:var(--space-8);background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm);overflow:hidden}
+.compare{width:100%;border-collapse:collapse;font-size:15px;line-height:1.5}
+.compare th,.compare td{padding:var(--space-4) var(--space-6);border-top:1px solid var(--border);text-align:left;vertical-align:top}
+.compare thead th{border-top:0;font-size:14px;font-weight:700;color:var(--text2);background:var(--bg-alt)}
+.compare thead th.is-featured{color:var(--primary)}
+.compare tbody th{font-weight:600;color:var(--text);width:24%}
+.compare td{color:var(--text2);width:25.3%}
+.compare td strong{font-weight:600;color:var(--text)}
+.compare td::before{display:none;content:attr(data-label);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);margin-bottom:var(--space-1)}
+/* The three FiboToken steps. */
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-6);margin-top:var(--space-8)}
+.step{padding:var(--space-8);background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.step-number{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--primary-lt);color:var(--primary);font-weight:700;font-size:15px;margin-bottom:var(--space-4)}
+.step h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:var(--space-2)}
+.step p{font-size:15px;line-height:1.6;color:var(--text2)}
+.rates{list-style:none;display:grid;gap:var(--space-2);margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--border);font-size:15px}
+.rates li{display:flex;justify-content:space-between;gap:var(--space-3);color:var(--text2)}
+.rates strong{font-weight:700;color:var(--text);white-space:nowrap}
+/* FAQ: native disclosure, one open at a time is not enforced. */
+.pr-faq{max-width:760px;margin:var(--space-8) auto 0;display:grid;gap:var(--space-3)}
+.pr-faq details{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.pr-faq summary{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);padding:var(--space-4) var(--space-6);min-height:56px;font-size:16px;font-weight:600;color:var(--text);cursor:pointer;list-style:none}
+.pr-faq summary::-webkit-details-marker{display:none}
+.pr-faq summary::after{content:"+";flex:none;font-size:22px;font-weight:500;color:var(--primary);transition:transform .15s}
+.pr-faq details[open] summary::after{transform:rotate(45deg)}
+.pr-faq details p{padding:0 var(--space-6) var(--space-6);font-size:15px;line-height:1.7;color:var(--text2)}
+/* Closing call to action with the countdown repeated. */
+.pr-close{margin-top:var(--space-16);text-align:center}
+.pr-close .founding{margin-top:var(--space-8);grid-template-columns:1fr;text-align:center}
+.pr-close .founding h2{text-align:center}
+.pr-close .countdown{max-width:520px;margin:0 auto}
+.pr-close .founding p{max-width:560px;margin:0 auto}
+.pr-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-3);margin-top:var(--space-6)}
+.pr-actions .btn{white-space:normal;text-align:center}
+.pr-close .btn-ghost{color:#fff;border-color:var(--navy-line)}
+.pr-close .btn-ghost:hover{background:var(--navy-soft);border-color:var(--navy-copy)}
+/* Terms and contact: one dialog, two tabs. */
+.pm-backdrop{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:var(--space-4)}
+.pm-backdrop.is-open{display:flex}
+.pm-dialog{position:relative;width:min(100%,640px);max-height:calc(100vh - var(--space-8));overflow:auto;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow-md);padding:var(--space-8);text-align:left}
+.pm-close{position:absolute;top:var(--space-4);right:var(--space-4);width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--border);border-radius:var(--r-btn);color:var(--text);cursor:pointer}
+.pm-close:hover{background:var(--bg-alt)}
+.pm-tabs{display:inline-flex;gap:var(--space-1);padding:var(--space-1);background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--r-pill);margin-bottom:var(--space-6)}
+.pm-tab{min-height:44px;padding:0 18px;font:inherit;font-size:15px;font-weight:600;color:var(--text2);background:transparent;border:0;border-radius:var(--r-pill);cursor:pointer;transition:background .15s,color .15s}
+.pm-tab[aria-selected="true"]{background:var(--card);color:var(--text);box-shadow:var(--shadow-sm)}
+.pm-panel[hidden]{display:none}
+.pm-panel h2{font-size:22px;font-weight:700;color:var(--text);margin-bottom:var(--space-3)}
+.pm-panel p{font-size:15px;line-height:1.7;color:var(--text2);margin-bottom:var(--space-4)}
+.pm-panel ul{padding-left:var(--space-6);display:grid;gap:var(--space-2);font-size:15px;line-height:1.6;color:var(--text2);margin-bottom:var(--space-6)}
+.pm-panel a{color:var(--primary);font-weight:600}
+.pm-panel .pm-links{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+.pm-panel .btn{white-space:normal;text-align:center}
 body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 .pricing-layout .nav,.pricing-layout>footer{flex:none}
-.pricing-layout a:focus-visible,.pricing-layout button:focus-visible{outline:3px solid var(--primary);outline-offset:4px}
+.pricing-layout a:focus-visible,.pricing-layout button:focus-visible,.pricing-layout summary:focus-visible{outline:3px solid var(--primary);outline-offset:4px}
 .pricing-layout footer a:focus-visible{outline-color:#fff}
 .skip-link{position:absolute;left:var(--space-4);top:-80px;padding:var(--space-3) var(--space-4);background:var(--card);color:var(--primary);z-index:70;border-radius:var(--r-btn)}
 .skip-link:focus{top:var(--space-3)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media(max-width:800px){.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto}.pricing-artwork img{aspect-ratio:4/3;object-fit:cover}.pricing-table td{padding:var(--space-6) 0}}
+@media(max-width:960px){.plan-grid,.steps{grid-template-columns:1fr;max-width:560px;margin-left:auto;margin-right:auto}.founding{grid-template-columns:1fr}.founding-benefits{grid-template-columns:1fr}}
+@media(max-width:800px){.rate-board{padding:var(--space-6) var(--space-4)}.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.pricing-table td{padding:var(--space-6) 0}.pr-section{margin-top:var(--space-12)}.founding{padding:var(--space-6)}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.step{padding:var(--space-6)}
+  .compare thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .compare,.compare tbody,.compare tr,.compare th,.compare td{display:block;width:auto}
+  .compare tr{padding:var(--space-4);border-top:1px solid var(--border)}
+  .compare tr:first-child{border-top:0}
+  .compare tbody th{width:auto;padding:0 0 var(--space-3);border:0;font-size:16px}
+  .compare td{padding:var(--space-3) 0 0;border:0}
+  .compare td::before{display:block}
+  .pm-dialog{padding:var(--space-6)}}
+@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.pm-tab,.pr-faq summary::after{transition:none}}
 </style>
 </head>
 <body class="pricing-layout">
@@ -39,27 +178,567 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 <main id="pricing" class="hero pricing-page" tabindex="-1">
   <div class="hero-inner">
   <div class="hero-eyebrow">Pricing</div>
-  <h1>Coming soon.</h1>
+  <h1>Free every day. <span>FiboTokens</span> when you need more.</h1>
+  <p class="pricing-lead">Every day you get 15 snippets, 10 prompts and 5 Brains for free. Beyond that, buy FiboTokens once and keep them forever. No subscription needed.</p>
+  <section class="rate-board" aria-labelledby="rate-title">
+    <div class="rate-head"><h2 class="rate-label" id="rate-title">Current exchange rate</h2><span class="rate-chip"><span aria-hidden="true">↕</span> Variable rate</span></div>
+    <p class="rate-main"><span class="rate-unit">1 FiboToken</span><span class="rate-eq" aria-hidden="true">=</span><span class="sr-only">is worth</span><span class="rate-value" data-pricing="euroPerFiboToken">€0.01</span></p>
+    <p class="rate-sub"><strong data-pricing="topUpEuros">€25</strong> = <strong data-pricing="fiboTokensPerTopUp">2,500</strong> FiboTokens · Rate set on <span data-pricing="rateSetOn">October 28, 2026</span></p>
+    <p class="rate-note">Like a currency, the FiboToken rate is variable: it can change over time and move with the market. A new rate applies to new packs only. FiboTokens you already own keep their value: one FiboToken, one use.</p>
+  </section>
   <div class="pricing-content">
   <figure class="pricing-artwork" aria-hidden="true">
-    <img src="{{PRICING_ARTWORK}}" alt="" width="1254" height="1254" decoding="async" fetchpriority="high">
+    <canvas></canvas>
   </figure>
   <table class="pricing-table">
     <caption class="sr-only">Our pricing principles</caption>
     <tbody>
-      <tr><td>No monthly / yearly subscription. No pathetic marketing.</td></tr>
+      <tr><td>No subscription required. A monthly plan is there only if you want one. No pathetic marketing.</td></tr>
       <tr><td>Only genuine pay per use.</td></tr>
       <tr><td>Lifetime credit.</td></tr>
       <tr><td>Revenue invested in top Developers and Ai coding model</td></tr>
     </tbody>
   </table>
   </div>
+
+  <section class="founding" id="founding" aria-labelledby="founding-title" data-countdown>
+    <div>
+      <span class="founding-badge" data-closed="Founding Members enrollment has closed">Founding Members enrollment closes</span>
+      <h2 id="founding-title" data-closed="Founding Members are in.">Your founding benefits start here</h2>
+      <p data-closed="Anyone who registered by December 31, 2026 keeps their founding benefits for life. New accounts start with the free daily allowance and pay only for what they use beyond it.">Register by December 31, 2026 and keep the free daily allowance, <span data-pricing="foundingDiscountPercent">20%</span> off every FiboToken pack and the rates reserved for founders, for as long as you have your account.</p>
+      <a class="btn btn-primary" href="https://app.fibonax.com/signup" data-closed="Get started free →">Register before the deadline →</a>
+    </div>
+    <div>
+      <p class="countdown-label" role="status" data-closed="Enrollment closed on December 31, 2026">Countdown to December 31, 2026</p>
+      <div class="countdown" role="timer" aria-live="off">
+        <div class="countdown-unit"><span class="countdown-number" data-unit="days">--</span><span class="countdown-unit-label">Days</span></div>
+        <div class="countdown-unit"><span class="countdown-number" data-unit="hours">--</span><span class="countdown-unit-label">Hours</span></div>
+        <div class="countdown-unit"><span class="countdown-number" data-unit="minutes">--</span><span class="countdown-unit-label">Minutes</span></div>
+        <div class="countdown-unit"><span class="countdown-number" data-unit="seconds">--</span><span class="countdown-unit-label">Seconds</span></div>
+      </div>
+      <p class="countdown-date"><time datetime="2026-12-31T23:59:59+01:00">December 31, 2026 · 23:59:59</time><br><span>Madrid time · Europe/Madrid (CET)</span></p>
+      <noscript>Enable JavaScript to see the live countdown. The deadline above remains valid.</noscript>
+    </div>
+    <div class="founding-benefits">
+      <div><h3>Permanent free plan</h3><p>15 snippets, 10 prompts and 5 Brains every day, for life.</p></div>
+      <div><h3>Permanent top-up discount</h3><p><span data-pricing="foundingDiscountPercent">20%</span> off every FiboToken pack, for life: <span data-pricing="foundingTopUpEuros">€20</span>, <span data-pricing="foundingPack50Euros">€40</span> and <span data-pricing="foundingPack100Euros">€80</span> instead of <span data-pricing="topUpEuros">€25</span>, <span data-pricing="pack50Euros">€50</span> and <span data-pricing="pack100Euros">€100</span>.</p></div>
+      <div><h3>Lifetime price protection</h3><p>Rates reserved for founders, under the terms you can read before you register.</p></div>
+    </div>
+  </section>
+
+  <section class="pr-section" id="plans" aria-labelledby="plans-title">
+    <h2 id="plans-title">Choose how you pay</h2>
+    <p class="pr-intro">Start free. When you need more, buy FiboTokens once and keep them forever, or go unlimited for <span data-pricing="monthlyEuros">€4.90</span> a month.</p>
+    <div class="plan-grid">
+      <article class="plan" aria-labelledby="plan-free">
+        <p class="plan-kind">Free</p>
+        <h3 class="plan-name" id="plan-free">Every day, for free</h3>
+        <p class="plan-price"><span class="plan-amount">€0</span><span class="plan-per">no card needed</span></p>
+        <p class="plan-tagline">A daily allowance that resets every morning. Founding Members keep it for life.</p>
+        <a class="btn btn-ghost plan-cta" href="https://app.fibonax.com/signup">Get started free</a>
+        <ul class="plan-list">
+          <li><span><strong data-pricing="freeSnippetsPerDay">15</strong> snippet expansions a day</span></li>
+          <li><span><strong data-pricing="freePromptsPerDay">10</strong> prompt expansions a day</span></li>
+          <li><span><strong data-pricing="freeBrainsPerDay">5</strong> Brain uses a day</span></li>
+          <li><span>Chrome extension, web dashboard and phone</span></li>
+          <li><span>Shared folders for your team</span></li>
+        </ul>
+      </article>
+      <article class="plan plan-featured" aria-labelledby="plan-payg">
+        <p class="plan-badge">Recommended</p>
+        <p class="plan-kind">Pay as you go</p>
+        <h3 class="plan-name" id="plan-payg">Buy once. Yours forever.</h3>
+        <p class="plan-price"><span class="plan-from">From</span><span class="plan-amount"><span data-pricing="topUpEuros">€25</span></span><span class="plan-per">one-time purchase</span><span class="plan-flag">Never expire</span></p>
+        <p class="plan-tagline">Pay once, with no subscription. Your FiboTokens never expire and stay in your account until you use them.</p>
+        <ul class="packs" aria-label="FiboToken packs">
+          <li><span class="pack-price" data-pricing="topUpEuros">€25</span><span class="pack-tokens"><strong data-pricing="fiboTokensPerTopUp">2,500</strong> FiboTokens</span></li>
+          <li><span class="pack-price" data-pricing="pack50Euros">€50</span><span class="pack-tokens"><strong data-pricing="pack50Tokens">5,250</strong> FiboTokens <span class="pack-bonus">+<span data-pricing="pack50BonusPercent">5%</span></span></span></li>
+          <li><span class="pack-price" data-pricing="pack100Euros">€100</span><span class="pack-tokens"><strong data-pricing="pack100Tokens">11,000</strong> FiboTokens <span class="pack-bonus">+<span data-pricing="pack100BonusPercent">10%</span></span></span></li>
+        </ul>
+        <a class="btn btn-primary plan-cta" href="https://app.fibonax.com/signup">Buy FiboTokens</a>
+        <p class="plan-note">Packs open on January 1, 2027. Founding Members get <span data-pricing="foundingDiscountPercent">20%</span> off every pack: <span data-pricing="foundingTopUpEuros">€20</span>, <span data-pricing="foundingPack50Euros">€40</span> and <span data-pricing="foundingPack100Euros">€80</span>. Prices include VAT.</p>
+        <ul class="plan-list">
+          <li><span>A one-time purchase, nothing recurring</span></li>
+          <li><span>Your FiboTokens never expire</span></li>
+          <li><span>1 FiboToken = <strong data-pricing="euroPerFiboToken">€0.01</strong> at today’s variable rate, one FiboToken for every use</span></li>
+          <li><span>Bigger packs come with bonus FiboTokens</span></li>
+          <li><span>Balance and history in your account</span></li>
+        </ul>
+      </article>
+      <article class="plan" aria-labelledby="plan-monthly">
+        <p class="plan-kind">Monthly subscription</p>
+        <h3 class="plan-name" id="plan-monthly">Unlimited, every day</h3>
+        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€4.90</span><span class="plan-per">per month</span></p>
+        <p class="plan-tagline">Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.</p>
+        <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Compare plans</a>
+        <p class="plan-note">Opens on January 1, 2027. Renewal and cancellation terms are shown before you subscribe. Price includes VAT.</p>
+        <ul class="plan-list">
+          <li><span>Unlimited snippet, prompt and Brain uses</span></li>
+          <li><span>No FiboTokens needed</span></li>
+          <li><span>Chrome extension, web dashboard and phone</span></li>
+          <li><span>The same price for everyone</span></li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="pr-section" id="compare" aria-labelledby="compare-title">
+    <h2 id="compare-title">Compare the three</h2>
+    <p class="pr-intro">Every option starts with the free daily allowance. Pay as you go and the monthly plan only cover what you use beyond it.</p>
+    <div class="compare-toggle-row">
+      <button type="button" class="btn btn-ghost" id="compare-toggle" aria-expanded="true" aria-controls="compare-body" data-open="Compare plans" data-close="Hide the comparison">Hide the comparison</button>
+    </div>
+    <div class="compare-body" id="compare-body">
+    <div class="compare-wrap">
+    <table class="compare">
+      <caption class="sr-only">What each option includes</caption>
+      <thead>
+        <tr><th scope="col">What you get</th><th scope="col">Free</th><th scope="col" class="is-featured">Pay as you go</th><th scope="col">Monthly subscription</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">Price</th><td data-label="Free"><strong>€0</strong></td><td data-label="Pay as you go"><strong>From <span data-pricing="topUpEuros">€25</span>, once</strong></td><td data-label="Monthly subscription"><strong><span data-pricing="monthlyEuros">€4.90</span> per month</strong></td></tr>
+        <tr><th scope="row">Recurring payment</th><td data-label="Free">No</td><td data-label="Pay as you go">No, a one-time purchase</td><td data-label="Monthly subscription">Yes, monthly</td></tr>
+        <tr><th scope="row">FiboTokens</th><td data-label="Free">Not needed</td><td data-label="Pay as you go"><strong data-pricing="fiboTokensPerTopUp">2,500</strong> for <span data-pricing="topUpEuros">€25</span>, <strong data-pricing="pack50Tokens">5,250</strong> for <span data-pricing="pack50Euros">€50</span>, <strong data-pricing="pack100Tokens">11,000</strong> for <span data-pricing="pack100Euros">€100</span></td><td data-label="Monthly subscription">Not needed</td></tr>
+        <tr><th scope="row">Expiry</th><td data-label="Free">The allowance renews every day</td><td data-label="Pay as you go"><strong>Never</strong></td><td data-label="Monthly subscription">Unlimited while you are subscribed</td></tr>
+        <tr><th scope="row">Daily use</th><td data-label="Free"><strong data-pricing="freeSnippetsPerDay">15</strong> snippets, <strong data-pricing="freePromptsPerDay">10</strong> prompts, <strong data-pricing="freeBrainsPerDay">5</strong> Brains</td><td data-label="Pay as you go">Your free allowance first, then <strong data-pricing="fiboTokensPerSnippet">1</strong> FiboToken per use</td><td data-label="Monthly subscription"><strong>Unlimited</strong></td></tr>
+        <tr><th scope="row">Founding Member benefit</th><td data-label="Free">The free allowance, for life</td><td data-label="Pay as you go"><strong data-pricing="foundingDiscountPercent">20%</strong> off every pack, for life</td><td data-label="Monthly subscription">The same price for everyone</td></tr>
+        <tr><th scope="row">Cancellation</th><td data-label="Free">Nothing to cancel</td><td data-label="Pay as you go">Nothing to cancel: you bought once</td><td data-label="Monthly subscription">Terms shown before you subscribe</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="pr-note">All prices include VAT. Packs and the monthly plan open on January 1, 2027. The free allowance applies today.</p>
+    </div>
+  </section>
+
+  <section class="pr-section" id="fibotokens" aria-labelledby="fibotokens-title">
+    <h2 id="fibotokens-title">How FiboTokens work</h2>
+    <p class="pr-intro">One FiboToken is worth <span data-pricing="euroPerFiboToken">€0.01</span>. Every use costs the same, one FiboToken, and the free allowance is always spent first.</p>
+    <div class="steps">
+      <article class="step">
+        <span class="step-number" aria-hidden="true">1</span>
+        <h3>Buy a pack, once</h3>
+        <p>Choose <span data-pricing="topUpEuros">€25</span>, <span data-pricing="pack50Euros">€50</span> or <span data-pricing="pack100Euros">€100</span>. Bigger packs add bonus FiboTokens, and Founding Members pay <span data-pricing="foundingDiscountPercent">20%</span> less. Your FiboTokens never expire.</p>
+      </article>
+      <article class="step">
+        <span class="step-number" aria-hidden="true">2</span>
+        <h3>Spend per use</h3>
+        <p>Your free daily allowance goes first. Only after that does a use cost FiboTokens.</p>
+        <ul class="rates">
+          <li>Expand a snippet <strong><span data-pricing="fiboTokensPerSnippet">1</span> FiboToken</strong></li>
+          <li>Expand a prompt <strong><span data-pricing="fiboTokensPerPrompt">1</span> FiboToken</strong></li>
+          <li>Use a Brain <strong><span data-pricing="fiboTokensPerBrain">1</span> FiboToken</strong></li>
+        </ul>
+      </article>
+      <article class="step">
+        <span class="step-number" aria-hidden="true">3</span>
+        <h3>See where you stand</h3>
+        <p>Your balance and every use are listed in your account, so you always know what you have left and what it went on.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="pr-section" id="faq" aria-labelledby="faq-title">
+    <h2 id="faq-title">Questions about paying</h2>
+    <div class="pr-faq">
+      <details><summary>Is Pay as you go a subscription?</summary><p>No. It is a one-time purchase. You pay once, the FiboTokens land in your account and they stay there until you use them. Nothing renews.</p></details>
+      <details><summary>Do FiboTokens expire?</summary><p>No. FiboTokens you buy never expire. They stay in your account until you use them.</p></details>
+      <details><summary>Can the exchange rate change?</summary><p>Yes. Like a currency, the FiboToken rate is variable and can move with the market. Any change applies to new packs only and is shown on this page before you buy. FiboTokens you already own keep their value: one FiboToken, one use.</p></details>
+      <details><summary>What counts as a use?</summary><p>Expanding a snippet, expanding a prompt or adding a Brain to a chat. Writing, editing and organising your library never costs anything.</p></details>
+      <details><summary>What happens when I reach the daily allowance?</summary><p>You can keep writing and organising. Expanding resumes the next day, or straight away with FiboTokens or the monthly plan.</p></details>
+      <details><summary>Can I cancel or get a refund?</summary><p>A pack is a one-time purchase, so there is nothing to cancel. The monthly plan shows its renewal, cancellation and refund rules before you subscribe.</p></details>
+      <details><summary>What does Founding Member mean?</summary><p>Anyone who registers by December 31, 2026. Founding Members keep the free daily allowance for life, get <span data-pricing="foundingDiscountPercent">20%</span> off every FiboToken pack on top of the pack bonus, and the rates reserved for founders, under the terms.</p></details>
+      <details><summary>Is VAT included?</summary><p>Yes. Every price on this page includes VAT. What you see is what you pay.</p></details>
+    </div>
+  </section>
+
+  <section class="pr-close" aria-labelledby="close-title">
+    <div class="founding" data-countdown>
+      <div>
+        <span class="founding-badge" data-closed="Founding Members enrollment has closed">Founding Members enrollment closes</span>
+        <h2 id="close-title" data-closed="Fibonax is free every day.">Become a Founding Member</h2>
+        <p data-closed="Start with 15 snippets, 10 prompts and 5 Brains a day, and buy FiboTokens only when you need more.">Your early access. Your permanent benefits. Register by December 31, 2026.</p>
+        <p class="countdown-label" role="status" data-closed="Enrollment closed on December 31, 2026">Countdown to December 31, 2026</p>
+        <div class="countdown" role="timer" aria-live="off">
+          <div class="countdown-unit"><span class="countdown-number" data-unit="days">--</span><span class="countdown-unit-label">Days</span></div>
+          <div class="countdown-unit"><span class="countdown-number" data-unit="hours">--</span><span class="countdown-unit-label">Hours</span></div>
+          <div class="countdown-unit"><span class="countdown-number" data-unit="minutes">--</span><span class="countdown-unit-label">Minutes</span></div>
+          <div class="countdown-unit"><span class="countdown-number" data-unit="seconds">--</span><span class="countdown-unit-label">Seconds</span></div>
+        </div>
+        <div class="pr-actions">
+          <a class="btn btn-primary" href="https://app.fibonax.com/signup" data-closed="Get started free →">Register before the deadline →</a>
+          <button type="button" class="btn btn-ghost" id="pm-open">Terms &amp; contact</button>
+        </div>
+      </div>
+    </div>
+  </section>
   </div>
 </main>
+
+<div class="pm-backdrop" id="pm-backdrop">
+  <div class="pm-dialog" role="dialog" aria-modal="true" aria-labelledby="pm-title">
+    <button type="button" class="pm-close" id="pm-close" aria-label="Close">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <h2 class="sr-only" id="pm-title">Terms and contact</h2>
+    <div class="pm-tabs" role="tablist" aria-label="Terms and contact">
+      <button type="button" class="pm-tab" role="tab" id="pm-tab-terms" aria-selected="true" aria-controls="pm-panel-terms">Terms &amp; Conditions</button>
+      <button type="button" class="pm-tab" role="tab" id="pm-tab-contact" aria-selected="false" aria-controls="pm-panel-contact" tabindex="-1">Contact us</button>
+    </div>
+    <div class="pm-panel" role="tabpanel" id="pm-panel-terms" aria-labelledby="pm-tab-terms" tabindex="0">
+      <h2>What the terms cover</h2>
+      <p>Before you register or buy, the terms explain, in plain words:</p>
+      <ul>
+        <li>The free plan and its daily allowance.</li>
+        <li>Pack prices, what a FiboToken is worth and how the variable rate can change.</li>
+        <li>What each use costs, and that FiboTokens never expire.</li>
+        <li>Who is a Founding Member and what they keep.</li>
+        <li>How lifetime price protection and the <span data-pricing="foundingDiscountPercent">20%</span> founding discount work.</li>
+        <li>Renewal, cancellation and refunds for the monthly plan.</li>
+        <li>How your personal data is handled.</li>
+      </ul>
+      <div class="pm-links">
+        <a class="btn btn-primary" href="../legal/terms-and-conditions.html">Read the full terms</a>
+        <a class="btn btn-ghost" href="../legal/privacy-policy.html">Privacy policy</a>
+      </div>
+    </div>
+    <div class="pm-panel" role="tabpanel" id="pm-panel-contact" aria-labelledby="pm-tab-contact" tabindex="0" hidden>
+      <h2>Talk to us</h2>
+      <p>A question about FiboTokens, plans or your founding benefits? Write to us and a person answers. Your message is used only to reply to you.</p>
+      <div class="pm-links">
+        <button type="button" class="btn btn-primary" id="contact-open">Open the contact form</button>
+        <a class="btn btn-ghost" href="mailto:fibonaxai@gmail.com">Email fibonaxai@gmail.com</a>
+      </div>
+    </div>
+  </div>
+</div>
 {{SITE_FOOTER}}
 {{SITE_CONTACT}}
 <script>
 {{SITE_JS}}
+</script>
+<script>
+// Every number on this page lives here, and scripts/check-pricing-config.js
+// fails CI when a [data-pricing] slot or the <time> deadline in the markup
+// disagrees with it. Change a value here, then in the markup it names.
+var PRICING = {
+  freeSnippetsPerDay: 15,
+  freePromptsPerDay: 10,
+  freeBrainsPerDay: 5,
+  euroPerFiboToken: 0.01,
+  topUpEuros: 25,
+  fiboTokensPerTopUp: 2500,
+  fiboTokensPerSnippet: 1,
+  fiboTokensPerPrompt: 1,
+  fiboTokensPerBrain: 1,
+  pack50Euros: 50,
+  pack50Tokens: 5250,
+  pack50BonusPercent: 5,
+  pack100Euros: 100,
+  pack100Tokens: 11000,
+  pack100BonusPercent: 10,
+  foundingDiscountPercent: 20,
+  foundingTopUpEuros: 20,
+  foundingPack50Euros: 40,
+  foundingPack100Euros: 80,
+  monthlyEuros: 4.9,
+  // Madrid is UTC+01:00 at this winter deadline, whatever the visitor's zone.
+  // The day the current exchange rate was set; shown on the rate card.
+  rateSetOn: '2026-10-28',
+  deadline: '2026-12-31T23:59:59+01:00',
+  closesFrom: '2027-01-01T00:00:00+01:00'
+};
+
+// Countdown to the Founding Members deadline, in both panels. Once the
+// deadline has passed the panels swap to their closed wording and stay there:
+// the state is read from the clock on every tick, never stored.
+(function () {
+  var roots = Array.from(document.querySelectorAll('[data-countdown]'));
+  var deadline = Date.parse(PRICING.deadline);
+  var closesFrom = Date.parse(PRICING.closesFrom);
+  var panels = roots.map(function (root) {
+    return {
+      root: root,
+      units: ['days', 'hours', 'minutes', 'seconds'].map(function (name) { return root.querySelector('[data-unit="' + name + '"]'); }),
+      copy: Array.from(root.querySelectorAll('[data-closed]')).map(function (node) { return { node: node, open: node.textContent }; })
+    };
+  });
+  var previous;
+  var timeout;
+  function render() {
+    var now = Date.now();
+    var total = Math.max(0, Math.ceil((deadline - now) / 1000));
+    var values = [Math.floor(total / 86400), Math.floor(total / 3600) % 24, Math.floor(total / 60) % 60, total % 60];
+    var closed = now >= closesFrom;
+    panels.forEach(function (panel) {
+      panel.units.forEach(function (node, index) {
+        var value = String(values[index]).padStart(2, '0');
+        if (node.textContent !== value) node.textContent = value;
+      });
+      if (closed !== previous) {
+        panel.copy.forEach(function (item) { item.node.textContent = closed ? item.node.getAttribute('data-closed') : item.open; });
+        panel.root.setAttribute('data-closed', String(closed));
+      }
+    });
+    previous = closed;
+    return closed;
+  }
+  function tick() {
+    clearTimeout(timeout);
+    if (!render() && !document.hidden) timeout = setTimeout(tick, 1000 - Date.now() % 1000);
+  }
+  document.addEventListener('visibilitychange', tick);
+  window.addEventListener('pageshow', tick);
+  window.addEventListener('pagehide', function () { clearTimeout(timeout); });
+  tick();
+})();
+
+// The comparison starts folded behind Compare plans, as on the reference
+// page; without JavaScript it stays open. The third card's button and the
+// address #compare open it.
+(function () {
+  var toggle = document.getElementById('compare-toggle');
+  var body = document.getElementById('compare-body');
+  function set(open) {
+    body.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = toggle.getAttribute(open ? 'data-close' : 'data-open');
+  }
+  toggle.addEventListener('click', function () { set(body.hidden); });
+  Array.from(document.querySelectorAll('[data-compare-open]')).forEach(function (link) {
+    link.addEventListener('click', function () { set(true); });
+  });
+  set(location.hash === '#compare');
+  window.addEventListener('hashchange', function () { if (location.hash === '#compare') set(true); });
+})();
+
+// Terms and contact dialog: two tabs, Escape closes, focus returns to the
+// button that opened it. "Open the contact form" hands over to the shared
+// contact window, so this one closes first.
+(function () {
+  var backdrop = document.getElementById('pm-backdrop');
+  var opener = document.getElementById('pm-open');
+  var closer = document.getElementById('pm-close');
+  var tabs = Array.from(backdrop.querySelectorAll('[role="tab"]'));
+  var panels = tabs.map(function (tab) { return document.getElementById(tab.getAttribute('aria-controls')); });
+  function select(index) {
+    tabs.forEach(function (tab, i) {
+      var on = i === index;
+      tab.setAttribute('aria-selected', String(on));
+      tab.tabIndex = on ? 0 : -1;
+      panels[i].hidden = !on;
+    });
+    tabs[index].focus();
+  }
+  function open() {
+    backdrop.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    tabs[0].focus();
+  }
+  function close() {
+    backdrop.classList.remove('is-open');
+    document.body.style.overflow = '';
+    opener.focus();
+  }
+  opener.addEventListener('click', open);
+  closer.addEventListener('click', close);
+  backdrop.addEventListener('click', function (e) { if (e.target === backdrop) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && backdrop.classList.contains('is-open')) close(); });
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { select(i); });
+    tab.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); select((i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length); }
+    });
+  });
+  document.getElementById('contact-open').addEventListener('click', close);
+})();
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.184.0/build/three.module.min.js"
+  },
+  "integrity": {
+    "https://unpkg.com/three@0.184.0/build/three.module.min.js": "sha384-35WaVqXNGvw49+RCXk67Ci9ebo55/5+CfirDbAVSG21KV8/7gO4xwIkhA5ZRcUHc",
+    "https://unpkg.com/three@0.184.0/build/three.core.min.js": "sha384-/2vXInuUL2LKgd3n86c5RIzG+YC7vk3zYPTknaEkF2H2sauHtaOrS8swZ+MURxU6"
+  }
+}
+</script>
+<script type="module">
+// The 3D T mark from the LeibTour T animation handoff (version B). Geometry,
+// material, lights and motion are the handoff's final values: see
+// scripts/templates/pricing-artwork.md before changing any number here.
+const figure = document.querySelector('.pricing-artwork');
+const canvas = figure.querySelector('canvas');
+
+// Geometry traced from the ver.2 reference render. Pixel coords from the
+// 2560-wide reference, normalised: x'=(x-1270)/600, y'=(700-y)/600.
+const px = (pts) => pts.map(([x, y]) => [(x - 1270) / 600, (700 - y) / 600]);
+const mirror = (pts) => pts.map(([x, y]) => [-x, y]);
+
+// Outer wing + centre stem: one symmetric piece ending in the V tip.
+const OUTER = px([
+  [640, 110], [1120, 110], [1270, 260], [1420, 110], [1900, 110],
+  [1850, 165], [1470, 165], [1325, 310], [1325, 1140], [1270, 1200],
+  [1215, 1140], [1215, 310], [1070, 165], [690, 165],
+]);
+// Middle wing + middle stem (left piece; right is mirrored).
+const MID_L = px([
+  [720, 190], [1070, 190], [1190, 310], [1190, 1110], [1130, 1050],
+  [1130, 370], [1005, 245], [775, 245],
+]);
+// Inner wing + outer stem.
+const INNER_L = px([
+  [800, 270], [1020, 270], [1105, 355], [1105, 1050], [1045, 990],
+  [1045, 410], [960, 325], [855, 325],
+]);
+
+function buildT(THREE, material, { depth = 0.16, bevel = 0.012 } = {}) {
+  const group = new THREE.Group();
+  group.name = 'leibtour_T';
+  const mk = (name, pts) => {
+    const shape = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)));
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 3, curveSegments: 2,
+    });
+    geo.translate(0, 0, -depth / 2);
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, material);
+    m.name = name;
+    m.castShadow = m.receiveShadow = true;
+    group.add(m);
+  };
+  mk('wing_outer_stem_center', OUTER);
+  mk('stripe_mid_left', MID_L);
+  mk('stripe_mid_right', mirror(MID_L).reverse());
+  mk('stripe_inner_left', INNER_L);
+  mk('stripe_inner_right', mirror(INNER_L).reverse());
+  return group;
+}
+
+// Studio-style equirect environment drawn on a canvas: gives chrome something to reflect.
+function makeStudioEnv(THREE, renderer) {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 512;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, 512);
+  grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.42, '#c9cad0');
+  grad.addColorStop(0.5, '#6a6b72'); grad.addColorStop(0.56, '#1a1a1e'); grad.addColorStop(1, '#050506');
+  g.fillStyle = grad; g.fillRect(0, 0, 1024, 512);
+  // soft light panels
+  const panel = (x, y, w, h, a) => { g.fillStyle = `rgba(255,255,255,${a})`; g.fillRect(x, y, w, h); };
+  panel(60, 40, 300, 150, 1); panel(640, 30, 340, 120, 0.95); panel(380, 150, 260, 40, 0.8); panel(200, 330, 620, 24, 0.55);
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const pm = new THREE.PMREMGenerator(renderer);
+  const env = pm.fromEquirectangular(tex).texture;
+  tex.dispose(); pm.dispose();
+  return env;
+}
+
+function start(THREE) {
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  // Only three's own shaders run here, fixed by the pinned version. Skipping the
+  // check keeps driver notes (Windows prints several) out of the console.
+  renderer.debug.checkShaderErrors = false;
+  renderer.setClearColor(0x000000, 0);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.25;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const scene = new THREE.Scene();
+  scene.environment = makeStudioEnv(THREE, renderer);
+  const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 50);
+  camera.position.set(0, 0.15, 6.2);
+
+  const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(3, 4, 5);
+  const rim = new THREE.DirectionalLight(0xdfe6ff, 0.8); rim.position.set(-4, -2, -3);
+  const sweep = new THREE.PointLight(0xffffff, 0, 6, 2);
+  scene.add(key, rim, sweep);
+
+  const chrome = new THREE.MeshStandardMaterial({ color: 0x8a8b92, metalness: 1, roughness: 0.16 });
+  chrome.name = 'dark_chrome';
+  const model = buildT(THREE, chrome);
+  model.position.sub(new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3()));
+  const pivot = new THREE.Group(); // pendulum sway
+  const tilt = new THREE.Group();  // follows the pointer
+  pivot.add(model); tilt.add(pivot); scene.add(tilt);
+  // Stripes float as separated layers: each keeps its rest position and a depth order, centre nearest.
+  const layers = model.children.map((m, i) => ({ m, rest: m.position.clone(), depth: [0, 0.5, 0.5, 1, 1][i], side: [0, -1, 1, -1, 1][i] }));
+
+  const PERIOD = 10; // seconds per seamless loop
+  const target = { x: 0, y: 0 }, cur = { x: 0, y: 0 };
+  let ph = 0;
+
+  function pose() {
+    pivot.rotation.y = Math.sin(ph * Math.PI * 2) * 0.5;
+    pivot.rotation.x = Math.sin(ph * Math.PI * 4 + 1) * 0.06;
+    const open = 0.5 - 0.5 * Math.cos(ph * Math.PI * 2);
+    const s = (ph * 2) % 1;
+    sweep.position.set(-3 + 6 * s, 1.2 - 2 * s, 1.6);
+    sweep.intensity = 6 * Math.sin(s * Math.PI);
+    cur.x += (target.x - cur.x) * 0.06; cur.y += (target.y - cur.y) * 0.06;
+    tilt.rotation.x = cur.x; tilt.rotation.y = cur.y * 0.6;
+    // layers breathe apart and close again; deeper layers also shift more with the pointer
+    for (const L of layers) {
+      L.m.position.x = L.rest.x + L.side * L.depth * 0.08 * open + cur.y * L.depth * 0.12;
+      L.m.position.y = L.rest.y - L.depth * 0.05 * open - cur.x * L.depth * 0.12;
+      L.m.position.z = L.rest.z - L.depth * 0.42 * open;
+    }
+  }
+
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    // keep the mark fully in frame on narrow containers
+    camera.position.z = 6.2 * Math.max(1, 1.15 / camera.aspect);
+    renderer.render(scene, camera);
+  }
+
+  // The loop runs only while the mark is on screen and motion is welcome.
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  let raf = 0, last = 0, onScreen = false;
+  function frame(now) {
+    // a long gap (background tab) resumes where it paused instead of jumping
+    if (last) ph = (ph + Math.min(now - last, 100) / 1000 / PERIOD) % 1;
+    last = now;
+    pose();
+    renderer.render(scene, camera);
+    raf = requestAnimationFrame(frame);
+  }
+  function play() {
+    const run = onScreen && !still.matches;
+    if (run && !raf) { last = 0; raf = requestAnimationFrame(frame); }
+    if (!run && raf) { cancelAnimationFrame(raf); raf = 0; }
+  }
+  // Reduced motion: one still frame at phase 0, no loop and no tilt.
+  function rest() {
+    ph = 0; target.x = target.y = cur.x = cur.y = 0;
+    pose();
+    renderer.render(scene, camera);
+  }
+
+  const aim = (nx, ny) => { target.y = nx * 0.45; target.x = ny * 0.3; };
+  addEventListener('pointermove', (e) => aim((e.clientX / innerWidth - 0.5) * 2, (e.clientY / innerHeight - 0.5) * 2));
+  // the pointer left the window, or a touch ended: ease back to rest
+  document.addEventListener('pointerout', (e) => { if (!e.relatedTarget) aim(0, 0); });
+
+  pose();
+  new ResizeObserver(resize).observe(canvas);
+  new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; play(); }).observe(canvas);
+  still.addEventListener('change', () => { if (still.matches) rest(); play(); });
+  figure.classList.add('is-ready');
+}
+
+try {
+  start(await import('three'));
+} catch (err) {
+  console.error('Pricing page: the 3D T mark could not start (three.js did not load or WebGL is off), so the page shows without it.', err);
+  figure.remove();
+}
 </script>
 </body>
 </html>

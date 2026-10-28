@@ -1,13 +1,17 @@
-import { Children, useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Globe, Search, Share2, Users } from 'lucide-react';
-import { SnippetIcon } from '@/components/shared/SnippetIcon';
-import { PromptIcon } from '@/components/shared/PromptIcon';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Globe, Share2 } from 'lucide-react';
 import { EmptyState } from '@/components/layout/EmptyState';
+import { LoadingBlock } from '@/components/layout/LoadingBlock';
 import { CreateTeamPanel } from '@/features/org/CreateTeamPanel';
 import { FolderShareModal } from '@/features/org/FolderShareModal';
-import { InviteMemberPanel } from '@/features/org/InviteMemberPanel';
+import {
+  canInvite,
+  InvitationRows,
+  InvitePeopleButton,
+  ROLE_LABEL,
+  useInvitations,
+} from '@/features/org/InviteMemberPanel';
 import { TeamCover } from '@/features/org/TeamCover';
-import { TeamSharingGuide } from '@/features/org/TeamSharingGuide';
 import { Avatar } from '@/components/shared/Avatar';
 import { AvatarStack, type StackMember } from '@/components/shared/AvatarStack';
 import { useSnippetStore } from '@/stores/snippetStore';
@@ -16,27 +20,36 @@ import { useOrgStore } from '@/stores/orgStore';
 import { useAuthStore } from '@/stores/authStore';
 import { permissionsApi } from '@/lib/api/permissionsApi';
 import { FolderIcon } from '@/lib/folderIcons';
-import type { Folder, FolderPermission, FolderShareScope, OrgMember } from '@/types/database';
+import { describeFolderContents } from '@/lib/teamFolders';
+import type {
+  Folder,
+  FolderPermission,
+  FolderShareScope,
+  OrgMember,
+  OrganizationSummary,
+} from '@/types/database';
 
-/** Resolved creator identity for a shared item. */
-interface CreatorInfo {
-  name: string | null;
-  email: string | null;
-  isYou: boolean;
-  /** Human label for tooltips, e.g. "Maria" or "you". */
-  label: string;
+/** What a shared folder holds, counted once per render for every row. */
+interface FolderCounts {
+  snippets: number;
+  prompts: number;
 }
 
+const NO_ITEMS: FolderCounts = { snippets: 0, prompts: 0 };
+
 /**
- * Team hub — the home of Fibonax's core feature. Shows your team roster,
- * everything shared (split by "by you" vs "with you"), who has access to each
- * folder, and a search across all shared snippets + prompts. Sharing itself
- * stays folder-level (Phase B org ACL) and is managed through FolderShareModal.
+ * The Team page: who is in the team, and which folders are shared. One calm
+ * screen. The People list carries the one action, Invite people, and the
+ * invitations already sent; the folder list says who has each folder and
+ * what it holds, with Manage sharing beside it. Sharing itself stays
+ * folder-level (Phase B org ACL) and is managed through FolderShareModal;
+ * the items inside a folder are read on the Snippets and Prompts pages.
  */
 export function TeamPage() {
   const folders = useSnippetStore((s) => s.folders);
   const folderShares = useSnippetStore((s) => s.folderShares);
   const snippets = useSnippetStore((s) => s.snippets);
+  const snippetsLoading = useSnippetStore((s) => s.loading);
   const loadSnippets = useSnippetStore((s) => s.load);
 
   const prompts = usePromptStore((s) => s.prompts);
@@ -51,7 +64,6 @@ export function TeamPage() {
 
   const [shareFolder, setShareFolder] = useState<Folder | null>(null);
   const [grantsByFolder, setGrantsByFolder] = useState<Map<string, FolderPermission[]>>(new Map());
-  const [query, setQuery] = useState('');
 
   // Per-folder grants drive the "who has access" faces. Non-fatal: a failure
   // degrades to scope-only badges (the store's folderShares stays authoritative).
@@ -98,27 +110,21 @@ export function TeamPage() {
     [folders, folderShares],
   );
 
-  const q = query.trim().toLowerCase();
+  const countsByFolder = useMemo(() => {
+    const map = new Map<string, FolderCounts>();
+    const bump = (folderId: string | null, key: keyof FolderCounts) => {
+      if (!folderId) return;
+      const counts = map.get(folderId) ?? { snippets: 0, prompts: 0 };
+      counts[key] += 1;
+      map.set(folderId, counts);
+    };
+    for (const s of snippets) bump(s.folder_id, 'snippets');
+    for (const p of prompts) bump(p.folder_id, 'prompts');
+    return map;
+  }, [snippets, prompts]);
 
-  const folderMatches = useCallback(
-    (folder: Folder): boolean => {
-      if (q === '') return true;
-      if (folder.name.toLowerCase().includes(q)) return true;
-      const hitSnip = snippets.some(
-        (s) =>
-          s.folder_id === folder.id &&
-          (s.name.toLowerCase().includes(q) || (s.triggers[0] ?? '').toLowerCase().includes(q)),
-      );
-      const hitPrompt = prompts.some(
-        (p) => p.folder_id === folder.id && p.name.toLowerCase().includes(q),
-      );
-      return hitSnip || hitPrompt;
-    },
-    [q, snippets, prompts],
-  );
-
-  const mine = sharedFolders.filter((f) => f.user_id === currentUserId && folderMatches(f));
-  const withMe = sharedFolders.filter((f) => f.user_id !== currentUserId && folderMatches(f));
+  const mine = sharedFolders.filter((f) => f.user_id === currentUserId);
+  const withMe = sharedFolders.filter((f) => f.user_id !== currentUserId);
 
   function reload() {
     void loadSnippets();
@@ -156,97 +162,60 @@ export function TeamPage() {
     [currentUserId, activeOrg],
   );
 
-  // Resolve an item's creator (its user_id is the original author — sharing only
-  // stamps organization_id, never reassigns ownership).
-  const resolveCreator = useCallback(
-    (userId: string): CreatorInfo => {
-      const isYou = userId === currentUserId;
-      const m = memberById.get(userId);
-      return {
-        name: m?.display_name ?? null,
-        email: m?.email ?? null,
-        isYou,
-        label: isYou ? 'you' : m ? m.display_name || m.email : 'a teammate',
-      };
-    },
-    [memberById, currentUserId],
-  );
-
-  const hasShared = sharedFolders.length > 0;
-
-  function renderCard(folder: Folder) {
-    const scope = folderShares.get(folder.id)?.scope ?? 'shared';
+  function renderRow(folder: Folder) {
     return (
-      <SharedFolderCard
+      <SharedFolderRow
         key={folder.id}
         folder={folder}
-        scope={scope}
+        scope={folderShares.get(folder.id)?.scope ?? 'shared'}
         faces={accessFaces(folder)}
-        snippets={snippets.filter((s) => s.folder_id === folder.id)}
-        prompts={prompts.filter((p) => p.folder_id === folder.id)}
-        query={q}
+        counts={countsByFolder.get(folder.id) ?? NO_ITEMS}
         canManage={canManage(folder)}
         onManage={() => setShareFolder(folder)}
-        resolveCreator={resolveCreator}
       />
     );
   }
+
+  // The first load has nothing to show yet; an empty state here would flash
+  // "Nothing shared yet" at people whose folders are still on their way.
+  const foldersLoading = snippetsLoading && folders.length === 0;
 
   return (
     <>
       <TeamCover />
 
-      <div className="flex flex-col gap-4">
-        {members.length > 0 && <TeamRoster members={members} currentUserId={currentUserId} />}
+      {!orgLoaded ? (
+        <LoadingBlock what="your team" />
+      ) : !activeOrg ? (
+        // No team yet: offer the one action that unblocks everything else.
+        <CreateTeamPanel />
+      ) : (
+        <div className="flex flex-col gap-4">
+          <PeopleCard org={activeOrg} members={members} currentUserId={currentUserId} />
 
-        {activeOrg && (activeOrg.myRole === 'admin' || activeOrg.myRole === 'manager') && (
-          <InviteMemberPanel org={activeOrg} />
-        )}
-
-        {/* No team yet: offer the one action that unblocks everything else.
-            Showing the sharing guide here would instruct a flow that ends in a
-            modal refusing to share. */}
-        {orgLoaded && !activeOrg ? (
-          <CreateTeamPanel />
-        ) : !hasShared ? (
-          <TeamSharingGuide />
-        ) : (
-          <>
-            {/* Search */}
-            <div className="relative max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search shared snippets and prompts…"
-                className="h-10 w-full rounded-[10px] border border-line bg-card pl-9 pr-3 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-
-            {mine.length === 0 && withMe.length === 0 ? (
-              <EmptyState
-                icon={Search}
-                title="No shared items match your search"
-                description="Try a different name or trigger."
-              />
-            ) : (
-              <>
-                {mine.length > 0 && (
-                  <Section title="Shared by you" count={mine.length}>
-                    {mine.map(renderCard)}
-                  </Section>
-                )}
-                {withMe.length > 0 && (
-                  <Section title="Shared with you" count={withMe.length}>
-                    {withMe.map(renderCard)}
-                  </Section>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </div>
+          {foldersLoading ? (
+            <LoadingBlock what="shared folders" />
+          ) : sharedFolders.length === 0 ? (
+            <EmptyState
+              icon={Share2}
+              title="Nothing shared yet"
+              description="On the Snippets page, right-click a folder and choose Share with team. Everyone you share it with gets its snippets and prompts straight away."
+            />
+          ) : (
+            <section
+              className="rounded-[16px] border border-line bg-card"
+              aria-labelledby="team-folders-title"
+            >
+              <CardHeading id="team-folders-title" title="Shared folders" count={sharedFolders.length} />
+              {mine.length > 0 && <FolderGroup title="Shared by you">{mine.map(renderRow)}</FolderGroup>}
+              {mine.length > 0 && withMe.length > 0 && <div className="h-px bg-line" />}
+              {withMe.length > 0 && (
+                <FolderGroup title="Shared with you">{withMe.map(renderRow)}</FolderGroup>
+              )}
+            </section>
+          )}
+        </div>
+      )}
 
       <FolderShareModal
         folder={shareFolder}
@@ -259,240 +228,130 @@ export function TeamPage() {
 
 /* ------------------------------------------------------------------ */
 
-function TeamRoster({
+function CardHeading({
+  id,
+  title,
+  count,
+  action,
+}: {
+  id: string;
+  title: string;
+  count: number;
+  action?: React.ReactNode;
+}) {
+  return (
+    <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+      <h2 id={id} className="text-sm font-semibold text-ink">
+        {title} <span className="font-normal text-ink-subtle">· {count}</span>
+      </h2>
+      {action}
+    </header>
+  );
+}
+
+function PeopleCard({
+  org,
   members,
   currentUserId,
 }: {
+  org: OrganizationSummary;
   members: OrgMember[];
   currentUserId: string | null;
 }) {
+  const inviter = canInvite(org.myRole);
+  const { invitations, refresh } = useInvitations(inviter ? org.id : null);
+
   return (
-    <section className="rounded-[16px] border border-line bg-card p-5">
-      <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-        <Users className="h-3.5 w-3.5" />
-        Your team · {members.length} {members.length === 1 ? 'person' : 'people'}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {members.map((m) => {
-          const isYou = m.user_id === currentUserId;
-          const name = m.display_name || m.email;
-          return (
-            <div
-              key={m.user_id}
-              className="flex items-center gap-2 rounded-full border border-line bg-bg-alt/60 py-1 pl-1 pr-3"
-            >
-              <Avatar name={m.display_name} email={m.email} highlight={isYou} size="sm" />
-              <span className="flex flex-col leading-tight">
-                <span className="text-xs font-medium text-ink">{isYou ? `${name} (you)` : name}</span>
-                <span className="text-[10px] uppercase tracking-wide text-ink-subtle">{m.role}</span>
-              </span>
-            </div>
-          );
-        })}
-      </div>
+    <section className="rounded-[16px] border border-line bg-card" aria-labelledby="team-people-title">
+      <CardHeading
+        id="team-people-title"
+        title="People"
+        count={members.length}
+        action={inviter ? <InvitePeopleButton org={org} onSent={refresh} /> : undefined}
+      />
+
+      {members.length === 0 ? (
+        // A team always holds at least you, so an empty list is one still on
+        // its way (the directory is fetched after a switch).
+        <p className="px-5 py-3 text-sm text-ink-subtle" role="status">
+          Loading people…
+        </p>
+      ) : (
+        <ul className="divide-y divide-line">
+          {members.map((m) => {
+            const isYou = m.user_id === currentUserId;
+            // The directory falls back to the email as the display name, so
+            // only a real name earns the email a line of its own.
+            const name = m.display_name.trim();
+            const hasName = name !== '' && name.toLowerCase() !== m.email.toLowerCase();
+            return (
+              <li key={m.user_id} className="flex items-center gap-3 px-5 py-3">
+                <Avatar name={m.display_name} email={m.email} highlight={isYou} size="md" />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm font-medium text-ink">
+                    {hasName ? name : m.email}
+                    {isYou && <span className="font-normal text-ink-subtle"> (you)</span>}
+                  </span>
+                  {hasName && <span className="truncate text-xs text-ink-subtle">{m.email}</span>}
+                </span>
+                <span className="shrink-0 text-xs text-ink-muted">{ROLE_LABEL[m.role]}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {inviter && <InvitationRows org={org} invitations={invitations} onChanged={refresh} />}
     </section>
   );
 }
 
-function Section({
-  title,
-  count,
-  children,
-}: {
-  title: string;
-  count: number;
-  children: React.ReactNode;
-}) {
+function FolderGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-        {title}
-        <span className="text-ink-subtle/70">· {count}</span>
-      </div>
-      {children}
+    <div>
+      <p className="px-5 pb-1 pt-3 text-xs font-medium text-ink-subtle">{title}</p>
+      <ul className="divide-y divide-line">{children}</ul>
     </div>
   );
 }
 
-interface SharedFolderCardProps {
+interface SharedFolderRowProps {
   folder: Folder;
   scope: FolderShareScope;
   faces: StackMember[];
-  snippets: { id: string; name: string; triggers: string[]; user_id: string }[];
-  prompts: { id: string; name: string; strategy_type: string | null; user_id: string }[];
-  query: string;
+  counts: FolderCounts;
   canManage: boolean;
   onManage: () => void;
-  resolveCreator: (userId: string) => CreatorInfo;
 }
 
-/** Always-visible creator face for a shared item; hover reveals the exact name. */
-function CreatorAvatar({ info }: { info: CreatorInfo }) {
+function SharedFolderRow({ folder, scope, faces, counts, canManage, onManage }: SharedFolderRowProps) {
   return (
-    <Avatar
-      name={info.name}
-      email={info.email}
-      highlight={info.isYou}
-      size="xs"
-      title={`Created by ${info.label}`}
-    />
-  );
-}
+    <li className="flex items-center gap-3 px-5 py-3">
+      <FolderIcon icon={folder.icon} className="h-[18px] w-[18px] text-ink-muted" />
+      <span className="flex min-w-0 flex-1 items-baseline gap-2">
+        <span className="truncate text-sm font-medium text-ink">{folder.name}</span>
+        <span className="shrink-0 text-xs text-ink-subtle">
+          {describeFolderContents(counts.snippets, counts.prompts)}
+        </span>
+      </span>
 
-function SharedFolderCard({
-  folder,
-  scope,
-  faces,
-  snippets,
-  prompts,
-  query,
-  canManage,
-  onManage,
-  resolveCreator,
-}: SharedFolderCardProps) {
-  const nameHit = query !== '' && folder.name.toLowerCase().includes(query);
-  const matchSnip = (s: { name: string; triggers: string[] }) =>
-    s.name.toLowerCase().includes(query) || (s.triggers[0] ?? '').toLowerCase().includes(query);
-  const matchPrompt = (p: { name: string }) => p.name.toLowerCase().includes(query);
-
-  // When the folder matched only by its name, show all its items; otherwise
-  // narrow to the items that matched the query.
-  const showAll = query === '' || nameHit;
-  const visibleSnippets = showAll ? snippets : snippets.filter(matchSnip);
-  const visiblePrompts = showAll ? prompts : prompts.filter(matchPrompt);
-
-  return (
-    <section className="rounded-[16px] border border-line bg-card p-5">
-      {/* Folder header */}
-      <div className="flex items-center gap-3 border-b border-line pb-3">
-        <FolderIcon icon={folder.icon} className="h-[18px] w-[18px]" />
-        <h2 className="truncate text-sm font-semibold text-ink">{folder.name}</h2>
-
-        {scope === 'team' ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-semibold text-primary">
-            <Globe className="h-3 w-3" />
-            Whole team
-          </span>
-        ) : (
-          faces.length > 0 && <AvatarStack members={faces} className="shrink-0" />
-        )}
-
-        <button
-          type="button"
-          onClick={onManage}
-          className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-line bg-card px-3 text-xs font-medium text-ink-muted transition-colors hover:border-primary/40 hover:text-primary"
-        >
-          <Share2 className="h-3.5 w-3.5" />
-          {canManage ? 'Manage sharing' : 'View access'}
-        </button>
-      </div>
-
-      {/* Two columns: snippets + prompts */}
-      <div className="grid grid-cols-2 gap-6 pt-4">
-        <AssetColumn
-          icon={<SnippetIcon className="h-3.5 w-3.5" />}
-          label="Snippets"
-          count={visibleSnippets.length}
-        >
-          {visibleSnippets.length === 0 ? (
-            <EmptyRow text="No snippets" />
-          ) : (
-            visibleSnippets.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-3 rounded-[8px] px-2 py-1.5 hover:bg-bg-alt"
-              >
-                <span className="truncate text-sm text-ink">{s.name}</span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <CreatorAvatar info={resolveCreator(s.user_id)} />
-                  {s.triggers[0] && (
-                    <span className="rounded-full border border-primary/20 bg-primary-light px-2 py-0.5 font-mono text-[11px] font-semibold text-primary">
-                      {s.triggers[0]}
-                    </span>
-                  )}
-                </span>
-              </div>
-            ))
-          )}
-        </AssetColumn>
-
-        <AssetColumn
-          icon={<PromptIcon className="h-3.5 w-3.5" />}
-          label="Prompts"
-          count={visiblePrompts.length}
-        >
-          {visiblePrompts.length === 0 ? (
-            <EmptyRow text="No prompts" />
-          ) : (
-            visiblePrompts.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between gap-3 rounded-[8px] px-2 py-1.5 hover:bg-bg-alt"
-              >
-                <span className="truncate text-sm text-ink">{p.name}</span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <CreatorAvatar info={resolveCreator(p.user_id)} />
-                  {p.strategy_type && (
-                    <span className="rounded-full bg-bg-alt px-2 py-0.5 text-[11px] font-medium text-ink-subtle">
-                      {p.strategy_type}
-                    </span>
-                  )}
-                </span>
-              </div>
-            ))
-          )}
-        </AssetColumn>
-      </div>
-    </section>
-  );
-}
-
-interface AssetColumnProps {
-  icon: React.ReactNode;
-  label: string;
-  count: number;
-  children: React.ReactNode;
-}
-
-/** Rows shown per column before the list collapses behind a "Show more" toggle. */
-const COLUMN_COLLAPSE_LIMIT = 8;
-
-function AssetColumn({ icon, label, count, children }: AssetColumnProps) {
-  const [expanded, setExpanded] = useState(false);
-  // Slice the rendered rows so a folder with dozens of shared items doesn't
-  // produce an endless column. The header keeps the true total ({count}); the
-  // toggle reveals the rest in place (no layout shift above the button).
-  const items = Children.toArray(children);
-  const overLimit = items.length > COLUMN_COLLAPSE_LIMIT;
-  const visible = expanded || !overLimit ? items : items.slice(0, COLUMN_COLLAPSE_LIMIT);
-  const hiddenCount = items.length - COLUMN_COLLAPSE_LIMIT;
-
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-        {icon}
-        {label}
-        <span className="text-ink-subtle/70">· {count}</span>
-      </div>
-      {visible}
-      {overLimit && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
-          className="mt-1 inline-flex items-center justify-center gap-1 self-start rounded-[8px] px-2 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary-light"
-        >
-          {expanded ? 'Show less' : `Show ${hiddenCount} more`}
-          <ChevronDown
-            className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
-            aria-hidden="true"
-          />
-        </button>
+      {scope === 'team' ? (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-semibold text-primary">
+          <Globe className="h-3 w-3" aria-hidden="true" />
+          Whole team
+        </span>
+      ) : (
+        faces.length > 0 && <AvatarStack members={faces} className="shrink-0" />
       )}
-    </div>
-  );
-}
 
-function EmptyRow({ text }: { text: string }) {
-  return <p className="px-2 py-1.5 text-sm italic text-ink-subtle">{text}</p>;
+      <button
+        type="button"
+        onClick={onManage}
+        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[8px] border border-line bg-card px-3 text-xs font-medium text-ink-muted transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
+        {canManage ? 'Manage sharing' : 'View access'}
+      </button>
+    </li>
+  );
 }

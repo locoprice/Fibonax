@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Fibonax | Advanced prompt engineering | Native AI Snippets | Memory Layer",
   "short_name": "Fibonax",
-  "version": "3.84.2",
-  "description": "AI prompt library and text expander. Free team sharing, dynamic snippets with live formulas, and two-way Notion sync.",
+  "version": "3.99.0",
+  "description": "AI prompt library and text expander. Free team sharing and dynamic snippets with live formulas.",
   "permissions": [
     "storage",
     "activeTab",
@@ -12,8 +12,7 @@
   ],
   "host_permissions": [
     "<all_urls>",
-    "https://eyowustlbqujaimaxggt.supabase.co/*",
-    "https://api.notion.com/*"
+    "https://eyowustlbqujaimaxggt.supabase.co/*"
   ],
   "externally_connectable": {
     "matches": [

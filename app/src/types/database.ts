@@ -131,6 +131,13 @@ export interface Snippet extends ReviewFields {
   name: string;
   content: string;
   bodies: SnippetBodies;
+  /**
+   * The formatted layout per language (`bodies_html`, with `body_html` its
+   * active-language mirror): Bold, Italic, Underline and lists, fields as their
+   * codes. A language with no formatting has no entry, and its plain body is
+   * all there is (lib/formattedBody.ts).
+   */
+  bodies_html?: SnippetBodies;
   triggers: string[];
   is_formula: boolean;
   formula: string | null;
@@ -158,6 +165,13 @@ export interface Snippet extends ReviewFields {
    * dashboard still displays it so it can be re-enabled.
    */
   is_active: boolean;
+  /**
+   * Warn before inserting when the text looks unfinished ("[xxx]", an empty
+   * box). False once someone chose "Don't warn me about this snippet again";
+   * the editor turns it back on. Read on every surface through
+   * `checksUnfinished` in extension/shared/fill-form.js.
+   */
+  check_unfinished: boolean;
   /**
    * Template-validation verdict persisted on write (STATUS-ICONS-001). The
    * queryable mirror of `validateSnippet`; the UI re-validates live so a stale
@@ -247,14 +261,6 @@ export interface Prompt extends ReviewFields {
   is_malformed: boolean;
 }
 
-export interface NotionSyncState {
-  database_id: string;
-  api_key: string;
-  last_sync_at: IsoDateTime | null;
-  status: 'idle' | 'syncing' | 'error';
-  last_error: string | null;
-}
-
 // ── Version history ───────────────────────────────────────────────────────────
 
 /**
@@ -273,6 +279,8 @@ export interface SnippetRevision {
   title: string;
   body: string;
   bodies: SnippetBodies;
+  /** The formatted layout per language at this save (`bodies_html`); empty when none. */
+  bodies_html?: SnippetBodies;
   edit_note: string | null;
   created_at: IsoDateTime;
 }
@@ -345,7 +353,7 @@ export interface ActivityMonth {
 
 /** GitHub-style "Activity overview" + "Contribution activity", on snippet data. */
 export interface ActivityOverview {
-  axes: ActivityAxis[]; // Snippets / Prompts / Folders / Notion syncs
+  axes: ActivityAxis[]; // Snippets / Prompts / Folders / Brains
   activeFolders: string[]; // top folders by usage — the "Contributed to" line
   timeline: ActivityMonth[]; // most-recent month first
 }

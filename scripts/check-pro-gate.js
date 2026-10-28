@@ -43,10 +43,10 @@ const MOBILE = read('app/public/mobile/index.html');
 const DOCS_JSON = read('user-docs/docs.json');
 
 // ── The switches ───────────────────────────────────────────────────────────
-const FEATURES = ['ask', 'draft', 'translate', 'labels', 'picture'];
+const FEATURES = ['ask', 'draft', 'translate', 'labels', 'picture', 'snippetPictures'];
 const on = {};
-for (const m of LIB.matchAll(/^\s*(ask|draft|translate|labels|picture):\s*(true|false),/gm)) on[m[1]] = m[2] === 'true';
-check('proFeatures.ts declares a switch for each of the five features', FEATURES.every((f) => f in on), JSON.stringify(on));
+for (const m of LIB.matchAll(/^\s*(ask|draft|translate|labels|picture|snippetPictures):\s*(true|false),/gm)) on[m[1]] = m[2] === 'true';
+check('proFeatures.ts declares a switch for each of the six features', FEATURES.every((f) => f in on), JSON.stringify(on));
 
 // ── 1. One label ───────────────────────────────────────────────────────────
 const label = (LIB.match(/export const PRO_SOON_LABEL = '([^']+)'/) || [])[1];
@@ -69,6 +69,7 @@ const ENTRY_POINTS = [
   ['draft', 'app/src/components/shared/DraftWithAi.tsx'],
   ['translate', 'app/src/features/snippets/NewSnippetDialog.tsx'],
   ['labels', 'app/src/features/labels/LabelSuggestions.tsx'],
+  ['snippetPictures', 'app/src/features/snippets/NewSnippetDialog.tsx'],
 ];
 for (const [feature, file] of ENTRY_POINTS) {
   const source = read(file);
@@ -132,6 +133,15 @@ check('the phone calls no other AI function', phoneCalls.every((fn) => PHONE_AI_
   phoneCalls.join(', '));
 check('the search panel only opens an answer when the Ask switch is on', read(ENTRY_POINTS[0][1]).includes('const canAsk = askAvailable && showAskRow;'));
 check('Translate does nothing while locked', read(ENTRY_POINTS[2][1]).includes('if (!translateAvailable) return;'));
+// Add a picture uploads to storage: the window that uploads is mounted only
+// while its switch is on, and the upload has one caller.
+check('the picture window exists only while Add a picture is on',
+  /\{picturesAvailable && \(\s*<FormPictureDialog/.test(read('app/src/features/snippets/NewSnippetDialog.tsx')));
+{
+  const found = SOURCES.filter((file) => read(file).includes('snippetPicturesApi.upload(')).sort();
+  check('snippetPicturesApi.upload( is called only from FormPictureDialog.tsx',
+    JSON.stringify(found) === JSON.stringify(['app/src/features/snippets/FormPictureDialog.tsx']), found.join(', '));
+}
 
 // ── 5. The manual follows the switches ─────────────────────────────────────
 const PAGES = [
@@ -158,6 +168,17 @@ if (on.picture) {
 } else {
   check('picture is locked, so the phone page leaves Read a picture out', !pictureDocumented);
   check('picture is locked, so its manual section is kept in docs/pro-features', exists('docs/pro-features/read-picture.mdx'));
+}
+
+// Pictures in snippets are a section of the dynamic-fields page once on, kept
+// in docs/pro-features while locked.
+const FIELDS_PAGE = read('user-docs/text-snippets/dynamic-fields.mdx');
+const picturesDocumented = FIELDS_PAGE.includes('## Pictures');
+if (on.snippetPictures) {
+  check('snippetPictures is on, so the dynamic fields page documents pictures', picturesDocumented);
+} else {
+  check('snippetPictures is locked, so the dynamic fields page leaves pictures out', !picturesDocumented);
+  check('snippetPictures is locked, so its manual section is kept in docs/pro-features', exists('docs/pro-features/snippet-pictures.mdx'));
 }
 
 if (failed > 0) {

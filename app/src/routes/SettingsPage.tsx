@@ -9,13 +9,12 @@ import { DeleteAccountPanel } from '@/features/settings/DeleteAccountPanel';
 import { InactivityPanel } from '@/features/settings/InactivityPanel';
 import { InlineTriggerPanel } from '@/features/settings/InlineTriggerPanel';
 import { IntegrationsPanel } from '@/features/settings/IntegrationsPanel';
-import { NotionSyncPanel } from '@/features/settings/NotionSyncPanel';
 import { PasswordPanel } from '@/features/settings/PasswordPanel';
 import { SaintOfDayPanel } from '@/features/settings/SaintOfDayPanel';
 import { SecurityPanel } from '@/features/settings/SecurityPanel';
 import { useSettingsStore } from '@/stores/settingsStore';
 
-const TABS = ['account', 'security', 'notion', 'integrations'] as const;
+const TABS = ['account', 'security', 'integrations'] as const;
 
 export function SettingsPage() {
   const profile = useSettingsStore((s) => s.profile);
@@ -35,14 +34,13 @@ export function SettingsPage() {
     <>
       <PageHeader
         title="Settings"
-        description="Manage your account, sync sources, and connected surfaces."
+        description="Manage your account, security, and connected surfaces."
       />
 
       <Tabs defaultValue={initialTab} className="w-full">
         <TabsList>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="notion">Notion sync</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
         </TabsList>
 
@@ -58,9 +56,6 @@ export function SettingsPage() {
         <TabsContent value="security" className="space-y-4">
           <PasswordPanel />
           <SecurityPanel />
-        </TabsContent>
-        <TabsContent value="notion">
-          <NotionSyncPanel />
         </TabsContent>
         <TabsContent value="integrations">
           <IntegrationsPanel />

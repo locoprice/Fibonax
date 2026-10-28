@@ -37,7 +37,7 @@
 - **Field overlays** for collecting user input before snippet insertion
 - **Multi-language snippet groups** (EN, ES, IT, MULTI)
 - **Real-time cloud sync** via Supabase as primary source of truth
-- **Optional Notion integration** — bi-directional sync with Notion databases
+- **Push to Notion** (dashboard only, shown to the team that owns that database): sends a snippet to the team Notion database through an edge function. The extension's pull from Notion was retired in v3.86.0
 - **Context menu** integration for right-click snippet insertion
 
 **Goal**: Replace tools like TextBlaze / TextExpander / Magical, emphasizing dynamic formulas, AI prompts, and reliable sync.
@@ -61,7 +61,6 @@
 | Styling | Plain CSS with CSS variables | No Tailwind, no shadcn/ui |
 | Cloud Backend | Supabase (PostgreSQL) | Direct REST API via `fetch()` — no SDK |
 | Database | PostgreSQL | RLS enabled, EU region |
-| Notion Sync | Notion API v2022-06-28 | Optional, user-configured |
 | Icons | Unicode emoji + inline SVG | No icon library |
 | Date Handling | Native `Date` object | No date-fns |
 | Testing | Node check scripts + CI | `node --check`, `scripts/check-*.js`; CI parity gate on push (see §11). No unit-test framework in the extension itself — the dashboard (`app/`) carries the vitest suite. |
@@ -86,9 +85,6 @@ extension/                              # Chrome MV3 source root (no build step)
 │   └── popup.js                       # Read-only popup UI + shared data core (DB wrapper)
 ├── auth/
 │   └── auth.js                        # Supabase OTP + session (importScripts'd by bg)
-├── services/
-│   └── notion-sync/
-│       └── notion-sync.js             # Notion incremental sync engine (17K)
 ├── overlay/
 │   └── overlay.css                    # Field input overlay styles
 ├── shared/
@@ -115,13 +111,12 @@ Supabase (PostgreSQL)
   └── Accessed via raw fetch() to REST API
 
 chrome.storage.sync
-  └── Caches snippets, trigger config, Notion config
+  └── Caches snippets, trigger config
   └── Cross-device sync via Chrome profile
   └── Read by content.js for snippet expansion
 
 chrome.storage.local
   └── Background sync locks and timestamps
-  └── Notion sync state (locks, timestamps)
 
 ```
 
@@ -137,18 +132,16 @@ background/background.js ──┘  (GET-only; also drives context menus)
                                               │
                                               └── overlay/overlay.css (field UI)
 
-services/notion-sync/notion-sync.js ──── Notion API (via Supabase edge function proxy)
 auth/auth.js  ────  importScripts'd by background.js  ────  Supabase OTP sessions
 ```
 
 ### Key Modules
 
 **`background/background.js`** — Service worker (persistent via MV3 alarms)
-- Loads `auth/auth.js` and `services/notion-sync/notion-sync.js` via `importScripts()`
+- Loads `auth/auth.js` via `importScripts()`
 - `supaFetch(table, qs)` — GET-only wrapper to Supabase REST API
 - `loadData()` — Fetches folders + snippets, builds context menus
 - `buildContextMenus()` — Creates hierarchical right-click menus
-- `bgNotionSync()` — Runs Notion sync on browser startup + alarm
 - Responds to `chrome.runtime.onMessage` events
 
 **`content/content.js`** — Injected into all pages
@@ -160,13 +153,11 @@ auth/auth.js  ────  importScripts'd by background.js  ────  Supa
 - `handleMatch()` — Triggers overlay or direct insertion
 - `showOverlay()` — Inline field input UI
 
-**`popup/popup.js`**: Read-only popup UI (instantiated on every icon click). Since v2.87.0 the popup only browses/searches/copies snippets and prompts and writes the expansion caches. All management (snippet/folder CRUD, triggers, Notion credentials, Team Sync) lives in the dashboard. The `DB` CRUD wrapper below remains for the popup's own stats and cache writes.
+**`popup/popup.js`**: Read-only popup UI (instantiated on every icon click). Since v2.87.0 the popup only browses/searches/copies snippets and prompts and writes the expansion caches. All management (snippet/folder CRUD, triggers, Team Sync) lives in the dashboard. The `DB` CRUD wrapper below remains for the popup's own stats and cache writes.
 - `DB` object — wraps all Supabase CRUD operations:
-  - `DB.loadAll()` — Loads folders, snippets, stats
-  - `DB.upsertSnippet(s)` — Create/update snippet
-  - `DB.deleteSnippet(id)` — Delete snippet
-  - `DB.upsertFolder(f)` / `DB.deleteFolder(id)` — Folder management
-  - `DB.updateStats(snippetId, uses, fills, lastUsed)` — Usage tracking
+  - `DB.loadAll()`: loads folders, snippets, stats
+  - `DB.upsertFolder(f)`: seeds the default folders for a new account
+  - `DB.updateStats(snippetId, uses, fills, lastUsed)`: usage tracking
 - `supaFetch(table, method, body, qs)` — Full REST wrapper (GET/POST/DELETE)
 - Until v3.36.0 it was also the logic core of `Sprintbrain.html`, run behind `extension/shared/chrome-shim.js`. That page and the shim are retired, so popup.js now serves the popup only. See §14.
 
@@ -175,11 +166,6 @@ auth/auth.js  ────  importScripts'd by background.js  ────  Supa
 - `sbRequestOtp(email)`, `sbVerifyOtp(email, code, rememberMe)`, `sbVerifyTokenHash(tokenHash)` — the dashboard SSO handoff (AUTH-EXT-003) redeems a one-time token_hash minted by the `mint-extension-session` edge function, so the extension owns a refresh-token family independent from the dashboard's
 - `sbRefreshToken()` is fail-open: only a definitive GoTrue rejection (or a closed remember-me window) clears the session; transient errors keep it. The 30-day remember window slides forward on every successful refresh
 - Stores the session in `chrome.storage.local` (`sb_session`, `sb_remember_until`)
-
-**`services/notion-sync/notion-sync.js`** — Notion integration (17K)
-- `_queryDatabase()` — Incremental query filtered by `last_edited_time`
-- Race-condition lock (30s cooldown), 8s timeout, session guard
-- Maps Notion pages → Fibonax snippets via `notion_page_id`
 
 ---
 

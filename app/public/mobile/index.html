@@ -53,9 +53,13 @@ body{
 .view{display:none}
 .view.active{display:flex;flex-direction:column;min-height:100dvh}
 
-/* Home and library pages scroll as a single mobile canvas. */
-#view-home,#view-list{overflow-y:auto;-webkit-overflow-scrolling:touch;
+/* Home and the three library pages scroll as a single mobile canvas. */
+#view-home,#view-list,#view-prompts,#view-memory{overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+/* A library page settles into place as it opens. */
+.lib-page.active{animation:lib-in .24s ease-out}
+@keyframes lib-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.lib-page.active{animation:none}}
 
 /* Task-first home (Concept B): a navy band with the brand, the workspace and
    three starting points, then the user's pinned work on the light page. */
@@ -162,23 +166,31 @@ body{
 }
 @media(prefers-reduced-motion:reduce){.home-task{transition:none}.home-task:active{transform:none}}
 
-/* ── GRADIENT HERO ───────────────────────────── */
-.mhero{
-  padding:0 20px 44px;
-  background:linear-gradient(160deg,#1B4FD8 0%,#1440B0 100%);
-  color:#fff;position:relative;overflow:hidden
-}
-.mhero::after{content:"";position:absolute;right:-40px;top:-40px;width:220px;height:220px;
-  background:radial-gradient(circle,rgba(255,255,255,.16),transparent 60%);pointer-events:none}
-.mhero::before{content:"";position:absolute;left:-30px;bottom:-60px;width:180px;height:180px;
-  background:radial-gradient(circle,rgba(79,127,232,.55),transparent 65%);pointer-events:none}
-/* Single hero row — greeting + name (left), counter (pushed right), header
-   button. Identical structure on the snippets home and the prompts page. */
-.mhello{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
-.mhello>div:first-child{display:flex;align-items:baseline;gap:6px;min-width:0}
-.mgreet{font-size:13px;opacity:.78;font-weight:500;letter-spacing:.1px;white-space:nowrap}
-.mname{font-size:20px;font-weight:700;letter-spacing:-.4px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ── LIBRARY BAND (snippets, prompts, Brains) ── */
+/* The home band's frame on the three library pages: navy, the greeting and
+   the account button on top, the page's name with how many it holds, then
+   search with Filters beside it. The filter panel drops out of the band as a
+   light card, and the quick-action bar below overlaps the band's bottom edge.
+   Identical structure on all three pages. */
+.lib-band{position:relative;overflow:hidden;background:var(--navy);color:#fff;
+  padding:calc(14px + env(safe-area-inset-top)) 20px 44px}
+.lib-band::before{content:"";position:absolute;right:-70px;top:-90px;width:260px;height:260px;border-radius:50%;
+  background:radial-gradient(circle,rgba(79,127,232,.42),transparent 62%);pointer-events:none}
+.lib-band::after{content:"";position:absolute;left:-60px;bottom:-110px;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(27,79,216,.30),transparent 65%);pointer-events:none}
+.lib-band>*{position:relative;z-index:1}
+.lib-band :focus-visible{outline:2px solid #D8E3FF;outline-offset:2px}
+.lib-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.lib-greet{display:flex;align-items:baseline;gap:5px;min-width:0;font-size:13.5px;line-height:1.4;color:var(--navy-copy)}
+.mgreet{font-weight:500;white-space:nowrap}
+.mname{font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+.lib-title{font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1.1;color:#fff}
+/* How many the page holds, as a quiet pill beside the title. */
+.mstatbig{display:inline-flex;align-items:baseline;gap:5px;flex-shrink:0;
+  padding:6px 12px;border-radius:9999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+  font-size:14px;font-weight:700;letter-spacing:-.2px;line-height:1.2;font-variant-numeric:tabular-nums}
+.mstatbig .mstatbig-unit{font-size:12.5px;font-weight:600;color:var(--navy-copy)}
 .hdr-btn{
   width:42px;height:42px;min-width:42px;border-radius:50%;border:none;
   background:rgba(255,255,255,.18);color:#fff;cursor:pointer;
@@ -188,79 +200,66 @@ body{
 }
 .hdr-btn:active{background:rgba(255,255,255,.32)}
 .hdr-btn svg{width:18px;height:18px;display:block}
-.mstatbig{
-  font-size:26px;font-weight:800;letter-spacing:-.8px;line-height:1;
-  font-variant-numeric:tabular-nums;position:relative;z-index:1;
-  display:flex;align-items:baseline;gap:6px;
-  margin-left:auto;flex-shrink:0
+/* Search rides on the band as a translucent field, 16px so iOS never zooms
+   on focus; the clear button and the Filters pill take the same glass. */
+.lib-search{display:flex;align-items:center;gap:8px;margin-top:16px}
+.lib-search .psearch-wrap{flex:1;min-width:0}
+.lib-search input{
+  width:100%;height:48px;background-color:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;padding:0 14px 0 42px;font-size:16px;
+  color:#fff;outline:none;font-family:inherit;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-opacity='.78' stroke-width='2.1' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:14px center;
+  transition:border-color .15s,background-color .15s,box-shadow .15s
 }
-.mstatbig .mstatbig-unit{font-size:14px;font-weight:600;opacity:.78;letter-spacing:-.3px}
-/* Filters: the collapsed top edge of the panel that will drop down from here,
-   so it is flush to the screen edge and full bleed. Nothing sits above it: the
-   hero gives up its top padding below, and the only remaining inset is the
-   notch, which is clearance rather than decoration.
-   Static on purpose until that panel exists, so it is not a button. */
+.lib-search input::-webkit-search-decoration,
+.lib-search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.lib-search input::placeholder{color:rgba(255,255,255,.62)}
+.lib-search input:focus{background-color:rgba(255,255,255,.16);border-color:#D8E3FF;box-shadow:0 0 0 3px rgba(216,227,255,.22)}
+.lib-search .psearch-clear{color:#fff;background:rgba(255,255,255,.14)}
+.lib-search .psearch-clear:active{background:rgba(255,255,255,.28)}
+.lib-filter-slot{display:flex;flex-shrink:0}
+/* Filters: the pill beside the search box. It turns white while its panel is
+   out, and carries how many filters are on, so an active filter is never
+   invisible behind a shut panel. */
 .mfilters{
-  position:relative;z-index:3;
-  display:flex;align-items:center;justify-content:center;gap:7px;
-  width:calc(100% + 40px);margin:0 -20px;
-  padding:calc(6px + env(safe-area-inset-top)) 16px 6px;
-  background:linear-gradient(180deg,rgba(255,255,255,.10) 0%,rgba(0,0,0,.20) 100%);
-  border:none;border-bottom:1px solid rgba(0,0,0,.20);
-  box-shadow:0 1px 0 rgba(255,255,255,.26) inset,
-    0 -6px 9px rgba(0,0,0,.10) inset,
-    0 3px 7px rgba(0,0,0,.15);
-  color:#fff;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.3px;
-  text-shadow:0 1px 1px rgba(0,0,0,.30);
-  white-space:nowrap;user-select:none;
-  cursor:pointer;-webkit-tap-highlight-color:transparent;
-  transition:background .15s,box-shadow .15s
+  position:relative;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;
+  height:48px;padding:0 14px 0 12px;border-radius:14px;
+  border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.10);color:#fff;
+  font-family:inherit;font-size:13.5px;font-weight:650;letter-spacing:-.1px;
+  white-space:nowrap;user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:background .15s,border-color .15s,color .15s,transform .1s
 }
-.mfilters svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.30))}
-/* Pressed, and held pressed while the panel is out: the strip sinks into the
-   hero and stops casting, the same read as a pushed quick-action key. */
-.mfilters:active,
-.mfilters[aria-expanded="true"]{
-  background:linear-gradient(180deg,rgba(0,0,0,.26) 0%,rgba(0,0,0,.16) 100%);
-  box-shadow:0 3px 6px rgba(0,0,0,.28) inset,
-    0 1px 0 rgba(255,255,255,.08) inset
+.mfilters:active{transform:scale(.97)}
+.mfilters[aria-expanded="true"]{background:#fff;border-color:#fff;color:var(--navy)}
+.mfilters svg{width:15px;height:15px;flex-shrink:0;
+  stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.mfilters-caret{opacity:.75;transition:transform .28s ease}
+.mfilters[aria-expanded="true"] .mfilters-caret{transform:rotate(180deg)}
+.mfilters-count{
+  min-width:18px;height:18px;padding:0 5px;border-radius:9999px;
+  background:var(--primary);color:#fff;
+  font-size:10.5px;font-weight:800;line-height:18px;text-align:center;flex-shrink:0
 }
-/* The panel drops from the strip. Row-sizing 0fr to 1fr animates to whatever
-   the content is, so the real filter list will not need a hardcoded height. */
-/* The panel is its own surface, not a tint of the hero: the Menu ground a
-   shade darker, so the two blues stop competing. It carries the light-page
-   palette, which is also why the chips inside need no overrides at all. */
+.mfilters-count.sb-hidden{display:none}
+/* The panel drops out of the band as a light card. Row-sizing 0fr to 1fr
+   animates to whatever the facets are, and the shut panel is also hidden from
+   the keyboard, so nothing inside it can take focus unseen. */
 .mfilters-panel{
-  position:relative;z-index:1;
-  display:grid;grid-template-rows:0fr;
-  margin:0 -20px 12px;
-  background:linear-gradient(180deg,var(--card) 0%,var(--bg-alt) 42%);
-  transition:grid-template-rows .28s ease
+  display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;
+  transition:grid-template-rows .28s ease,opacity .2s ease,margin-top .28s ease,visibility 0s linear .28s
 }
-.mfilters-panel.open{grid-template-rows:1fr}
-/* The strip above throws a shadow into the recess. Both the shading and the
-   bottom lip live inside the clipped box so they vanish when it is shut. */
-.mfilters-panel-in{overflow:hidden;
-  box-shadow:0 6px 9px rgba(0,0,0,.09) inset}
+.mfilters-panel.open{grid-template-rows:1fr;opacity:1;visibility:visible;margin-top:12px;
+  transition:grid-template-rows .28s ease,opacity .2s ease,margin-top .28s ease,visibility 0s}
+.mfilters-panel-in{overflow:hidden;border-radius:var(--r);background:var(--card);color:var(--text);
+  box-shadow:0 10px 24px rgba(5,10,25,.30)}
 .mfilters-panel-txt{
   padding:18px 20px;text-align:center;
   color:var(--text2);font-size:12.5px;font-weight:600;letter-spacing:.2px
 }
-.mfilters svg{width:13px;height:13px;flex-shrink:0;
-  stroke:currentColor;fill:none;stroke-width:2;
-  stroke-linecap:round;stroke-linejoin:round}
-.mfilters-caret{opacity:.7;transition:transform .28s ease}
-/* How many filters are on. Without this an active filter is invisible behind a
-   shut panel and the short list looks like a bug. */
-.mfilters-count{
-  min-width:16px;height:16px;padding:0 5px;border-radius:9999px;
-  background:#fff;color:var(--primary-dk);
-  font-size:10px;font-weight:800;line-height:16px;text-align:center;
-  text-shadow:none;flex-shrink:0
-}
-.mfilters-count.sb-hidden{display:none}
 /* The panel scrolls once the facets outgrow it rather than clipping inside the
-   hero, which is overflow:hidden. */
+   band, which is overflow:hidden. */
 .mfilters-scroll{max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .mfacet{padding:12px 16px 11px;border-top:1px solid var(--border)}
 .mfacet:first-child{border-top:none}
@@ -272,8 +271,8 @@ body{
   cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mfacet-clr.sb-hidden{display:none}
 .mfilters-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:11px 16px calc(11px + env(safe-area-inset-bottom));
-  border-top:1px solid var(--border);background:rgba(0,0,0,.025)}
+  padding:11px 16px;
+  border-top:1px solid var(--border);background:var(--bg)}
 .mfilters-sum{font-size:11.5px;font-weight:600;color:var(--text3)}
 .mfilters-clear{
   border:1px solid var(--border);background:var(--card);
@@ -290,7 +289,7 @@ body{
 .mfilters-panel .ftabs-arrow{display:none !important}
 /* Label chips follow the folder pills exactly, so the panel reads as one set
    of controls. The label keeps its identity in the dot, not the chip, which
-   is what lets selected and unselected stay legible on the gradient. */
+   is what lets selected and unselected stay legible. */
 .mlabels{display:flex;flex-wrap:wrap;gap:6px}
 /* The pill itself comes from the shared chip rule; only the colour dot and the
    dead state are particular to a label. */
@@ -313,14 +312,11 @@ body{
   -webkit-tap-highlight-color:transparent}
 .mlabel-seg button.on{background:var(--text);color:var(--bg)}
 .mfacet-empty{font-size:12.5px;font-weight:500;color:var(--text2);line-height:1.5}
-.mfilters[aria-expanded="true"] .mfilters-caret{transform:rotate(180deg)}
-/* Every hero gives its top padding to the strip, which carries the notch inset
-   itself. */
-.mstatsub{font-size:13px;opacity:.9;font-weight:500;
-  display:flex;align-items:center;gap:8px;position:relative;z-index:1}
-.mstatup{
-  background:rgba(52,199,89,.28);color:#A7F0BA;
-  padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;letter-spacing:.2px
+@media(max-width:350px){
+  .lib-band{padding-left:16px;padding-right:16px}
+  .lib-title{font-size:27px}
+  .mfilters{padding:0 11px 0 10px}
+  .mfilters-caret{display:none}
 }
 
 /* ── PAGE FOOTER ─────────────────────────────── */
@@ -342,73 +338,42 @@ body{
 .mpage-footer-company{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.05px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 
-/* ── FLOATING QUICK-ACTION GRID (overlaps hero) ── */
-.mqa{padding:0 16px;margin-top:-22px;position:relative;z-index:2;flex-shrink:0}
+/* ── FLOATING QUICK-ACTION BAR (overlaps the band) ── */
+/* One flat segmented control for the three library pages: the page in view is
+   the filled azure tile, the other two stay quiet. Written once by
+   mountQuickActions() and mounted on all three pages, so it cannot drift. */
+.mqa{padding:0 16px;margin-top:-26px;position:relative;z-index:2;flex-shrink:0}
 .mqa-grid{
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
-  background:var(--card);border-radius:18px;padding:10px;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;
+  background:var(--card);border-radius:18px;padding:6px;
   box-shadow:var(--shadow-md)
 }
 .mqa-tile{
   display:flex;padding:0;border:none;background:transparent;font-family:inherit;
-  border-radius:14px;
+  border-radius:13px;
   cursor:pointer;-webkit-tap-highlight-color:transparent;
-  transition:transform .12s,opacity .12s
+  transition:transform .12s
 }
-.mqa-tile:active{transform:scale(.95);opacity:.9}
-/* 3D key: one extruded surface carrying both the icon and the label, so the
-   word belongs to the button instead of floating under it. Soft outer drop
-   plus an inner top-highlight / bottom-shade bevel. Icon over label rather
-   than beside it: three across leaves no room for a side-by-side row on a
-   narrow phone, and it gives the second line somewhere to sit. */
+.mqa-tile:active{transform:scale(.96)}
+.mqa-tile:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .mqa-ico{
-  flex:1;min-height:64px;border-radius:14px;padding:8px 4px;
-  background:linear-gradient(158deg,var(--card) 0%,var(--primary-lt) 100%);
-  color:var(--primary-copy);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  border:1px solid rgba(27,79,216,.10);
-  box-shadow:0 4px 8px rgba(27,79,216,.16),
-    0 1px 0 rgba(255,255,255,.95) inset,
-    0 -3px 6px rgba(27,79,216,.08) inset;
-  transition:transform .14s,box-shadow .14s,background .14s,color .14s
+  flex:1;min-height:58px;border-radius:13px;padding:8px 4px;
+  background:transparent;color:var(--text2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  transition:background .18s,color .18s,box-shadow .18s
 }
-.mqa-ico svg{width:20px;height:20px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
-  filter:drop-shadow(0 1px 1px rgba(27,79,216,.22))}
-/* The label takes the surface's own colour, so it flips to white with it. */
-.mqa-lbl{font-size:12.5px;font-weight:700;color:inherit;text-align:center;
-  letter-spacing:-.2px;line-height:1;white-space:nowrap}
-/* Pushed / active (current page): the key presses IN, solid azure, white face. */
-.mqa-tile.on .mqa-ico{
-  background:linear-gradient(158deg,var(--primary-grad) 0%,var(--primary-dk) 100%);
-  color:#fff;border-color:transparent;transform:translateY(1px);
-  box-shadow:0 1px 2px rgba(20,64,176,.35),
-    0 3px 7px rgba(20,64,176,.35) inset,
-    0 1px 1px rgba(0,0,0,.18) inset
-}
-.mqa-tile.on .mqa-ico svg{filter:drop-shadow(0 1px 1px rgba(0,0,0,.28))}
-.mqa-tile.on .mqa-lbl{text-shadow:0 1px 1px rgba(0,0,0,.22)}
-
-/* ── SEARCH ──────────────────────────────────── */
-.search-bar{padding:18px 16px 8px}
-.search-bar input{
-  width:100%;background:var(--card);border:1px solid var(--border);
-  border-radius:12px;padding:10px 14px 10px 38px;font-size:15px;
-  color:var(--text);outline:none;font-family:inherit;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23596478' stroke-width='2.2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:12px center;
-  transition:border-color .15s
-}
-.search-bar input:focus{border-color:var(--primary-border)}
-.search-bar input::placeholder{color:var(--text2)}
-/* On the hero the field floats on the gradient: the grey hairline reads as dirt
-   on blue, so it becomes a soft shadow. z-index clears the hero's glow circles. */
-.mhero .search-bar{padding:16px 0 0;position:relative;z-index:1}
-.mhero .search-bar input{border-color:transparent;box-shadow:var(--shadow-sm)}
-.mhero .search-bar input:focus{border-color:#fff}
+.mqa-ico svg{width:20px;height:20px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* The label takes the tile's own colour, so it flips to white with it. */
+.mqa-lbl{font-size:12.5px;font-weight:650;color:inherit;text-align:center;
+  letter-spacing:-.15px;line-height:1;white-space:nowrap}
+@media(hover:hover){.mqa-tile:not(.on):hover .mqa-ico{background:var(--primary-lt);color:var(--primary-copy)}}
+/* Current page: the filled azure tile. */
+.mqa-tile.on .mqa-ico{background:var(--primary);color:#fff;box-shadow:0 6px 14px rgba(27,79,216,.28)}
+.mqa-tile.on .mqa-lbl{font-weight:700}
 
 /* ── SECTION HEADING ─────────────────────────── */
-.msec{padding:14px 16px 6px;display:flex;align-items:flex-end;justify-content:space-between}
-.msec-t{font-size:19px;font-weight:800;letter-spacing:-.5px;color:var(--text)}
+.msec{padding:18px 16px 8px;display:flex;align-items:flex-end;justify-content:space-between}
+.msec-t{font-size:19px;font-weight:750;letter-spacing:-.5px;color:var(--text)}
 .msec-a{font-size:13px;color:var(--primary-copy);font-weight:600}
 
 /* ── UBER-STYLE CHIPS (folder + lang) ────────── */
@@ -434,8 +399,12 @@ body{
 }
 .folder-pill.on .folder-pill-cnt,
 .mlabel-pill.on .mlabel-cnt{background:rgba(255,255,255,.22);color:#fff}
-/* selected-folder header (touch has no hover, so descriptions live here) */
-.fhead{padding:10px 16px 2px}
+/* selected-folder header (touch has no hover, so descriptions live here).
+   A card under the section heading; the open Brain's header takes the same
+   slot. On All Brains it holds one action alone, so it drops the card. */
+.fhead{margin:6px 16px 0;padding:14px 16px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-card);box-shadow:var(--shadow-sm)}
+.fhead.is-acts-only{margin-top:10px;padding:0;background:none;border:0;box-shadow:none}
 .fhead-crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:2px;margin-bottom:2px}
 .fhead-crumb{font-size:12px;font-weight:600;color:var(--text3);background:none;border:0;padding:3px 5px;border-radius:6px;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .fhead-crumb:active{background:var(--bg-alt);color:var(--text)}
@@ -482,16 +451,25 @@ body{
 .snip-more-n{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:0}
 .snip-more-i{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;
   stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
-.snip-card{
+/* A snippet, prompt, Brain or item row: one card rule for all of them, with a
+   hairline, a tint while pressed, a lift on a pointer and a visible focus ring. */
+.snip-card,.prompt-card{
   position:relative;background:var(--card);border-radius:var(--r-card);
   padding:14px;padding-right:52px;
   display:flex;align-items:center;gap:12px;cursor:pointer;
-  box-shadow:var(--shadow-sm);border:none;width:100%;text-align:left;
+  box-shadow:var(--shadow-sm);border:1px solid var(--border);width:100%;text-align:left;
   font-family:inherit;-webkit-tap-highlight-color:transparent;
-  transition:transform .1s,opacity .1s
+  transition:transform .14s,box-shadow .14s,border-color .14s,background .14s
 }
-.snip-card:active{transform:scale(.98);opacity:.85}
-.snip-icon-well,.prompt-icon{position:relative}
+.snip-card:active,.prompt-card:active{transform:scale(.985);background:var(--primary-lt);border-color:#C8D3F0}
+.snip-card:focus-visible,.prompt-card:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
+@media(hover:hover){
+  .snip-card:hover,.prompt-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-color:#C8D3F0}
+}
+@media(prefers-reduced-motion:reduce){
+  .snip-card,.prompt-card,.mqa-tile,.mqa-ico,.mfilters,.mfilters-panel{transition:none}
+}
+.snip-icon-well,.prompt-icon{position:relative;box-shadow:0 0 0 1px rgba(27,79,216,.07) inset}
 .snip-icon-well{width:44px;height:44px;flex:0 0 44px;border-radius:13px;background:var(--primary-lt);color:var(--primary-copy);
   display:flex;align-items:center;justify-content:center;font-size:20px}
 .snip-icon-well svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -572,8 +550,9 @@ body{
 .snip-pin-flag svg,.prompt-pin-flag svg{width:17px;height:17px;display:block;
   stroke:currentColor;fill:var(--primary-lt);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-/* Empty state */
-.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+/* Empty state: a card in the list's own slot, so the page never looks blank. */
+.empty{text-align:center;padding:44px 20px;color:var(--text2);
+  background:var(--card);border:1px dashed var(--border);border-radius:var(--r-card)}
 .empty .emo{font-size:48px;margin-bottom:12px}
 .empty p{font-size:16px}
 
@@ -1201,26 +1180,19 @@ svg.brain-type-icon{stroke-width:1.8}
 
 /* ── PROMPTS VIEW ─────────────────────────────── */
 /* The Memory page is built from the same pieces: page body, list, cards. */
-#prompt-body,#mem-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 #prompt-list,#mem-list{padding:6px 16px 24px;display:flex;flex-direction:column;gap:10px}
 /* Interactive Steps row above the list: a prompt card's surface with the fill
    form's checkbox, and the whole row is the tap target. */
-.psteps{margin:10px 16px 0;padding:14px;display:flex;align-items:center;gap:12px;
-  background:var(--card);border-radius:var(--r-card);box-shadow:var(--shadow-sm);
-  cursor:pointer;-webkit-tap-highlight-color:transparent}
+.psteps{margin:12px 16px 0;padding:14px;display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);box-shadow:var(--shadow-sm);
+  cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .14s,background .14s}
+.psteps:active{background:var(--primary-lt);border-color:#C8D3F0}
+.psteps:focus-within{outline:2px solid var(--primary-border);outline-offset:2px}
 .psteps-txt{flex:1;min-width:0}
 .psteps-t{display:block;font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.2px}
 .psteps-d{display:block;font-size:13px;color:var(--text2);margin-top:3px;line-height:1.4}
-.psteps input{flex:none;width:18px;height:18px;accent-color:var(--primary-copy)}
-.prompt-card{
-  background:var(--card);border-radius:var(--r-card);
-  padding:14px;display:flex;align-items:flex-start;gap:12px;
-  box-shadow:var(--shadow-sm);cursor:pointer;border:none;width:100%;text-align:left;
-  font-family:inherit;-webkit-tap-highlight-color:transparent;
-  transition:transform .1s,opacity .1s
-}
-.prompt-card:active{transform:scale(.98);opacity:.85}
+.psteps input{flex:none;width:20px;height:20px;accent-color:var(--primary-copy)}
+.prompt-card{align-items:flex-start}
 .prompt-icon{
   width:44px;height:44px;border-radius:13px;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;font-size:22px;
@@ -1253,10 +1225,7 @@ svg.brain-type-icon{stroke-width:1.8}
 .share-folder{background:var(--primary-lt);color:var(--primary-copy)}
 .share-team{background:#F0FDF4;color:#15803D}
 
-/* ── PROMPTS + MEMORY: fixed gradient hero (mirrors snippets home) ── */
-#view-prompts .mhero,#view-memory .mhero{flex-shrink:0}
-
-/* ── SEARCH: clear button + prompt result counter (home and prompts) ── */
+/* ── SEARCH: clear button (every band) ── */
 .psearch-wrap{position:relative}
 .psearch-clear{
   position:absolute;top:50%;right:8px;transform:translateY(-50%);
@@ -1268,10 +1237,6 @@ svg.brain-type-icon{stroke-width:1.8}
 .psearch-clear:active{background:rgba(0,0,0,.06)}
 .psearch-wrap.has-text .psearch-clear{display:flex}
 .psearch-wrap.has-text input{padding-right:40px}
-.psearch-meta{
-  padding:0 16px 8px;font-size:12px;font-weight:600;color:var(--text3);
-  position:sticky;top:0;z-index:6;background:var(--bg-alt);display:none
-}
 
 /* ── PROMPT CARD: pin flag + menu + last-used footer ── */
 .prompt-card{position:relative;padding-right:48px}
@@ -1304,10 +1269,11 @@ svg.brain-type-icon{stroke-width:1.8}
 }
 .empty-sug-chip:active{transform:scale(.96)}
 
-/* ── PROMPTS + MEMORY: 2-column grid on medium devices ── */
+/* ── SNIPPETS + PROMPTS + MEMORY: 2-column grid on medium devices ── */
 @media (min-width:600px){
-  #prompt-list,#mem-list{display:grid;grid-template-columns:repeat(2,1fr);
+  #snip-list,#prompt-list,#mem-list{display:grid;grid-template-columns:repeat(2,1fr);
     align-items:start;gap:12px}
+  #snip-list .snip-more,#snip-list .empty,#prompt-list .empty,#mem-list .empty{grid-column:1/-1}
 }
 
 /* ── MEMORY: the open Brain's header ── */
@@ -1526,39 +1492,39 @@ svg.brain-type-icon{stroke-width:1.8}
 </div>
 
 <!-- LIST -->
-<div id="view-list" class="view">
+<div id="view-list" class="view lib-page">
 
-  <!-- Gradient hero -->
-  <div class="mhero">
-    <!-- The filter strip and its panel are mounted here by mountFilterHeader(). -->
-    <div class="mhello">
-      <div>
-        <div class="mgreet">Welcome</div>
-        <div class="mname">Fibonax</div>
-      </div>
-      <div class="mstatbig">
-        <span id="cnt">0</span>
-        <span class="mstatbig-unit">snippets</span>
-      </div>
+  <!-- Library band: the home band's frame. The Filters pill and its panel
+       are mounted into the two slots by mountFilterHeader(). -->
+  <header class="lib-band">
+    <div class="lib-top">
+      <p class="lib-greet"><span class="mgreet">Welcome</span> <span class="mname">Fibonax</span></p>
+      <button class="home-account lib-account" type="button" data-lib-action="account" aria-label="Open your account">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </button>
     </div>
-
-    <!-- Search rides on the hero, directly under the greeting. -->
-    <div class="search-bar">
+    <div class="lib-title-row">
+      <h1 class="lib-title">Snippets</h1>
+      <span class="mstatbig"><span id="cnt">0</span><span class="mstatbig-unit">snippets</span></span>
+    </div>
+    <div class="lib-search">
       <div class="psearch-wrap" id="srch-wrap">
-        <input id="srch" type="search" placeholder="Search snippets…"
+        <input id="srch" type="search" placeholder="Search snippets…" aria-label="Search snippets"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" id="srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
-        <button type="button" class="ask-row sb-hidden" data-ask-for="srch">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-          <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
-          <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </button>
+      <span class="lib-filter-slot" data-filter-slot></span>
     </div>
-  </div>
+    <button type="button" class="ask-row sb-hidden" data-ask-for="srch">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+      <span class="ask-row-t"><span class="ask-row-l">FiboChat</span><span class="ask-row-q"></span></span>
+      <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </button>
+    <div data-filter-panel-slot></div>
+  </header>
 
-  <!-- Floating quick-action grid (overlaps hero). One bar for every page,
-       written once by mountQuickActions(). -->
+  <!-- Quick-action bar (overlaps the band). One bar for every page, written
+       once by mountQuickActions(); the tile of the page in view stays filled. -->
   <div class="mqa" data-mqa></div>
 
   <!-- All snippets section -->
@@ -1643,6 +1609,8 @@ svg.brain-type-icon{stroke-width:1.8}
     <div class="mobile-preview-pane">
       <div class="sec-lbl">Preview</div>
       <div class="prev-card"><pre id="prev-text"></pre></div>
+      <p class="ff-picnote" id="prev-picnote" role="status" hidden></p>
+      <p class="ff-picnote" id="prev-picnote-share" hidden></p>
     </div>
   </div>
   <div class="copy-foot">
@@ -1652,35 +1620,38 @@ svg.brain-type-icon{stroke-width:1.8}
 </div>
 
 <!-- PROMPTS VIEW -->
-<div id="view-prompts" class="view">
-  <!-- Gradient hero (mirrors the snippets home so the header stays visible) -->
-  <div class="mhero">
-    <div class="mhello">
-      <div>
-        <div class="mgreet">Welcome</div>
-        <div class="mname">Fibonax</div>
-      </div>
-      <div class="mstatbig">
-        <span id="prompts-count">0</span>
-        <span class="mstatbig-unit">prompts</span>
-      </div>
+<div id="view-prompts" class="view lib-page">
+  <!-- Library band: the home band's frame. The Filters pill and its panel
+       are mounted into the two slots by mountFilterHeader(). -->
+  <header class="lib-band">
+    <div class="lib-top">
+      <p class="lib-greet"><span class="mgreet">Welcome</span> <span class="mname">Fibonax</span></p>
+      <button class="home-account lib-account" type="button" data-lib-action="account" aria-label="Open your account">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </button>
     </div>
-
-    <!-- Search rides on the hero, directly under the greeting. -->
-    <div class="search-bar">
+    <div class="lib-title-row">
+      <h1 class="lib-title">Prompts</h1>
+      <span class="mstatbig"><span id="prompts-count">0</span><span class="mstatbig-unit">prompts</span></span>
+    </div>
+    <div class="lib-search">
       <div class="psearch-wrap" id="prompt-srch-wrap">
-        <input id="prompt-srch" type="search" placeholder="Search prompts…"
+        <input id="prompt-srch" type="search" placeholder="Search prompts…" aria-label="Search prompts"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" id="prompt-srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
-        <button type="button" class="ask-row sb-hidden" data-ask-for="prompt-srch">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-          <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
-          <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </button>
+      <span class="lib-filter-slot" data-filter-slot></span>
     </div>
-  </div>
-  <!-- Quick-action bar (same bar as home; Prompts tile stays pushed on this page) -->
+    <button type="button" class="ask-row sb-hidden" data-ask-for="prompt-srch">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+      <span class="ask-row-t"><span class="ask-row-l">FiboChat</span><span class="ask-row-q"></span></span>
+      <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </button>
+    <div data-filter-panel-slot></div>
+  </header>
+
+  <!-- Quick-action bar (overlaps the band). One bar for every page, written
+       once by mountQuickActions(); the tile of the page in view stays filled. -->
   <div class="mqa" data-mqa></div>
   <div id="prompt-body">
     <!-- Interactive Steps: device setting, decided by the SB_INTERACTIVE_STEPS block. -->
@@ -1691,8 +1662,7 @@ svg.brain-type-icon{stroke-width:1.8}
       </span>
       <input type="checkbox" id="psteps-on">
     </label>
-    <div class="msec"><span class="msec-t">All prompts</span></div>
-    <div class="psearch-meta" id="prompt-srch-meta"></div>
+    <div class="msec"><span class="msec-t">All prompts</span><span class="msec-a" id="prompt-srch-meta" hidden></span></div>
     <div id="prompt-list"></div>
 
     <!-- Page footer -->
@@ -1710,34 +1680,38 @@ svg.brain-type-icon{stroke-width:1.8}
 <!-- MEMORY VIEW: the Brains list, and one Brain's contents when it is open.
      Same shell as the prompts page; the Brain header takes the slot the
      selected-folder header has on the snippets page. -->
-<div id="view-memory" class="view">
-  <div class="mhero">
-    <div class="mhello">
-      <div>
-        <div class="mgreet">Welcome</div>
-        <div class="mname">Fibonax</div>
-      </div>
-      <div class="mstatbig">
-        <span id="memory-count">0</span>
-        <span class="mstatbig-unit" id="memory-count-unit">Brains</span>
-      </div>
+<div id="view-memory" class="view lib-page">
+  <!-- Library band: the home band's frame. The Filters pill and its panel
+       are mounted into the two slots by mountFilterHeader(). -->
+  <header class="lib-band">
+    <div class="lib-top">
+      <p class="lib-greet"><span class="mgreet">Welcome</span> <span class="mname">Fibonax</span></p>
+      <button class="home-account lib-account" type="button" data-lib-action="account" aria-label="Open your account">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </button>
     </div>
-
-    <!-- Search rides on the hero, directly under the greeting. -->
-    <div class="search-bar">
+    <div class="lib-title-row">
+      <h1 class="lib-title">Brains</h1>
+      <span class="mstatbig"><span id="memory-count">0</span><span class="mstatbig-unit" id="memory-count-unit">Brains</span></span>
+    </div>
+    <div class="lib-search">
       <div class="psearch-wrap" id="mem-srch-wrap">
-        <input id="mem-srch" type="search" placeholder="Search Brains…"
+        <input id="mem-srch" type="search" placeholder="Search Brains…" aria-label="Search Brains"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" id="mem-srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
-        <button type="button" class="ask-row sb-hidden" data-ask-for="mem-srch">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-          <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
-          <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </button>
+      <span class="lib-filter-slot" data-filter-slot></span>
     </div>
-  </div>
-  <!-- Quick-action bar (same bar as home; Brains tile stays pushed on this page) -->
+    <button type="button" class="ask-row sb-hidden" data-ask-for="mem-srch">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+      <span class="ask-row-t"><span class="ask-row-l">FiboChat</span><span class="ask-row-q"></span></span>
+      <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </button>
+    <div data-filter-panel-slot></div>
+  </header>
+
+  <!-- Quick-action bar (overlaps the band). One bar for every page, written
+       once by mountQuickActions(); the tile of the page in view stays filled. -->
   <div class="mqa" data-mqa></div>
   <div id="mem-body">
     <div class="fhead" id="mem-head" hidden></div>
@@ -1992,7 +1966,7 @@ svg.brain-type-icon{stroke-width:1.8}
     <div class="sb-sheet-handle-area">
       <div class="sb-sheet-handle"></div>
     </div>
-    <div class="sb-sheet-title" id="sb-ask-title">Ask Fibonax</div>
+    <div class="sb-sheet-title" id="sb-ask-title">FiboChat</div>
     <div class="ask-body" id="sb-ask-body" aria-live="polite"></div>
   </div>
 </div>
@@ -2848,13 +2822,41 @@ svg.brain-type-icon{stroke-width:1.8}
     }
     var resolveOpts = { lang: opts.lang || '', fmtOverride: opts.fmtOverride, formula: formula,
       value: function(key, scope) { return dependencies[key] ? formula(key, scope) : scope[key]; } };
-    function resolve(body) {
+    function resolve(body, vals) {
       dependencies = Object.create(null);
-      return E.resolveBody(E.interpolateSnippet(body, values), Object.assign({}, values), resolveOpts);
+      return E.resolveBody(E.interpolateSnippet(body, vals), Object.assign({}, vals), resolveOpts);
     }
-    var preview = resolve(src);
-    var clean = omitEmptyLines(E, src, values, required);
-    if (clean !== src) preview = resolve(clean);
+    // The finished text for a set of answers: every line resolved, then the
+    // labelled lines left empty taken out.
+    function finished(vals) {
+      var full = resolve(src, vals);
+      var clean = omitEmptyLines(E, src, vals, required);
+      return clean !== src ? resolve(clean, vals) : full;
+    }
+    var preview = finished(values);
+
+    // Whether an empty box's answer would reach the text. A box inside a Show
+    // or hide section that is closed prints nothing either way, so the
+    // unfinished-text check does not call it empty. Answered one at a time with
+    // a sample answer; a choice tries its first option, which is what opens
+    // the section a choice controls. Each trial starts from the calculations
+    // the real answers need, and they are put back after, so a trial never
+    // marks a box as needed.
+    var needed = Object.keys(required);
+    function resetNeeded() {
+      Object.keys(required).forEach(function(k) { delete required[k]; });
+      needed.forEach(function(k) { required[k] = true; });
+    }
+    var SAMPLE = { number: '7', date: '2000-01-02', time: '07:07', datetime: '2000-01-02T07:07' };
+    fields.forEach(function(f) {
+      f.prints = true;
+      if (trim(values[f.key]) !== '') return;
+      var trial = Object.assign({}, values);
+      trial[f.key] = f.type === 'dd' ? (f.options[0] || 'sample') : (SAMPLE[f.type] || 'sample');
+      resetNeeded();
+      f.prints = finished(trial) !== preview;
+    });
+    resetNeeded();
     var errors = [];
     fields.forEach(function(f) {
       var value = values[f.key], message = '';
@@ -2866,7 +2868,63 @@ svg.brain-type-icon{stroke-width:1.8}
       f.error = message;
       if (message) errors.push({ key: f.key, message: message });
     });
-    return { preview: preview, errors: errors };
+
+    // The formatted layout, filled with the same answers and calculations as
+    // the preview, every value escaped. Null without a layout, or when the
+    // layout no longer asks for the fields the text does (something saved the
+    // text alone): the surface then inserts the preview, never a card with a
+    // field missing. Lines left empty stay in a layout; only the text drops them.
+    var formatted = null;
+    if (opts.formatted && E.sbEscapeHtml) {
+      var layoutSrc = layoutSource(opts.formatted);
+      if (sameFields(E, src, layoutSrc)) {
+        var safe = {};
+        Object.keys(values).forEach(function(k) { safe[k] = E.sbEscapeHtml(values[k]); });
+        dependencies = Object.create(null);
+        formatted = E.resolveBody(E.interpolateSnippet(layoutSrc, safe), Object.assign({}, values),
+          Object.assign({}, resolveOpts, { html: true }));
+      }
+    }
+
+    // A text with pictures: the same finished text with each picture in its
+    // place, as `parts` for a preview to draw and as `formatted` for a surface
+    // that can paste or copy formatting. The preview leaves the pictures out.
+    var parts = null;
+    if (!opts.formatted && E.sbPictureHtml && /\{\s*picture:/i.test(src)) {
+      var pics = [];
+      resolveOpts.picture = function(p) { pics.push(p); return '' + (pics.length - 1) + ''; };
+      var marked = finished(values);
+      delete resolveOpts.picture;
+      if (pics.length) {
+        parts = [];
+        marked.split(/(\d+)/).forEach(function(piece, k) {
+          if (k % 2) parts.push({ picture: pics[+piece] });
+          else if (piece) parts.push({ text: piece });
+        });
+        formatted = parts.map(function(part) {
+          return part.picture ? E.sbPictureHtml(part.picture) : E.sbEscapeHtml(part.text).replace(/\n/g, '<br>');
+        }).join('');
+      }
+    }
+    return { preview: preview, errors: errors, formatted: formatted, parts: parts };
+  }
+
+  // ── FORMATTED LAYOUT ────────────────────────────────────────────
+  // A layout keeps its fields as text, so the HTML around them escaped their
+  // `&`, `<` and `>`, and a formatting change may have landed inside one. Each
+  // {…} is read back as the token it was written as before it is resolved.
+  var LAYOUT_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ' };
+  function layoutSource(html) {
+    return String(html).replace(/\{[^{}]*\}/g, function(tok) {
+      return tok.replace(/<[^>]*>/g, '').replace(/&(amp|lt|gt|quot|#39|nbsp);/g, function(m, name) {
+        return LAYOUT_ENTITIES[name];
+      });
+    });
+  }
+
+  // Whether a layout asks for exactly the fields its text asks for.
+  function sameFields(E, text, layoutSrc) {
+    return fieldKeys(E, text).slice().sort().join('\n') === fieldKeys(E, layoutSrc).slice().sort().join('\n');
   }
 
   function fillForm(text, values, opts) {
@@ -2877,7 +2935,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, errors: [], sections: [], layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -3026,7 +3084,11 @@ svg.brain-type-icon{stroke-width:1.8}
         fromLink: Object.prototype.hasOwnProperty.call(linked, key) && linked[key] === true,
         // Always visible today. Conditional visibility will compute this from
         // the same {if:} the text already uses; nothing else in the shape moves.
-        visible: true
+        visible: true,
+        // Whether this box's answer reaches the text as the form stands: false
+        // only for an empty box in a Show or hide section that is closed.
+        // Decided with the preview below; the unfinished-text check reads it.
+        prints: true
       });
     }
 
@@ -3080,12 +3142,19 @@ svg.brain-type-icon{stroke-width:1.8}
     // single-choice menu the operator never touched already reads as its first
     // option in the form, so resolving against raw values previewed a hole in a
     // sentence the surface was visibly showing as answered.
-    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride });
+    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride, formatted: o.formatted });
 
     return {
       fields: fields,
       buttons: E.extractButtons ? (E.extractButtons(src) || []) : [],
       preview: resolved.preview,
+      // `o.formatted` is the snippet's layout (body_html); this is it filled,
+      // or null. A surface that can paste formatting inserts this, with the
+      // preview as its plain text. A plain text with pictures fills it too.
+      formatted: resolved.formatted,
+      // The text with its pictures, in order: [{ text } | { picture }], or
+      // null when there is no picture. What a preview draws.
+      parts: resolved.parts,
       errors: resolved.errors,
       sections: sectionsFor(fields),
       // Hand straight to resolveBody alongside the values. A surface that
@@ -3190,6 +3259,89 @@ svg.brain-type-icon{stroke-width:1.8}
   /** The words for one LINK_TEXT key, falling back to the generic failure. */
   function linkText(key) {
     return Object.prototype.hasOwnProperty.call(LINK_TEXT, key) ? LINK_TEXT[key] : LINK_TEXT.failed;
+  }
+
+  // ── PICTURES: WHAT EVERY SURFACE SAYS ───────────────────────────
+  // Where a text's pictures go, in the same words on the page, the popup, the
+  // editor and the phone. One picture, then several.
+  var PICTURE_TEXT = {
+    'left-out': ['This box takes text only, so the picture is left out.',
+                 'This box takes text only, so the pictures are left out.'],
+    'left-out-done': ['This box takes text only, so the picture was left out.',
+                      'This box takes text only, so the pictures were left out.'],
+    'copy': ['Paste into an email and the picture goes in too. Chats get the text only.',
+             'Paste into an email and the pictures go in too. Chats get the text only.'],
+    'share': ['Share sends the text only. Use Copy to paste the picture into an email.',
+              'Share sends the text only. Use Copy to paste the pictures into an email.'],
+    'missing': ['Picture', 'Picture']
+  };
+
+  function pictureText(key, count) {
+    var pair = Object.prototype.hasOwnProperty.call(PICTURE_TEXT, key) ? PICTURE_TEXT[key] : PICTURE_TEXT.missing;
+    return pair[count > 1 ? 1 : 0];
+  }
+
+  /** How many pictures a view model's text shows, in its parts or its layout. */
+  function pictureCount(vm) {
+    if (!vm) return 0;
+    if (vm.parts) return vm.parts.filter(function(p) { return !!p.picture; }).length;
+    return vm.formatted ? (String(vm.formatted).match(/<img\b/gi) || []).length : 0;
+  }
+
+  // ── A LAYOUT ON SCREEN ──────────────────────────────────────────
+  // What a preview draws for a formatted text (`formatted`): the layout read
+  // in an inert document and rebuilt node by node, keeping lines, lists, Bold,
+  // Italic, Underline, text colours and https pictures. Layouts come from
+  // teammates too, so nothing in one runs, and no attribute comes through but
+  // a picture's address, description and size, and a colour written as
+  // `#rgb`, `#rrggbb` or `rgb()`. Needs a browser; returns null without one.
+  var LAYOUT_KEEP = { DIV: 'div', P: 'div', BR: 'br', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u',
+    UL: 'ul', OL: 'ol', LI: 'li' };
+  var LAYOUT_SKIP = { SCRIPT: 1, STYLE: 1, TEMPLATE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, HEAD: 1, TITLE: 1 };
+  var PICTURE_WIDTH_SIZE = { 160: 'small', 320: 'medium', 600: 'full' };
+  var LAYOUT_COLOR_RE = /^(#[0-9a-f]{3}|#[0-9a-f]{6}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+)\s*)?\))$/i;
+
+  // The text colour an element sets, when it is one of the forms above:
+  // `color` in its style (not `background-color`), or `<font color>`.
+  function layoutColor(el) {
+    var styled = /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(el.getAttribute('style') || '');
+    var value = styled ? styled[1] : (el.tagName.toUpperCase() === 'FONT' ? el.getAttribute('color') : null);
+    value = value ? value.replace(/!important/i, '').trim() : '';
+    return LAYOUT_COLOR_RE.test(value) ? value : '';
+  }
+
+  function layoutFragment(html, doc) {
+    if (typeof DOMParser === 'undefined') return null;
+    var d = doc || document;
+    var source = new DOMParser().parseFromString(String(html), 'text/html').body;
+    var out = d.createDocumentFragment();
+    (function copy(from, to) {
+      Array.prototype.forEach.call(from.childNodes, function(n) {
+        if (n.nodeType === 3) { to.appendChild(d.createTextNode(n.textContent)); return; }
+        if (n.nodeType !== 1) return;
+        var tag = n.tagName.toUpperCase();
+        if (LAYOUT_SKIP[tag]) return;
+        if (tag === 'IMG') {
+          var src = n.getAttribute('src') || '';
+          if (!/^https:\/\/[^\s"'<>]+$/i.test(src)) return;
+          var img = d.createElement('img');
+          img.className = 'ff-pic ff-pic--' + (PICTURE_WIDTH_SIZE[n.getAttribute('width')] || 'medium');
+          img.alt = n.getAttribute('alt') || '';
+          img.src = src;
+          to.appendChild(img);
+          return;
+        }
+        var keep = LAYOUT_KEEP[tag];
+        var color = layoutColor(n);
+        if (!keep && !color) { copy(n, to); return; }
+        var el = d.createElement(keep || 'span');
+        // Over whatever the page around the preview says about colour.
+        if (color) el.style.setProperty('color', color, 'important');
+        to.appendChild(el);
+        copy(n, el);
+      });
+    })(source, out);
+    return out;
   }
 
   // Comparison form of a piece of page text or of the author's word: case,
@@ -3521,6 +3673,177 @@ svg.brain-type-icon{stroke-width:1.8}
     return result.none ? LINK_TEXT['none-on-page'] : '';
   }
 
+  // ── BEFORE IT GOES OUT ──────────────────────────────────────────
+  // A message that reaches a customer with "[xxx]", "{fill this in}" or an
+  // empty "Dear ," in it is the most visible mistake the product can let
+  // through. Right before a snippet is inserted or copied, every surface reads
+  // the finished text through unfinished() and, when it finds something, shows
+  // the list and lets the person fix it or go ahead.
+  //
+  // Rules only, on the device: nothing leaves it, it answers instantly and it
+  // works offline. The price is that a gap written as plain words with no
+  // marker around it ("client name") reads like any other words and passes.
+  //
+  // Decided once, here, like everything else in this module. Each surface draws
+  // the list in its own markup and shows these words.
+
+  var UNFINISHED_TEXT = {
+    'title': 'This text may not be finished',
+    'intro': 'Check these before it goes out:',
+    'fix': 'Fix it',
+    'edit': 'Edit snippet',
+    'insert-anyway': 'Insert anyway',
+    'copy-anyway': 'Copy anyway',
+    'share-anyway': 'Share anyway',
+    'mute': 'Don’t warn me about this snippet again',
+    'muted': 'This snippet won’t warn you again. You can turn it back on in the editor.',
+    'mute-failed': 'Couldn’t save that, so this snippet will still warn you. Only someone who can edit it can turn this off.',
+    'more': 'and {n} more',
+    'empty': 'Left empty',
+    'placeholder': 'Looks like a placeholder',
+    'gap': 'Looks like a gap to fill in',
+    'note': 'Looks like a note to yourself',
+    'instruction': 'Looks like an instruction to fill something in',
+    'field': 'Looks like a field name, not real text',
+    'sample': 'Looks like sample text',
+    'in-field': 'In the box “{title}”',
+    'preview-title': 'May not be finished',
+    'preview-clear': 'Nothing looks unfinished.',
+    'setting': 'Warn me if it looks unfinished',
+    'setting-hint': 'Before it goes in, Fibonax checks for gaps like [name], XXX, ??? or empty boxes.'
+  };
+
+  /** The words for one UNFINISHED_TEXT key, with {name} slots filled in. */
+  function unfinishedText(key, slots) {
+    var s = Object.prototype.hasOwnProperty.call(UNFINISHED_TEXT, key) ? UNFINISHED_TEXT[key] : '';
+    var vals = slots || {};
+    return s.replace(/\{([a-z]+)\}/g, function(m, name) {
+      return Object.prototype.hasOwnProperty.call(vals, name) ? String(vals[name]) : m;
+    });
+  }
+
+  // The longest list a surface shows before "and N more". Past this the person
+  // has the point, and a taller box only pushes the buttons off a phone screen.
+  var UNFINISHED_SHOWN = 6;
+
+  // The letters a word is made of, accents included, so a phrase matched in
+  // Italian or Spanish ends where the word ends. \b alone treats "aquí" as
+  // ending before its í.
+  var UF_L = 'A-Za-zÀ-ɏ';
+
+  // Phrase lists in the three languages the product's users write in. Kept to
+  // instructions nobody sends on purpose: "the form to fill in" (il modulo da
+  // compilare, el formulario a rellenar) is a real thing to tell a customer,
+  // "insert name here" never is. So a phrase needs its "here".
+  var UF_HERE_EN = '(?:insert|type|write|add|put|paste|enter)(?:\\s+[' + UF_L + ']+){0,2}\\s+here';
+  var UF_HERE_IT = '(?:inserisci|inserire|inserite|scrivi|scrivere|scrivete|compila|compilare|compilate|metti|mettere|aggiungi|aggiungere|incolla|incollare|completa|completare)(?:\\s+[' + UF_L + ']+){0,2}\\s+(?:qui|qua)';
+  var UF_HERE_ES = '(?:inserta|insertar|inserte|escribe|escribir|escriba|pon|poner|ponga|añade|añadir|añada|agrega|agregar|agregue|pega|pegar|pegue|completa|completar|complete|rellena|rellenar|rellene)(?:\\s+[' + UF_L + ']+){0,2}\\s+(?:aquí|aqui|acá|aca)';
+  // "Your name here" is a template's; "leave your feedback here" is a real
+  // invitation, so only the nouns a blank stands for.
+  var UF_STANDALONE = '(?:your\\s+(?:name|surname|text|address|e-?mail|number|phone|company|signature|title|date|details)\\s+here|' +
+    'placeholder|segnaposto|marcador\\s+de\\s+posición)';
+  var UF_NOTE_WORDS = '(?:da\\s+definire|por\\s+definir)';
+
+  // Every rule: what it matches and which reason it gives. Order is priority
+  // when two overlap: "{{NAME}}" is one placeholder, not a brace inside braces.
+  var UNFINISHED_RULES = [
+    { kind: 'placeholder', re: /\{\{[^{}\n]{0,80}\}\}/g },
+    { kind: 'placeholder', re: /\{[^{}\n]{1,80}\}/g },
+    // [1] is a footnote, [x] and [ ] are tick boxes, [text](link) is a link.
+    { kind: 'placeholder', re: /\[([^\[\]\n]{0,80})\](?!\()/g,
+      keep: function(m) { return !/^\s*(?:\d+|[xX✓✔]|\s)\s*$/.test(m[1]); } },
+    // <name> is a placeholder; <a@b.com>, <https://…>, <br> and A <-> B are not.
+    { kind: 'placeholder', re: /<([^<>\n]{1,60})>/g,
+      keep: function(m) {
+        var inner = m[1];
+        if (!new RegExp('[' + UF_L + ']').test(inner)) return false;
+        if (/@|:\/\/|^\s*(?:mailto|tel|https?):/i.test(inner)) return false;
+        return !/^\/?(?:a|b|i|u|p|br|hr|em|strong|span|div|ul|ol|li|img|small|sub|sup|table|tr|td|th|h[1-6])(?:\s[^<>]*)?\/?$/i.test(inner);
+      } },
+    { kind: 'gap', re: new RegExp('(^|[^' + UF_L + '0-9])([xX]{2,}(?:[\\/.\\-:][xX]{2,})+|[xX]{3,})(?![' + UF_L + '0-9])', 'g'), group: 2 },
+    // "Price: ??? €" is a gap; "Really???" is emphasis.
+    { kind: 'gap', re: new RegExp('(^|[^' + UF_L + '0-9?])(\\?{2,})', 'g'), group: 2 },
+    { kind: 'gap', re: /_{3,}|\.{5,}|…{2,}/g },
+    // Upper case only: "todo" is "all" in Spanish and Italian, and a heading
+    // such as "TODO INCLUIDO" is not a note, so TODO needs its colon.
+    { kind: 'note', re: /\b(?:TBD|TBC|TBA|FIXME)\b|\bTODO(?=\s*[:\-–—])/g },
+    { kind: 'note', re: new RegExp('(^|[^' + UF_L + '])(' + UF_NOTE_WORDS + ')(?![' + UF_L + '])', 'gi'), group: 2 },
+    { kind: 'instruction', re: new RegExp('(^|[^' + UF_L + '])(' + UF_HERE_EN + '|' + UF_HERE_IT + '|' + UF_HERE_ES + '|' + UF_STANDALONE + ')(?![' + UF_L + '])', 'gi'), group: 2 },
+    { kind: 'sample', re: /\blorem\s+ipsum\b/gi },
+    // A field's own name printed as text: CLIENT_NAME, TOTAL_DUE.
+    { kind: 'field', re: /(^|[^A-Za-z0-9_])([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)(?![A-Za-z0-9_])/g, group: 2 }
+  ];
+
+  /**
+   * What in a finished text looks unfinished, in the order a person reads it:
+   * the boxes left empty first, then each suspicious piece where it sits.
+   *
+   * Pure: it reads the text it is given and the form's fields, and nothing
+   * else. Each surface asks it once, right before the text leaves Fibonax.
+   *
+   * @param {string} text    exactly what is about to be inserted or copied
+   * @param {Array} [fields] the view model's fields, when the snippet has a form
+   * @returns {Array<{ kind: string, text: string, reason: string, key: string, start: number }>}
+   *   kind is 'empty' or one of the rule kinds; key names the field the item
+   *   belongs to ('' when it is the snippet's own text); start is where the
+   *   piece begins in `text`, -1 for an empty box.
+   */
+  function unfinished(text, fields) {
+    var src = text === null || text === undefined ? '' : String(text);
+    var list = Array.isArray(fields) ? fields : [];
+    var out = [];
+
+    for (var f = 0; f < list.length; f++) {
+      var fld = list[f];
+      // A box in a closed Show or hide section prints nothing either way.
+      if (!fld || fld.visible === false || fld.prints === false || trim(fld.value) !== '') continue;
+      out.push({ kind: 'empty', text: fieldTitle(fld), reason: UNFINISHED_TEXT.empty, key: fld.key, start: -1 });
+    }
+
+    var hits = [];
+    for (var r = 0; r < UNFINISHED_RULES.length; r++) {
+      var rule = UNFINISHED_RULES[r];
+      rule.re.lastIndex = 0;
+      var m;
+      while ((m = rule.re.exec(src)) !== null) {
+        if (m[0] === '') { rule.re.lastIndex++; continue; }
+        if (rule.keep && !rule.keep(m)) continue;
+        var piece = rule.group ? m[rule.group] : m[0];
+        var at = rule.group ? m.index + m[0].length - piece.length : m.index;
+        hits.push({ kind: rule.kind, text: piece, start: at, end: at + piece.length, order: r });
+      }
+    }
+    // Earliest first; on a tie, the rule listed first. A piece inside one
+    // already taken is the same mistake seen twice.
+    hits.sort(function(a, b) { return a.start - b.start || a.order - b.order; });
+    var takenEnd = -1, seen = {};
+    for (var h = 0; h < hits.length; h++) {
+      var hit = hits[h];
+      if (hit.start < takenEnd) continue;
+      takenEnd = hit.end;
+      // A piece found inside what someone typed or pasted into a box is fixed
+      // in that box; anything else is written in the snippet itself. Case is
+      // ignored: a name field prints "bob [xxx]" as "Bob [Xxx]".
+      var owner = '', low = hit.text.toLowerCase();
+      for (var v = 0; v < list.length; v++) {
+        if (list[v] && String(list[v].value || '').toLowerCase().indexOf(low) !== -1) { owner = list[v].key; break; }
+      }
+      var id = hit.kind + '\u0000' + hit.text + '\u0000' + owner;
+      if (seen[id]) continue;
+      seen[id] = true;
+      out.push({ kind: hit.kind, text: hit.text, reason: UNFINISHED_TEXT[hit.kind], key: owner, start: hit.start });
+    }
+    return out;
+  }
+
+  /**
+   * Whether a snippet asks to be checked. On unless someone turned it off for
+   * this snippet, so a snippet saved before the setting existed is checked too.
+   */
+  function checksUnfinished(snip) {
+    return !(snip && snip.check_unfinished === false);
+  }
+
   var API = {
     fillForm: fillForm,
     fieldTitle: fieldTitle,
@@ -3530,9 +3853,17 @@ svg.brain-type-icon{stroke-width:1.8}
     linkUrl: linkUrl,
     readFromPage: readFromPage,
     linkText: linkText,
+    pictureText: pictureText,
+    pictureCount: pictureCount,
+    layoutFragment: layoutFragment,
     linkSummary: linkSummary,
     linkNote: linkNote,
     LINK_TEXT: LINK_TEXT,
+    unfinished: unfinished,
+    unfinishedText: unfinishedText,
+    checksUnfinished: checksUnfinished,
+    UNFINISHED_TEXT: UNFINISHED_TEXT,
+    UNFINISHED_SHOWN: UNFINISHED_SHOWN,
     inferType: inferType,
     chooseLayout: chooseLayout,
     dayValue: dayValue,
@@ -3555,7 +3886,7 @@ svg.brain-type-icon{stroke-width:1.8}
 <!-- SB_FILL_FORM:END -->
 <!-- SB_FILL_FORM_UI:BEGIN -->
 <style>
-.ff-form{--ff-bg:var(--sb-bg,#fff);--ff-line:var(--sb-line,#E5E5EA);--ff-ink:var(--sb-ink,#1C1C1E);--ff-muted:var(--sb-ink-muted,#6E6E73);--ff-primary:var(--sb-azure,#1B4FD8);--ff-danger:var(--sb-danger,#D70015);display:block!important;}
+.ff-form{--ff-bg:var(--sb-bg,#fff);--ff-line:var(--sb-line,#E5E5EA);--ff-ink:var(--sb-ink,#1C1C1E);--ff-muted:var(--sb-ink-muted,#6E6E73);--ff-primary:var(--sb-azure,#1B4FD8);--ff-danger:var(--sb-danger,#D70015);--ff-warn:var(--sb-warn,#D97706);--ff-warn-bg:var(--sb-warn-bg,#FFFBEB);display:block!important;}
 .ff-form .ff-section{margin:0 0 16px;border:1px solid var(--ff-line);border-radius:12px;background:var(--ff-bg);}
 .ff-form .ff-section>summary{padding:12px 16px;font-weight:600;font-size:13px;color:var(--ff-muted);cursor:pointer;min-height:44px;}
 .ff-form .ff-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;padding:4px 16px 20px;}
@@ -3569,6 +3900,40 @@ svg.brain-type-icon{stroke-width:1.8}
 .ff-form .ff-error{font-size:12px;line-height:1.5;color:var(--ff-danger);margin:4px 0 0;}
 .ff-form .ff-error[hidden]{display:none;}
 .ff-form [aria-invalid=true]{border-color:var(--ff-danger)!important;}
+.ff-form .ff-warn{font-size:12px;line-height:1.5;color:var(--ff-ink);margin:4px 0 0;padding:4px 8px;border-left:3px solid var(--ff-warn);border-radius:4px;background:var(--ff-warn-bg);overflow-wrap:anywhere;}
+#sb-overlay .ff-form p.ff-warn{margin:4px 0 0;padding:4px 8px;font-size:12px;color:var(--ff-ink);}
+#ff-unf-bd{position:fixed;inset:0;z-index:2147483647;background:var(--sb-scrim,rgba(0,0,0,.5));}
+#ff-unf{all:initial;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483647;box-sizing:border-box;display:flex;flex-direction:column;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:var(--sb-bg,#fff);border:1px solid var(--sb-line,#E5E5EA);border-radius:16px;box-shadow:var(--sb-shadow-md,0 4px 20px rgba(27,79,216,.12),0 1px 3px rgba(0,0,0,.06));font-family:var(--sb-font,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif);font-size:14px;line-height:1.5;color:var(--sb-ink,#1C1C1E);text-align:left;color-scheme:light;-webkit-font-smoothing:antialiased;}
+#ff-unf,#ff-unf *{box-sizing:border-box;}
+#ff-unf h2,#ff-unf p,#ff-unf ul,#ff-unf li,#ff-unf label,#ff-unf span{margin:0;padding:0;font:inherit;color:inherit;list-style:none;}
+#ff-unf svg{display:block;flex:none;}
+#ff-unf .ff-unf-head{display:flex;align-items:center;gap:12px;padding:20px 16px 0 24px;}
+#ff-unf .ff-unf-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;border-radius:10px;background:var(--sb-warn-bg,#FFFBEB);color:var(--sb-warn,#D97706);}
+#ff-unf #ff-unf-title{flex:1;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.02em;}
+#ff-unf .ff-unf-body{padding:12px 24px 20px;}
+#ff-unf #ff-unf-intro{font-size:13px;color:var(--sb-ink-muted,#6E6E73);}
+#ff-unf .ff-unf-list{margin-top:12px;border:1px solid var(--sb-warn-bdr,#FDE68A);border-radius:12px;background:var(--sb-warn-bg,#FFFBEB);}
+#ff-unf .ff-unf-list li{display:flex;flex-direction:column;gap:2px;padding:10px 14px;}
+#ff-unf .ff-unf-list li+li{border-top:1px solid var(--sb-warn-bdr,#FDE68A);}
+#ff-unf .ff-unf-piece{font-family:var(--sb-mono,ui-monospace,SFMono-Regular,Menlo,Consolas,monospace);font-size:13px;font-weight:600;overflow-wrap:anywhere;}
+#ff-unf .ff-unf-piece.ff-unf-box{font-family:inherit;}
+#ff-unf .ff-unf-why{font-size:12px;color:var(--sb-ink-muted,#6E6E73);}
+#ff-unf .ff-unf-more{margin-top:8px;font-size:12px;color:var(--sb-ink-muted,#6E6E73);}
+#ff-unf .ff-unf-mute{display:flex;align-items:center;gap:10px;min-height:44px;margin-top:12px;font-size:13px;cursor:pointer;}
+#ff-unf .ff-unf-mute input{all:revert;width:18px;height:18px;margin:0;flex:none;accent-color:var(--sb-azure,#1B4FD8);cursor:pointer;}
+#ff-unf .ff-unf-mute input:focus-visible{outline:2px solid var(--sb-azure,#1B4FD8);outline-offset:2px;}
+#ff-unf .ff-unf-foot{display:flex;justify-content:flex-end;gap:12px;padding:16px 24px;border-top:1px solid var(--sb-line,#E5E5EA);background:var(--sb-bg-alt,#F2F2F7);}
+#ff-unf button{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 16px;border:1px solid transparent;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;line-height:1.3;cursor:pointer;touch-action:manipulation;}
+#ff-unf button:focus-visible{outline:2px solid var(--sb-azure,#1B4FD8);outline-offset:2px;}
+#ff-unf button:disabled{opacity:.5;cursor:default;}
+#ff-unf .ff-unf-close{width:44px;padding:0;color:var(--sb-ink-muted,#6E6E73);}
+#ff-unf .ff-unf-close:hover{background:var(--sb-bg-alt,#F2F2F7);color:var(--sb-ink,#1C1C1E);}
+#ff-unf .ff-unf-secondary{margin-right:auto;background:var(--sb-bg,#fff);color:var(--sb-ink,#1C1C1E);border-color:var(--sb-line-2,#D4D4D8);}
+#ff-unf .ff-unf-secondary:only-child{margin-right:0;margin-left:auto;}
+#ff-unf .ff-unf-secondary:hover{background:var(--sb-bg-muted,#F4F4F5);}
+#ff-unf .ff-unf-primary{min-width:120px;background:var(--sb-azure,#1B4FD8);color:var(--sb-bg,#fff);}
+#ff-unf .ff-unf-primary:hover{background:var(--sb-azure-dark,#1440B0);}
+@media(max-width:480px){#ff-unf .ff-unf-head{padding:16px 12px 0 20px;}#ff-unf .ff-unf-body{padding:12px 20px 16px;}#ff-unf .ff-unf-foot{flex-direction:column-reverse;padding:12px 20px;}#ff-unf .ff-unf-secondary{margin-right:0;}#ff-unf .ff-unf-foot button{width:100%;}}
 @media(min-width:900px){#sb-overlay[role=dialog] .ff-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 #sb-overlay[role=dialog] .sb-form-content{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);padding:0;overflow:hidden;}
 #sb-overlay[role=dialog] .sb-input-pane{min-width:0;overflow-y:auto;padding:24px;overscroll-behavior:contain;}
@@ -3598,8 +3963,27 @@ svg.brain-type-icon{stroke-width:1.8}
 .detail:has(.d-fields){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;}
 .detail .d-fields.ff-form{max-height:320px;overflow-y:auto;min-width:0;padding-right:4px;}
 .detail:has(.d-fields) .d-body{max-height:320px;height:320px;min-width:0;margin:0;}
-.detail:has(.d-fields) .d-acts,.detail:has(.d-fields) .d-note,.detail:has(.d-fields) .d-link,.detail:has(.d-fields) .d-langs,.detail:has(.d-fields) .d-warn{grid-column:1/-1;}
+.detail:has(.d-fields) .d-acts,.detail:has(.d-fields) .d-note,.detail:has(.d-fields) .d-link,.detail:has(.d-fields) .d-langs,.detail:has(.d-fields) .d-warn,.detail:has(.d-fields) .ff-picnote{grid-column:1/-1;}
 #view-detail #prev-text{max-height:none;overflow:visible;}
+
+/* Pictures in a preview, and the line that says where they go. Host pages style
+   img freely, so the sizes hold with !important. */
+.ff-pic{display:inline-block!important;vertical-align:bottom!important;max-width:100%!important;height:auto!important;margin:4px 0!important;border:0!important;border-radius:4px;}
+.ff-pic--small{width:160px!important;}
+.ff-pic--medium{width:320px!important;}
+.ff-pic--full{width:100%!important;}
+.ff-pic-missing{display:inline-block;margin:4px 0;padding:6px 10px;border:1px dashed var(--sb-line,#E5E5EA);border-radius:8px;font-size:12px;line-height:1.4;color:var(--sb-ink-muted,#6E6E73);}
+.ff-picnote{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--sb-ink-muted,#6E6E73);}
+.ff-picnote[hidden]{display:none!important;}
+/* A formatted text in a preview: its lines and lists, whatever the page styles. */
+.ff-layout{white-space:normal!important;}
+.ff-layout ul,.ff-layout ol{margin:4px 0!important;padding-left:1.5em!important;}
+.ff-layout ul{list-style:disc!important;}
+.ff-layout ol{list-style:decimal!important;}
+.ff-layout li{display:list-item!important;}
+.ff-layout b{font-weight:700!important;}
+.ff-layout i{font-style:italic!important;}
+.ff-layout u{text-decoration:underline!important;}
 </style>
 <script>
 // DOM presentation shared by the overlay, popup and mobile fill forms.
@@ -3677,6 +4061,9 @@ svg.brain-type-icon{stroke-width:1.8}
       row.querySelector('.ff-label').textContent = root.SBFillForm.fieldTitle(field) + (field.required ? ' *' : '');
       var message = state.attempted ? field.error : '';
       var error = row.querySelector('.ff-error'); error.hidden = !message; error.textContent = message;
+      // A box flagged by Fix it stops being flagged the moment it is changed.
+      var warn = row.querySelector('.ff-warn');
+      if (warn && row._ffWarnedValue !== field.value) { warn.remove(); delete row._ffWarnedValue; }
       row.querySelectorAll(state.cfg.control).forEach(function(el) {
         el.setAttribute('aria-invalid', message ? 'true' : 'false');
       });
@@ -3697,7 +4084,291 @@ svg.brain-type-icon{stroke-width:1.8}
     }
     return false;
   }
-  root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate };
+  // ── BEFORE IT GOES OUT ──────────────────────────────────────────
+  // What every surface shows when SBFillForm.unfinished() finds something in
+  // the text about to be inserted or copied. One window, built here, so the
+  // page, the popup and the phone say the same words in the same order and
+  // answer the same keys. The words come from SBFillForm.unfinishedText.
+
+  function words(key, slots) { return root.SBFillForm.unfinishedText(key, slots); }
+
+  function lowerFirst(s) { return s ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
+
+  // The line under one piece: why it was flagged and, for a piece that sits in
+  // a box, which box to look in.
+  function why(item, fields) {
+    if (item.kind === 'empty' || !item.key) return item.reason;
+    var field = (fields || []).find(function(f) { return f.key === item.key; });
+    return field ? item.reason + ' · ' + words('in-field', { title: root.SBFillForm.fieldTitle(field) }) : item.reason;
+  }
+
+  var openDialog = null;
+
+  /**
+   * Opens the warning. Only one is ever open: a second call replaces the first.
+   *
+   * @param {Object} opts
+   * @param {Array}  opts.items    what SBFillForm.unfinished() found
+   * @param {Array}  [opts.fields] the form's fields, to name the box a piece is in
+   * @param {string} opts.primary  'fix' (back to the form), 'edit' (open the
+   *   editor), or '' where neither can help: the phone, which edits nothing
+   * @param {string} opts.anyway   'insert-anyway', 'copy-anyway' or 'share-anyway'
+   * @param {boolean} [opts.mute]  offer "Don't warn me about this snippet again"
+   * @param {Function} opts.onPrimary
+   * @param {Function} opts.onAnyway  (muted, done): muted is true when the mute
+   *   box is ticked; the window then stays open until done() is called
+   * @param {Function} opts.onClose   Esc, the close button or the backdrop
+   * @returns {{ close: Function, busy: Function }} close removes it with no answer;
+   *   busy(true) holds the buttons while the caller saves the mute choice
+   */
+  function unfinishedDialog(opts) {
+    if (openDialog) openDialog.close();
+    var doc = root.document;
+    var items = opts.items || [];
+    var shown = items.slice(0, root.SBFillForm.UNFINISHED_SHOWN);
+    var returnFocus = doc.activeElement;
+
+    var bd = doc.createElement('div');
+    bd.id = 'ff-unf-bd';
+    var box = doc.createElement('div');
+    box.id = 'ff-unf';
+    box.setAttribute('role', 'alertdialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-labelledby', 'ff-unf-title');
+    box.setAttribute('aria-describedby', 'ff-unf-intro');
+
+    var head = doc.createElement('div');
+    head.className = 'ff-unf-head';
+    var icon = doc.createElement('span');
+    icon.className = 'ff-unf-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
+    var title = doc.createElement('h2');
+    title.id = 'ff-unf-title';
+    title.textContent = words('title');
+    var closeBtn = doc.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'ff-unf-close';
+    closeBtn.setAttribute('aria-label', 'Cancel');
+    closeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+    head.appendChild(icon); head.appendChild(title); head.appendChild(closeBtn);
+
+    var body = doc.createElement('div');
+    body.className = 'ff-unf-body';
+    var intro = doc.createElement('p');
+    intro.id = 'ff-unf-intro';
+    intro.textContent = words('intro');
+    body.appendChild(intro);
+    var list = doc.createElement('ul');
+    list.className = 'ff-unf-list';
+    shown.forEach(function(item) {
+      var li = doc.createElement('li');
+      var piece = doc.createElement('span');
+      piece.className = 'ff-unf-piece' + (item.kind === 'empty' ? ' ff-unf-box' : '');
+      piece.textContent = item.text;
+      var line = doc.createElement('span');
+      line.className = 'ff-unf-why';
+      line.textContent = why(item, opts.fields);
+      li.appendChild(piece); li.appendChild(line);
+      list.appendChild(li);
+    });
+    body.appendChild(list);
+    if (items.length > shown.length) {
+      var more = doc.createElement('p');
+      more.className = 'ff-unf-more';
+      more.textContent = words('more', { n: items.length - shown.length });
+      body.appendChild(more);
+    }
+    var muteBox = null;
+    if (opts.mute) {
+      var mute = doc.createElement('label');
+      mute.className = 'ff-unf-mute';
+      muteBox = doc.createElement('input');
+      muteBox.type = 'checkbox';
+      var muteText = doc.createElement('span');
+      muteText.textContent = words('mute');
+      mute.appendChild(muteBox); mute.appendChild(muteText);
+      body.appendChild(mute);
+    }
+
+    var foot = doc.createElement('div');
+    foot.className = 'ff-unf-foot';
+    var anyway = doc.createElement('button');
+    anyway.type = 'button';
+    anyway.className = 'ff-unf-secondary';
+    anyway.textContent = words(opts.anyway);
+    var primary = null;
+    foot.appendChild(anyway);
+    if (opts.primary) {
+      primary = doc.createElement('button');
+      primary.type = 'button';
+      primary.className = 'ff-unf-primary';
+      primary.textContent = words(opts.primary);
+      foot.appendChild(primary);
+    }
+
+    box.appendChild(head); box.appendChild(body); box.appendChild(foot);
+    doc.body.appendChild(bd);
+    doc.body.appendChild(box);
+
+    var settled = false;
+    function remove() {
+      if (settled) return false;
+      settled = true;
+      doc.removeEventListener('keydown', onKey, true);
+      box.remove(); bd.remove();
+      if (openDialog === handle) openDialog = null;
+      return true;
+    }
+    function cancel() {
+      if (!remove()) return;
+      if (returnFocus && returnFocus.isConnected && typeof returnFocus.focus === 'function') {
+        try { returnFocus.focus({ preventScroll: true }); } catch (e) { returnFocus.focus(); }
+      }
+      if (typeof opts.onClose === 'function') opts.onClose();
+    }
+    function onKey(e) {
+      if (settled) return;
+      if (e.key === 'Escape') {
+        e.preventDefault(); e.stopPropagation(); cancel();
+        return;
+      }
+      if (!box.contains(doc.activeElement)) return;
+      // The page under the window must not act on a key meant for it: Enter in
+      // a mail editor sends, a letter can be a shortcut.
+      e.stopPropagation();
+      if (e.key === 'Tab') {
+        var stops = [closeBtn, muteBox, anyway, primary].filter(function(n) { return n && !n.disabled; });
+        var at = stops.indexOf(doc.activeElement);
+        var next = e.shiftKey ? (at <= 0 ? stops.length - 1 : at - 1) : (at === stops.length - 1 ? 0 : at + 1);
+        e.preventDefault();
+        stops[next].focus();
+      }
+    }
+
+    closeBtn.addEventListener('click', cancel);
+    bd.addEventListener('click', cancel);
+    if (primary) primary.addEventListener('click', function() { if (remove()) opts.onPrimary(); });
+    anyway.addEventListener('click', function() {
+      var muted = !!(muteBox && muteBox.checked);
+      // Ticked, the window stays open, held, while the caller saves the choice,
+      // and closes when the caller says so. Otherwise it closes first.
+      if (muted) handle.busy(true);
+      else if (!remove()) return;
+      opts.onAnyway(muted, remove);
+    });
+    doc.addEventListener('keydown', onKey, true);
+    // The safe choice holds the focus, so a stray Enter fixes, or closes,
+    // rather than sends.
+    (primary || closeBtn).focus();
+
+    var handle = {
+      close: remove,
+      busy: function(on) {
+        [closeBtn, muteBox, anyway, primary].forEach(function(n) { if (n) n.disabled = !!on; });
+        box.setAttribute('aria-busy', on ? 'true' : 'false');
+      }
+    };
+    openDialog = handle;
+    return handle;
+  }
+
+  /**
+   * Fix it: marks each box the warning named with what was wrong in it, and
+   * puts the caret in the first. Marks the snippet's own text cannot carry
+   * stay in the window's list; nothing here rewrites what the person typed.
+   * Returns whether any box was marked.
+   */
+  function flag(host, vm, items) {
+    if (!host || !host._fillUI) return false;
+    var doc = root.document;
+    var byKey = {};
+    (items || []).forEach(function(it) { if (it.key) (byKey[it.key] = byKey[it.key] || []).push(it); });
+    var first = null;
+    host._fillUI.rows.forEach(function(row, index) {
+      var key = row.dataset.ffKey;
+      var note = row.querySelector('.ff-warn');
+      var mine = byKey[key];
+      if (!mine) { if (note) note.remove(); delete row._ffWarnedValue; return; }
+      if (!note) {
+        note = doc.createElement('p');
+        note.className = 'ff-warn';
+        note.id = 'ff-warn-' + host._fillUI.cfg.prefix + '-' + index;
+        var error = row.querySelector('.ff-error');
+        row.insertBefore(note, error || null);
+        row.querySelectorAll(host._fillUI.cfg.control).forEach(function(el) {
+          var ids = (el.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+          if (ids.indexOf(note.id) === -1) ids.push(note.id);
+          el.setAttribute('aria-describedby', ids.join(' '));
+        });
+      }
+      note.textContent = mine.map(function(it) {
+        return it.kind === 'empty' ? it.reason : '“' + it.text + '”: ' + lowerFirst(it.reason);
+      }).join(' · ');
+      var field = vm.fields.find(function(f) { return f.key === key; });
+      row._ffWarnedValue = field ? field.value : '';
+      if (!first) first = row;
+    });
+    if (!first) return false;
+    var parent = first.parentElement;
+    while (parent && parent !== host) { if (parent.tagName === 'DETAILS') parent.open = true; parent = parent.parentElement; }
+    var control = first.querySelector('.ff-menu > summary') || first.querySelector(host._fillUI.cfg.control);
+    if (control) control.focus();
+    first.scrollIntoView({ block: 'nearest' });
+    return true;
+  }
+
+  // ── PREVIEW ─────────────────────────────────────────────────────
+  // The finished message in a preview box: the text, and each picture in its
+  // place. Built from nodes, never from markup: the text comes from people and
+  // web pages. A picture the page will not load (some sites refuse outside
+  // pictures) shows as a labelled box. Pictures already drawn are kept, so
+  // typing in the form does not make them blink.
+  function showPreview(box, vm) {
+    if (!box) return;
+    // A formatted text draws its layout; anything else, its text.
+    var layout = vm.formatted && !vm.parts && root.SBFillForm.layoutFragment
+      ? root.SBFillForm.layoutFragment(vm.formatted) : null;
+    box.classList.toggle('ff-layout', !!layout);
+    if (layout) { box.textContent = ''; box.appendChild(layout); return; }
+    if (!vm.parts) { box.textContent = vm.preview; return; }
+    var drawn = {};
+    Array.prototype.forEach.call(box.querySelectorAll('[data-ff-pic]'), function(n) {
+      (drawn[n.dataset.ffPic] = drawn[n.dataset.ffPic] || []).push(n);
+    });
+    box.textContent = '';
+    vm.parts.forEach(function(part) {
+      if (!part.picture) { box.appendChild(document.createTextNode(part.text)); return; }
+      var pic = part.picture, key = pic.size + ' ' + pic.src + ' ' + pic.alt;
+      var again = drawn[key] && drawn[key].shift();
+      if (again) { box.appendChild(again); return; }
+      var img = document.createElement('img');
+      img.className = 'ff-pic ff-pic--' + pic.size;
+      img.alt = pic.alt;
+      img.dataset.ffPic = key;
+      img.addEventListener('error', function() {
+        var label = document.createElement('span');
+        label.className = 'ff-pic-missing';
+        label.dataset.ffPic = key;
+        label.textContent = root.SBFillForm.pictureText('missing') + (pic.alt ? ': ' + pic.alt : '');
+        if (img.parentNode) img.parentNode.replaceChild(label, img);
+      });
+      img.src = pic.src;
+      box.appendChild(img);
+    });
+  }
+
+  // The line that says where the pictures go ('left-out', 'copy', 'share').
+  // Hidden while the text has none.
+  function pictureNote(el, vm, key) {
+    if (!el) return;
+    var n = root.SBFillForm.pictureCount(vm);
+    el.hidden = n === 0;
+    el.textContent = n ? root.SBFillForm.pictureText(key, n) : '';
+  }
+
+  root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
+    unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote };
 })(typeof window !== 'undefined' ? window : this);
 </script>
 <!-- SB_FILL_FORM_UI:END -->
@@ -5308,9 +5979,97 @@ function sbInflectGreeting(out,value,lock){
   if(!g)return out;
   return out.slice(0,start)+sbMatchCase(m[1],g==='f'?pair.f:pair.m)+m[2];
 }
-function sbEmitValue(out,value,lock){
+/* `html` escapes the value for a formatted layout; the greeting is still
+   inflected from the value as typed, across the tags that open around the
+   value. Mirrors sbEmitValue in the engine. */
+function sbEmitValue(out,value,lock,html){
   var s=String(value);
-  return sbInflectGreeting(out,s,lock)+s;
+  if(!html)return sbInflectGreeting(out,s,lock)+s;
+  var tags=/(?:<[^>]*>)+$/.exec(out);
+  var cut=tags?tags.index:out.length;
+  return sbInflectGreeting(out.slice(0,cut),s,lock)+out.slice(cut)+sbEscapeHtml(s);
+}
+/* ── FORMATTED LAYOUT ── A snippet's layout is resolved with opts.html: every
+   value printed into it is escaped, so typed or page-read text never becomes
+   markup. MIRRORED from sbEscapeHtml, _sbOut and _applyCaseModeHtml in
+   extension/formula-engine.js; scripts/check-snippets.js pins the two. */
+function sbEscapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function sbOut(value,html){return html?sbEscapeHtml(value):String(value);}
+/* ── PICTURES ── {picture: src=https://…; alt=…; size=small|medium|full}
+   shows where formatted text can go and is left out of plain text, with the
+   line it stands on. MIRRORED from sbParsePicture, sbPictureHtml and
+   _dropOwnLine in extension/formula-engine.js; scripts/check-snippets.js pins
+   the two. */
+var SB_PICTURE_SIZES={small:160,medium:320,full:600};
+var SB_PICTURE_SRC_RE=/^https:\/\/[^\s"'<>{};\\]+$/i;
+function sbIsPictureHead(tokLow){return tokLow.slice(0,8)==='picture:';}
+function sbParsePicture(rest){
+  var p={src:'',alt:'',size:'medium'},parts=String(rest).split(';');
+  for(var i=0;i<parts.length;i++){
+    var eq=parts[i].indexOf('=');
+    if(eq===-1)continue;
+    var k=parts[i].slice(0,eq).replace(/^\s+|\s+$/g,'').toLowerCase();
+    var v=parts[i].slice(eq+1).replace(/^\s+|\s+$/g,'');
+    if(k==='src')p.src=SB_PICTURE_SRC_RE.test(v)?v:'';
+    else if(k==='alt')p.alt=v;
+    else if(k==='size'&&Object.prototype.hasOwnProperty.call(SB_PICTURE_SIZES,v.toLowerCase()))p.size=v.toLowerCase();
+  }
+  return p;
+}
+function sbPictureHtml(p){
+  if(!p||!SB_PICTURE_SRC_RE.test(p.src||''))return '';
+  var w=SB_PICTURE_SIZES[p.size]||SB_PICTURE_SIZES.medium;
+  var attr=function(s){return sbEscapeHtml(s).replace(/"/g,'&quot;');};
+  return '<img src="'+attr(p.src)+'" alt="'+attr(p.alt||'')+'" width="'+w+
+    '" style="width:'+w+'px;max-width:100%;height:auto;border:0">';
+}
+/* A token that prints nothing and stands alone on its line takes the line with
+   it. `i` is just past the token. */
+function sbDropOwnLine(out,body,i){
+  var b=/(^|\n)[ \t]*$/.exec(out),a=/^[ \t]*(\r?\n|$)/.exec(body.slice(i));
+  if(b&&a){
+    out=out.slice(0,out.length-(b[0].length-b[1].length));
+    i+=a[0].length;
+    if(a[1]===''&&b[1]==='\n')out=out.slice(0,-1);
+  }
+  return {out:out,i:i};
+}
+var SB_HTML_PART_RE=/(<[^>]*>|&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);)/;
+var SB_HTML_NAMED={amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' '};
+var SB_HTML_INLINE_RE=/^<\/?(?:a|b|strong|i|em|u|s|span|font|small|sub|sup|mark|code)\b/i;
+function sbEntityChar(ent){
+  var name=ent.slice(1,-1);
+  if(name.charAt(0)==='#'){
+    var code=/^#[xX]/.test(name)?parseInt(name.slice(2),16):parseInt(name.slice(1),10);
+    return (code>0&&code<=0x10FFFF)?String.fromCodePoint(code):'';
+  }
+  return Object.prototype.hasOwnProperty.call(SB_HTML_NAMED,name)?SB_HTML_NAMED[name]:'';
+}
+/* {case:} inside a layout changes the letters of the text, never a tag or an
+   entity: the text is cased as one run with the tags put back after. */
+function sbApplyCaseModeHtml(str,mode,lang){
+  if(!str||!mode)return str;
+  var parts=String(str).split(SB_HTML_PART_RE),text='',marks=[],i,ch;
+  for(i=0;i<parts.length;i++){
+    if(i%2===0){text+=parts[i];continue;}
+    ch=parts[i].charAt(0)==='&'?sbEntityChar(parts[i]):'';
+    if(ch){text+=ch;continue;}
+    var gap=parts[i].charAt(0)==='<'&&!SB_HTML_INLINE_RE.test(parts[i]);
+    marks.push({at:text.length,tag:parts[i],gap:gap});
+    if(gap)text+='\n';
+  }
+  var cased=sbApplyCaseMode(text,mode,lang);
+  if(cased.length!==text.length){
+    return parts.map(function(p,k){return k%2?p:sbEscapeHtml(sbApplyCaseMode(p,mode,lang));}).join('');
+  }
+  var out='',pos=0;
+  for(i=0;i<marks.length;i++){
+    out+=sbEscapeHtml(cased.slice(pos,marks[i].at))+marks[i].tag;
+    pos=marks[i].at+(marks[i].gap?1:0);
+  }
+  return out+sbEscapeHtml(cased.slice(pos));
 }
 function sbResolveGenderToken(rest,vals,opts){
   var parts=String(rest).split(';');
@@ -6151,7 +6910,8 @@ function sbTokenFieldKey(t){
      t.slice(0,3)==='if:'||t.slice(0,4)==='var:'||
      tLow.slice(0,7)==='elseif:'||
      tLow.slice(0,5)==='time:'||
-     sbIsButtonHead(tLow)||sbIsCaseHead(tLow)||sbIsGreetingHead(tLow))return '';
+     sbIsButtonHead(tLow)||sbIsCaseHead(tLow)||sbIsGreetingHead(tLow)||
+     sbIsPictureHead(tLow))return '';
   if(tLow.slice(0,7)==='gender:')return sbGenderTokenField(t.slice(7));
   if(sbIsFormToken(tLow))return sbFormTokenName(tLow,t.slice(9));
   return t;
@@ -6329,7 +7089,8 @@ function extractFields(body) {
 
 function resolveBody(body,vals,opts){
   if(!body)return '';
-  var out='',i=0,gLock=-1;
+  /* opts.html resolves a formatted layout: every printed value is escaped. */
+  var out='',i=0,gLock=-1,html=!!(opts&&opts.html);
   /* Which fields print formatted is decided by the WHOLE body: an {if:} branch
      can print a field declared outside it. Built once, then carried down on a
      copy so the caller's opts is never mutated. Mirrors the engine, including
@@ -6366,13 +7127,13 @@ function resolveBody(body,vals,opts){
       /* {=expr} */
       if(tok.charAt(0)==='='){
         var fv=(_o.formula||sbEvalFormula)(tok.slice(1),vals);
-        out+=fv!==null?String(fv):'';
+        out+=fv!==null?sbOut(fv,html):'';
         i=cl+1;continue;
       }
 
       /* {time: FORMAT[; shift=+1D][; from=FIELD]} */
       if(tok.slice(0,5).toLowerCase()==='time:'){
-        out+=sbParseTimeToken(tok.slice(5),vals,_o.lang);
+        out+=sbOut(sbParseTimeToken(tok.slice(5),vals,_o.lang),html);
         i=cl+1;continue;
       }
 
@@ -6391,13 +7152,13 @@ function resolveBody(body,vals,opts){
       /* {gender: FIELD; m=Querido; f=Querida} */
       if(tok.slice(0,7).toLowerCase()==='gender:'){
         gLock=out.length;
-        out+=sbResolveGenderToken(tok.slice(7),vals,opts);
+        out+=sbOut(sbResolveGenderToken(tok.slice(7),vals,opts),html);
         i=cl+1;continue;
       }
 
       /* {greeting[: lang=IT][; morning=…][; night=…]} resolves on its own */
       if(sbIsGreetingHead(tok.toLowerCase())){
-        out+=sbResolveGreetingToken(sbGreetingRest(tok),opts);
+        out+=sbOut(sbResolveGreetingToken(sbGreetingRest(tok),opts),html);
         i=cl+1;continue;
       }
 
@@ -6422,35 +7183,40 @@ function resolveBody(body,vals,opts){
         var cClose=body.indexOf(SB_CASE_CLOSE,cl+1);
         /* Unclosed: drop only the head so the rest still renders. */
         if(cClose===-1){i=cl+1;continue;}
-        out+=sbApplyCaseMode(resolveBody(body.slice(cl+1,cClose),vals,subOpts),sbCaseMode(tok.slice(5)),_o.lang);
+        out+=(html?sbApplyCaseModeHtml:sbApplyCaseMode)(resolveBody(body.slice(cl+1,cClose),vals,subOpts),sbCaseMode(tok.slice(5)),_o.lang);
         i=cClose+SB_CASE_CLOSE.length;
         continue;
       }
       if(tok==='/case'){i=cl+1;continue;}
+
+      /* {picture: …} — markup in a layout, the fill form's place marker when it
+         asks (opts.picture), otherwise nothing, line and all. */
+      if(sbIsPictureHead(tokLow)){
+        var pic=sbParsePicture(tok.slice(8));
+        if(pic.src&&html)out+=sbPictureHtml(pic);
+        else if(pic.src&&_o.picture)out+=_o.picture(pic);
+        else{var pD=sbDropOwnLine(out,body,cl+1);out=pD.out;i=pD.i;continue;}
+        i=cl+1;continue;
+      }
 
       /* {formtext/formdate/formmenu: …} — emits the value of the field it declares */
       if(sbIsFormToken(tokLow)){
         /* A menu set to print=no prints nothing, and alone on its line takes
            the line with it. Mirrors resolveBody in the engine. */
         if(tokLow.slice(0,9)==='formmenu:'&&!sbMenuSpec(tok.slice(9)).print){
-          i=cl+1;
-          var qB=/(^|\n)[ \t]*$/.exec(out),qA=/^[ \t]*(\r?\n|$)/.exec(body.slice(i));
-          if(qB&&qA){
-            out=out.slice(0,out.length-(qB[0].length-qB[1].length));
-            i+=qA[0].length;
-            if(qA[1]===''&&qB[1]==='\n')out=out.slice(0,-1);
-          }
+          var qD=sbDropOwnLine(out,body,cl+1);
+          out=qD.out;i=qD.i;
           continue;
         }
         var fk=sbFormTokenName(tokLow,tok.slice(9));
         var fkv=fk?vals[fk]:undefined;
-        out=sbEmitValue(out,sbEmitField(fk,(fkv!==undefined&&fkv!==null)?fkv:'',fmtMap),gLock);
+        out=sbEmitValue(out,sbEmitField(fk,(fkv!==undefined&&fkv!==null)?fkv:'',fmtMap),gLock,html);
         i=cl+1;continue;
       }
 
       /* {FIELD} */
       var fval=_o.value?_o.value(tok,vals):vals[tok];
-      if(fval!==undefined&&fval!==null)out=sbEmitValue(out,sbEmitField(tok,fval,fmtMap),gLock);
+      if(fval!==undefined&&fval!==null)out=sbEmitValue(out,sbEmitField(tok,fval,fmtMap),gLock,html);
       i=cl+1;
     }else{out+=body[i++];}
   }
@@ -6495,6 +7261,13 @@ window.SBFillFormEngine = {
   TIME_FORMATS:      SB_TIME_FORMATS,
   NAMED_SHIFTS:      SB_NAMED_SHIFTS,
   sbApplyShift:      sbApplyShift,
+  /* A formatted layout escapes what it interpolates with the same function
+     the resolver escapes with. */
+  sbEscapeHtml:      sbEscapeHtml,
+  /* Pictures: the fill form builds the formatted copy of a plain snippet
+     with these. */
+  sbParsePicture:    sbParsePicture,
+  sbPictureHtml:     sbPictureHtml,
   interpolateSnippet: function(body){ return body; },
   parsePlaceholders: function(){ return []; },
   extractButtons:    function(){ return []; }
@@ -7250,12 +8023,8 @@ function renderPromptList(){
   if(meta){
     // Any facet narrows the list, not only the search box.
     var narrowed=!!q||curCategory!=='ALL'||!!curLabels.length;
-    if(narrowed){
-      meta.textContent=filtered.length+' of '+total+' result'+(total!==1?'s':'');
-      meta.style.display='block';
-    }else{
-      meta.style.display='none';
-    }
+    meta.textContent=filtered.length+' of '+total;
+    meta.hidden=!narrowed;
   }
 
   if(!filtered.length){
@@ -7712,6 +8481,7 @@ function memPasteActHtml(){
    Paste & save alone, once there is a Brain to save into. */
 function renderMemHead(brain){
   var el=document.getElementById('mem-head');
+  el.classList.toggle('is-acts-only',!brain);
   if(!brain){
     if(memLoaded&&allBrains.length){
       el.innerHTML='<div class="mbrain-acts">'+memPasteActHtml()+'</div>';
@@ -7820,7 +8590,6 @@ function openBrain(id){
   history.pushState({memBrain:id},'');
   curBrain=id;
   renderMemory();refreshOpenFilterPanel();syncFilterHeader();
-  document.getElementById('mem-body').scrollTop=0;
   window.scrollTo(0,0);
 }
 function closeBrain(){
@@ -8405,7 +9174,11 @@ function pasteCapture(bid){
    app/src/lib/proFeatures.ts: scripts/check-pro-gate.js. */
 var PICTURE_AVAILABLE=false;
 var PICTURE_TIP='Text in a screenshot? Copy it with Live Text on iPhone or Google Lens on Android, then paste it here.';
+/* Every AI feature counts against one per-person limit (ai_call_allow).
+   Same words as AI_LIMIT_MESSAGE in app/src/lib/api/edgeFunctionError.ts. */
+var AI_LIMIT_TEXT='You have reached the AI limit: 30 uses an hour and 200 a day. Try again later.';
 var PICTURE_ERRORS={
+  rate_limited:AI_LIMIT_TEXT,
   invalid_picture:'That file is not a picture Fibonax can read.',
   picture_too_large:'That picture is too large to read. Try a smaller one.',
   picture_refused:'This picture can’t be read. Copy its text by hand instead.',
@@ -8729,6 +9502,8 @@ function bodyVariants(snip){
     if(typeof txt!=='string'||!txt.trim())return;
     var view={}; for(var k in snip)view[k]=snip[k];
     view.lang=l; view.body=txt; view._vid=snip.id+'::'+l;
+    /* Each language's own formatted layout (Bold, lists), or none. */
+    view.body_html=(snip.bodies_html&&snip.bodies_html[l])||'';
     out.push(view);
   });
   return out;
@@ -8880,10 +9655,13 @@ function activateSnippet(s,variants){
     openDetail(s,rows);
     return;
   }
-  copyText(resolveBody(s.body||'',{},{lang:s.lang}),function(){
-    showToast(reviewCopiedToast(s.review_status));
+  var text=resolveBody(s.body||'',{},{lang:s.lang});
+  checkThenGo(s,text,null,null,'copy-anyway',function(){
+    copyText(text,function(){
+      showToast(reviewCopiedToast(s.review_status));
+    });
+    logSnipUse(s,0);
   });
-  logSnipUse(s,0);
 }
 /* The list arrives a page at a time: a long library should not paint every
    card to show the first screenful. */
@@ -9429,7 +10207,7 @@ function currentForm() {
     var box=document.querySelector('#fform .field-othertxt[data-otherf="'+ctrl.getAttribute('data-f')+'"]');
     other[ctrl.getAttribute('data-f')]=box?box.value:'';
   });
-  return window.SBFillForm.fillForm(curSnip.body||'',getRawVals(),{lang:curSnip.lang,fieldCfg:curSnip.field_cfg||{},fieldFmt:getFmts(),other:other});
+  return window.SBFillForm.fillForm(curSnip.body||'',getRawVals(),{lang:curSnip.lang,fieldCfg:curSnip.field_cfg||{},fieldFmt:getFmts(),other:other,formatted:curSnip.body_html||null});
 }
 function validateDetail() {
   var vm=currentForm();
@@ -9453,7 +10231,10 @@ function detailFilled(){
 function updatePrev(){
   if(!curSnip)return;
   var vm=currentForm();
-  document.getElementById('prev-text').textContent=vm.preview;
+  window.SBFillFormUI.showPreview(document.getElementById('prev-text'),vm);
+  /* Where the pictures go: Copy takes them into an email, Share sends text. */
+  window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote'),vm,'copy');
+  window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote-share'),navigator.share?vm:null,'share');
   window.SBFillFormUI.refresh(document.getElementById('fform'),vm);
 }
 
@@ -9476,7 +10257,7 @@ var linkMarks=Object.create(null), linkResults=Object.create(null);
    the fields a page is read against are always the same answer. */
 function detailForm(snip,vals){
   return window.SBFillForm.fillForm(snip.body||'', vals||{},
-    { fieldCfg: snip.field_cfg||{}, lang: snip.lang||'', linked: linkMarks });
+    { fieldCfg: snip.field_cfg||{}, lang: snip.lang||'', linked: linkMarks, formatted: snip.body_html||null });
 }
 function detailOpen(){
   return document.getElementById('view-detail').classList.contains('active');
@@ -9613,18 +10394,83 @@ function fillFromLink(){
 /* ── COPY & SHARE ───────────────────────────────── */
 document.getElementById('copy-btn').addEventListener('click',function(){
   if(!curSnip||!validateDetail())return;
-  var btn=this;
-  logSnipUse(curSnip,detailFilled());
-  copyText(detailText(),function(){flashFootBtn(btn,'Copied!');});
+  var btn=this,s=curSnip,vm=currentForm();
+  checkThenGo(s,vm.preview,vm,document.getElementById('fform'),'copy-anyway',function(){
+    logSnipUse(s,detailFilled());
+    copyWithPictures(vm.preview,vm.formatted,function(){flashFootBtn(btn,'Copied!');});
+  });
 });
 document.getElementById('share-btn').addEventListener('click',function(){
   if(!curSnip||!validateDetail())return;
-  var btn=this,s=curSnip,filled=detailFilled();
-  shareOut(s.title||'Snippet',detailText(),function(){
-    logSnipUse(s,filled);
-    flashFootBtn(btn,'Shared!');
+  var btn=this,s=curSnip,filled=detailFilled(),vm=currentForm();
+  checkThenGo(s,vm.preview,vm,document.getElementById('fform'),'share-anyway',function(){
+    shareOut(s.title||'Snippet',vm.preview,function(){
+      logSnipUse(s,filled);
+      flashFootBtn(btn,'Shared!');
+    });
   });
 });
+
+/* ── BEFORE IT GOES OUT ─────────────────────────── */
+/* The same check, and the same window, as the extension: SBFillForm.unfinished()
+   decides what looks unfinished, SBFillFormUI.unfinishedDialog() shows it.
+   go() copies or shares. vm and form are the snippet page's form when it
+   is open, so Fix it can point at the box. The phone edits no snippets, so a
+   gap written in the snippet itself offers no Edit, only the way through. */
+function checkThenGo(s,text,vm,form,anyway,go){
+  var M=window.SBFillForm,UI=window.SBFillFormUI;
+  var fields=vm?vm.fields:[];
+  var items=M.checksUnfinished(s)?M.unfinished(text,fields):[];
+  if(!items.length){go();return;}
+  var canFix=!!form&&items.some(function(it){return !!it.key;});
+  UI.unfinishedDialog({
+    items:items,
+    fields:fields,
+    primary:canFix?'fix':'',
+    anyway:anyway,
+    mute:!!s.id,
+    onPrimary:function(){
+      setDetailPane('fields');
+      UI.flag(form,vm,items);
+    },
+    // The copy or share goes first, inside the tap: Safari refuses a copy
+    // that waits for the network. The switch is saved after, and its toast
+    // follows.
+    onAnyway:function(muted,done){
+      if(!muted){go();return;}
+      done();
+      go();
+      muteUnfinished(s,showToast);
+    },
+    onClose:function(){}
+  });
+}
+/* "Don't warn me about this snippet again", saved on the snippet so the
+   extension and the editor see it too. No owner filter: a teammate who may
+   edit a shared snippet may change this, and RLS decides, so an empty answer
+   means nothing was saved, and the toast says so. */
+function muteUnfinished(s,done){
+  var M=window.SBFillForm;
+  fetch(SUPA+'/rest/v1/snippets?id=eq.'+encodeURIComponent(s.id)+'&select=id,check_unfinished',{
+    method:'PATCH',
+    headers:authHeaders({'Content-Type':'application/json','Prefer':'return=representation'}),
+    body:JSON.stringify({check_unfinished:false})
+  })
+  .then(function(r){
+    if(handle401(r))throw new Error('401');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json();
+  })
+  .then(function(rows){
+    var ok=Array.isArray(rows)&&rows.length>0;
+    if(ok)s.check_unfinished=false;
+    done(M.unfinishedText(ok?'muted':'mute-failed'));
+  })
+  .catch(function(e){
+    console.error('[Fibonax] Could not save the unfinished-text switch:',e&&e.message);
+    done(M.unfinishedText('mute-failed'));
+  });
+}
 
 /* onFail, when given, hears about a copy the browser refused, so the screen can
    say so instead of looking idle. */
@@ -9860,14 +10706,12 @@ document.querySelector('#sb-bottom-sheet .sb-sheet-actions')
         closeBottomSheet();
         setTimeout(function(){openDetail(s,[s]);},320);
       }else{
-        copyText(resolveBody(s.body||'',{},{lang:s.lang}),function(){showToast(reviewCopiedToast(s.review_status));});
-        logSnipUse(s,0);
         closeBottomSheet();
+        copyChecked(s);
       }
     }else if(act==='copy'){
-      copyText(resolveBody(s.body||'',{},{lang:s.lang}),function(){showToast(reviewCopiedToast(s.review_status));});
-      logSnipUse(s,0);
       closeBottomSheet();
+      copyChecked(s);
     }else if(act==='pin'){
       toggleSnippetPin(s);
       closeBottomSheet();
@@ -9941,14 +10785,15 @@ var ASK_VERDICTS=[
   {value:'conflicting',label:'Conflicts with policy'}
 ];
 var ASK_MIN=3, ASK_MAX=1000;
-/* Ask Fibonax needs Pro, and the Pro plan does not exist yet. Until it does
+/* FiboChat needs Pro, and the Pro plan does not exist yet. Until it does
    the row stays where it will live, locked, and nothing here can send a
    request. Keep in step with PRO_SOON_LABEL and the 'ask' switch in
    app/src/lib/proFeatures.ts: scripts/check-pro-gate.js. */
 var PRO_SOON_LABEL='Available to Pro users soon';
 var ASK_AVAILABLE=false;
 var ASK_ERRORS={
-  anthropic_not_configured:'Ask Fibonax is not set up yet.',
+  rate_limited:AI_LIMIT_TEXT,
+  anthropic_not_configured:'FiboChat is not set up yet.',
   anthropic_request_failed:'The answer service did not respond. Try again.',
   anthropic_bad_output:'The answer came back unreadable. Try again.',
   question_too_short:'Write a few more words.',
@@ -9956,7 +10801,7 @@ var ASK_ERRORS={
   search_failed:'Could not search your Fibonax. Try again.',
   sources_read_failed:'Could not read the matching items. Try again.'
 };
-var ASK_FALLBACK='Could not reach Ask Fibonax. Try again.';
+var ASK_FALLBACK='Could not reach FiboChat. Try again.';
 var askState=null, _askSeq=0, _askSheetTimer=null;
 
 function syncAskRow(inputId){
@@ -10198,6 +11043,19 @@ function copyText(t,cb,onFail){
     navigator.clipboard.writeText(t).then(cb).catch(function(){fbCopy(t,cb,onFail);});
   }else{fbCopy(t,cb,onFail);}
 }
+/* The text, and with a text that has pictures its formatted copy too: an email
+   takes the pictures, a chat the text alone. Where the phone refuses the
+   formatted copy, the text is copied as before. */
+function copyWithPictures(t,html,cb){
+  if(!html||typeof ClipboardItem!=='function'||!navigator.clipboard||!navigator.clipboard.write){copyText(t,cb);return;}
+  navigator.clipboard.write([new ClipboardItem({
+    'text/plain':new Blob([t],{type:'text/plain'}),
+    'text/html':new Blob([html],{type:'text/html'})
+  })]).then(cb).catch(function(e){
+    console.error('Copy: the formatted copy was refused, copying the text',e);
+    copyText(t,cb);
+  });
+}
 
 /* Hand finished text to the phone's Share menu: WhatsApp, Mail or an AI app
    takes it as it is, with nothing left to paste. Snippets, prompts and Brains
@@ -10289,7 +11147,18 @@ function newId(){
 function shareSnippet(s){
   var text=resolveBody(s.body||'',{},{lang:s.lang});
   closeBottomSheet();
-  shareOut(s.title||'Snippet',text,function(){logSnipUse(s,0);});
+  checkThenGo(s,text,null,null,'share-anyway',function(){
+    shareOut(s.title||'Snippet',text,function(){logSnipUse(s,0);});
+  });
+}
+/* Copy a snippet with nothing to fill in, from its menu: checked first, as
+   every copy of a snippet is. */
+function copyChecked(s){
+  var text=resolveBody(s.body||'',{},{lang:s.lang});
+  checkThenGo(s,text,null,null,'copy-anyway',function(){
+    copyText(text,function(){showToast(reviewCopiedToast(s.review_status));});
+    logSnipUse(s,0);
+  });
 }
 
 /* Read-only snippet detail. This is where the per-snippet metadata lives, so the
@@ -10886,12 +11755,11 @@ document.getElementById('sb-profile-signout').addEventListener('click',function(
 })();
 
 /* ── TAB BAR ────────────────────────────────────── */
-/* The filter header is one header shown on every surface: snippets and prompts
-   today, memory when that page lands. It is built here and mounted into every
-   hero rather than pasted into each one, so the real filter list is written
-   once and every surface gets the same one. A new surface needs no wiring, only
-   a .mhero. The panel is a placeholder until those filters exist; the open and
-   shut mechanics are already the ones they will use. */
+/* The Filters pill and its panel are one header shown on every library page:
+   snippets, prompts and Brains. They are built here and mounted into each
+   band's two slots rather than pasted into each one, so the filter list is
+   written once and every page gets the same one. A new page needs no wiring,
+   only a .lib-band with the slots. */
 /* Label palette. The DB stores a key and never a hex, so every surface
    resolves it: the dashboard in app/src/lib/labelColors.ts, this file for
    mobile. Values are the dot colours from that module and must track it. */
@@ -11114,7 +11982,7 @@ function renderCurrentSurface(){
    no longer in view keeps that page's facets rather than taking this one's. */
 function refreshOpenFilterPanel(){
   document.querySelectorAll('.mfilters-panel.open').forEach(function(panel){
-    var hero=panel.closest('.mhero');
+    var hero=panel.closest('.lib-band');
     if(hero)renderFilterPanel(panel,heroSurface(hero));
   });
 }
@@ -11218,7 +12086,7 @@ function renderFilterPanel(panel,surface){
 function syncFilterHeader(){
   // Each strip counts its own page's filters, so a page never shows another
   // page's number when you switch to it.
-  document.querySelectorAll('.mhero').forEach(function(hero){
+  document.querySelectorAll('.lib-band').forEach(function(hero){
     var n=activeFilterCount(heroSurface(hero));
     hero.querySelectorAll('.mfilters-count').forEach(function(b){
       b.textContent=String(n);
@@ -11232,8 +12100,11 @@ function syncFilterHeader(){
 }
 function mountFilterHeader(){
   var seq=0;
-  document.querySelectorAll('.mhero').forEach(function(hero){
+  document.querySelectorAll('.lib-band').forEach(function(hero){
     if(hero.querySelector('.mfilters'))return;
+    var btnSlot=hero.querySelector('[data-filter-slot]');
+    var panelSlot=hero.querySelector('[data-filter-panel-slot]');
+    if(!btnSlot||!panelSlot)return;
     var id='mfilters-'+(seq++);
     var surface=heroSurface(hero);
     var btn=document.createElement('button');
@@ -11258,8 +12129,8 @@ function mountFilterHeader(){
       +'<div class="mfilters-foot"><span class="mfilters-sum"></span>'
       +'<button type="button" class="mfilters-clear">Clear all</button></div>'
       +'</div>';
-    hero.insertBefore(panel,hero.firstChild);
-    hero.insertBefore(btn,hero.firstChild);
+    btnSlot.appendChild(btn);
+    panelSlot.appendChild(panel);
     btn.addEventListener('click',function(){
       var open=panel.classList.toggle('open');
       btn.setAttribute('aria-expanded',open?'true':'false');
@@ -11331,6 +12202,11 @@ document.addEventListener('click',function(e){
   var menu=document.getElementById('mobile-more-menu');
   if(!menu||menu.hidden||e.target.closest('#mobile-more-menu,.mtab [data-nav="more"]'))return;
   closeMobileMore();
+});
+/* The account button on the three library bands: the same profile sheet as
+   the one on Home. */
+document.addEventListener('click',function(e){
+  if(e.target.closest('[data-lib-action="account"]'))openProfileSheet();
 });
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape')closeMobileMore(true);
@@ -11636,8 +12512,9 @@ function applyHomeHeader(){
   var email=(u&&u.email)||'';
   var name=(meta.display_name||meta.full_name||meta.name||'').trim();
   var initials=profileInitials(name,email);
-  var btn=document.getElementById('home-account');
-  if(btn)paintAvatar(btn,initials!=='👤'?initials:'');
+  document.querySelectorAll('#home-account,.lib-account').forEach(function(btn){
+    paintAvatar(btn,initials!=='👤'?initials:'');
+  });
 }
 /* The session read from storage is a snapshot from when this phone signed in,
    so a company name or logo chosen later in the dashboard is missing from it.

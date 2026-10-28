@@ -19,6 +19,8 @@ import { assembleBlocks } from '@/lib/promptUtils';
 import { maxPromptUsage, promptStatus } from '@/lib/statusSignals';
 import { evaluatePrompt, promptToEvaluatorInput } from '@/lib/usePromptEvaluator';
 import { attributionTitle, useUserNameResolver } from '@/lib/useUserNames';
+import { useCanPushToNotion } from '@/lib/useCanPushToNotion';
+import { PROMPT_NOTION_PUSH_AVAILABLE } from '@/lib/notionTeam';
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -71,6 +73,9 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
   const removePrompt = usePromptStore((s) => s.removePrompt);
   const pushPromptToNotion = usePromptStore((s) => s.pushPromptToNotion);
   const notionPushingIds = usePromptStore((s) => s.notionPushingIds);
+  // The same team-only rule as the snippets' Notion column, and hidden for
+  // everyone until the prompt push function exists (lib/notionTeam.ts).
+  const showNotionPush = useCanPushToNotion() && PROMPT_NOTION_PUSH_AVAILABLE;
   const resolveUserName = useUserNameResolver();
   const labelCatalog = useLabelStore((s) => s.labels);
   const labelAssignments = useLabelStore((s) => s.promptLabels);
@@ -274,29 +279,31 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
             >
               <Pin className={'h-3 w-3' + (prompt.pinned ? ' fill-current' : '')} />
             </button>
-            <button
-              type="button"
-              onClick={handleNotionPush}
-              disabled={pushing}
-              title={
-                prompt.notion_page_id
-                  ? 'Mirrored to your Notion database — click to update (not team sharing)'
-                  : 'Mirror to your Notion database (not team sharing)'
-              }
-              className={
-                'inline-flex h-7 items-center gap-1.5 rounded-[8px] border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ' +
-                (prompt.notion_page_id
-                  ? 'border-primary-light bg-primary-light text-primary hover:bg-primary-light/70'
-                  : 'border-line bg-card text-ink-muted hover:border-primary/40 hover:text-primary')
-              }
-            >
-              {pushing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Send className="h-3 w-3" />
-              )}
-              {prompt.notion_page_id ? 'Synced' : 'Sync'}
-            </button>
+            {showNotionPush && (
+              <button
+                type="button"
+                onClick={handleNotionPush}
+                disabled={pushing}
+                title={
+                  prompt.notion_page_id
+                    ? "Mirrored to your team's Notion database. Click to update (not team sharing)"
+                    : "Mirror to your team's Notion database (not team sharing)"
+                }
+                className={
+                  'inline-flex h-7 items-center gap-1.5 rounded-[8px] border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ' +
+                  (prompt.notion_page_id
+                    ? 'border-primary-light bg-primary-light text-primary hover:bg-primary-light/70'
+                    : 'border-line bg-card text-ink-muted hover:border-primary/40 hover:text-primary')
+                }
+              >
+                {pushing ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Send className="h-3 w-3" />
+                )}
+                {prompt.notion_page_id ? 'Synced' : 'Sync'}
+              </button>
+            )}
             <button
               type="button"
               onClick={handleUse}

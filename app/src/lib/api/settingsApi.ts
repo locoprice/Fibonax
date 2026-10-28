@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
-import type { ActivationKey, NotionSyncState, Profile } from '@/types/database';
+import type { ActivationKey, Profile } from '@/types/database';
 import { clampAutoInsertSeconds, DEFAULT_TRIGGER_CONFIG } from '@/lib/triggerUtils';
 import { clampMonths } from '@/lib/inactivity';
 import {
@@ -55,8 +55,6 @@ export interface SettingsApi {
   removeCompanyLogo(): Promise<Profile>;
   uploadAvatar(file: File): Promise<Profile>;
   removeAvatar(): Promise<Profile>;
-  getNotionSync(): Promise<NotionSyncState>;
-  updateNotionSettings(patch: { api_key?: string; db_id?: string }): Promise<void>;
 }
 
 function pickDisplayName(
@@ -289,47 +287,6 @@ export const settingsApi: SettingsApi = {
 
   async removeAvatar() {
     return removeUserImage(AVATAR_BUCKET, 'avatar_url', CHOSEN_AVATAR_KEY);
-  },
-
-  async getNotionSync() {
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr) throw toApiError(userErr);
-    if (!userData.user) throw new Error('Not authenticated');
-
-    const meta = userData.user.user_metadata ?? {};
-    const api_key = typeof meta['notion_api_key'] === 'string' ? meta['notion_api_key'] : '';
-    const database_id = typeof meta['notion_db_id'] === 'string' ? meta['notion_db_id'] : '';
-
-    const { data, error } = await supabase
-      .from('notion_sync_log')
-      .select('ran_at, error')
-      .eq('user_id', userData.user.id)
-      .order('ran_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw toApiError(error);
-
-    return {
-      database_id,
-      api_key,
-      last_sync_at: data?.ran_at ?? null,
-      status: (data?.error ? 'error' : 'idle') as NotionSyncState['status'],
-      last_error: data?.error ?? null,
-    };
-  },
-
-  async updateNotionSettings(patch) {
-    const { data: cur, error: getErr } = await supabase.auth.getUser();
-    if (getErr) throw toApiError(getErr);
-    if (!cur.user) throw new Error('Not authenticated');
-
-    const next: Record<string, unknown> = { ...(cur.user.user_metadata ?? {}) };
-    if (patch.api_key !== undefined) next['notion_api_key'] = patch.api_key.trim();
-    if (patch.db_id !== undefined) next['notion_db_id'] = patch.db_id.trim();
-
-    const { error } = await supabase.auth.updateUser({ data: next });
-    if (error) throw toApiError(error);
   },
 
 };

@@ -34,19 +34,6 @@ html,body{
 .pop-greet{font-size:var(--sb-fs-11);color:var(--sb-ink-muted);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pop-name{font-size:var(--sb-fs-15);font-weight:700;letter-spacing:-.2px;line-height:1.2;color:var(--sb-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* header status chip — doubles as Sync Now (hidden when Notion unconfigured) */
-.hchip{
-  display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 11px;
-  border-radius:var(--sb-r-pill);background:var(--sb-bg-muted);border:none;font-family:inherit;
-  font-size:var(--sb-fs-11);font-weight:600;color:var(--sb-ink-muted);cursor:pointer;flex-shrink:0;
-  transition:background var(--sb-dur-fast);
-}
-.hchip:hover{background:var(--sb-line)}
-.hchip-dot{width:7px;height:7px;border-radius:50%;background:var(--sb-ink-subtle);flex-shrink:0}
-.hchip-dot.pulse{animation:sbPulse var(--sb-dur-loop) var(--sb-ease) infinite}
-@keyframes sbPulse{0%,100%{opacity:1}50%{opacity:.35}}
-.hchip-txt{white-space:nowrap;max-width:118px;overflow:hidden;text-overflow:ellipsis}
-
 /* header icon buttons — reload + settings */
 .ic-btn{
   width:34px;height:34px;flex-shrink:0;border:none;background:transparent;border-radius:var(--sb-r-md);
@@ -456,6 +443,18 @@ html,body{
 }
 .ina-msg,.wel-msg{font-size:var(--sb-fs-11);color:var(--sb-ink);line-height:1.5;margin-bottom:8px}
 .ina-row{display:flex;align-items:center;gap:8px}
+
+/* ── REVIEW REQUEST ──
+   The Save this chat card's geometry. The review link is a .cap-btn that is an
+   <a>; "Don't ask again" is a plain text button on the right. */
+.rev-link{display:inline-flex;align-items:center;text-decoration:none}
+.rev-stop{
+  height:30px;padding:0 4px;margin-left:auto;font-family:inherit;
+  font-size:var(--sb-fs-11);font-weight:600;color:var(--sb-azure);cursor:pointer;
+  background:none;border:0;border-radius:var(--sb-r-sm);
+}
+.rev-stop:hover{text-decoration:underline}
+.rev-stop:focus-visible,.rev-link:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px}
 .ina-btn{
   height:30px;padding:0 12px;flex-shrink:0;font-family:inherit;
   font-size:var(--sb-fs-11);font-weight:600;cursor:pointer;
@@ -545,7 +544,6 @@ html,body{
 
 @media (prefers-reduced-motion: reduce){
   .sk{animation:none;background:var(--sb-bg-muted)}
-  .hchip-dot.pulse{animation:none}
   .seg-thumb,.item,.chev,.chip,.btn,.dash-link,.dash-link svg,.ic-btn,.isc{transition:none}
   .dash-link:hover svg{transform:none}
   .list.anim .item{animation:none}
@@ -593,10 +591,6 @@ html,body{
       <span class="pop-greet" id="pop-greet">Welcome</span>
       <span class="pop-name" id="pop-name">Fibonax</span>
     </span>
-    <button class="hchip" id="sb-sync-now" title="Sync with Notion" style="display:none">
-      <span class="hchip-dot" id="sb-sync-icon"></span>
-      <span class="hchip-txt" id="sb-sync-text">Checking…</span>
-    </button>
     <button class="ic-btn" id="brel" title="Refresh data" aria-label="Refresh data">
       <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.8-4.3M21.5 12.5a10 10 0 0 1-18.8 4.2"/></svg>
     </button>
@@ -611,6 +605,18 @@ html,body{
     <div class="cap-head"><span class="cap-title">SprintBrain is now Fibonax</span></div>
     <div class="wel-msg">Same account, same snippets and prompts. New: your Brains are here too, in the third tab.</div>
     <button class="cap-btn" id="wel-ok" type="button">Got it</button>
+  </div>
+
+  <!-- REVIEW REQUEST: asks a free account for a Chrome Web Store review after 10
+       sign-ins, at most 5 times (shared/review-prompt.js holds the rule). Drawn
+       by showReviewPrompt() in popup.js, and only once the server has counted
+       the view. The words come from the shared module, not from here. -->
+  <div class="cap-card" id="rev-card" role="region" aria-label="Review Fibonax" style="display:none">
+    <div class="wel-msg" id="rev-msg"></div>
+    <div class="cap-row">
+      <a class="cap-btn rev-link" id="rev-go" target="_blank" rel="noopener noreferrer"></a>
+      <button class="rev-stop" id="rev-stop" type="button"></button>
+    </div>
   </div>
 
   <!-- SAVE THIS CHAT — only rendered when the active tab is a supported AI chat
@@ -727,7 +733,7 @@ html,body{
     <!-- TRIGGERS — read-only mirror; the dashboard owns trigger settings -->
     <div class="lbl" style="margin-bottom:8px">Triggers</div>
     <div class="ibox">Snippet: <strong id="itrig">::</strong> &middot; Prompt: <strong id="iprompt">"""</strong> &middot; Example: <strong id="iex">::quoteEN</strong></div>
-    <div class="set-note">Snippets, folders, triggers, Notion and team sync are managed in the dashboard.</div>
+    <div class="set-note">Snippets, folders, triggers and team sync are managed in the dashboard.</div>
     <button class="btn" id="bmanage" style="width:100%;margin-top:10px">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Manage in dashboard
     </button>
@@ -785,8 +791,6 @@ html,body{
 <script src="../shared/memory-chunk.js"></script>
 <script src="../shared/memory-pack.js"></script>
 <script src="../auth/auth.js"></script>
-<script src="../services/notion-sync/notion-sync.js"></script>
-<script src="sync-deletion.js"></script>
 <script src="../formula-engine.js"></script>
 <script src="../shared/fill-form.js"></script>
 <script src="../shared/fill-form-ui.js"></script>
@@ -794,6 +798,7 @@ html,body{
 <script src="../shared/inactivity.js"></script>
 <script src="../shared/interactive-steps.js"></script>
 <script src="../shared/saint-of-day.js"></script>
+<script src="../shared/review-prompt.js"></script>
 <script src="popup.js"></script>
 
 <!-- ═══ CHANGELOG MODAL ═══ -->

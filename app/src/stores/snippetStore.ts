@@ -549,6 +549,7 @@ export const useSnippetStore = create<SnippetStore>((set, get) => ({
           shortcut: patch.trigger,
           body: patch.content,
           bodies: patch.bodies,
+          bodies_html: patch.bodies_html,
           lang: patch.language,
           folder_id: patch.folder_id,
           pinned: patch.pinned ?? false,
@@ -556,6 +557,13 @@ export const useSnippetStore = create<SnippetStore>((set, get) => ({
         },
         editNote,
       );
+      // The revision function writes content and does not know this switch, so
+      // it is saved beside it, and only when it changed: a save that leaves it
+      // alone costs no second write.
+      const checkUnfinished = patch.check_unfinished ?? snippet.check_unfinished;
+      if (checkUnfinished !== snippet.check_unfinished) {
+        await snippetsApi.setCheckUnfinished(id, checkUnfinished);
+      }
       const folder = patch.folder_id
         ? get().folders.find((f) => f.id === patch.folder_id)
         : null;
@@ -564,6 +572,7 @@ export const useSnippetStore = create<SnippetStore>((set, get) => ({
         name: patch.name,
         content: patch.content,
         bodies: patch.bodies,
+        bodies_html: patch.bodies_html ?? snippet.bodies_html,
         triggers: [patch.trigger],
         language: patch.language,
         folder_id: patch.folder_id,
@@ -573,6 +582,7 @@ export const useSnippetStore = create<SnippetStore>((set, get) => ({
             : (folder?.name ?? null),
         pinned: patch.pinned ?? false,
         alternative_queries: patch.alternative_queries ?? [],
+        check_unfinished: checkUnfinished,
         updated_at: new Date().toISOString(),
         // The DB stamps updated_by = auth.uid() on this write; mirror it
         // locally so the attribution labels stay fresh without a refetch.
@@ -607,6 +617,7 @@ export const useSnippetStore = create<SnippetStore>((set, get) => ({
           shortcut: snippet.triggers[0] ?? '',
           body: revision.body,
           bodies: revision.bodies,
+          bodies_html: revision.bodies_html ?? {},
           lang: snippet.language,
           folder_id: snippet.folder_id,
           pinned: snippet.pinned,
@@ -619,6 +630,7 @@ export const useSnippetStore = create<SnippetStore>((set, get) => ({
         name: revision.title,
         content: revision.body,
         bodies: revision.bodies,
+        bodies_html: revision.bodies_html ?? {},
         updated_at: new Date().toISOString(),
         updated_by: useAuthStore.getState().user?.id ?? snippet.updated_by,
       };

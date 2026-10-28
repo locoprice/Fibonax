@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { AlertCircle, Check, Copy } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { AlertCircle, AlertTriangle, Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LinkReadError, linkReadApi } from '@/lib/api/linkReadApi';
 import {
@@ -12,16 +12,25 @@ import {
   linkNote,
   linkSummary,
   linkText,
+  layoutFragment,
   linkUrl,
   loadFillFormEngine,
   otherPlaceholder,
+  pictureCount,
+  pictureText,
   readFromPage,
   runFormButton,
+  unfinishedItems,
+  unfinishedShown,
+  unfinishedWords,
   type SbDayMode,
   type SbFillField,
   type SbFillFormViewModel,
   type SbLinkResult,
+  type SbPicture,
+  type SbUnfinishedItem,
 } from '@/lib/fillFormEngine';
+import { textColorOf, TEXT_COLORS } from '@/lib/textColors';
 
 /**
  * Live preview of a snippet body — the fields it asks for, and the message it
@@ -65,6 +74,70 @@ function fieldLabel(key: string): string {
   return key.replace(/_/g, ' ');
 }
 
+/** How wide each picture size draws in the result, as in the email. */
+const PICTURE_WIDTH: Record<SbPicture['size'], string> = {
+  small: 'w-[160px]',
+  medium: 'w-[320px]',
+  full: 'w-full',
+};
+
+/** A picture in the result, at its size; its description where it will not load. */
+function PreviewPicture({ picture }: { picture: SbPicture }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span className="my-1 inline-block rounded-lg border border-dashed border-line px-2.5 py-1.5 font-sans text-[11px] text-ink-subtle">
+        {pictureText('missing', 1)}
+        {picture.alt ? `: ${picture.alt}` : ''}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={picture.src}
+      alt={picture.alt}
+      onError={() => setFailed(true)}
+      className={cn('my-1 inline-block h-auto max-w-full rounded align-bottom', PICTURE_WIDTH[picture.size])}
+    />
+  );
+}
+
+/**
+ * A formatted text as it will look, drawn from the shared engine's safe copy
+ * of the layout (lines, lists, marks, colours, https pictures), never from its
+ * HTML. A text colour from the palette shows in the body box's shade of it,
+ * so it stays readable on the dark theme; Copy still gives the email's.
+ */
+function LayoutResult({ html }: { html: string }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const fragment = layoutFragment(html);
+    if (!ref.current || !fragment) return;
+    fragment.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
+      const color = textColorOf(el.style.color);
+      if (!color) return;
+      el.style.removeProperty('color');
+      el.classList.add(...TEXT_COLORS[color].text.split(' '));
+    });
+    ref.current.replaceChildren(fragment);
+  }, [html]);
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        'whitespace-normal font-sans text-sm [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5',
+        '[&_.ff-pic]:my-1 [&_.ff-pic]:inline-block [&_.ff-pic]:h-auto [&_.ff-pic]:max-w-full [&_.ff-pic]:rounded',
+        '[&_.ff-pic--small]:w-[160px] [&_.ff-pic--medium]:w-[320px] [&_.ff-pic--full]:w-full',
+      )}
+    />
+  );
+}
+
+/** The title a row shows: a stored display name, the prose before it, else the key. */
+function rowTitle(field: SbFillField): string {
+  return field.label || field.before.replace(/^[\s>→\-·]+/, '').replace(/[\s:：-]+$/, '') || fieldLabel(field.key);
+}
+
 /** The Link box's one line: what it is doing, or what came of it. */
 interface LinkStatus {
   tone: 'idle' | 'busy' | 'done' | 'error';
@@ -87,14 +160,40 @@ function withoutKeys<T>(record: Record<string, T>, keys: readonly string[]): Rec
   return next;
 }
 
+/** "Looks like a placeholder" → "looks like a placeholder", after a quote. */
+function lowerFirst(text: string): string {
+  return text ? text.charAt(0).toLowerCase() + text.slice(1) : text;
+}
+
+/** The note Fix it puts under a box: what was wrong in it. */
+function flagText(items: readonly SbUnfinishedItem[]): string {
+  return items
+    .map((item) => (item.kind === 'empty' ? item.reason : `“${item.text}”: ${lowerFirst(item.reason)}`))
+    .join(' · ');
+}
+
 interface SnippetPreviewProps {
   /** The body being edited, in the active language slot. */
   body: string;
+  /** Its formatted layout (Bold, lists); none while nothing is formatted. */
+  layout?: string | null;
   /** Language code, or '' for a Multi body which carries no single language. */
   lang: string;
+  /** The snippet's "Warn me if it looks unfinished" switch, saved with it. */
+  checkUnfinished: boolean;
+  onCheckUnfinishedChange: (on: boolean) => void;
+  /** Puts the caret in the body: a gap written in the snippet is fixed there. */
+  onEditBody: () => void;
 }
 
-export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
+export function SnippetPreview({
+  body,
+  layout = null,
+  lang,
+  checkUnfinished,
+  onCheckUnfinishedChange,
+  onEditBody,
+}: SnippetPreviewProps) {
   // Ready at once when an earlier preview already loaded the engine, so a
   // reopened editor draws its form without a "Starting" flash.
   const [engineReady, setEngineReady] = useState(
@@ -116,6 +215,7 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
   // The body lags the textarea by one debounce, so typing does not re-parse on
   // every keystroke. Everything below reads this, never the raw prop.
   const [debouncedBody, setDebouncedBody] = useState(body);
+  const [debouncedLayout, setDebouncedLayout] = useState(layout);
   // Fill from link. `linked` marks the fields whose value came from a page and
   // nobody has touched since; `linkResults` keeps how each field fared on the
   // last read, for the note beside it. Both lose a field the moment it is
@@ -124,6 +224,10 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
   const [linkResults, setLinkResults] = useState<Record<string, SbLinkResult>>({});
   const [linkInput, setLinkInput] = useState('');
   const [linkStatus, setLinkStatus] = useState<LinkStatus>(LINK_IDLE);
+  // Before it goes out: what Copy found unfinished, while the person decides,
+  // and the boxes Fix it marked, each with what was wrong in it.
+  const [copyCheck, setCopyCheck] = useState<SbUnfinishedItem[] | null>(null);
+  const [flagged, setFlagged] = useState<Record<string, string>>({});
 
   const copyTimer = useRef<number | null>(null);
   // Which read is the latest. A reply to an older one, or one landing after
@@ -152,9 +256,12 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedBody(body), REBUILD_DELAY_MS);
+    const timer = window.setTimeout(() => {
+      setDebouncedBody(body);
+      setDebouncedLayout(layout);
+    }, REBUILD_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [body]);
+  }, [body, layout]);
 
   useEffect(
     () => () => {
@@ -174,12 +281,13 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
   // A body edit can retire a field; its stale entry must not keep resolving.
   useEffect(() => {
     setButtonErrors([]);
+    setCopyCheck(null);
   }, [debouncedBody]);
 
   const view: SbFillFormViewModel | null = useMemo(() => {
     if (!engineReady) return null;
-    return fillForm(debouncedBody, values, { lang, fieldFmt: fmts, linked, other: others });
-  }, [engineReady, debouncedBody, values, fmts, lang, linked, others]);
+    return fillForm(debouncedBody, values, { lang, fieldFmt: fmts, linked, other: others, formatted: debouncedLayout });
+  }, [engineReady, debouncedBody, debouncedLayout, values, fmts, lang, linked, others]);
 
   // A page arrives after the Fill that asked for it, and is read against the
   // form on screen THEN: the body may have changed while it loaded.
@@ -189,10 +297,13 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
   }, [view]);
 
   // A field edited by hand no longer holds the page's answer, so its badge and
-  // its note go at once.
+  // its note go at once, and so does the mark Fix it put on it. A warning still
+  // open from Copy no longer describes the form, so it goes too.
   const unlink = useCallback((keys: readonly string[]) => {
     setLinked((prev) => withoutKeys(prev, keys));
     setLinkResults((prev) => withoutKeys(prev, keys));
+    setFlagged((prev) => withoutKeys(prev, keys));
+    setCopyCheck(null);
   }, []);
 
   // Puts a write into the form, then empties every other closing date it left
@@ -357,19 +468,68 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
     setLinkStatus({ tone: 'done', text: linkSummary(read) });
   }
 
+  // Opens the row's section and puts the caret in its control.
+  function focusRow(key: string) {
+    const row = Array.from(previewRef.current?.querySelectorAll<HTMLElement>('[data-fill-key]') ?? []).find((el) => el.dataset.fillKey === key);
+    let parent = row?.parentElement;
+    while (parent && parent !== previewRef.current) { if (parent instanceof HTMLDetailsElement) parent.open = true; parent = parent.parentElement; }
+    row?.querySelector<HTMLElement>('input, summary, select')?.focus();
+  }
+
   async function handleCopy() {
-    if (!view?.preview) return;
+    if (!view?.preview && !view?.parts) return;
     setAttempted(true);
     if (view.errors?.length) {
-      const row = Array.from(previewRef.current?.querySelectorAll<HTMLElement>('[data-fill-key]') ?? []).find((el) => el.dataset.fillKey === view.errors?.[0]?.key);
-      let parent = row?.parentElement;
-      while (parent && parent !== previewRef.current) { if (parent instanceof HTMLDetailsElement) parent.open = true; parent = parent.parentElement; }
-      row?.querySelector<HTMLElement>('input, summary, select')?.focus();
+      focusRow(view.errors[0]?.key ?? '');
       return;
     }
+    // The same check the page, the popup and the phone run before the text
+    // goes out, with the same words.
+    if (checkUnfinished) {
+      const found = unfinishedItems(view.preview, view.fields);
+      if (found.length > 0) {
+        setCopyCheck(found);
+        return;
+      }
+    }
+    await copyNow();
+  }
+
+  // Fix it: each box the warning named is marked with what was wrong in it and
+  // the caret goes to the first. A gap written in the snippet itself is fixed
+  // in the body, so the caret goes there instead.
+  function fixUnfinished(found: readonly SbUnfinishedItem[]) {
+    setCopyCheck(null);
+    const byKey = new Map<string, SbUnfinishedItem[]>();
+    for (const item of found) {
+      if (item.key) byKey.set(item.key, [...(byKey.get(item.key) ?? []), item]);
+    }
+    if (byKey.size === 0) {
+      onEditBody();
+      return;
+    }
+    const marks: Record<string, string> = {};
+    for (const [key, items] of byKey) marks[key] = flagText(items);
+    setFlagged(marks);
+    focusRow(byKey.keys().next().value ?? '');
+  }
+
+  async function copyNow() {
+    if (!view?.preview && !view?.parts) return;
     if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
     try {
-      await navigator.clipboard.writeText(view.preview);
+      // With pictures, the formatted copy goes too: an email takes the
+      // pictures, a chat the text alone.
+      if (view.formatted) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/plain': new Blob([view.preview], { type: 'text/plain' }),
+            'text/html': new Blob([view.formatted], { type: 'text/html' }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(view.preview);
+      }
       setCopied('done');
     } catch {
       // The browser refused the clipboard — say so rather than looking idle.
@@ -381,6 +541,16 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
   const fields = view?.fields ?? [];
   const buttons = view?.buttons ?? [];
   const hasBody = debouncedBody.trim().length > 0;
+  // What the text says while it is written. Empty boxes are left out here:
+  // every box is empty before anyone fills the preview, and saying so for each
+  // one would bury the gap that matters. Copy names them.
+  const written = useMemo(
+    () =>
+      view && checkUnfinished
+        ? unfinishedItems(view.preview, view.fields).filter((item) => item.kind !== 'empty')
+        : [],
+    [view, checkUnfinished],
+  );
 
   return (
     <aside
@@ -448,7 +618,7 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
                   <div className={cn('grid gap-4 p-3', expanded ? 'grid-cols-2' : 'grid-cols-1')}>
                     {section.keys.map((key) => fields.find((f) => f.key === key)).filter((f): f is SbFillField => !!f).map((field) => (
                       <div key={field.key} data-fill-key={field.key}>
-                        <PreviewField field={field} note={attempted && field.error ? {text: field.error, warn: true} : fieldNote(linkResults[field.key])}
+                        <PreviewField field={field} note={attempted && field.error ? {text: field.error, warn: true} : flagged[field.key] ? {text: flagged[field.key] ?? '', warn: true} : fieldNote(linkResults[field.key])}
                           onChange={(value) => setValue(field.key, value)} onFormat={(format) => setFormat(field.key, format)}
                           onToggleOption={(option, checked) => toggleOption(field, option, checked)}
                           onToggleOther={(checked) => toggleOther(field, checked)} onOtherText={(text) => setOtherText(field, text)} />
@@ -492,7 +662,7 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
           <button
             type="button"
             onClick={handleCopy}
-            disabled={!view?.preview}
+            disabled={!view?.preview && !view?.parts}
             className={cn(
               'ml-auto inline-flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors',
               'hover:border-primary/30 hover:text-primary disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-muted',
@@ -512,14 +682,136 @@ export function SnippetPreview({ body, lang }: SnippetPreviewProps) {
           <div
             className={cn(
               'min-h-[max(100%,120px)] whitespace-pre-wrap break-words rounded-[10px] border border-line bg-card px-3 py-2.5 font-mono text-xs leading-relaxed',
-              view?.preview ? 'text-ink' : 'italic text-ink-subtle',
+              view?.preview || view?.parts || view?.formatted ? 'text-ink' : 'italic text-ink-subtle',
             )}
           >
-            {view?.preview || 'The finished message appears here as you type.'}
+            {view?.formatted && !view.parts ? (
+              <LayoutResult html={view.formatted} />
+            ) : view?.parts
+              ? view.parts.map((part, i) =>
+                  'picture' in part ? (
+                    <PreviewPicture key={`${i} ${part.picture.src}`} picture={part.picture} />
+                  ) : (
+                    <span key={i}>{part.text}</span>
+                  ),
+                )
+              : view?.preview || 'The finished message appears here as you type.'}
           </div>
+          {view && pictureCount(view) > 0 && (
+            <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
+              {pictureText('copy', pictureCount(view))}
+            </p>
+          )}
+        </div>
+
+        {/* ── Before it goes out ── */}
+        <div className="flex shrink-0 flex-col gap-2.5 border-t border-line px-4 py-3">
+          {copyCheck ? (
+            <UnfinishedList
+              title={unfinishedWords('title')}
+              items={copyCheck}
+              fields={fields}
+              actions={
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCopyCheck(null);
+                      void copyNow();
+                    }}
+                    className="rounded-md border border-line bg-card px-2 py-1 text-[11px] font-medium text-ink transition-colors hover:border-primary/30 hover:text-primary"
+                  >
+                    {unfinishedWords('copy-anyway')}
+                  </button>
+                  <button
+                    type="button"
+                    autoFocus
+                    onClick={() => fixUnfinished(copyCheck)}
+                    className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-primary-dark"
+                  >
+                    {unfinishedWords('fix')}
+                  </button>
+                </div>
+              }
+            />
+          ) : (
+            written.length > 0 && (
+              <UnfinishedList title={unfinishedWords('preview-title')} items={written} fields={fields} />
+            )
+          )}
+          <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-snug text-ink">
+            <input
+              type="checkbox"
+              checked={checkUnfinished}
+              onChange={(e) => {
+                onCheckUnfinishedChange(e.target.checked);
+                setCopyCheck(null);
+              }}
+              className="mt-px h-3.5 w-3.5 shrink-0 cursor-pointer accent-primary"
+            />
+            <span>
+              <span className="font-medium">{unfinishedWords('setting')}</span>
+              <span className="mt-0.5 block text-[10px] text-ink-subtle">{unfinishedWords('setting-hint')}</span>
+            </span>
+          </label>
         </div>
       </div>
     </aside>
+  );
+}
+
+interface UnfinishedListProps {
+  title: string;
+  items: readonly SbUnfinishedItem[];
+  fields: readonly SbFillField[];
+  actions?: ReactNode;
+}
+
+/**
+ * What looks unfinished, in the words and order every surface uses: the piece,
+ * then why, then which box it is in when it sits in one.
+ */
+function UnfinishedList({ title, items, fields, actions }: UnfinishedListProps) {
+  const limit = unfinishedShown();
+  const shown = items.slice(0, limit);
+  return (
+    <div role="status" className="rounded-[10px] border border-warning-deep/30 bg-warning-bg px-3 py-2.5">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-ink">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-warning-deep" aria-hidden />
+        {title}
+      </p>
+      <ul className="mt-1.5 flex max-h-40 flex-col gap-1.5 overflow-y-auto">
+        {shown.map((item) => {
+          const field = item.key ? fields.find((f) => f.key === item.key) : undefined;
+          const where =
+            field && item.kind !== 'empty'
+              ? ` · ${unfinishedWords('in-field', { title: rowTitle(field) })}`
+              : '';
+          return (
+            <li key={`${item.kind}:${item.key}:${item.start}:${item.text}`} className="min-w-0">
+              <span
+                className={cn(
+                  'block break-words text-[11px] font-semibold text-ink',
+                  item.kind !== 'empty' && 'font-mono',
+                )}
+              >
+                {item.text}
+              </span>
+              <span className="block text-[10px] text-ink-muted">
+                {item.reason}
+                {where}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {items.length > shown.length && (
+        <p className="mt-1.5 text-[10px] text-ink-muted">
+          {unfinishedWords('more', { n: items.length - shown.length })}
+        </p>
+      )}
+      {actions}
+    </div>
   );
 }
 
@@ -674,7 +966,7 @@ function PreviewField({
   onOtherText,
 }: PreviewFieldProps) {
   // A stored display name wins; otherwise the key, humanised.
-  const label = field.label || field.before.replace(/^[\s>→\-·]+/, '').replace(/[\s:：-]+$/, '') || fieldLabel(field.key);
+  const label = rowTitle(field);
 
   if (field.type === 'dd') {
     const type = optionInputType(field);

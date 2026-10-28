@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
 import { foldersApi } from '@/lib/api/foldersApi';
+import { notionPushError } from '@/lib/api/notionPushError';
 import { validateTemplate } from '@/lib/statusSignals';
 import type { Folder, Snippet, SnippetBodies, SnippetRow } from '@/types/database';
 import type { SnippetFormValues, FolderFormValues } from '@/types/schemas';
@@ -35,6 +36,12 @@ export interface SnippetsApi {
   setPinned(ids: string | string[], pinned: boolean): Promise<SnippetRow[]>;
   /** Toggle is_active flag without touching other fields. */
   setActive(id: string, isActive: boolean): Promise<SnippetRow>;
+  /**
+   * Turn the unfinished-text warning on or off for one snippet, without
+   * touching anything else. Returns the row as saved; throws when RLS let
+   * nothing be written.
+   */
+  setCheckUnfinished(id: string, on: boolean): Promise<SnippetRow>;
   /** Insert a copy of an existing snippet with a "(copy)" name suffix. */
   duplicateSnippet(id: string): Promise<SnippetRow>;
   createFolder(payload: FolderFormValues): Promise<Folder>;
@@ -55,6 +62,8 @@ type DbSnippetJoined = {
   shortcut: string;
   body: string;
   bodies: Record<string, unknown> | null;
+  body_html: string | null;
+  bodies_html: Record<string, unknown> | null;
   lang: string;
   lang_group_id: string | null;
   folder_id: string | null;
@@ -65,6 +74,7 @@ type DbSnippetJoined = {
   notion_page_id: string | null;
   pinned: boolean | null;
   is_active: boolean | null;
+  check_unfinished: boolean | null;
   is_malformed: boolean | null;
   alternative_queries: string[] | null;
   created_at: string | null;
@@ -129,6 +139,7 @@ function dbSnippetToSnippetRow(
     name: row.title ?? '',
     content: body,
     bodies,
+    bodies_html: normalizeBodies(row.bodies_html, language, row.body_html ?? ''),
     // Schema has a single `shortcut`; dashboard expects an array.
     triggers: row.shortcut ? [row.shortcut] : [],
     // Derived: body contains a formula placeholder.
@@ -145,6 +156,7 @@ function dbSnippetToSnippetRow(
     notion_page_id: row.notion_page_id ?? null,
     pinned: row.pinned ?? false,
     is_active: row.is_active ?? true,
+    check_unfinished: row.check_unfinished ?? true,
     is_malformed: row.is_malformed ?? false,
     alternative_queries: Array.isArray(row.alternative_queries) ? row.alternative_queries : [],
     updated_at: row.updated_at,
@@ -180,7 +192,7 @@ async function readLanguage(id: string): Promise<Snippet['language']> {
 }
 
 const SNIPPET_SELECT =
-  'id, user_id, title, shortcut, body, bodies, lang, lang_group_id, folder_id, field_cfg, sort_order, updated_at, updated_by, notion_page_id, pinned, is_active, is_malformed, alternative_queries, created_at, organization_id, review_status, reviewed_by, reviewed_at, folders(name)';
+  'id, user_id, title, shortcut, body, bodies, body_html, bodies_html, lang, lang_group_id, folder_id, field_cfg, sort_order, updated_at, updated_by, notion_page_id, pinned, is_active, check_unfinished, is_malformed, alternative_queries, created_at, organization_id, review_status, reviewed_by, reviewed_at, folders(name)';
 
 /**
  * Expansion counts per snippet, from the `snippet_usage_counts()` RPC.
@@ -278,6 +290,7 @@ function buildSnippetInsert(
   sortOrder: number,
 ): Record<string, unknown> {
   const bodies = mergeActiveBody(payload.bodies, payload.language, payload.content);
+  const layouts = payload.bodies_html ?? {};
   return {
     id: crypto.randomUUID(),
     user_id: userId,
@@ -285,6 +298,8 @@ function buildSnippetInsert(
     shortcut: payload.trigger,
     body: payload.content,
     bodies,
+    body_html: layouts[payload.language] || null,
+    bodies_html: layouts,
     lang: payload.language,
     folder_id: payload.folder_id,
     field_cfg: {},
@@ -293,6 +308,7 @@ function buildSnippetInsert(
     is_malformed: malformedFlag(bodies, payload.content),
     pinned: payload.pinned ?? false,
     alternative_queries: payload.alternative_queries ?? [],
+    check_unfinished: payload.check_unfinished ?? true,
   };
 }
 
@@ -369,6 +385,7 @@ export const snippetsApi: SnippetsApi = {
     if (patch.folder_id !== undefined) update['folder_id'] = patch.folder_id;
     if (patch.pinned !== undefined) update['pinned'] = patch.pinned;
     if (patch.alternative_queries !== undefined) update['alternative_queries'] = patch.alternative_queries;
+    if (patch.check_unfinished !== undefined) update['check_unfinished'] = patch.check_unfinished;
 
     // Body fields need to update together so the JSONB map, the active
     // language tag, and the denormalized `body` column never drift.
@@ -382,6 +399,11 @@ export const snippetsApi: SnippetsApi = {
       const merged = mergeActiveBody(patch.bodies, language, activeBody);
       update['body'] = activeBody;
       update['bodies'] = merged;
+      // The layout goes with the text it formats, as a pair, when the patch has one.
+      if (patch.bodies_html !== undefined) {
+        update['body_html'] = patch.bodies_html[language] || null;
+        update['bodies_html'] = patch.bodies_html;
+      }
       // Re-derive on every body write — a fix has to clear the flag as reliably
       // as a mistake sets it.
       update['is_malformed'] = malformedFlag(merged, activeBody);
@@ -451,6 +473,23 @@ export const snippetsApi: SnippetsApi = {
     return dbSnippetToSnippetRow(data as unknown as DbSnippetJoined);
   },
 
+  async setCheckUnfinished(id, on) {
+    // No `updated_at` bump: like a pin, the switch is how the snippet is used,
+    // not what it says, so it must not restamp `updated_by` or reorder
+    // "recently modified". The review guard ignores it for the same reason.
+    const { data, error } = await supabase
+      .from('snippets')
+      .update({ check_unfinished: on })
+      .eq('id', id)
+      .select(SNIPPET_SELECT);
+    if (error) throw toApiError(error);
+    const row = ((data ?? []) as unknown as DbSnippetJoined[])[0];
+    if (!row) {
+      throw new Error("You don't have permission to change this snippet, or it no longer exists.");
+    }
+    return dbSnippetToSnippetRow(row);
+  },
+
   async duplicateSnippet(id) {
     const userId = await currentUserId();
     // Read the source row first so we copy every column (incl. pin).
@@ -471,6 +510,8 @@ export const snippetsApi: SnippetsApi = {
       shortcut: `${source.shortcut}_copy`,
       body: source.body,
       bodies: source.bodies ?? {},
+      body_html: source.body_html ?? null,
+      bodies_html: source.bodies_html ?? {},
       lang: source.lang,
       folder_id: source.folder_id,
       field_cfg: source.field_cfg ?? {},
@@ -481,6 +522,8 @@ export const snippetsApi: SnippetsApi = {
       // disabled snippet yields a disabled copy (predictable).
       pinned: false,
       is_active: source.is_active ?? true,
+      // A copy says the same thing, so it keeps the same answer to "warn me".
+      check_unfinished: source.check_unfinished ?? true,
       // Re-derived rather than copied: the source flag could pre-date the
       // validator, and the copy carries the same bodies either way.
       is_malformed: malformedFlag(
@@ -507,7 +550,7 @@ export const snippetsApi: SnippetsApi = {
       ok: boolean;
       notion_page_id: string;
     }>(EDGE_FN_SHARE, { body: { snippet_id: id } });
-    if (error) throw toApiError(error);
+    if (error) throw await notionPushError(error);
     if (!data?.ok || !data.notion_page_id) {
       throw new Error('notion-snippet-push returned unexpected response');
     }

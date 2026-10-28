@@ -221,6 +221,7 @@ describe('siblingLanguages', () => {
       notion_page_id: null,
       pinned: false,
       is_active: true,
+      check_unfinished: true,
       alternative_queries: [],
       updated_at: updatedAt,
       updated_by: 'u1',

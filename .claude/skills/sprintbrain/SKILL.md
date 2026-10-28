@@ -178,11 +178,19 @@ Requirements:
 
 **Fill-form view model.** `extension/shared/fill-form.js` is the single source for what a field is — name-based date/time detection, field-config merge, option splitting, preselection, the stored `label`, and the surrounding prose. All entry points (trigger, picker, context menu) build the view model from `snip.body` and `snip.fieldCfg`; none may supply or forget it. All four fill surfaces read it: the popup detail, the in-page overlay, the composer and mobile. `check-snippets.js` and `check-fill-form.js` assert this. Do not reintroduce per-surface field logic.
 
+**Before it goes out (v3.85.0).** Right before a snippet is inserted, copied or shared, every surface reads the finished text through `unfinished(text, fields)` in `shared/fill-form.js` (rules only, on the device: brackets, `XXX`/`???`/`___` gaps, `TBD`/`TODO:` notes, EN/IT/ES "insert here" phrases, `FIELD_NAME`s, empty boxes) and, when it finds something, opens `SBFillFormUI.unfinishedDialog()` from `shared/fill-form-ui.js`: **Fix it** (`flag()` marks the boxes) or **Edit snippet**, **Insert / Copy / Share anyway**, and **Don't warn me about this snippet again**, saved as `snippets.check_unfinished` (read through `checksUnfinished`). Snippets only: prompts and Brains go to an AI, where brackets are often meant. The phone offers no Edit (it edits no snippets). Copy raw in the popup is never checked. `scripts/check-unfinished.js` pins the rules and that every surface asks; `scripts/check-unfinished-browser.cjs` drives it in a page.
+
 Mobile is the documented exception in one respect only: it keeps its own parser, which it hands to the module as `window.SBFillFormEngine` under the names the module expects, with honest stubs where it has never rendered `{button}` controls or substituted `{{placeholder}}` tokens. It stops keeping its own answer to what a form *is*.
 
 Mobile draws a number box only for a field declared `type=number`, like every other surface. Its old name-based heuristic (`mobileFieldType`) was removed in v3.11.0.
 
-**Fill from link (v3.65.0).** `link=after:LABEL` / `link=before:WORD|WORDS` on a field says where its value sits on a pasted web page. The engine parses the rule (`sbParseLinkRule`); `shared/fill-form.js` decides everything else once (`readFromPage`, `linkUrl`, `LINK_TEXT`); the `read-link` edge function only fetches the page and returns its text pieces. All four fill surfaces draw the Link box only when the view model is `linkable`. Since v3.84.0 the editor side panel has a **Fill from a pasted link** toggle under Actions, beside Button (it was briefly its own section in v3.84.0, moved in v3.84.2): the tick box and label box the Date/Time toggle used to carry, and Add buttons for a Text, Number, Date or Choice field under a generic name (Choice opens its window with `newLink`). The tick box in each field window stays for fields already in the body. The v3.83.0 Set up window and a draft listing every field with its own box were both replaced at Valentina's request. The `long` date format writes a date out in the snippet's language from `DATE_WORDS` (EN/IT/ES/FR); `dddd`/`MMMM` stay English.
+**Fill from link (v3.65.0).** `link=after:LABEL` / `link=before:WORD|WORDS` on a field says where its value sits on a pasted web page. The engine parses the rule (`sbParseLinkRule`); `shared/fill-form.js` decides everything else once (`readFromPage`, `linkUrl`, `LINK_TEXT`); the `read-link` edge function only fetches the page and returns its text pieces. All four fill surfaces draw the Link box only when the view model is `linkable`. Since v3.88.0 the editor side panel's **Fill from a pasted link** toggle under Actions, beside Button, is two numbered steps (the word on the page, the kind as a Segmented picker), one Add field button, and an `ItemListSection` of the fields that read a page (`only` and `detail` props). The field is named after the word (`lib/linkFieldName.ts`: CUSTOMER from "Customer", the generic TEXT_n when the word makes no name or is taken); Choice opens its window with `newLink` and `newName`. The tick box in each field window stays for fields already in the body. Earlier shapes (a Set up window in v3.83.0, a list of every field with its own box, and v3.84.x's tick box with four Add buttons under 140 words) were replaced at Valentina's request. The `long` date format writes a date out in the snippet's language from `DATE_WORDS` (EN/IT/ES/FR); `dddd`/`MMMM` stay English.
+
+**Show or hide (v3.89.0).** The rule window (`features/snippets/FormConditionDialog.tsx`) is three plain numbered steps: the answer to check (field, check and answer in one row), the text with Show it / Hide it, and Otherwise print (only for a shown text). No IF / THEN / ELSE tags or captions. The checks read as everyday words after the field name (`RULE_OPERATORS` in `lib/conditionRule.ts`: is, is not, is more than, is less than, contains, is filled in, has a text for each option), and a rule reads back as one sentence with If / Or if / Otherwise chips (`summarizeRule`; `joinsTight` glues the comma) in the window, in the side panel entry (one sentence, an example, the rules in the snippet, the button) and in the Undo note. The `{if:}` token, its parsing and the engine are unchanged, so every existing rule opens as it is.
+
+**Team page (v3.90.0, 2026-10-27).** One calm screen, built on the three options Valentina picked. The cover (`features/org/TeamCover.tsx`) is 150px with one visible **Change cover** button for admins that opens the gallery as a window, with Upload image and Remove cover inside; the Team eyebrow and the slogan are gone. **People** (`routes/TeamPage.tsx`) is one list: a row per member with the role as a plain word, one blue **Invite people** button that opens a window (addresses, Join as on a Segmented picker, Send), and the sent invitations under **Invited** with Waiting / Declined / Expired and **Send again** / **Withdraw** as text buttons (`InvitePeopleButton`, `InvitationRows`, `useInvitations` in `features/org/InviteMemberPanel.tsx`). **Shared folders** is one list in two groups, a row per folder with what it holds (`lib/teamFolders.ts`), Whole team or the faces, and Manage sharing / View access. The per-folder item lists, the second search box and `TeamSharingGuide.tsx` are gone, and the page says Loading instead of flashing the guide. Changing a role or removing a member is not in the product; the logo is set in Settings.
+
+**Mobile library band (v3.91.0).** The Snippets, Prompts and Brains pages of `app/public/mobile/index.html` sit on the home band's template (`.lib-band`: greeting and account button, page name with its count pill, translucent search field, the **Filters** pill beside it, the filter panel as a light card inside the band), not the blue gradient hero. `mountFilterHeader()` mounts the pill and the panel into each band's `[data-filter-slot]` / `[data-filter-panel-slot]`; the quick-action bar is a flat segmented control; the three pages scroll as one canvas like Home; cards carry a hairline, a pressed tint, a hover lift and a focus ring. The snippet page and Save to Brain are unchanged.
 
 ---
 
@@ -240,22 +248,21 @@ Reference: `docs/MEMORY_ARCHITECTURE_REVIEW.md`, `docs/MEMORY_002_PLAN.md`.
 * NEVER store credentials or settings in `chrome.storage.sync`
 * Use `chrome.storage.local` for sensitive and local configuration
 * Async reads MUST complete before dependent execution
-* `loadNotionCfg()` MUST complete before `_runNotionSync()` — no exceptions
 * Survive blocked storage gracefully (private windows, blocked site data) — wrap reads and writes and render correctly with no stored value
 * Gated by `scripts/check-storage.js`
 
 ---
 
-# NOTION AND SYNC SAFETY
+# NOTION SAFETY
 
-Before modifying synchronization:
+Notion is one way: "Push to Notion" sends a snippet or prompt out, and nothing is read back. The extension's pull from Notion was retired in v3.86.0 because it deleted, duplicated and overwrote snippets. Do not bring a pull back without a design that never deletes, never duplicates and never overwrites a dashboard edit.
+
+Before modifying the push:
 
 1. Inspect the real Notion schema
 2. Verify property names and types
 3. Confirm mappings
-4. Preserve pagination and retry behavior
-5. Preserve offline/cache fallback
-6. Validate before committing
+4. Validate before committing
 
 NEVER assume a Notion property structure.
 

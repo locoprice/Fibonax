@@ -112,16 +112,6 @@
       "count": 1
     },
     {
-      "find": "</span>05 · Notion sync</div>",
-      "replace": "</span>05 · Sync Notion</div>",
-      "count": 1
-    },
-    {
-      "find": "tag:'05 · Notion sync',",
-      "replace": "tag:'05 · Sync Notion',",
-      "count": 1
-    },
-    {
       "find": "</span>08 · Security</div>",
       "replace": "</span>08 · Sicurezza</div>",
       "count": 1
@@ -162,8 +152,8 @@
       "count": 2
     },
     {
-      "find": "Edit where your team already works.",
-      "replace": "Modifica dove il team lavora già.",
+      "find": "Context your AI can use.",
+      "replace": "Il contesto che la tua AI può usare.",
       "count": 2
     },
     {
@@ -207,8 +197,8 @@
       "count": 1
     },
     {
-      "find": "          Mirror a <b>Notion database</b> as your library, one-way or two-way. Reviewers comment in\n          Notion; expansions update in the extension within the minute.",
-      "replace": "          Rispecchia un <b>database Notion</b> come libreria, in una o due direzioni. I revisori commentano su\n          Notion e le espansioni si aggiornano nell'estensione entro un minuto.",
+      "find": "          Keep facts, decisions and notes in a <b>Brain</b>. Add the right ones to the message you're\n          writing in an AI chat, and save a page selection with a right-click.",
+      "replace": "          Conserva fatti, decisioni e note in un <b>Brain</b>. Aggiungi quelli giusti al messaggio che stai\n          scrivendo in una chat con l'AI e salva una selezione della pagina con il tasto destro.",
       "count": 1
     },
     {
@@ -287,8 +277,8 @@
       "count": 1
     },
     {
-      "find": "aria-label=\"Learn more about Notion sync\"",
-      "replace": "aria-label=\"Scopri di più sul sync Notion\"",
+      "find": "aria-label=\"Learn more about Brains\"",
+      "replace": "aria-label=\"Scopri di più sui Brains\"",
       "count": 1
     },
     {
@@ -352,8 +342,8 @@
       "count": 1
     },
     {
-      "find": "<p>Manage your full library from any browser. Create folders, write snippets with live formulas, share folders with your team, review analytics, and configure Notion sync. Nothing to install.</p>",
-      "replace": "<p>Gestisci l'intera libreria da qualsiasi browser. Crea folder, scrivi snippet con formule dal vivo, condividi folder con il team, controlla gli analytics e configura il sync Notion. Niente da installare.</p>",
+      "find": "<p>Manage your full library from any browser. Create folders, write snippets with live formulas, share folders with your team and review analytics. Nothing to install.</p>",
+      "replace": "<p>Gestisci l'intera libreria da qualsiasi browser. Crea folder, scrivi snippet con formule dal vivo, condividi folder con il team e controlla gli analytics. Niente da installare.</p>",
       "count": 1
     },
     {
@@ -587,13 +577,13 @@
       "count": 1
     },
     {
-      "find": "body:'Connect a <b>Notion database</b> as the source of truth for your library. Reviewers comment in Notion; Fibonax pulls the updates into the extension within the minute, <b>one-way or two-way</b>.'",
-      "replace": "body:'Collega un <b>database Notion</b> come fonte di verità per la tua libreria. I revisori commentano su Notion e Fibonax porta gli aggiornamenti nell\\'estensione entro un minuto, <b>in una o due direzioni</b>.'",
+      "find": "body:'A <b>Brain</b> holds what an AI needs to know about your work: facts, decisions, preferences, notes. While you write to an AI, the extension adds the right items to your message, so you stop repeating yourself.'",
+      "replace": "body:'Un <b>Brain</b> contiene ciò che un\\'AI deve sapere del tuo lavoro: fatti, decisioni, preferenze, note. Mentre scrivi a un\\'AI, l\\'estensione aggiunge al messaggio gli elementi giusti, così non devi ripeterti.'",
       "count": 1
     },
     {
-      "find": "detail:'<strong>Setup</strong>Paste your Notion integration token and database ID in Settings → Notion Sync. Fibonax maps columns to snippet fields automatically and runs incremental pulls on a timer.'",
-      "replace": "detail:'<strong>Configurazione</strong>Incolla il token di integrazione Notion e l\\'ID del database in Settings → Notion Sync. Fibonax mappa le colonne sui campi degli snippet in automatico ed esegue letture incrementali a intervalli.'",
+      "find": "detail:'<strong>Saving</strong>Right-click a selection on any page and save it to a Brain, or paste text on your phone. Fibonax suggests which Brain it belongs in.'",
+      "replace": "detail:'<strong>Salvataggio</strong>Fai clic destro su una selezione in qualsiasi pagina e salvala in un Brain, oppure incolla il testo dal telefono. Fibonax ti suggerisce in quale Brain va.'",
       "count": 1
     },
     {
@@ -1150,17 +1140,457 @@
       "find": "\"description\": \"One place for your Snippets, Prompts and Brains. Built to give every AI the context it needs to work better.\"",
       "replace": "\"description\": \"Un unico spazio per i tuoi Snippet, Prompt e Brains. Pensato per dare a ogni AI il contesto di cui ha bisogno per lavorare meglio.\"",
       "count": 1
+    },
+    {
+      "find": "      <div class=\"faq-eyebrow\">Frequently asked questions</div>\n      <h2 id=\"faq-title\">Questions, answered.</h2>\n      <p>The short version of what people ask before they start.</p>",
+      "replace": "      <div class=\"faq-eyebrow\">Domande frequenti</div>\n      <h2 id=\"faq-title\">Domande e risposte.</h2>\n      <p>In breve, quello che le persone chiedono prima di iniziare.</p>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">What is Fibonax?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">One place for your Snippets, Prompts and Brains. Snippets are reusable text you insert by typing a short trigger. Prompts are your best AI instructions, saved and ready to reuse. Brains hold what an AI should know about your work. You use all three from the Chrome extension, the dashboard and your phone, and they always show the same library.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Che cos’è Fibonax?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Un unico posto per i tuoi Snippet, Prompt e Brain. Gli snippet sono testi riutilizzabili che inserisci digitando una breve scorciatoia. I prompt sono le tue migliori istruzioni per l’AI, salvate e pronte da riusare. I Brain contengono ciò che un’AI deve sapere del tuo lavoro. Usi tutti e tre dall’estensione Chrome, dalla dashboard e dal telefono, e mostrano sempre la stessa libreria.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Do I need to be technical to use it?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">No. You write a snippet once, give it a short trigger and type that trigger wherever you need the text. Fields, dates and calculations are added from menus, not code. If you can fill in a form, you can use Fibonax.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Devo essere un esperto per usarlo?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">No. Scrivi uno snippet una volta, gli dai una breve scorciatoia e la digiti ovunque ti serva quel testo. Campi, date e calcoli si aggiungono dai menu, senza codice. Se sai compilare un modulo, sai usare Fibonax.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Where does it work?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">In Google Chrome on a computer, in any text field on any website: email, chat, documents and AI tools, with no setup per site. Browsers that install extensions from the Chrome Web Store work too. On the few pages Chrome keeps extensions out of, the right-click menu or a copy from the popup gets the same text in. On your phone, open <a href=\"https://app.fibonax.com/mobile/\">app.fibonax.com/mobile</a> in the browser, fill in a snippet and paste it into any app.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Dove funziona?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">In Google Chrome su computer, in qualsiasi campo di testo di qualsiasi sito: email, chat, documenti e strumenti AI, senza configurare nulla sito per sito. Funzionano anche i browser che installano le estensioni dal Chrome Web Store. Nelle poche pagine in cui Chrome non lascia entrare le estensioni, il menu del tasto destro o una copia dal popup inseriscono lo stesso testo. Sul telefono apri <a href=\"https://app.fibonax.com/mobile/\">app.fibonax.com/mobile</a> nel browser, compili uno snippet e lo incolli in qualsiasi app.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Which AI tools does it work with?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Any assistant you type into. Prompts and Brains go into ChatGPT, Claude, Gemini and the others, and the same context follows you when you switch. Fibonax is not tied to one AI.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Con quali strumenti AI funziona?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Con qualsiasi assistente in cui scrivi. Prompt e Brain entrano in ChatGPT, Claude, Gemini e negli altri, e lo stesso contesto ti segue quando cambi. Fibonax non è legato a una sola AI.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Can I bring my snippets from another tool?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Yes. On the Snippets page, Import reads a Text Blaze export, a Fibonax export or a plain list of snippets. Text Blaze fields and conditions keep working as they are. You can export everything to a file at any time, so nothing is locked in.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Posso portare i miei snippet da un altro strumento?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Sì. Nella pagina Snippet, Importa legge un’esportazione di Text Blaze, un’esportazione di Fibonax o un semplice elenco di snippet. I campi e le condizioni di Text Blaze continuano a funzionare così come sono. Puoi esportare tutto in un file in qualsiasi momento, quindi niente resta bloccato.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Can my team use it?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Yes. Share a folder with your whole team or with chosen teammates, and everything inside it appears in their extension and dashboard straight away. You decide who can use, edit or manage each folder.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Il mio team può usarlo?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Sì. Condividi un folder con tutto il team o con colleghi scelti, e tutto ciò che contiene compare subito nella loro estensione e nella loro dashboard. Decidi tu chi può usare, modificare o gestire ogni folder.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">How much does it cost?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Anyone who signs up by December 31, 2026 keeps Fibonax free for life. From January 1, 2027, new accounts start with a free usage allowance and then pay only for what they use. There is no monthly or yearly subscription. See the <a href=\"pricing/\">pricing page</a>.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Quanto costa?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Chi si registra entro il 31 dicembre 2026 mantiene Fibonax gratis per sempre. Dal 1° gennaio 2027 i nuovi account partono con una quota d’uso gratuita e poi pagano solo quello che usano. Nessun abbonamento mensile o annuale. Vedi la <a href=\"pricing/\">pagina dei prezzi</a>.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Where is my data stored, and who can see it?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Your account and everything in it are stored in the European Union, in Ireland, encrypted at rest and in transit. Fibonax does not read the pages you browse and never sells your data. A Brain reaches an AI only when you choose to add it to a chat. The <a href=\"/legal/privacy-policy.html\">privacy policy</a> has the details.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">Dove sono conservati i miei dati, e chi può vederli?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Il tuo account e tutto ciò che contiene sono conservati nell’Unione Europea, in Irlanda, cifrati sia a riposo sia in transito. Fibonax non legge le pagine che visiti e non vende mai i tuoi dati. Un Brain arriva a un’AI solo quando scegli tu di aggiungerlo a una chat. I dettagli sono nella <a href=\"/legal/privacy-policy.html\">privacy policy</a>.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "Still have a question? <a href=\"mailto:fibonaxai@gmail.com\">Write to us</a> or read the <a href=\"https://docs.fibonax.com/\" target=\"_blank\" rel=\"noopener\">user guide</a>.",
+      "replace": "Hai ancora una domanda? <a href=\"mailto:fibonaxai@gmail.com\">Scrivici</a> oppure leggi la <a href=\"https://docs.fibonax.com/\" target=\"_blank\" rel=\"noopener\">guida utente</a>.",
+      "count": 1
     }
   ],
   "pricingEntries": [
     {
-      "find": "Pricing · Coming soon — Fibonax",
-      "replace": "Prezzo · Coming soon — Fibonax",
+      "find": "</strong> FiboTokens</span></li>",
+      "replace": "</strong> FiboToken</span></li>",
       "count": 1
     },
     {
-      "find": "Fibonax pricing is coming soon. No subscription. Genuine pay per use. Lifetime credit.",
-      "replace": "Il prezzo di Fibonax sarà disponibile a breve. Nessun abbonamento. Solo pagamento a consumo. Credito senza scadenza.",
+      "find": "</strong> FiboTokens <span class=\"pack-bonus\">",
+      "replace": "</strong> FiboToken <span class=\"pack-bonus\">",
+      "count": 2
+    },
+    {
+      "find": "Current exchange rate",
+      "replace": "Tasso di cambio attuale",
+      "count": 1
+    },
+    {
+      "find": "> Variable rate<",
+      "replace": "> Tasso variabile<",
+      "count": 1
+    },
+    {
+      "find": ">is worth<",
+      "replace": ">vale<",
+      "count": 1
+    },
+    {
+      "find": "</strong> FiboTokens · Rate set on <span",
+      "replace": "</strong> FiboToken · Tasso fissato il <span",
+      "count": 1
+    },
+    {
+      "find": ">October 28, 2026<",
+      "replace": ">28 ottobre 2026<",
+      "count": 1
+    },
+    {
+      "find": "Like a currency, the FiboToken rate is variable: it can change over time and move with the market. A new rate applies to new packs only. FiboTokens you already own keep their value: one FiboToken, one use.",
+      "replace": "Come una valuta, il tasso del FiboToken è variabile: può cambiare nel tempo e oscillare con il mercato. Un nuovo tasso vale solo per i nuovi pacchetti. I FiboToken che hai già mantengono il loro valore: un FiboToken, un uso.",
+      "count": 1
+    },
+    {
+      "find": "</strong> at today’s variable rate, one FiboToken for every use",
+      "replace": "</strong> al tasso variabile di oggi, un FiboToken per ogni uso",
+      "count": 1
+    },
+    {
+      "find": "Can the exchange rate change?",
+      "replace": "Il tasso di cambio può cambiare?",
+      "count": 1
+    },
+    {
+      "find": "Yes. Like a currency, the FiboToken rate is variable and can move with the market. Any change applies to new packs only and is shown on this page before you buy. FiboTokens you already own keep their value: one FiboToken, one use.",
+      "replace": "Sì. Come una valuta, il tasso del FiboToken è variabile e può oscillare con il mercato. Ogni cambiamento vale solo per i nuovi pacchetti ed è mostrato in questa pagina prima dell’acquisto. I FiboToken che hai già mantengono il loro valore: un FiboToken, un uso.",
+      "count": 1
+    },
+    {
+      "find": "Pack prices, what a FiboToken is worth and how the variable rate can change.",
+      "replace": "I prezzi dei pacchetti, il valore di un FiboToken e come può cambiare il tasso variabile.",
+      "count": 1
+    },
+    {
+      "find": "Beyond that, buy FiboTokens once and keep them forever, or go unlimited with a small monthly plan. Founding Members who join by December 31, 2026 keep their benefits for life.",
+      "replace": "Oltre, compri FiboToken una volta e li tieni per sempre, oppure passi all’illimitato con un piccolo piano mensile. I Founding Member iscritti entro il 31 dicembre 2026 tengono i vantaggi a vita.",
+      "count": 1
+    },
+    {
+      "find": "Beyond that, buy FiboTokens once and keep them forever. No subscription needed.",
+      "replace": "Oltre, compri FiboToken una volta e li tieni per sempre. Nessun abbonamento necessario.",
+      "count": 1
+    },
+    {
+      "find": "</span> off every FiboToken pack and the rates reserved for founders, for as long as you have your account.",
+      "replace": "</span> di sconto su ogni pacchetto di FiboToken e le tariffe riservate ai fondatori, per tutta la vita del tuo account.",
+      "count": 1
+    },
+    {
+      "find": "</span> off every FiboToken pack, for life: <span",
+      "replace": "</span> di sconto su ogni pacchetto di FiboToken, a vita: <span",
+      "count": 1
+    },
+    {
+      "find": "</span> instead of <span",
+      "replace": "</span> invece di <span",
+      "count": 1
+    },
+    {
+      "find": "</span> and <span",
+      "replace": "</span> e <span",
+      "count": 3
+    },
+    {
+      "find": "Start free. When you need more, buy FiboTokens once and keep them forever, or go unlimited for <span",
+      "replace": "Parti gratis. Quando ti serve di più, compri FiboToken una volta e li tieni per sempre, oppure passi all’illimitato a <span",
+      "count": 1
+    },
+    {
+      "find": "</span> a month.</p>",
+      "replace": "</span> al mese.</p>",
+      "count": 1
+    },
+    {
+      "find": "Buy once. Yours forever.",
+      "replace": "Compri una volta. Tuoi per sempre.",
+      "count": 1
+    },
+    {
+      "find": ">From<",
+      "replace": ">Da<",
+      "count": 1
+    },
+    {
+      "find": ">one-time purchase<",
+      "replace": ">acquisto una tantum<",
+      "count": 1
+    },
+    {
+      "find": ">Never expire<",
+      "replace": ">Non scadono mai<",
+      "count": 1
+    },
+    {
+      "find": "Pay once, with no subscription. Your FiboTokens never expire and stay in your account until you use them.",
+      "replace": "Paghi una volta, senza abbonamento. I tuoi FiboToken non scadono mai e restano nel tuo account finché non li usi.",
+      "count": 1
+    },
+    {
+      "find": "aria-label=\"FiboToken packs\"",
+      "replace": "aria-label=\"Pacchetti di FiboToken\"",
+      "count": 1
+    },
+    {
+      "find": ">5,250<",
+      "replace": ">5.250<",
+      "count": 2
+    },
+    {
+      "find": ">11,000<",
+      "replace": ">11.000<",
+      "count": 2
+    },
+    {
+      "find": ">€0.01<",
+      "replace": ">€0,01<",
+      "count": 3
+    },
+    {
+      "find": ">€4.90<",
+      "replace": ">€4,90<",
+      "count": 3
+    },
+    {
+      "find": "Packs open on January 1, 2027. Founding Members get <span",
+      "replace": "I pacchetti aprono il 1º gennaio 2027. I Founding Member hanno il <span",
+      "count": 1
+    },
+    {
+      "find": "</span> off every pack: <span",
+      "replace": "</span> di sconto su ogni pacchetto: <span",
+      "count": 1
+    },
+    {
+      "find": "</span>. Prices include VAT.</p>",
+      "replace": "</span>. Prezzi IVA inclusa.</p>",
+      "count": 1
+    },
+    {
+      "find": "A one-time purchase, nothing recurring",
+      "replace": "Un acquisto una tantum, niente di ricorrente",
+      "count": 1
+    },
+    {
+      "find": ">Your FiboTokens never expire<",
+      "replace": ">I tuoi FiboToken non scadono mai<",
+      "count": 1
+    },
+    {
+      "find": "Bigger packs come with bonus FiboTokens",
+      "replace": "I pacchetti più grandi includono FiboToken bonus",
+      "count": 1
+    },
+    {
+      "find": "Unlimited, every day",
+      "replace": "Illimitato, ogni giorno",
+      "count": 1
+    },
+    {
+      "find": ">per month<",
+      "replace": ">al mese<",
+      "count": 1
+    },
+    {
+      "find": "Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.",
+      "replace": "Snippet, prompt e Brain illimitati a un piccolo prezzo mensile. Nessun FiboToken da contare.",
+      "count": 1
+    },
+    {
+      "find": "Opens on January 1, 2027. Renewal and cancellation terms are shown before you subscribe. Price includes VAT.",
+      "replace": "Apre il 1º gennaio 2027. Rinnovo e disdetta sono mostrati prima di abbonarti. Prezzo IVA inclusa.",
+      "count": 1
+    },
+    {
+      "find": "Unlimited snippet, prompt and Brain uses",
+      "replace": "Usi illimitati di snippet, prompt e Brain",
+      "count": 1
+    },
+    {
+      "find": "No FiboTokens needed",
+      "replace": "Nessun FiboToken necessario",
+      "count": 1
+    },
+    {
+      "find": "The same price for everyone",
+      "replace": "Lo stesso prezzo per tutti",
+      "count": 2
+    },
+    {
+      "find": "Every option starts with the free daily allowance. Pay as you go and the monthly plan only cover what you use beyond it.",
+      "replace": "Ogni opzione parte dalla quota giornaliera gratuita. A consumo e piano mensile coprono solo ciò che usi oltre.",
+      "count": 1
+    },
+    {
+      "find": "</span>, once</strong>",
+      "replace": "</span>, una tantum</strong>",
+      "count": 1
+    },
+    {
+      "find": "</span> per month</strong>",
+      "replace": "</span> al mese</strong>",
+      "count": 1
+    },
+    {
+      "find": "No, a one-time purchase",
+      "replace": "No, un acquisto una tantum",
+      "count": 1
+    },
+    {
+      "find": "<th scope=\"row\">FiboTokens</th>",
+      "replace": "<th scope=\"row\">FiboToken</th>",
+      "count": 1
+    },
+    {
+      "find": ">Not needed<",
+      "replace": ">Non servono<",
+      "count": 2
+    },
+    {
+      "find": "</strong> for <span",
+      "replace": "</strong> per <span",
+      "count": 3
+    },
+    {
+      "find": ">Expiry<",
+      "replace": ">Scadenza<",
+      "count": 1
+    },
+    {
+      "find": "The allowance renews every day",
+      "replace": "La quota si rinnova ogni giorno",
+      "count": 1
+    },
+    {
+      "find": "<strong>Never</strong>",
+      "replace": "<strong>Mai</strong>",
+      "count": 1
+    },
+    {
+      "find": "Unlimited while you are subscribed",
+      "replace": "Illimitato finché sei abbonato",
+      "count": 1
+    },
+    {
+      "find": ">Daily use<",
+      "replace": ">Uso giornaliero<",
+      "count": 1
+    },
+    {
+      "find": "Your free allowance first, then <strong",
+      "replace": "Prima la quota gratuita, poi <strong",
+      "count": 1
+    },
+    {
+      "find": "</strong> FiboToken per use<",
+      "replace": "</strong> FiboToken per uso<",
+      "count": 1
+    },
+    {
+      "find": "<strong>Unlimited</strong>",
+      "replace": "<strong>Illimitato</strong>",
+      "count": 1
+    },
+    {
+      "find": "</strong> off every pack, for life<",
+      "replace": "</strong> di sconto su ogni pacchetto, a vita<",
+      "count": 1
+    },
+    {
+      "find": "Terms shown before you subscribe",
+      "replace": "Condizioni mostrate prima di abbonarti",
+      "count": 1
+    },
+    {
+      "find": "All prices include VAT. Packs and the monthly plan open on January 1, 2027. The free allowance applies today.",
+      "replace": "Tutti i prezzi sono IVA inclusa. Pacchetti e piano mensile aprono il 1º gennaio 2027. La quota gratuita vale da oggi.",
+      "count": 1
+    },
+    {
+      "find": "Buy a pack, once",
+      "replace": "Compra un pacchetto, una volta",
+      "count": 1
+    },
+    {
+      "find": ">Choose <span",
+      "replace": ">Scegli <span",
+      "count": 1
+    },
+    {
+      "find": "</span> or <span",
+      "replace": "</span> o <span",
+      "count": 1
+    },
+    {
+      "find": "</span>. Bigger packs add bonus FiboTokens, and Founding Members pay <span",
+      "replace": "</span>. I pacchetti più grandi aggiungono FiboToken bonus e i Founding Member pagano il <span",
+      "count": 1
+    },
+    {
+      "find": "</span> less. Your FiboTokens never expire.",
+      "replace": "</span> in meno. I tuoi FiboToken non scadono mai.",
+      "count": 1
+    },
+    {
+      "find": "Is Pay as you go a subscription?",
+      "replace": "Il pagamento a consumo è un abbonamento?",
+      "count": 1
+    },
+    {
+      "find": "No. It is a one-time purchase. You pay once, the FiboTokens land in your account and they stay there until you use them. Nothing renews.",
+      "replace": "No. È un acquisto una tantum. Paghi una volta, i FiboToken arrivano nel tuo account e restano lì finché non li usi. Niente si rinnova.",
+      "count": 1
+    },
+    {
+      "find": "You can keep writing and organising. Expanding resumes the next day, or straight away with FiboTokens or the monthly plan.",
+      "replace": "Puoi continuare a scrivere e organizzare. Le espansioni riprendono il giorno dopo, o subito con i FiboToken o il piano mensile.",
+      "count": 1
+    },
+    {
+      "find": "A pack is a one-time purchase, so there is nothing to cancel. The monthly plan shows its renewal, cancellation and refund rules before you subscribe.",
+      "replace": "Un pacchetto è un acquisto una tantum, quindi non c’è nulla da disdire. Il piano mensile mostra le regole di rinnovo, disdetta e rimborso prima dell’abbonamento.",
+      "count": 1
+    },
+    {
+      "find": "</span> off every FiboToken pack on top of the pack bonus, and the rates reserved for founders, under the terms.",
+      "replace": "</span> di sconto su ogni pacchetto di FiboToken oltre al bonus del pacchetto, e le tariffe riservate ai fondatori, secondo le condizioni.",
+      "count": 1
+    },
+    {
+      "find": "Renewal, cancellation and refunds for the monthly plan.",
+      "replace": "Rinnovo, disdetta e rimborsi del piano mensile.",
+      "count": 1
+    },
+    {
+      "find": "Register by December 31, 2026 and keep the free daily allowance, <span",
+      "replace": "Iscriviti entro il 31 dicembre 2026 e tieni la quota giornaliera gratuita, <span",
+      "count": 1
+    },
+    {
+      "find": "No. FiboTokens you buy never expire. They stay in your account until you use them.",
+      "replace": "No. I FiboToken che compri non scadono mai. Restano nel tuo account finché non li usi.",
+      "count": 1
+    },
+    {
+      "find": "Anyone who registers by December 31, 2026. Founding Members keep the free daily allowance for life, get <span",
+      "replace": "Chi si iscrive entro il 31 dicembre 2026. I Founding Member tengono la quota giornaliera gratuita a vita, hanno il <span",
+      "count": 1
+    },
+    {
+      "find": "Yes. Every price on this page includes VAT. What you see is what you pay.",
+      "replace": "Sì. Ogni prezzo in questa pagina è IVA inclusa. Quello che vedi è quello che paghi.",
+      "count": 1
+    },
+    {
+      "find": "What each use costs, and that FiboTokens never expire.",
+      "replace": "Quanto costa ogni uso, e che i FiboToken non scadono mai.",
+      "count": 1
+    },
+    {
+      "find": "How lifetime price protection and the <span",
+      "replace": "Come funzionano il prezzo protetto a vita e lo sconto fondatori del <span",
+      "count": 1
+    },
+    {
+      "find": "</span> founding discount work.",
+      "replace": "</span>.",
+      "count": 1
+    },
+    {
+      "find": "Pricing — Fibonax",
+      "replace": "Prezzo — Fibonax",
       "count": 1
     },
     {
@@ -1174,13 +1604,18 @@
       "count": 1
     },
     {
+      "find": "Free every day. <span>FiboTokens</span> when you need more.",
+      "replace": "Gratis ogni giorno. <span>FiboToken</span> quando ti serve di più.",
+      "count": 1
+    },
+    {
       "find": "Our pricing principles",
       "replace": "I principi del nostro prezzo",
       "count": 1
     },
     {
-      "find": "No monthly / yearly subscription. No pathetic marketing.",
-      "replace": "Nessun abbonamento mensile / annuale. Nessun marketing patetico.",
+      "find": "No subscription required. A monthly plan is there only if you want one. No pathetic marketing.",
+      "replace": "Nessun abbonamento obbligatorio. Il piano mensile c’è solo se lo vuoi. Nessun marketing patetico.",
       "count": 1
     },
     {
@@ -1197,6 +1632,486 @@
       "find": "Revenue invested in top Developers and Ai coding model",
       "replace": "Ricavi investiti nei migliori sviluppatori e modelli AI per il coding",
       "count": 1
+    },
+    {
+      "find": "Founding Members enrollment has closed",
+      "replace": "Le iscrizioni Founding Members sono chiuse",
+      "count": 2
+    },
+    {
+      "find": "Founding Members enrollment closes",
+      "replace": "Le iscrizioni Founding Members chiudono",
+      "count": 2
+    },
+    {
+      "find": "Founding Members are in.",
+      "replace": "I Founding Member sono dentro.",
+      "count": 1
+    },
+    {
+      "find": "Your founding benefits start here",
+      "replace": "I tuoi vantaggi da fondatore iniziano qui",
+      "count": 1
+    },
+    {
+      "find": "Anyone who registered by December 31, 2026 keeps their founding benefits for life. New accounts start with the free daily allowance and pay only for what they use beyond it.",
+      "replace": "Chi si è iscritto entro il 31 dicembre 2026 tiene i vantaggi da fondatore a vita. I nuovi account partono dalla quota giornaliera gratuita e pagano solo ciò che usano oltre.",
+      "count": 1
+    },
+    {
+      "find": "Get started free →",
+      "replace": "Inizia gratis →",
+      "count": 2
+    },
+    {
+      "find": "Register before the deadline →",
+      "replace": "Iscriviti prima della scadenza →",
+      "count": 2
+    },
+    {
+      "find": "Enrollment closed on December 31, 2026",
+      "replace": "Iscrizioni chiuse il 31 dicembre 2026",
+      "count": 2
+    },
+    {
+      "find": "Countdown to December 31, 2026",
+      "replace": "Conto alla rovescia al 31 dicembre 2026",
+      "count": 2
+    },
+    {
+      "find": ">Days<",
+      "replace": ">Giorni<",
+      "count": 2
+    },
+    {
+      "find": ">Hours<",
+      "replace": ">Ore<",
+      "count": 2
+    },
+    {
+      "find": ">Minutes<",
+      "replace": ">Minuti<",
+      "count": 2
+    },
+    {
+      "find": ">Seconds<",
+      "replace": ">Secondi<",
+      "count": 2
+    },
+    {
+      "find": "December 31, 2026 · 23:59:59",
+      "replace": "31 dicembre 2026 · 23:59:59",
+      "count": 1
+    },
+    {
+      "find": "Madrid time · Europe/Madrid (CET)",
+      "replace": "Ora di Madrid · Europe/Madrid (CET)",
+      "count": 1
+    },
+    {
+      "find": "Enable JavaScript to see the live countdown. The deadline above remains valid.",
+      "replace": "Attiva JavaScript per vedere il conto alla rovescia. La scadenza qui sopra resta valida.",
+      "count": 1
+    },
+    {
+      "find": "Permanent free plan",
+      "replace": "Piano gratuito permanente",
+      "count": 1
+    },
+    {
+      "find": "15 snippets, 10 prompts and 5 Brains every day, for life.",
+      "replace": "15 snippet, 10 prompt e 5 Brain ogni giorno, a vita.",
+      "count": 1
+    },
+    {
+      "find": "Permanent top-up discount",
+      "replace": "Sconto permanente sulle ricariche",
+      "count": 1
+    },
+    {
+      "find": "Lifetime price protection",
+      "replace": "Prezzo protetto a vita",
+      "count": 1
+    },
+    {
+      "find": "Rates reserved for founders, under the terms you can read before you register.",
+      "replace": "Tariffe riservate ai fondatori, secondo le condizioni che puoi leggere prima di iscriverti.",
+      "count": 1
+    },
+    {
+      "find": "Choose how you pay",
+      "replace": "Scegli come pagare",
+      "count": 1
+    },
+    {
+      "find": "data-open=\"Compare plans\" data-close=\"Hide the comparison\">Hide the comparison<",
+      "replace": "data-open=\"Confronta i piani\" data-close=\"Nascondi il confronto\">Nascondi il confronto<",
+      "count": 1
+    },
+    {
+      "find": "data-label=\"Free\"",
+      "replace": "data-label=\"Gratis\"",
+      "count": 7
+    },
+    {
+      "find": "data-label=\"Pay as you go\"",
+      "replace": "data-label=\"A consumo\"",
+      "count": 7
+    },
+    {
+      "find": "data-label=\"Monthly subscription\"",
+      "replace": "data-label=\"Abbonamento mensile\"",
+      "count": 7
+    },
+    {
+      "find": ">Free<",
+      "replace": ">Gratis<",
+      "count": 2
+    },
+    {
+      "find": "Every day, for free",
+      "replace": "Ogni giorno, gratis",
+      "count": 1
+    },
+    {
+      "find": "no card needed",
+      "replace": "senza carta",
+      "count": 1
+    },
+    {
+      "find": "A daily allowance that resets every morning. Founding Members keep it for life.",
+      "replace": "Una quota giornaliera che riparte ogni mattina. I Founding Member la tengono a vita.",
+      "count": 1
+    },
+    {
+      "find": ">Get started free<",
+      "replace": ">Inizia gratis<",
+      "count": 1
+    },
+    {
+      "find": "snippet expansions a day",
+      "replace": "espansioni di snippet al giorno",
+      "count": 1
+    },
+    {
+      "find": "prompt expansions a day",
+      "replace": "espansioni di prompt al giorno",
+      "count": 1
+    },
+    {
+      "find": "Brain uses a day",
+      "replace": "usi di Brain al giorno",
+      "count": 1
+    },
+    {
+      "find": "Chrome extension, web dashboard and phone",
+      "replace": "Estensione Chrome, dashboard web e telefono",
+      "count": 2
+    },
+    {
+      "find": "Shared folders for your team",
+      "replace": "Cartelle condivise per il tuo team",
+      "count": 1
+    },
+    {
+      "find": "Recommended",
+      "replace": "Consigliato",
+      "count": 1
+    },
+    {
+      "find": ">Pay as you go<",
+      "replace": ">A consumo<",
+      "count": 2
+    },
+    {
+      "find": ">Buy FiboTokens<",
+      "replace": ">Compra FiboToken<",
+      "count": 1
+    },
+    {
+      "find": "Balance and history in your account",
+      "replace": "Saldo e cronologia nel tuo account",
+      "count": 1
+    },
+    {
+      "find": ">Monthly subscription<",
+      "replace": ">Abbonamento mensile<",
+      "count": 2
+    },
+    {
+      "find": ">Compare plans<",
+      "replace": ">Confronta i piani<",
+      "count": 1
+    },
+    {
+      "find": "Compare the three",
+      "replace": "Confronta le tre opzioni",
+      "count": 1
+    },
+    {
+      "find": "What each option includes",
+      "replace": "Cosa include ogni opzione",
+      "count": 1
+    },
+    {
+      "find": "What you get",
+      "replace": "Cosa ottieni",
+      "count": 1
+    },
+    {
+      "find": ">Price<",
+      "replace": ">Prezzo<",
+      "count": 1
+    },
+    {
+      "find": ">From <span",
+      "replace": ">Da <span",
+      "count": 1
+    },
+    {
+      "find": "Recurring payment",
+      "replace": "Pagamento ricorrente",
+      "count": 1
+    },
+    {
+      "find": "Yes, monthly",
+      "replace": "Sì, ogni mese",
+      "count": 1
+    },
+    {
+      "find": "</strong> snippets, <strong",
+      "replace": "</strong> snippet, <strong",
+      "count": 1
+    },
+    {
+      "find": "</strong> prompts, <strong",
+      "replace": "</strong> prompt, <strong",
+      "count": 1
+    },
+    {
+      "find": "</strong> Brains<",
+      "replace": "</strong> Brain<",
+      "count": 1
+    },
+    {
+      "find": "Founding Member benefit",
+      "replace": "Vantaggio Founding Member",
+      "count": 1
+    },
+    {
+      "find": "The free allowance, for life",
+      "replace": "La quota gratuita, a vita",
+      "count": 1
+    },
+    {
+      "find": ">Cancellation<",
+      "replace": ">Disdetta<",
+      "count": 1
+    },
+    {
+      "find": "Nothing to cancel: you bought once",
+      "replace": "Niente da disdire: hai comprato una volta",
+      "count": 1
+    },
+    {
+      "find": "Nothing to cancel",
+      "replace": "Niente da disdire",
+      "count": 1
+    },
+    {
+      "find": "How FiboTokens work",
+      "replace": "Come funzionano i FiboToken",
+      "count": 1
+    },
+    {
+      "find": "One FiboToken is worth <span",
+      "replace": "Un FiboToken vale <span",
+      "count": 1
+    },
+    {
+      "find": "</span>. Every use costs the same, one FiboToken, and the free allowance is always spent first.",
+      "replace": "</span>. Ogni uso costa lo stesso, un FiboToken, e la quota gratuita viene sempre usata per prima.",
+      "count": 1
+    },
+    {
+      "find": "Spend per use",
+      "replace": "Paga per uso",
+      "count": 1
+    },
+    {
+      "find": "Your free daily allowance goes first. Only after that does a use cost FiboTokens.",
+      "replace": "Prima si usa la quota giornaliera gratuita. Solo dopo un uso costa FiboToken.",
+      "count": 1
+    },
+    {
+      "find": "Expand a snippet <strong",
+      "replace": "Espandi uno snippet <strong",
+      "count": 1
+    },
+    {
+      "find": "Expand a prompt <strong",
+      "replace": "Espandi un prompt <strong",
+      "count": 1
+    },
+    {
+      "find": "Use a Brain <strong",
+      "replace": "Usa un Brain <strong",
+      "count": 1
+    },
+    {
+      "find": "See where you stand",
+      "replace": "Sai sempre dove sei",
+      "count": 1
+    },
+    {
+      "find": "Your balance and every use are listed in your account, so you always know what you have left and what it went on.",
+      "replace": "Saldo e ogni uso sono elencati nel tuo account, così sai sempre quanto ti resta e per cosa è andato.",
+      "count": 1
+    },
+    {
+      "find": "Questions about paying",
+      "replace": "Domande sul pagamento",
+      "count": 1
+    },
+    {
+      "find": "What counts as a use?",
+      "replace": "Cosa conta come uso?",
+      "count": 1
+    },
+    {
+      "find": "Expanding a snippet, expanding a prompt or adding a Brain to a chat. Writing, editing and organising your library never costs anything.",
+      "replace": "Espandere uno snippet, espandere un prompt o aggiungere un Brain a una chat. Scrivere, modificare e organizzare la tua libreria non costa mai nulla.",
+      "count": 1
+    },
+    {
+      "find": "What happens when I reach the daily allowance?",
+      "replace": "Cosa succede quando raggiungo la quota giornaliera?",
+      "count": 1
+    },
+    {
+      "find": "Do FiboTokens expire?",
+      "replace": "I FiboToken scadono?",
+      "count": 1
+    },
+    {
+      "find": "Can I cancel or get a refund?",
+      "replace": "Posso disdire o avere un rimborso?",
+      "count": 1
+    },
+    {
+      "find": "What does Founding Member mean?",
+      "replace": "Cosa vuol dire Founding Member?",
+      "count": 1
+    },
+    {
+      "find": "Is VAT included?",
+      "replace": "L’IVA è inclusa?",
+      "count": 1
+    },
+    {
+      "find": "Fibonax is free every day.",
+      "replace": "Fibonax è gratis ogni giorno.",
+      "count": 1
+    },
+    {
+      "find": "Become a Founding Member",
+      "replace": "Diventa Founding Member",
+      "count": 1
+    },
+    {
+      "find": "Start with 15 snippets, 10 prompts and 5 Brains a day, and buy FiboTokens only when you need more.",
+      "replace": "Parti con 15 snippet, 10 prompt e 5 Brain al giorno e compra FiboToken solo quando ti serve di più.",
+      "count": 1
+    },
+    {
+      "find": "Your early access. Your permanent benefits. Register by December 31, 2026.",
+      "replace": "Il tuo accesso anticipato. I tuoi vantaggi permanenti. Iscriviti entro il 31 dicembre 2026.",
+      "count": 1
+    },
+    {
+      "find": "Terms &amp; contact",
+      "replace": "Condizioni e contatti",
+      "count": 1
+    },
+    {
+      "find": "aria-label=\"Close\"",
+      "replace": "aria-label=\"Chiudi\"",
+      "count": 1
+    },
+    {
+      "find": "Terms and contact",
+      "replace": "Condizioni e contatti",
+      "count": 4
+    },
+    {
+      "find": "Terms &amp; Conditions",
+      "replace": "Termini e condizioni",
+      "count": 1
+    },
+    {
+      "find": ">Contact us<",
+      "replace": ">Contattaci<",
+      "count": 1
+    },
+    {
+      "find": "What the terms cover",
+      "replace": "Cosa coprono le condizioni",
+      "count": 1
+    },
+    {
+      "find": "Before you register or buy, the terms explain, in plain words:",
+      "replace": "Prima di iscriverti o comprare, le condizioni spiegano, in parole semplici:",
+      "count": 1
+    },
+    {
+      "find": "The free plan and its daily allowance.",
+      "replace": "Il piano gratuito e la sua quota giornaliera.",
+      "count": 1
+    },
+    {
+      "find": "Who is a Founding Member and what they keep.",
+      "replace": "Chi è un Founding Member e cosa conserva.",
+      "count": 1
+    },
+    {
+      "find": "How your personal data is handled.",
+      "replace": "Come vengono trattati i tuoi dati personali.",
+      "count": 1
+    },
+    {
+      "find": "Read the full terms",
+      "replace": "Leggi le condizioni complete",
+      "count": 1
+    },
+    {
+      "find": "Privacy policy",
+      "replace": "Informativa privacy",
+      "count": 1
+    },
+    {
+      "find": "Talk to us",
+      "replace": "Parla con noi",
+      "count": 1
+    },
+    {
+      "find": "A question about FiboTokens, plans or your founding benefits? Write to us and a person answers. Your message is used only to reply to you.",
+      "replace": "Una domanda su FiboToken, piani o vantaggi da fondatore? Scrivici e ti risponde una persona. Il tuo messaggio serve solo a risponderti.",
+      "count": 1
+    },
+    {
+      "find": "Open the contact form",
+      "replace": "Apri il modulo di contatto",
+      "count": 2
+    },
+    {
+      "find": "Email fibonaxai@gmail.com",
+      "replace": "Scrivi a fibonaxai@gmail.com",
+      "count": 1
+    },
+    {
+      "find": ">2,500<",
+      "replace": ">2.500<",
+      "count": 3
     }
   ]
 }

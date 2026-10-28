@@ -117,6 +117,12 @@ export interface SbFillField {
    */
   fromLink: boolean;
   visible: boolean;
+  /**
+   * Whether this box's answer reaches the text as the form stands: false only
+   * for an empty box in a Show or hide section that is closed, which the
+   * unfinished-text check then leaves out.
+   */
+  prints: boolean;
 }
 
 /** A `{button}` control: sets field values when clicked, never prints. */
@@ -129,6 +135,19 @@ export interface SbFillButton {
   errors: string[];
 }
 
+/** A picture in a snippet, as `{picture: …}` holds it. */
+export interface SbPicture {
+  src: string;
+  alt: string;
+  size: 'small' | 'medium' | 'full';
+}
+
+/** One piece of a finished text: some text, or a picture. */
+export type SbPreviewPart = { text: string } | { picture: SbPicture };
+
+/** Where a text's pictures go, in the shared words (`pictureText`). */
+export type SbPictureTextKey = 'left-out' | 'left-out-done' | 'copy' | 'share' | 'missing';
+
 /** The view model every fill surface renders. Mirrors SHAPE in the gate. */
 export interface SbFillFormViewModel {
   errors?: Array<{ key: string; message: string }>;
@@ -136,6 +155,18 @@ export interface SbFillFormViewModel {
   fields: SbFillField[];
   buttons: SbFillButton[];
   preview: string;
+  /**
+   * The snippet's formatted layout filled with the same answers, every value
+   * escaped, or null: no layout was passed, or it asks for other fields than
+   * the text. A surface that can paste formatting inserts this, with
+   * `preview` as its plain text. A plain text with pictures fills it too.
+   */
+  formatted: string | null;
+  /**
+   * The text with its pictures in order, or null when it has none. What a
+   * preview draws: `preview` leaves the pictures out.
+   */
+  parts: SbPreviewPart[] | null;
   /**
    * How each date and time field prints, ready to hand straight to
    * `resolveBody`. A surface that resolves the body itself must pass this too,
@@ -173,6 +204,8 @@ export interface SbFillFormOptions {
    * `{ KEY: 'text' }`. Keeps Other ticked while the box is still empty.
    */
   other?: Record<string, string>;
+  /** The snippet's formatted layout (`body_html`), filled into `formatted`. */
+  formatted?: string | null;
 }
 
 /** Why a pasted link was refused before anything was sent. */
@@ -221,7 +254,31 @@ export interface SbDayChoice {
   named?: string;
 }
 
+/**
+ * One piece of a finished text that looks unfinished, as `unfinished()` in
+ * extension/shared/fill-form.js reports it: an empty box, or a fragment such
+ * as "[xxx]" with where it sits.
+ */
+export interface SbUnfinishedItem {
+  /** 'empty', 'placeholder', 'gap', 'note', 'instruction', 'field' or 'sample'. */
+  kind: string;
+  /** The fragment itself, or the title of the box left empty. */
+  text: string;
+  /** Why it was flagged, in the words every surface shows. */
+  reason: string;
+  /** The field it belongs to, or '' when it is written in the snippet itself. */
+  key: string;
+  /** Where the fragment starts in the text; -1 for an empty box. */
+  start: number;
+}
+
 interface SbFillFormApi {
+  /** What in a finished text looks unfinished. Pure; see SbUnfinishedItem. */
+  unfinished(text: string, fields: readonly SbFillField[]): SbUnfinishedItem[];
+  /** The shared words for the warning, with {name} slots filled in. */
+  unfinishedText(key: string, slots?: Record<string, string | number>): string;
+  /** How many pieces a list shows before "and N more". */
+  UNFINISHED_SHOWN: number;
   fillForm(
     text: string,
     values: Record<string, string>,
@@ -251,6 +308,10 @@ interface SbFillFormApi {
   linkText(key: string): string;
   linkSummary(read: SbLinkRead): string;
   linkNote(result: SbLinkResult | null | undefined): string;
+  pictureText(key: SbPictureTextKey, count: number): string;
+  pictureCount(vm: SbFillFormViewModel): number;
+  /** A formatted text rebuilt for the screen: lines, lists, marks, https pictures, nothing else. */
+  layoutFragment(html: string): DocumentFragment | null;
 }
 
 interface SbFormulaEngineApi {
@@ -385,6 +446,28 @@ export function fillForm(
   const api = window.SBFillForm;
   if (!api) return null;
   return api.fillForm(body, values, opts);
+}
+
+/**
+ * What looks unfinished in a finished text, decided by the same rules the
+ * extension and the phone run right before a snippet goes out. [] until the
+ * engine has loaded.
+ */
+export function unfinishedItems(
+  text: string,
+  fields: readonly SbFillField[],
+): SbUnfinishedItem[] {
+  return window.SBFillForm?.unfinished(text, fields) ?? [];
+}
+
+/** The warning's shared words; '' until the engine has loaded. */
+export function unfinishedWords(key: string, slots?: Record<string, string | number>): string {
+  return window.SBFillForm?.unfinishedText(key, slots) ?? '';
+}
+
+/** How many pieces a list shows before "and N more". */
+export function unfinishedShown(): number {
+  return window.SBFillForm?.UNFINISHED_SHOWN ?? 6;
 }
 
 /** The hint inside a menu's Other box; '' until the engine has loaded. */
@@ -522,4 +605,19 @@ export function linkSummary(read: SbLinkRead): string {
 /** The note beside one field after a read, or '' for a field filled cleanly. */
 export function linkNote(result: SbLinkResult | null | undefined): string {
   return window.SBFillForm?.linkNote(result) ?? '';
+}
+
+/** What every surface says about a text's pictures, for `count` of them. */
+export function pictureText(key: SbPictureTextKey, count: number): string {
+  return window.SBFillForm?.pictureText(key, count) ?? '';
+}
+
+/** How many pictures a view model's text shows. */
+export function pictureCount(vm: SbFillFormViewModel): number {
+  return window.SBFillForm?.pictureCount(vm) ?? 0;
+}
+
+/** A formatted text rebuilt for the screen, or null before the engine has loaded. */
+export function layoutFragment(html: string): DocumentFragment | null {
+  return window.SBFillForm?.layoutFragment(html) ?? null;
 }

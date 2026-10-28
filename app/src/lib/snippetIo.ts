@@ -1,3 +1,4 @@
+import { docFromNode, docToHtml, hasFormatting, syncDoc } from '@/lib/formattedBody';
 import type { SnippetRow } from '@/types/database';
 import type { SnippetFormValues } from '@/types/schemas';
 
@@ -14,9 +15,12 @@ interface ExportItem {
   trigger: string;
   content: string;
   bodies: SnippetRow['bodies'];
+  /** The formatted layout per language, when there is one. */
+  bodies_html?: SnippetRow['bodies'];
   language: SnippetRow['language'];
   folder_name: string | null;
   pinned: boolean;
+  check_unfinished: boolean;
 }
 
 export function exportSnippets(snippets: SnippetRow[]): void {
@@ -28,9 +32,11 @@ export function exportSnippets(snippets: SnippetRow[]): void {
       trigger: s.triggers[0] ?? '',
       content: s.content,
       bodies: s.bodies,
+      ...(s.bodies_html && Object.keys(s.bodies_html).length > 0 ? { bodies_html: s.bodies_html } : {}),
       language: s.language,
       folder_name: s.folder_name,
       pinned: s.pinned,
+      check_unfinished: s.check_unfinished,
     })),
   };
 
@@ -101,9 +107,13 @@ function coerceItem(raw: Record<string, unknown>): SnippetFormValues | null {
     trigger,
     content,
     bodies,
+    bodies_html: importedLayouts(raw['bodies_html'], bodies),
     language,
     folder_id: null,
     pinned: raw['pinned'] === true,
+    // Only an explicit false turns the warning off: a file from another tool,
+    // or from before the switch existed, imports checked.
+    check_unfinished: raw['check_unfinished'] !== false,
     alternative_queries: Array.isArray(raw['alternative_queries'])
       ? (raw['alternative_queries'] as string[]).filter((q) => typeof q === 'string')
       : [],
@@ -173,4 +183,23 @@ export async function parseImportFile(file: File): Promise<ParseResult> {
   }
 
   return { valid, skipped };
+}
+
+/**
+ * The layouts a file carries, rebuilt through the formatted box's own model:
+ * only lines, lists, Bold, Italic and Underline come in, whatever the file
+ * holds, and each follows its language's text. Read in an inert document, so
+ * nothing in a file runs. Without a browser (a test run), none come in.
+ */
+function importedLayouts(raw: unknown, bodies: SnippetFormValues['bodies']): SnippetFormValues['bodies'] {
+  const out: SnippetFormValues['bodies'] = {};
+  if (!raw || typeof raw !== 'object' || typeof DOMParser === 'undefined') return out;
+  for (const [key, value] of Object.entries(raw)) {
+    const lang = key.toUpperCase() as SnippetFormValues['language'];
+    const text = bodies[lang];
+    if (!VALID_LANGS.has(lang) || typeof value !== 'string' || !text) continue;
+    const doc = syncDoc(docFromNode(new DOMParser().parseFromString(value, 'text/html').body), text);
+    if (hasFormatting(doc)) out[lang] = docToHtml(doc);
+  }
+  return out;
 }

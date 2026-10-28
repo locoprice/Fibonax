@@ -23,7 +23,8 @@
 //    20261008120000_link_reads.sql): 20 pages a minute and 300 a day.
 // 3. Only public web pages: https on the standard port, a domain name rather
 //    than an address, nothing private or internal before or after the name is
-//    looked up, every redirect checked again, never a step down to http.
+//    looked up (and no read at all when it cannot be looked up), every
+//    redirect checked again, never a step down to http.
 // 4. Bounded: 10 seconds for the whole fetch, 3 MB read at most, HTML only.
 // 5. Nothing is stored and nothing of the page is logged. A link can work like
 //    a password to the page it opens, so the logs carry its host only, never
@@ -32,7 +33,7 @@
 // Environment (injected automatically by the runtime):
 //   SUPABASE_URL, SUPABASE_ANON_KEY
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
 import { isPrivateAddress, linkProblem } from './linkGuard.ts';
 import { declaredCharset, pageText } from './pageText.ts';
 
@@ -80,21 +81,65 @@ function cleanLang(raw: unknown): string {
   return /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(s) ? s : '';
 }
 
+/** Public resolver asked when the runtime has no lookup of its own. */
+const DOH_URL = 'https://cloudflare-dns.com/dns-query';
+const DOH_TYPES = { A: 1, AAAA: 28 } as const;
+
 /**
- * Refuses a host whose name is looked up to a private address. The runtime
- * may not offer a lookup; then the name rules in linkGuard are the floor.
+ * The addresses a name looks up to, from DNS over HTTPS. Throws when the
+ * resolver cannot be reached or answers with an error, so a lookup that did
+ * not happen is never mistaken for an empty one.
  */
-async function checkResolved(host: string): Promise<void> {
+async function lookUpOverHttps(host: string, signal: AbortSignal): Promise<string[]> {
+  const found: string[] = [];
+  for (const [type, code] of Object.entries(DOH_TYPES)) {
+    const res = await fetch(`${DOH_URL}?name=${encodeURIComponent(host)}&type=${type}`, {
+      headers: { Accept: 'application/dns-json' },
+      signal,
+    });
+    if (!res.ok) throw new Error(`resolver answered ${res.status}`);
+    const reply = (await res.json()) as { Status?: number; Answer?: Array<{ type?: number; data?: unknown }> };
+    // 0 is an answer, 3 is "no such name"; anything else is a failed lookup.
+    if (reply.Status !== 0 && reply.Status !== 3) throw new Error(`resolver status ${reply.Status}`);
+    for (const entry of reply.Answer ?? []) {
+      if (entry.type === code && typeof entry.data === 'string') found.push(entry.data);
+    }
+  }
+  return found;
+}
+
+/**
+ * Refuses a host whose name is looked up to a private address. The runtime's
+ * own lookup is used when it has one, DNS over HTTPS otherwise, and a link is
+ * refused when neither can be made: the name rules in linkGuard alone let
+ * names like 127.0.0.1.nip.io through.
+ *
+ * Left open on purpose: the address can change between this lookup and the
+ * fetch (DNS rebinding). fetch takes no address to connect to, so closing it
+ * would need a different HTTP client.
+ */
+async function checkResolved(host: string, signal: AbortSignal): Promise<void> {
   const resolve = (Deno as unknown as {
     resolveDns?: (name: string, type: 'A' | 'AAAA') => Promise<string[]>;
   }).resolveDns;
-  if (typeof resolve !== 'function') return;
   const found: string[] = [];
-  for (const type of ['A', 'AAAA'] as const) {
+  if (typeof resolve === 'function') {
+    for (const type of ['A', 'AAAA'] as const) {
+      try {
+        found.push(...(await resolve(host, type)));
+      } catch {
+        // No record of this type; the other may still answer.
+      }
+    }
+  } else {
     try {
-      found.push(...(await resolve(host, type)));
-    } catch {
-      // No record of this type; the other may still answer.
+      found.push(...(await lookUpOverHttps(host, signal)));
+    } catch (err) {
+      console.error('read-link: address lookup failed', JSON.stringify({
+        host,
+        cause: err instanceof Error ? err.name : 'unknown',
+      }));
+      fail('link_unreachable', 502);
     }
   }
   if (found.length === 0) fail('link_unreachable', 502);
@@ -145,7 +190,7 @@ async function fetchPage(link: string, lang: string, signal: AbortSignal): Promi
     const problem = linkProblem(current);
     if (problem) fail(problem, 400);
     const host = new URL(current).hostname;
-    await checkResolved(host);
+    await checkResolved(host, signal);
 
     let res: Response;
     try {

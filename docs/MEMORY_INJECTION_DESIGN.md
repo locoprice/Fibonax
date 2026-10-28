@@ -169,8 +169,12 @@ the other extension preferences.
 
 - **Query**: the composer draft, trimmed to its last 600 characters (the current thought,
   not the whole message). Empty draft → the pill offers pinned items only and says so.
-- **Candidates**: `knowledge_search` over both kinds, limit 40. Snippets are included by
-  default; prompts are structurally absent (P-1).
+- **Candidates**: `knowledge_search` over Brain items and prompts
+  (`p_kinds: ['memory', 'prompt']`), limit 40. Snippets were included by default until
+  v3.87.0, then left out at the owners' request (they crowded the list). Prompts were
+  structurally absent (P-1) and are now returned only when a caller names the kind, so
+  Ask and older extensions are unchanged. Word counts still come from the whole library;
+  `p_kinds` chooses what comes back (`20261025120000_context_prompts_not_snippets.sql`).
 - **Relevance floor**: candidates below an RRF score of `1/(60+15)` (rank 15 in a single
   arm, or worse) are dropped before budgeting. A deterministic threshold, not a heuristic,
   and the reason "irrelevant content" does not reach the panel.

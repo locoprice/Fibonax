@@ -17,6 +17,7 @@ vi.mock('@/lib/api/snippetsApi', () => ({
     deleteSnippet: vi.fn(),
     setPinned: vi.fn(),
     setActive: vi.fn(),
+    setCheckUnfinished: vi.fn(),
     duplicateSnippet: vi.fn(),
     createFolder: vi.fn(),
     updateFolder: vi.fn(),
@@ -29,11 +30,13 @@ vi.mock('@/lib/api/snippetsApi', () => ({
 
 import { useSnippetStore } from '@/stores/snippetStore';
 import { revisionsApi } from '@/lib/api/revisionsApi';
+import { snippetsApi } from '@/lib/api/snippetsApi';
 import type { SnippetRevision, SnippetRow } from '@/types/database';
 import type { SnippetFormValues } from '@/types/schemas';
 
 const mockListRevisions = vi.mocked(revisionsApi.listRevisions);
 const mockSaveWithRevision = vi.mocked(revisionsApi.saveWithRevision);
+const mockSetCheckUnfinished = vi.mocked(snippetsApi.setCheckUnfinished);
 
 const MOCK_SNIPPET: SnippetRow = {
   organization_id: null,
@@ -55,6 +58,7 @@ const MOCK_SNIPPET: SnippetRow = {
   notion_page_id: null,
   pinned: false,
   is_active: true,
+  check_unfinished: true,
   alternative_queries: [],
   updated_at: '2026-01-01T00:00:00Z',
   updated_by: 'user-1',
@@ -87,6 +91,7 @@ const PATCH: SnippetFormValues = {
   language: 'EN',
   pinned: false,
   alternative_queries: [],
+  check_unfinished: true,
 };
 
 beforeEach(() => {
@@ -189,6 +194,39 @@ describe('editSnippetWithRevision', () => {
     await expect(
       useSnippetStore.getState().editSnippetWithRevision('unknown-id', PATCH),
     ).rejects.toThrow('Snippet not found');
+  });
+
+  it('saves the unfinished-text switch beside the revision when it changed', async () => {
+    mockSaveWithRevision.mockResolvedValueOnce(2);
+    mockSetCheckUnfinished.mockResolvedValueOnce({ ...MOCK_SNIPPET, check_unfinished: false });
+
+    const result = await useSnippetStore
+      .getState()
+      .editSnippetWithRevision('snippet-1', { ...PATCH, check_unfinished: false });
+
+    expect(mockSetCheckUnfinished).toHaveBeenCalledWith('snippet-1', false);
+    expect(result.check_unfinished).toBe(false);
+    expect(useSnippetStore.getState().snippets[0]?.check_unfinished).toBe(false);
+  });
+
+  it('leaves the switch alone when a save did not change it', async () => {
+    mockSaveWithRevision.mockResolvedValueOnce(2);
+
+    await useSnippetStore.getState().editSnippetWithRevision('snippet-1', PATCH);
+
+    expect(mockSetCheckUnfinished).not.toHaveBeenCalled();
+  });
+
+  it('reports a switch that could not be saved instead of showing it as saved', async () => {
+    mockSaveWithRevision.mockResolvedValueOnce(2);
+    mockSetCheckUnfinished.mockRejectedValueOnce(new Error('No permission'));
+
+    await expect(
+      useSnippetStore
+        .getState()
+        .editSnippetWithRevision('snippet-1', { ...PATCH, check_unfinished: false }),
+    ).rejects.toThrow('No permission');
+    expect(useSnippetStore.getState().snippets[0]?.check_unfinished).toBe(true);
   });
 });
 

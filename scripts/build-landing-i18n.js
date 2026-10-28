@@ -155,6 +155,7 @@ function pricingShell(home, lang) {
     /^(?:https?:|data:|\/)/.test(src) ? match : `src="../${src}"`)
     .replaceAll('href="/"', 'href="../"')
     .replaceAll('href="#features"', 'href="../#features"')
+    .replaceAll('href="#faq"', 'href="../#faq"')
     .replaceAll('href="pricing/"', 'href="./"')
     .replaceAll('href="/legal/', `href="${rootPrefix}legal/`);
   let header = rebase(sharedPart(home, 'header'));
@@ -167,7 +168,6 @@ function pricingShell(home, lang) {
       return `href="${href}" hreflang="${code}"`;
     }));
   return {
-    PRICING_ARTWORK: rootPrefix + 'assets/pricing/lifetime-credit-v1.jpg',
     SITE_HEADER: header,
     SITE_FOOTER: rebase(footer),
     SITE_CONTACT: sharedPart(home, 'contact'),

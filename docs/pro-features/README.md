@@ -6,11 +6,13 @@ One switch per feature, in `app/src/lib/proFeatures.ts`. `scripts/check-pro-gate
 
 | Feature | Switch | Where it shows locked | Server function in production | Manual page, kept here |
 |---|---|---|---|---|
-| Ask Fibonax | `ask`, and `ASK_AVAILABLE` in `app/public/mobile/index.html` | The answer row in the dashboard search panel (and the ⌘↵ shortcut); the row under the search box on the phone's Snippets, Prompts and Brains pages | `ask-sprintbrain`, deployed | `ask-sprintbrain.mdx` |
+| FiboChat | `ask`, and `ASK_AVAILABLE` in `app/public/mobile/index.html` | The answer row in the dashboard search panel (and the ⌘↵ shortcut); the row under the search box on the phone's Snippets, Prompts and Brains pages | `ask-sprintbrain`, deployed | `ask-sprintbrain.mdx` |
 | Draft with AI | `draft` | **Draft from text** in the snippet, prompt and Brain item editors (one shared component) | `draft-with-ai`, deployed | `draft-with-ai.mdx` |
 | Translate from EN | `translate` | The Translate button in the snippet editor (IT, ES, FR) | `translate-body`, **not deployed** | none (already left out of the manual) |
 | Suggest labels | `labels` | The Suggest labels button under the label picker in the snippet editor | `suggest-labels`, **not deployed** | none (already left out of the manual) |
 | Read a picture | `picture`, and `PICTURE_AVAILABLE` in `app/public/mobile/index.html` | The **Read a picture** row in the phone's Save to Brain, with the lock and the label in plain sight; under it, a tip to copy a picture's text with Live Text or Google Lens instead | `read-picture`, **not deployed** | `read-picture.mdx`, a section of the phone page rather than a page of its own |
+
+| Add a picture (v3.94.0, calls no AI service: the cost is storage) | `snippetPictures` | **Add picture** in the snippet editor's Pictures section; the window is not mounted while locked. Pictures already in a snippet are still listed with Remove, and every fill surface shows them | none; needs the `snippet-pictures` bucket (`20261027130000_snippet_pictures_storage.sql`, **not applied**) and the `delete-account` deploy that empties it | `snippet-pictures.mdx`, a section of `user-docs/text-snippets/dynamic-fields.mdx` |
 
 The two features whose function is not deployed need that deploy before their switch can go on. Before any switch goes on, the Anthropic account behind `ANTHROPIC_API_KEY` needs credit: with none, every call fails with "Your credit balance is too low".
 
@@ -26,10 +28,10 @@ The two features whose function is not deployed need that deploy before their sw
 **`user-docs/review/overview.mdx`**
 
 - In the status table, **AI generated** read: `Written by an AI: saved from [Draft with AI](/draft/overview), or by an AI assistant connected to your Brains. A person has not approved it yet.`
-- **Approved** read: `Approved. Ask Fibonax prefers approved items.`
-- After the "Waiting for approval" list: `**Answer feedback** lists what people said about [Ask Fibonax](/ask/overview) answers.`
-- Under Deprecated: `- [Ask Fibonax](/ask/overview) treats it as out of date and says so.`
-- Under Archived: `- Ask Fibonax ignores archived items.`
+- **Approved** read: `Approved. FiboChat prefers approved items.`
+- After the "Waiting for approval" list: `**Answer feedback** lists what people said about [FiboChat](/ask/overview) answers.`
+- Under Deprecated: `- [FiboChat](/ask/overview) treats it as out of date and says so.`
+- Under Archived: `- FiboChat ignores archived items.`
 
 **`user-docs/text-snippets/create-and-organize.mdx`**, before "To edit a snippet, click its row.":
 `Have an email or a chat that says it already? Click **Draft from text** at the top of a new snippet, paste it, and the editor fills itself in. See [Draft with AI](/draft/overview).`
@@ -43,6 +45,6 @@ The two features whose function is not deployed need that deploy before their sw
 **`user-docs/apps/mobile.mdx`**
 
 - In the description: `read and copy your Brains, ask questions answered from your own content, and save text`
-- The section before "Other tabs": `## Ask a question`, then `Type a question in the search box on the Snippets, Prompts or Brains page and tap **Ask Fibonax** under it. The answer comes only from your own snippets and Brains, with its sources listed: tap one to open it. **Copy answer** copies the text, and **Was this right?** sends your feedback for review. See [Ask Fibonax](/ask/overview).`
+- The section before "Other tabs": `## Ask a question`, then `Type a question in the search box on the Snippets, Prompts or Brains page and tap **FiboChat** under it. The answer comes only from your own snippets and Brains, with its sources listed: tap one to open it. **Copy answer** copies the text, and **Was this right?** sends your feedback for review. See [FiboChat](/ask/overview).`
 
 **`docs.json`**: the menu group was named `AI and review` and listed `ask/overview`, `draft/overview` and `review/overview`.

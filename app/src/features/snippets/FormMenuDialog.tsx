@@ -63,6 +63,12 @@ interface FormMenuDialogProps {
    */
   newLink?: string;
   /**
+   * The name a new menu starts with, when the Fill from a pasted link entry
+   * named it after the word it reads. '' or left out for a menu that starts
+   * unnamed, as one built from the Choice toggle does.
+   */
+  newName?: string;
+  /**
    * The snippet's language (EN, IT, ES, FR or MULTI). A ready-made list prints
    * in the message, so it is written in that language; Multi gets English.
    */
@@ -90,6 +96,7 @@ export function FormMenuDialog({
   suggestedName,
   initial = null,
   newLink = '',
+  newName = '',
   language,
   list,
   readers = 0,
@@ -149,8 +156,9 @@ export function FormMenuDialog({
     // will expand to.
     setSelectedIds([1]);
     // Left blank like Text Blaze: `suggestedName` is only the placeholder, so a
-    // name is something you opt into rather than something to clear.
-    setName('');
+    // name is something you opt into rather than something to clear. A menu
+    // from the Fill from a pasted link entry arrives named after its word.
+    setName(newName);
     setMultiple(false);
     setCols('');
     setLink(linkDraftFrom(newLink, 'after'));
@@ -158,7 +166,7 @@ export function FormMenuDialog({
     setOtherOn(false);
     setOtherLabel(MENU_OTHER_LABEL);
     setPreset(NO_PRESET);
-  }, [open, suggestedName, initial, newLink]);
+  }, [open, suggestedName, initial, newLink, newName]);
 
   function updateRow(id: number, label: string) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, label } : r)));

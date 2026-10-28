@@ -315,22 +315,22 @@ describe('conditionRule — reading back', () => {
 describe('conditionRule — plain words', () => {
   it('says what happens in both cases', () => {
     expect(summaryText(summarizeRule(rule({})))).toBe(
-      'IF PLAN equals "annual" THEN show "Two months free." ELSE hide it',
+      'If PLAN is "annual", show "Two months free." Otherwise nothing',
     );
     expect(summaryText(summarizeRule(rule({ otherwise: 'Pay monthly.' })))).toBe(
-      'IF PLAN equals "annual" THEN show "Two months free." ELSE show "Pay monthly."',
+      'If PLAN is "annual", show "Two months free." Otherwise show "Pay monthly."',
     );
     expect(
       summaryText(summarizeRule(rule({ field: 'SCORE', operator: 'greaterThan', value: '10', action: 'hide', content: 'Section B' }))),
-    ).toBe('IF SCORE is greater than 10 THEN hide "Section B" ELSE show it');
+    ).toBe('If SCORE is more than 10, hide "Section B" Otherwise show it');
     expect(summaryText(summarizeRule(rule({ field: 'NOTE', operator: 'isFilled', value: '' })))).toBe(
-      'IF NOTE is filled THEN show "Two months free." ELSE hide it',
+      'If NOTE is filled in, show "Two months free." Otherwise nothing',
     );
   });
 
-  it('marks the three keywords so they can be drawn as tags', () => {
+  it('marks If and Otherwise so they can be drawn as tags', () => {
     const keywords = summarizeRule(rule({})).filter((p) => p.kind === 'keyword').map((p) => p.text);
-    expect(keywords).toEqual(['IF', 'THEN', 'ELSE']);
+    expect(keywords).toEqual(['If', 'Otherwise']);
   });
 
   it('shortens long text to one line', () => {
@@ -423,7 +423,7 @@ describe('conditionRule: Each option', () => {
     const [entry] = rulesInBody(buildRuleToken(both, 'choice'));
     expect(entry?.rule).toEqual(both);
     expect(summaryText(summarizeRule(both))).toBe(
-      'IF RATE is "REFUNDABLE" THEN show "Full refund." ELSE IF RATE is "NOT REFUNDABLE" THEN show "After booking, no refund." ELSE print nothing',
+      'If RATE is "REFUNDABLE", show "Full refund." Or if RATE is "NOT REFUNDABLE", show "After booking, no refund." Otherwise nothing',
     );
   });
 

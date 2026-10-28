@@ -56,6 +56,9 @@ jobs:
       - name: Fill form view model check
         run: node scripts/check-fill-form.js
 
+      - name: Unfinished-text check
+        run: node scripts/check-unfinished.js
+
       - name: Unused-asset rule parity check
         run: node scripts/check-inactivity-parity.js
 
@@ -92,6 +95,12 @@ jobs:
       - name: Landing translation parity check
         run: node scripts/build-landing-i18n.js --check
 
+      - name: Pricing page numbers match PRICING
+        run: node scripts/check-pricing-config.js
+
+      - name: Landing FAQ structured data
+        run: node scripts/check-landing-faq.js
+
       - name: Industry-neutral wording check
         run: node scripts/check-industry-neutral.js
 
@@ -116,3 +125,39 @@ jobs:
 
       - name: CI Passed
         run: echo "Fibonax CI OK"
+
+  # The dashboard's own gates: the same four commands every commit to app/ must
+  # pass by hand (root CLAUDE.md, Verification Protocol). Until 2026-10-26 they
+  # ran nowhere automatically, so the test suite only caught what someone
+  # remembered to run.
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build

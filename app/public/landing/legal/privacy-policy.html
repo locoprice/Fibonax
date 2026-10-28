@@ -141,7 +141,7 @@
     <div class="doc-meta">
       <span class="badge badge-gdpr">GDPR</span>
       <span class="badge badge-ccpa">CCPA</span>
-      <span class="doc-date">Last Updated: May 22, 2026</span>
+      <span class="doc-date">Last Updated: October 27, 2026</span>
     </div>
 
     <h1>Privacy Policy</h1>
@@ -150,7 +150,7 @@
     <!-- 1 -->
     <div class="section" id="overview">
       <h2>01 &nbsp;Overview</h2>
-      <p>Fibonax is a text-snippet expansion tool that operates primarily on your local device. We are committed to data minimization: the extension stores your snippet library locally using Chrome's sandboxed storage APIs and only transmits data when you explicitly trigger a synchronization.</p>
+      <p>Fibonax keeps your snippets, prompts and Brains in your Fibonax account, so they are the same in the extension, on the dashboard and on your phone. The extension also keeps a copy on your device, so your shortcuts work instantly. We collect only what the service needs to work and to keep your account safe.</p>
       <div class="info-box">
         <p><strong>Key principle:</strong> Fibonax does not monitor your browsing activity, does not read page content passively, and does not sell or share your personal data with any third party for advertising or commercial purposes.</p>
       </div>
@@ -178,8 +178,13 @@
         <tbody>
           <tr>
             <td>storage</td>
-            <td>Persist your snippet library, settings, and Notion sync configuration between browser sessions</td>
-            <td>Your snippet data and config, stored locally in <code>chrome.storage.local</code> only — never synced to external servers</td>
+            <td>Persist your snippet library and settings between browser sessions</td>
+            <td>A copy of your library and settings, kept on this device in <code>chrome.storage.local</code>. The original is in your Fibonax account</td>
+          </tr>
+          <tr>
+            <td>alarms</td>
+            <td>Refresh the copy of your library from your account every 5 minutes</td>
+            <td>Your own library, read from your Fibonax account</td>
           </tr>
           <tr>
             <td>activeTab</td>
@@ -192,9 +197,9 @@
             <td>Selected text, only when you right-click and choose a Fibonax action</td>
           </tr>
           <tr>
-            <td>scripting</td>
-            <td>Execute snippet expansion into editable DOM fields on the active page</td>
-            <td>The target editable element only; no surrounding page content is read</td>
+            <td>Site access</td>
+            <td>On every site: recognize your shortcuts as you type, insert snippets, and offer Brains in the AI chats you use</td>
+            <td>The text field you are typing in, checked on your device for a shortcut. A page's text is read only when you choose to save it to a Brain</td>
           </tr>
         </tbody>
       </table>
@@ -206,24 +211,26 @@
 
       <h3>A. Data you provide directly</h3>
       <ul>
-        <li><strong>Snippets and templates</strong> — the shortcut triggers and expansion text you create and store.</li>
-        <li><strong>Account credentials</strong> — your email address and hashed password used to authenticate with Supabase. Passwords are never stored in plain text.</li>
-        <li><strong>Notion integration token</strong> — if you connect Notion, your personal integration token and database ID are stored encrypted in <code>chrome.storage.local</code> on your device only.</li>
+        <li><strong>Your content</strong>: snippets, prompts, Brains (including files you upload), folders, labels, and earlier versions you can restore.</li>
+        <li><strong>Account details</strong>: your email address, the name and profile photo you add, and your password if you set one. Passwords are stored only as a hash, never in plain text. If you sign in with Google, Google shares your name, email address and profile photo with us.</li>
+        <li><strong>Teams</strong>: your team's name, cover and logo, its members, and the email addresses of people you invite.</li>
+        <li><strong>Text you choose to save</strong>: a selection or an AI chat you save to a Brain from a web page.</li>
       </ul>
 
       <h3>B. Data collected automatically</h3>
       <ul>
-        <li><strong>Extension version identifier</strong> — used for compatibility verification during Notion sync operations.</li>
-        <li><strong>Sync timestamps</strong> — the last successful Notion sync time, stored locally on your device.</li>
-        <li><strong>Error logs</strong> — technical error messages written to the extension's internal log for debugging; these do not contain personal data or browsing history.</li>
+        <li><strong>Sign-in records</strong>: for each sign-in, the time, the method, your IP address, the country it came from, and your browser and device type. You can see your own in Settings, under Security.</li>
+        <li><strong>Snippet use</strong>: each time you insert a snippet, which snippet it was, its shortcut and language, how many fields you filled, and when. Not the text you filled in, and not the page or site.</li>
+        <li><strong>Review request</strong>: how many times you've signed in and how often we've asked you to review Fibonax on the Chrome Web Store.</li>
+        <li><strong>Error logs</strong>: technical error messages kept in the extension on your device, for troubleshooting. They contain no browsing history.</li>
       </ul>
 
       <h3>C. Data we do NOT collect</h3>
       <ul>
         <li>Your browsing history or visited URLs.</li>
-        <li>Content of web pages you visit.</li>
-        <li>Keystrokes outside of explicit Fibonax snippet trigger invocations.</li>
-        <li>Device identifiers, IP address, or geographic location.</li>
+        <li>Content of web pages you visit, unless you choose to save it or paste a link to it.</li>
+        <li>What you type. The extension checks it on your device for a Fibonax shortcut and sends nothing.</li>
+        <li>Your precise location. Sign-in records keep only the country.</li>
         <li>Any data transmitted to AI or machine learning systems (no AI integration is currently active).</li>
       </ul>
     </div>
@@ -231,43 +238,56 @@
     <!-- 5 -->
     <div class="section" id="processing">
       <h2>05 &nbsp;Processing Purpose</h2>
-      <p>All data processing is initiated <strong>solely via your explicit user action</strong> — invoking a keyboard shortcut, selecting a context menu option, clicking a button in the extension popup, or triggering a Notion sync. Fibonax runs no background processes that read or transmit data without your knowledge.</p>
+      <p>Fibonax uses your data only to run the service. The extension refreshes its copy of your library from your account every 5 minutes. Everything else starts with something you do: typing a shortcut, choosing a menu item, clicking a button, or opening the dashboard or the phone page.</p>
       <p>Specific processing purposes:</p>
       <ul>
-        <li><strong>Snippet expansion</strong> — matching your typed trigger against the local library and inserting the expansion into the active field.</li>
-        <li><strong>Notion synchronization</strong> — when you trigger a sync, your snippet library is fetched from your designated Notion database using your personal integration token and written to <code>chrome.storage.local</code>.</li>
-        <li><strong>Authentication</strong> — your email and password are transmitted over HTTPS to Supabase to verify your identity and retrieve your account configuration.</li>
+        <li><strong>Snippet expansion</strong>: matching the shortcut you type against the copy of your library on your device, and inserting the result into the field.</li>
+        <li><strong>Your account</strong>: keeping your content safe in your account and the same on every device where you sign in.</li>
+        <li><strong>Sign-in and security</strong>: confirming who you are over HTTPS, and keeping sign-in records so you can spot a sign-in that wasn't you.</li>
+        <li><strong>Teams</strong>: showing shared folders to the teammates you share them with, and emailing your invitations.</li>
+        <li><strong>Snippet use</strong>: showing when each snippet was last used and how often.</li>
+        <li><strong>Fill from link</strong>: when you paste a link into a fill form, our server opens that public page once and reads its text to fill the form. Nothing from the page is stored.</li>
+        <li><strong>Brains in AI chats</strong>: when you click Context, Fibonax puts the Brain you pick into the AI chat you are using. From there, that AI service's own terms apply.</li>
+        <li><strong>Review request</strong>: asking free accounts, at most 5 times, to review Fibonax on the Chrome Web Store.</li>
       </ul>
-      <p>The legal basis for processing under GDPR is <strong>performance of a contract</strong> (Art. 6(1)(b)) for service delivery, and <strong>legitimate interests</strong> (Art. 6(1)(f)) for error logging and security.</p>
+      <p>The legal basis for processing under GDPR is <strong>performance of a contract</strong> (Art. 6(1)(b)) for providing the service, and <strong>legitimate interests</strong> (Art. 6(1)(f)) for sign-in records, error logs, snippet use and the review request.</p>
     </div>
 
     <!-- 6 -->
     <div class="section" id="storage">
       <h2>06 &nbsp;Data Storage Architecture</h2>
-      <p>The extension uses <strong><code>chrome.storage.local</code> exclusively</strong> — never <code>chrome.storage.sync</code> — for all local data including credentials, snippets, and configuration. Your data is stored only within your local Chrome profile and is never transmitted to Google's sync servers.</p>
-      <p>Account data (email address, session tokens, subscription status) is stored on Supabase infrastructure within the European Economic Area (EEA). Supabase encrypts data at rest (AES-256) and in transit (TLS 1.3).</p>
-      <p>No snippet content is stored on Fibonax's own servers. Alessandro Verdicchio does not operate independent server infrastructure for this product.</p>
+      <p>In the extension, Fibonax uses <strong><code>chrome.storage.local</code> only</strong>, never <code>chrome.storage.sync</code>, for its copy of your library, your settings and your sign-in session. That copy stays in your Chrome profile and is never sent to Google's sync servers.</p>
+      <p>Your account and everything in it (your content, the files you upload and your sign-in records) are stored by Supabase in the European Union, in its Ireland region. Supabase encrypts data at rest and in transit.</p>
+      <p>Alessandro Verdicchio does not run servers of his own for this product. Supabase hosts the database, the files and the server functions, and Netlify hosts the website.</p>
     </div>
 
     <!-- 7 -->
     <div class="section" id="third-parties">
       <h2>07 &nbsp;Third-Party Services</h2>
-      <p>Fibonax currently integrates with the following two third-party services. Each integration is opt-in and strictly purpose-limited.</p>
+      <p>Fibonax uses the following third-party services. Each one receives only what it needs for its task.</p>
 
       <div class="third-party-card">
         <div class="tp-header">
           <div class="tp-name">Supabase</div>
-          <div class="tp-role">Authentication &amp; account storage</div>
+          <div class="tp-role">Account, content, sign-in &amp; email</div>
         </div>
-        <p class="tp-desc">Supabase manages user authentication and stores account-level configuration (email address, session token, account preferences). Supabase is GDPR-compliant, operates under a Data Processing Agreement, and hosts EU user data in the eu-central-1 (Frankfurt) region. Privacy policy: <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a>.</p>
+        <p class="tp-desc">Supabase stores your account and your content, runs the server functions behind features such as Fill from link, and sends sign-in and invitation emails. Supabase is GDPR-compliant, operates under a Data Processing Agreement, and hosts Fibonax's data in its eu-west-1 (Ireland) region. Privacy policy: <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a>.</p>
       </div>
 
       <div class="third-party-card">
         <div class="tp-header">
-          <div class="tp-name">Notion</div>
-          <div class="tp-role">Snippet source — optional integration</div>
+          <div class="tp-name">Netlify</div>
+          <div class="tp-role">Website hosting</div>
         </div>
-        <p class="tp-desc">If you connect your Notion workspace, Fibonax reads snippet content from your designated Notion database using the Notion API and your personal integration token. This connection is optional, configured by you, and uses only the specific database you designate. Fibonax does not write data back to Notion. Privacy policy: <a href="https://www.notion.so/privacy" target="_blank" rel="noopener">notion.so/privacy</a>.</p>
+        <p class="tp-desc">Netlify serves fibonax.com, the dashboard and the phone page. Like any web host, it receives standard request data such as your IP address and browser type. Privacy policy: <a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener">netlify.com/privacy</a>.</p>
+      </div>
+
+      <div class="third-party-card">
+        <div class="tp-header">
+          <div class="tp-name">Google</div>
+          <div class="tp-role">Optional sign-in</div>
+        </div>
+        <p class="tp-desc">Only if you choose Continue with Google: Google confirms who you are and shares your name, email address and profile photo with Fibonax. Privacy policy: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>.</p>
       </div>
 
       <div class="info-box">
@@ -279,7 +299,7 @@
     <div class="section" id="retention">
       <h2>08 &nbsp;Data Retention</h2>
       <p>Local extension data stored in <code>chrome.storage.local</code> is retained on your device until you uninstall the extension or manually clear extension storage via your Chrome settings.</p>
-      <p>Supabase account data is retained for the duration of your active account plus 30 days following a deletion request. You may request immediate deletion at any time by contacting us (see Your Rights below).</p>
+      <p>Your account and its content are kept while your account is open. You can delete your account at any time in Settings, under Account: this deletes your account, your content and your files straight away. Items you created in a team are handed to another admin of that team, if it has one. Sign-in records are kept for security and are no longer linked to your account once it is deleted. You can also ask us to delete your data (see Your Rights below).</p>
     </div>
 
     <!-- 9 -->

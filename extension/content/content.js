@@ -573,6 +573,7 @@ function _bodiesViews(row) {
     for (var k in row) view[k] = row[k];
     view.lang = l;
     view.body = txt;
+    view.bodyHtml = (row.bodiesHtml && row.bodiesHtml[l]) || '';
     out[l] = view;
   });
   return out;
@@ -973,6 +974,7 @@ function handleMatch(el, snip, scLen) {
       var modSnip = {};
       for (var k in snip) modSnip[k] = snip[k];
       modSnip.body = interpolateSnippet(snip.body, varMap);
+      modSnip.blankPlaceholders = vars.filter(function(v) { return varMap[v] === ''; });
       var proceed = function() { _proceedInsert(el, modSnip, fieldSnapshot, scLen); };
       if (_ceRestoreTriggerRange(el, caretCO, scLen)) proceed();
       else deleteChars(el, scLen, proceed);
@@ -992,44 +994,54 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
     var text = resolveBody(snip.body, {}, { lang: snip.lang });
     var _isCE = el && (el.isContentEditable || (el.getAttribute &&
       (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
-    if (_isCE) {
-      // For CE: deleteChars only SET the selection spanning the trigger.
-      // Insert synchronously NOW while that selection is still live — execCommand
-      // atomically replaces the trigger with the snippet. The celebration is then
-      // purely informational; onConfirm only logs. onUndo deletes the inserted
-      // region (see restoreFieldState) so the field returns to its pre-trigger state.
-      var before = _ceMeasureBefore(el);
-      insertText(el, text);
-      _markSyncInserted(fieldSnapshot, el, before, text);
-      showCelebration(
-        text,
-        function onConfirm() {           // timer expired or user clicked OK
-          logEvent(snip, 0);
-          processing = false;
-        },
-        function onUndo() {              // user clicked Undo
-          restoreFieldState(fieldSnapshot);
-          processing = false;
-        },
-        { inserted: true, target: el, warning: reviewWarning(snip) }
-      );
-    } else {
-      // Non-CE (textarea / input): deleteChars already stripped the trigger.
-      // Defer insertion to onConfirm, as before.
-      showCelebration(
-        text,
-        function onConfirm() {           // timer expired or user clicked OK
-          insertText(el, text);
-          logEvent(snip, 0);
-          processing = false;
-        },
-        function onUndo() {              // user clicked Undo — never insert
-          restoreFieldState(fieldSnapshot);
-          processing = false;
-        },
-        { inserted: false, target: el, warning: reviewWarning(snip) }
-      );
-    }
+    var pics = _pictureForm(snip);
+    var html = pics && _takesFormatting(el) ? pics.formatted : null;
+    // Going back from the warning is the summary card's Cancel: the trigger
+    // comes out and nothing goes in.
+    _checkThenInsert(el, snip, text, function(note) {
+      note = _pictureNote(note, pics, html);
+      if (_isCE) {
+        // For CE: deleteChars only SET the selection spanning the trigger.
+        // Insert synchronously NOW while that selection is still live — execCommand
+        // atomically replaces the trigger with the snippet. The celebration is then
+        // purely informational; onConfirm only logs. onUndo deletes the inserted
+        // region (see restoreFieldState) so the field returns to its pre-trigger state.
+        var before = _ceMeasureBefore(el);
+        insertText(el, text, html);
+        _markSyncInserted(fieldSnapshot, el, before, text, html ? pics : null);
+        showCelebration(
+          text,
+          function onConfirm() {           // timer expired or user clicked OK
+            logEvent(snip, 0);
+            processing = false;
+          },
+          function onUndo() {              // user clicked Undo
+            restoreFieldState(fieldSnapshot);
+            processing = false;
+          },
+          { inserted: true, target: el, warning: reviewWarning(snip), note: note }
+        );
+      } else {
+        // Non-CE (textarea / input): deleteChars already stripped the trigger.
+        // Defer insertion to onConfirm, as before.
+        showCelebration(
+          text,
+          function onConfirm() {           // timer expired or user clicked OK
+            insertText(el, text);
+            logEvent(snip, 0);
+            processing = false;
+          },
+          function onUndo() {              // user clicked Undo — never insert
+            restoreFieldState(fieldSnapshot);
+            processing = false;
+          },
+          { inserted: false, target: el, warning: reviewWarning(snip), note: note }
+        );
+      }
+    }, function() {
+      restoreFieldState(fieldSnapshot);
+      processing = false;
+    });
   } else {
     // showOverlay merges the body-declared field config itself.
     showOverlay(el, snip, scLen || 0, function() { processing = false; });
@@ -1418,7 +1430,9 @@ function _ceBringBackTrigger(held) {
 // joined to another line's text, with the line it was typed on left empty. So the
 // trigger is put back, selected (_ceBringBackTrigger), and the body replaces it
 // as a one-line body does.
-function _cePasteInsert(el, text) {
+// `html`, when given, is the text with its pictures (see _takesFormatting): it
+// goes in the same paste as text/html, and the editor picks the richer one.
+function _cePasteInsert(el, text, html) {
   var host = _ceHost(el);
   if (!host || typeof DataTransfer !== 'function' || typeof ClipboardEvent !== 'function') return false;
 
@@ -1426,6 +1440,7 @@ function _cePasteInsert(el, text) {
   try {
     dt = new DataTransfer();
     dt.setData('text/plain', text);
+    if (html) dt.setData('text/html', html);
   } catch(e) { return false; }
 
   if (_isLexicalHost(host)) {
@@ -1460,21 +1475,66 @@ function _cePasteLand(el, host, dt, text) {
   // Confirm the body actually landed once the editor has had time to reconcile
   // (Lexical writes to the DOM a microtask later), and fall back to the
   // per-line path if it did not. Probe on the first non-empty line so the check
-  // means "the snippet is in the field", not "the field grew".
+  // means "the snippet is in the field", not "the field grew". Spaces are
+  // compared loosely: formatted text lands with runs of spaces joined or kept
+  // as non-breaking ones, and a strict compare would insert the body twice.
   var probe = '';
   var lines = text.split('\n');
   for (var i = 0; i < lines.length; i++) {
     if (lines[i]) { probe = lines[i].slice(0, 24); break; }
   }
   if (probe) {
+    var loose = function(s) { return String(s).replace(/[\s\u00a0]+/g, ' '); };
     setTimeout(function() {
-      if (_ceHost(el).textContent.indexOf(probe) === -1) _ceLineInsert(text);
+      if (loose(_ceHost(el).textContent).indexOf(loose(probe)) === -1) _ceLineInsert(text);
     }, 120);
   }
   return true;
 }
 
-function insertText(el, text) {
+// Whether a field takes formatted text, and with it a snippet's pictures: a
+// contenteditable editor (Gmail, Outlook web). Inputs, textareas and WhatsApp's
+// editor (Lexical) take the text only, and the pictures are left out.
+function _takesFormatting(el) {
+  return _isCEEl(el) && !_isLexicalHost(_ceHost(el));
+}
+
+// The fill form of a formatted snippet (a layout, or pictures), or null for
+// plain text. A snippet with no fields expands without the overlay, so this is
+// where its formatted copy, and the count of pictures a plain box leaves out,
+// come from.
+function _pictureForm(snip) {
+  if (!_SBFF || (!snip.bodyHtml && !/\{\s*picture:/i.test(snip.body || ''))) return null;
+  var vm = _SBFF.fillForm(snip.body, {}, { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, formatted: snip.bodyHtml || null });
+  return vm.formatted ? vm : null;
+}
+
+// The pictures a formatted insert carries, { src, alt }: from the text's parts,
+// or read off its layout's <img> tags.
+function _formattedPictures(vm) {
+  if (vm.parts) {
+    return vm.parts.filter(function(p) { return !!p.picture; }).map(function(p) { return p.picture; });
+  }
+  return (String(vm.formatted || '').match(/<img\b[^>]*>/gi) || []).map(function(tag) {
+    var attr = function(name) {
+      var m = new RegExp('\\s' + name + '="([^"]*)"', 'i').exec(tag);
+      return m ? m[1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') : '';
+    };
+    return { src: attr('src'), alt: attr('alt') };
+  });
+}
+
+// The Undo card's note, with a line added when a plain box left pictures out.
+function _pictureNote(note, vm, html) {
+  var n = vm && vm.formatted && !html && _SBFF ? _SBFF.pictureCount(vm) : 0;
+  if (!n) return note;
+  var line = _SBFF.pictureText('left-out-done', n);
+  return note ? note + ' ' + line : line;
+}
+
+// `html` is the formatted copy of a text with pictures, for a field that takes
+// formatting (_takesFormatting); null everywhere else.
+function insertText(el, text, html) {
   if (!el) return;
   // Normalize CRLF/CR to LF first. A body carrying Windows line endings (JSON
   // import, text pasted from a desktop editor) otherwise splits into lines that
@@ -1483,7 +1543,9 @@ function insertText(el, text) {
   // entirely, collapsing paragraphs into one block.
   text = String(text == null ? '' : text).replace(/\r\n?/g, '\n');
   // Read the caret's surroundings BEFORE anything below focuses or moves it.
-  if (_shouldAutoCap(el)) text = _autoCapitalize(text);
+  // Not for formatted text: its copy would keep the small letter, and the
+  // landing check would read the body as missing and insert it again.
+  if (!html && _shouldAutoCap(el)) text = _autoCapitalize(text);
   var isCE = el.isContentEditable || el.getAttribute && (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '');
   try {
     if (isCE) {
@@ -1507,6 +1569,7 @@ function insertText(el, text) {
       if (document.activeElement !== el && !document.activeElement.contains(el)) {
         try { el.focus(); } catch(_) {}
       }
+      if (html && !_isLexicalHost(_ceHost(el)) && _cePasteInsert(el, text, html)) return;
       if ((text.indexOf('\n') > -1 || _isLexicalHost(_ceHost(el))) && _cePasteInsert(el, text)) return;
       _ceLineInsert(text);
       return;
@@ -1803,7 +1866,7 @@ function _sbBindLink(el, snip) {
         // Read against the form as it is now, not as it opened: a closing date
         // is checked against the opening date the form holds now, which the
         // operator may have changed since.
-        var now = _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang });
+        var now = _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, formatted: snip.bodyHtml || null });
         apply(_SBFF.readFromPage(now.fields, res.pieces));
         settle(true);
       });
@@ -1847,7 +1910,7 @@ function showOverlay(targetEl, snip, scLen, done) {
   // choices could not be picked at all. Keeping it inside means no future entry
   // point can forget.
   var vm = _SBFF
-    ? _SBFF.fillForm(snip.body, {}, { fieldCfg: snip.fieldCfg || {}, lang: snip.lang })
+    ? _SBFF.fillForm(snip.body, {}, { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, formatted: snip.bodyHtml || null })
     : { fields: [], buttons: [] };
 
   var fhtml = '';
@@ -1953,6 +2016,8 @@ function showOverlay(targetEl, snip, scLen, done) {
       '<section class="sb-preview" aria-labelledby="sb-preview-label">' +
         '<div class="sb-preview-heading"><h3 id="sb-preview-label">Message preview</h3><span>Live preview</span></div>' +
         '<div class="sb-prev" id="sb-prev"></div>' +
+        // Only where the pictures cannot go: said before Insert, not after.
+        (_takesFormatting(targetEl) ? '' : '<p class="ff-picnote" id="sb-picnote" role="status" hidden></p>') +
       '</section>' +
     '</div>' +
     '<div class="sb-foot">' +
@@ -2339,29 +2404,73 @@ function overlayForm(snip) {
     var box = overlayEl.querySelector('.sb-othertxt[data-otherkey="' + ctrl.dataset.key + '"]');
     other[ctrl.dataset.key] = box ? box.value : '';
   });
-  return _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, fieldFmt: getFmts(), other: other });
+  return _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, fieldFmt: getFmts(), other: other, formatted: snip.bodyHtml || null });
 }
 function updatePrev(snip) {
   var box = document.getElementById('sb-prev');
   if (!box || !overlayEl) return;
   var vm = overlayForm(snip);
-  box.textContent = vm.preview;
-  if (window.SBFillFormUI) window.SBFillFormUI.refresh(overlayEl.querySelector('.sb-fields'), vm);
+  if (!window.SBFillFormUI) { box.textContent = vm.preview; return; }
+  window.SBFillFormUI.showPreview(box, vm);
+  window.SBFillFormUI.pictureNote(document.getElementById('sb-picnote'), vm, 'left-out');
+  window.SBFillFormUI.refresh(overlayEl.querySelector('.sb-fields'), vm);
 }
 
-function doInsert(targetEl, snip) {
+function _showFieldsPane() {
+  overlayEl.dataset.pane = 'fields';
+  overlayEl.querySelectorAll('[data-pane]').forEach(function(b) { b.setAttribute('aria-pressed', String(b.dataset.pane === 'fields')); });
+}
+
+// `checked` is absent on Insert, and the warning's answer once the person
+// chose to go ahead: '' or the line saying what came of "Don't warn me".
+function doInsert(targetEl, snip, checked) {
   var vm = overlayForm(snip);
   if (vm.errors.length) {
-    overlayEl.dataset.pane = 'fields';
-    overlayEl.querySelectorAll('[data-pane]').forEach(function(b) { b.setAttribute('aria-pressed', String(b.dataset.pane === 'fields')); });
+    _showFieldsPane();
     window.SBFillFormUI.validate(overlayEl.querySelector('.sb-fields'), vm);
     return;
+  }
+  var note = typeof checked === 'string' ? checked : '';
+  if (typeof checked !== 'string') {
+    var found = _unfinishedFor(snip, vm.preview, vm.fields);
+    if (found.length && window.SBFillFormUI && window.SBFillFormUI.unfinishedDialog) {
+      // Fix it only where a box can fix it. A gap written in the snippet
+      // itself is fixed in the editor.
+      var canFix = found.some(function(it) { return !!it.key; });
+      window.SBFillFormUI.unfinishedDialog({
+        items: found,
+        fields: vm.fields,
+        primary: canFix ? 'fix' : 'edit',
+        anyway: 'insert-anyway',
+        mute: !!snip.id,
+        onPrimary: function() {
+          if (!overlayEl) return;
+          if (canFix) {
+            _showFieldsPane();
+            window.SBFillFormUI.flag(overlayEl.querySelector('.sb-fields'), vm, found);
+          } else {
+            _openSnippetEditor(snip);
+            closeOverlay();
+          }
+        },
+        onAnyway: function(muted, done) {
+          if (!muted) { if (overlayEl) doInsert(targetEl, snip, ''); return; }
+          _muteUnfinished(snip, function(text) { done(); if (overlayEl) doInsert(targetEl, snip, text); });
+        },
+        // Back to the form exactly as it was.
+        onClose: function() {}
+      });
+      return;
+    }
   }
   var vals = getVals();
   // Read BEFORE closeOverlay tears the panel down, and passed to the same
   // resolveBody the preview used, or what lands in the field prints in a
   // different format from the preview the operator just approved.
   var text = vm.preview;
+  // The text with its pictures, for a field that takes formatting.
+  var html = vm.formatted && _takesFormatting(targetEl) ? vm.formatted : null;
+  note = _pictureNote(note, vm, html);
   var fillCount = Object.keys(vals).length;
   closeOverlay();
   if (!targetEl) return;
@@ -2373,14 +2482,14 @@ function doInsert(targetEl, snip) {
   // path in _proceedInsert (see restoreFieldState).
   function insertSyncCE() {
     var before = _ceMeasureBefore(targetEl);
-    insertText(targetEl, text);
+    insertText(targetEl, text, html);
     var snapshot = captureFieldState(targetEl, overlayTriggerLen);
-    _markSyncInserted(snapshot, targetEl, before, text);
+    _markSyncInserted(snapshot, targetEl, before, text, html ? vm : null);
     showCelebration(
       text,
       function onConfirm() { logEvent(snip, fillCount); },
       function onUndo()    { restoreFieldState(snapshot); },
-      { inserted: true, target: targetEl, warning: reviewWarning(snip) }
+      { inserted: true, target: targetEl, warning: reviewWarning(snip), note: note }
     );
   }
 
@@ -2417,7 +2526,7 @@ function doInsert(targetEl, snip) {
       text,
       function onConfirm() { insertText(targetEl, text); logEvent(snip, fillCount); },
       function onUndo()    { restoreFieldState(snapshot); },
-      { inserted: false, target: targetEl, warning: reviewWarning(snip) }
+      { inserted: false, target: targetEl, warning: reviewWarning(snip), note: note }
     );
   }
 }
@@ -2589,7 +2698,12 @@ function _ceMeasureBefore(el) {
   return {
     start: _ceCaretCharOffset(host, true),
     end: _ceCaretCharOffset(host),
-    total: host ? _ceVisibleText(host).length : -1
+    total: host ? _ceVisibleText(host).length : -1,
+    // The pictures, line breaks, lines and lists already there, so Undo never
+    // takes one of them.
+    imgs: host ? Array.prototype.slice.call(host.querySelectorAll('img')) : [],
+    brs: host ? Array.prototype.slice.call(host.querySelectorAll('br')) : [],
+    blocks: host ? Array.prototype.slice.call(host.querySelectorAll(_CE_BLOCKS)) : []
   };
 }
 
@@ -2608,10 +2722,15 @@ function _ceMeasureBefore(el) {
 // what was typed before the snippet ("Hola " came back as "Hol"), or left the
 // snippet's first letter behind. The count stays as the fallback for an editor
 // that has not written the text yet when this runs.
-function _markSyncInserted(snapshot, el, before, text) {
+// `vm` is the fill form of a formatted insert, whose pictures, lines and lists
+// Undo takes out too (_ceRemoveFormatted); null for text alone.
+function _markSyncInserted(snapshot, el, before, text, vm) {
   var host = _ceHost(el);
   var startCO = before ? before.start : -1;
   snapshot.syncInserted = true;
+  if (vm && vm.formatted && before) {
+    snapshot.formatted = { imgs: before.imgs, brs: before.brs, blocks: before.blocks, pictures: _formattedPictures(vm) };
+  }
   snapshot.visibleLen = String(text).replace(/[\r\n]/g, '').length;
   if (_isLexicalHost(host) && startCO >= 0) {
     snapshot.endCharOffset = startCO + snapshot.visibleLen;
@@ -2652,6 +2771,45 @@ function _ceHoldSpace(at) {
     var drawn = r.getClientRects();
     if (drawn.length && drawn[0].width === 0) node.replaceData(k - 1, 1, '\u00a0');
   } catch(e) { console.error('[Fibonax] could not keep the space before the snippet', e); }
+}
+
+// The elements a formatted insert adds as lines and lists.
+var _CE_BLOCKS = 'div,p,ul,ol,li';
+
+// Takes out what a formatted insert left once its text is gone, all of it new
+// since the insert. The pictures that show one of the snippet's pictures (by
+// address, or by description where the editor moved the picture to its own
+// address): text offsets cannot find them, a picture holds no characters. The
+// line break beside such a picture, or one at the end of the snippet would
+// leave an empty line. Then the lines and lists left with nothing in them, the
+// innermost first, or an empty numbered item stays behind. Returns how many
+// pictures went.
+function _ceRemoveFormatted(host, snapshot) {
+  var p = snapshot.formatted;
+  if (!host || !p) return 0;
+  var removed = 0;
+  var newBreak = function(img, side) {
+    var node = img[side];
+    while (node && node.nodeType === 3 && node.nodeValue === '') node = node[side];
+    return node && node.nodeName === 'BR' && p.brs.indexOf(node) === -1 ? node : null;
+  };
+  Array.prototype.slice.call(host.querySelectorAll('img')).forEach(function(img) {
+    if (p.imgs.indexOf(img) !== -1) return;
+    var mine = p.pictures.some(function(pic) {
+      return img.getAttribute('src') === pic.src || (!!pic.alt && img.getAttribute('alt') === pic.alt);
+    });
+    if (!mine || !img.parentNode) return;
+    var br = newBreak(img, 'previousSibling') || newBreak(img, 'nextSibling');
+    if (br) br.parentNode.removeChild(br);
+    img.parentNode.removeChild(img);
+    removed++;
+  });
+  Array.prototype.slice.call(host.querySelectorAll(_CE_BLOCKS)).reverse().forEach(function(block) {
+    if (p.blocks.indexOf(block) !== -1 || !block.parentNode) return;
+    if (block.textContent.replace(/[\s\u00a0]+/g, '') !== '' || block.querySelector('img')) return;
+    block.parentNode.removeChild(block);
+  });
+  return removed;
 }
 
 function restoreFieldState(snapshot) {
@@ -2715,6 +2873,7 @@ function restoreFieldState(snapshot) {
             _ok = true;
           } catch(_) {}
         }
+        if (_ceRemoveFormatted(hostU, snapshot)) _ok = true;
         if (!_ok) {
           // Offsets unavailable (selection wasn't captured) — best-effort native undo.
           try { document.execCommand('undo', false, null); } catch(_) {}
@@ -2802,6 +2961,109 @@ function reviewWarning(snip) {
     : '';
 }
 
+// ── BEFORE IT GOES OUT ────────────────────────────────────────────
+// Right before a snippet goes into the page, its finished text is read through
+// SBFillForm.unfinished() (extension/shared/fill-form.js), the same check the
+// popup, the editor preview and the phone run. When something looks unfinished
+// ("[xxx]", "{fill this in}", an empty box) the warning in fill-form-ui.js
+// opens first, and the person fixes it or goes ahead.
+
+var SB_EDITOR_URL = 'https://app.fibonax.com/?snippet=';
+
+// What looks unfinished in a text about to be inserted, or [] for a snippet
+// someone asked not to be warned about. A {{placeholder}} left empty in the
+// fill-in box has already been printed as nothing, so it is named here.
+function _unfinishedFor(snip, text, fields) {
+  if (!_SBFF || !_SBFF.unfinished || !_SBFF.checksUnfinished(snip)) return [];
+  var blanks = (snip && snip.blankPlaceholders) || [];
+  return blanks.map(function(name) {
+    return { kind: 'empty', text: name.replace(/_/g, ' '), reason: _SBFF.unfinishedText('empty'), key: '', start: -1 };
+  }).concat(_SBFF.unfinished(text, fields || []));
+}
+
+// Opens this snippet in the dashboard editor, in a new tab.
+function _openSnippetEditor(snip) {
+  if (!snip || !snip.id) return;
+  try { window.open(SB_EDITOR_URL + encodeURIComponent(snip.id), '_blank', 'noopener'); }
+  catch (e) { console.error('[Fibonax] could not open the snippet editor', e); }
+}
+
+// Saves "Don't warn me about this snippet again" through the worker, which
+// holds the session, and answers with the line the summary card shows: that
+// it worked, or that it did not. The worker writes the cache itself, so the
+// next expansion of this snippet already skips the check.
+function _muteUnfinished(snip, done) {
+  var settled = false;
+  function end(ok) {
+    if (settled) return;
+    settled = true;
+    done(_SBFF.unfinishedText(ok ? 'muted' : 'mute-failed'));
+  }
+  var timer = setTimeout(function() { end(false); }, 8000);
+  try {
+    chrome.runtime.sendMessage({ type: 'snippet_check_unfinished', id: snip.id, on: false }, function(res) {
+      clearTimeout(timer);
+      if (chrome.runtime.lastError) {
+        console.error('[Fibonax] could not save the unfinished-text switch:', chrome.runtime.lastError.message);
+        end(false);
+        return;
+      }
+      end(!!(res && res.ok));
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    console.error('[Fibonax] could not save the unfinished-text switch', e);
+    end(false);
+  }
+}
+
+// For a snippet with no form. go(note) runs at once when nothing looks
+// unfinished, so the usual path is exactly what it was. Otherwise the warning
+// opens first. It takes the focus, and with it the selection the snippet is
+// about to replace, so that selection is read now and put back before either
+// answer: go(note) to insert, or stop() when the person goes back. stop()
+// then leaves the field as the summary card's Cancel does.
+function _checkThenInsert(el, snip, text, go, stop) {
+  var items = _unfinishedFor(snip, text, []);
+  if (!items.length || !window.SBFillFormUI) { go(''); return; }
+  var host = (el && _isCEEl(el)) ? _ceHost(el) : null;
+  var endCO = host ? _ceCaretCharOffset(host) : -1;
+  var startCO = host ? _ceCaretCharOffset(host, true) : -1;
+  // Puts the selection back; false when a rich editor's offsets no longer
+  // resolve. A plain box keeps its own selection while it is out of focus.
+  function reselect() {
+    if (host && endCO >= 0 && startCO >= 0) return _ceRestoreTriggerRange(el, endCO, endCO - startCO);
+    if (el && el.isConnected && typeof el.focus === 'function') {
+      try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+    }
+    return true;
+  }
+  function proceed(note) {
+    var n = endCO - startCO;
+    if (!reselect() && n > 0) {
+      deleteChars(el, n, function() { go(note); });
+      return;
+    }
+    go(note);
+  }
+  function back() {
+    reselect();
+    stop();
+  }
+  window.SBFillFormUI.unfinishedDialog({
+    items: items,
+    primary: 'edit',
+    anyway: 'insert-anyway',
+    mute: !!(snip && snip.id),
+    onPrimary: function() { _openSnippetEditor(snip); back(); },
+    onAnyway: function(muted, done) {
+      if (!muted) { proceed(''); return; }
+      _muteUnfinished(snip, function(note) { done(); proceed(note); });
+    },
+    onClose: back
+  });
+}
+
 function _celEsc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -2848,6 +3110,8 @@ function showCelebration(text, onConfirm, onUndo, options) {
   var canUndo = typeof onUndo === 'function';
   // A deprecated snippet still expands; the card says so (AI-KNOWLEDGE P2).
   var warning = typeof options.warning === 'string' ? options.warning : '';
+  // What came of "Don't warn me about this snippet again", when it was ticked.
+  var note = typeof options.note === 'string' ? options.note : '';
   var summary = _expansionSummary(text);
   var returnFocus = options.target || document.activeElement;
   var savedStart = returnFocus && typeof returnFocus.selectionStart === 'number' ? returnFocus.selectionStart : null;
@@ -2887,6 +3151,7 @@ function showCelebration(text, onConfirm, onUndo, options) {
       (warning
         ? '<p id="sb-cel-description" class="sb-cel-warn" role="alert">' + _celEsc(warning) + '</p>'
         : '<p id="sb-cel-description">' + (inserted ? 'Your text is ready in the current field.' : 'Your text is ready for the current field.') + '</p>') +
+      (note ? '<p class="sb-cel-note" role="status">' + _celEsc(note) + '</p>' : '') +
       '<div class="sb-cel-time">' +
         '<span class="sb-cel-label">' + (inserted ? 'Estimated time saved' : 'Estimated typing time') + '</span>' +
         '<strong id="sb-cel-time-value">' + summary.timeLabel + '</strong>' +
@@ -3334,39 +3599,48 @@ function selectTriggerItem(idx) {
         var text = resolveBody(item.body, {}, { lang: item.lang });
         var _isCE2 = el && (el.isContentEditable || (el.getAttribute &&
           (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
-        if (_isCE2) {
-          // Same sync-insert fix as _proceedInsert: insert while selection is live.
-          var before = _ceMeasureBefore(el);
-          insertText(el, text);
-          _markSyncInserted(fieldSnapshot, el, before, text);
-          showCelebration(
-            text,
-            function onConfirm() {     // timer expired or user clicked OK
-              logEvent(item, 0);
-              processing = false;
-            },
-            function onUndo() {        // user clicked Undo
-              restoreFieldState(fieldSnapshot);
-              processing = false;
-            },
-            { inserted: true, target: el, warning: reviewWarning(item) }
-          );
-        } else {
-          // Non-CE: trigger already stripped; defer insertion to onConfirm.
-          showCelebration(
-            text,
-            function onConfirm() {     // timer expired or user clicked OK
-              insertText(el, text);
-              logEvent(item, 0);
-              processing = false;
-            },
-            function onUndo() {        // user clicked Undo — never insert
-              restoreFieldState(fieldSnapshot);
-              processing = false;
-            },
-            { inserted: false, target: el, warning: reviewWarning(item) }
-          );
-        }
+        var pics = _pictureForm(item);
+        var html = pics && _takesFormatting(el) ? pics.formatted : null;
+        // Checked first, as a typed trigger is (see _proceedInsert).
+        _checkThenInsert(el, item, text, function(note) {
+          note = _pictureNote(note, pics, html);
+          if (_isCE2) {
+            // Same sync-insert fix as _proceedInsert: insert while selection is live.
+            var before = _ceMeasureBefore(el);
+            insertText(el, text, html);
+            _markSyncInserted(fieldSnapshot, el, before, text, html ? pics : null);
+            showCelebration(
+              text,
+              function onConfirm() {     // timer expired or user clicked OK
+                logEvent(item, 0);
+                processing = false;
+              },
+              function onUndo() {        // user clicked Undo
+                restoreFieldState(fieldSnapshot);
+                processing = false;
+              },
+              { inserted: true, target: el, warning: reviewWarning(item), note: note }
+            );
+          } else {
+            // Non-CE: trigger already stripped; defer insertion to onConfirm.
+            showCelebration(
+              text,
+              function onConfirm() {     // timer expired or user clicked OK
+                insertText(el, text);
+                logEvent(item, 0);
+                processing = false;
+              },
+              function onUndo() {        // user clicked Undo — never insert
+                restoreFieldState(fieldSnapshot);
+                processing = false;
+              },
+              { inserted: false, target: el, warning: reviewWarning(item), note: note }
+            );
+          }
+        }, function() {
+          restoreFieldState(fieldSnapshot);
+          processing = false;
+        });
       } else {
         showOverlay(el, item, dLen, function() { processing = false; });
       }
@@ -3724,6 +3998,7 @@ document.addEventListener('input', function(e) {
     '#sb-celebrate #sb-cel-title{font-size:var(--sb-fs-24);font-weight:600;letter-spacing:-.03em;line-height:1.25;}' +
     '#sb-celebrate #sb-cel-description{margin-top:var(--sb-s-2);color:var(--sb-ink-muted);font-size:var(--sb-fs-13);}' +
     '#sb-celebrate #sb-cel-description.sb-cel-warn{color:var(--sb-warn);font-weight:600;}' +
+    '#sb-celebrate .sb-cel-note{margin-top:var(--sb-s-2);font-size:var(--sb-fs-12);color:var(--sb-ink-muted);}' +
     '#sb-celebrate .sb-cel-time{display:flex;flex-direction:column;gap:var(--sb-s-1);margin-top:var(--sb-s-6);padding:var(--sb-s-5) var(--sb-s-6);background:var(--sb-azure-bg);border:1px solid var(--sb-azure-bdr);border-radius:var(--sb-r-xl);}' +
     '#sb-celebrate .sb-cel-label{font-size:var(--sb-fs-12);font-weight:500;color:var(--sb-azure);}' +
     '#sb-celebrate #sb-cel-time-value{font-size:var(--sb-fs-32);font-weight:600;line-height:1.25;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--sb-azure);}' +
@@ -3892,6 +4167,7 @@ chrome.runtime.onMessage.addListener(function(msg) {
       var modSnip = {};
       for (var k in snip) modSnip[k] = snip[k];
       modSnip.body = newBody;
+      modSnip.blankPlaceholders = vars.filter(function(v) { return varMap[v] === ''; });
       if (startCO >= 0) _ceRestoreTriggerRange(el, endCO, endCO - startCO);
       _proceedContextInsert(el, modSnip);
     }, function() {
@@ -3909,43 +4185,51 @@ function _proceedContextInsert(el, snip) {
     var isCE = el && (el.isContentEditable || (el.getAttribute &&
       (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
     var isValueField = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+    var pics = _pictureForm(snip);
+    var html = pics && _takesFormatting(el) ? pics.formatted : null;
 
-    if (isCE) {
-      // Insert synchronously, then celebrate with Undo — same proven mechanism as
-      // the trigger paths' CE sync-insert (see _proceedInsert): capture the inserted
-      // region so restoreFieldState can Range-delete it. onUndo skips logEvent.
-      var snapCE = captureFieldState(el, 0);
-      var before = _ceMeasureBefore(el);
-      insertText(el, text);
-      _markSyncInserted(snapCE, el, before, text);
-      showCelebration(
-        text,
-        function onConfirm() { logEvent(snip, 0); processing = false; },
-        function onUndo()    { restoreFieldState(snapCE); processing = false; },
-        { inserted: true, target: el, warning: reviewWarning(snip) }
-      );
-    } else if (isValueField) {
-      // Textarea/input: the context menu inserts synchronously (no trigger to
-      // defer), so Undo can't just "skip" insertion like the trigger paths —
-      // snapshot the exact pre-insert value + caret and restore it on Undo.
-      var snapVal = captureFieldState(el, 0);
-      snapVal.syncInsertedValue = true;
-      snapVal.prevValue    = el.value;
-      snapVal.prevSelStart = el.selectionStart;
-      snapVal.prevSelEnd   = el.selectionEnd;
-      insertText(el, text);
-      showCelebration(
-        text,
-        function onConfirm() { logEvent(snip, 0); processing = false; },
-        function onUndo()    { restoreFieldState(snapVal); processing = false; },
-        { inserted: true, target: el, warning: reviewWarning(snip) }
-      );
-    } else {
-      // No editable target: do not claim that text was inserted.
-      if (el) insertText(el, text);
-      logEvent(snip, 0);
-      processing = false;
-    }
+    // Nothing is in the field yet, so going back from the warning has nothing
+    // to undo. Held as processing while it is open, like any other insert.
+    processing = true;
+    _checkThenInsert(el, snip, text, function(note) {
+      note = _pictureNote(note, pics, html);
+      if (isCE) {
+        // Insert synchronously, then celebrate with Undo — same proven mechanism as
+        // the trigger paths' CE sync-insert (see _proceedInsert): capture the inserted
+        // region so restoreFieldState can Range-delete it. onUndo skips logEvent.
+        var snapCE = captureFieldState(el, 0);
+        var before = _ceMeasureBefore(el);
+        insertText(el, text, html);
+        _markSyncInserted(snapCE, el, before, text, html ? pics : null);
+        showCelebration(
+          text,
+          function onConfirm() { logEvent(snip, 0); processing = false; },
+          function onUndo()    { restoreFieldState(snapCE); processing = false; },
+          { inserted: true, target: el, warning: reviewWarning(snip), note: note }
+        );
+      } else if (isValueField) {
+        // Textarea/input: the context menu inserts synchronously (no trigger to
+        // defer), so Undo can't just "skip" insertion like the trigger paths —
+        // snapshot the exact pre-insert value + caret and restore it on Undo.
+        var snapVal = captureFieldState(el, 0);
+        snapVal.syncInsertedValue = true;
+        snapVal.prevValue    = el.value;
+        snapVal.prevSelStart = el.selectionStart;
+        snapVal.prevSelEnd   = el.selectionEnd;
+        insertText(el, text);
+        showCelebration(
+          text,
+          function onConfirm() { logEvent(snip, 0); processing = false; },
+          function onUndo()    { restoreFieldState(snapVal); processing = false; },
+          { inserted: true, target: el, warning: reviewWarning(snip), note: note }
+        );
+      } else {
+        // No editable target: do not claim that text was inserted.
+        if (el) insertText(el, text);
+        logEvent(snip, 0);
+        processing = false;
+      }
+    }, function() { processing = false; });
   } else {
     processing = true;
     showOverlay(el, snip, 0, function() { processing = false; });

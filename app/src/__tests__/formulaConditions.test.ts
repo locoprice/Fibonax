@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// Load the REAL shipping formula engine (extension/formula-engine.js) the same
-// way deletionSync.test.ts loads sync-deletion.js: evaluate the UMD source in a
-// fresh module scope so Vite never transforms it. content/content.js loads this
+// Load the REAL shipping formula engine (extension/formula-engine.js) by
+// evaluating the UMD source in a fresh module scope, so Vite never transforms it. content/content.js loads this
 // exact file via the manifest (window.SBFormulaEngine), so pinning behavior here
 // guards the live content path too — there is no separate inline copy to drift.
 function loadHelper<T>(path: string): T {

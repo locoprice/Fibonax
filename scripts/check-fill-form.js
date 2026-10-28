@@ -46,11 +46,11 @@ for (const [key, want] of TYPE_CASES) {
 console.log('OK Field kind inferred from the name (' + TYPE_CASES.length + ' cases)');
 
 // ── THE VIEW MODEL EVERY SURFACE READS ──────────────────────────────
-const SHAPE = ['fields', 'buttons', 'preview', 'layout', 'steps', 'fmtOverride', 'linkable'];
+const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'layout', 'steps', 'fmtOverride', 'linkable'];
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
                      'other', 'otherOn', 'otherText',
                      'cols', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
-                     'link', 'fromLink'];
+                     'link', 'fromLink', 'prints'];
 
 const vm1 = ff.fillForm(
   'Hola {NOMBRE}, tu {formmenu: A,B,C; name=PLAN; default=B} para el {CHECKIN_DATE}.',
@@ -522,3 +522,89 @@ assert.equal(filled(OTHER_BODY, {}, {other:{CH:''}}).errors[0].key, 'CH');
 const input = {AMOUNT:'100'}; filled(chain, input); assert.deepEqual(input, {AMOUNT:'100'});
 assert.deepEqual(vmLong.sections.flatMap(s=>s.keys), vmLong.fields.map(f=>f.key));
 console.log('OK Empty optional lines, active calculation dependencies, zero, validation and ordered sections');
+
+// ── FORMATTED LAYOUT ────────────────────────────────────────────────
+// The layout (body_html) is filled from the same form as the text: the same
+// answers, defaults and calculations, every value escaped, and the markup and
+// its entities untouched. A layout that asks for other fields than the text is
+// not used at all, so no surface inserts a card with a field missing.
+const LT_TEXT = '{formtext: name=GUEST} x{formtext: name=PAX; type=number; default=2}\n' +
+  'In {formdate: name=IN; format=DD/MM/YYYY}, out {formdate: name=OUT; format=DD/MM/YYYY}\n' +
+  '{= datespan(IN, OUT, "between") } days\nTotal {=PAX * 10}';
+const LT_HTML = '<table><tr><td style="font-size:24px">{formtext: name=GUEST} x{formtext: name=PAX; type=number; default=2}</td></tr>' +
+  '<tr><td>&#10140; {formdate: name=IN; format=DD/MM/YYYY}</td><td>{formdate: name=OUT; format=DD/MM/YYYY}</td></tr>' +
+  '<tr><td>{= datespan(IN, OUT, &quot;between&quot;) } days &amp; nights</td><td><b>{=PAX * 10}</b></td></tr></table>';
+const ltVals = { GUEST: 'Ana <b>& co</b>', IN: '2026-11-14', OUT: '2026-11-17' };
+const lt = filled(LT_TEXT, ltVals, { formatted: LT_HTML });
+assert.equal(lt.preview, 'Ana <b>& co</b> x2\nIn 14/11/2026, out 17/11/2026\n3 days\nTotal 20');
+assert.equal(lt.formatted,
+  '<table><tr><td style="font-size:24px">Ana &lt;b&gt;&amp; co&lt;/b&gt; x2</td></tr>' +
+  '<tr><td>&#10140; 14/11/2026</td><td>17/11/2026</td></tr>' +
+  '<tr><td>3 days &amp; nights</td><td><b>20</b></td></tr></table>');
+// A field split by formatting is still the field it was written as.
+assert.equal(filled('{formtext: name=GUEST}', { GUEST: 'Ana' },
+  { formatted: '<i>{formtext: <b>name=GUEST</b>}</i>' }).formatted, '<i>Ana</i>');
+// A text colour stays an inline style an email keeps, around the filled value too.
+assert.equal(filled('Hi {formtext: name=GUEST}', { GUEST: 'Ana & co' },
+  { formatted: '<div><span style="color:#D70015">Hi <b>{formtext: name=GUEST}</b></span></div>' }).formatted,
+  '<div><span style="color:#D70015">Hi <b>Ana &amp; co</b></span></div>');
+// Out of step, or no layout: nothing formatted, the text is what goes in.
+assert.equal(filled(LT_TEXT, ltVals, { formatted: LT_HTML.replace('<b>{=PAX * 10}</b>', '<b>{TIP}</b>') }).formatted, null);
+assert.equal(filled(LT_TEXT, ltVals).formatted, null);
+assert.equal(filled(LT_TEXT, ltVals, { formatted: '' }).formatted, null);
+// Filling the layout never changes what the text says or which fields are needed.
+const ltPlain = filled(LT_TEXT, ltVals);
+assert.equal(lt.preview, ltPlain.preview);
+assert.deepEqual(lt.errors, ltPlain.errors);
+const ltHole = Object.assign({}, ltVals, { PAX: '' });
+assert.deepEqual(filled(LT_TEXT, ltHole, { formatted: LT_HTML }).errors.map(e => e.key), ['PAX']);
+assert.deepEqual(filled(LT_TEXT, ltHole, { formatted: LT_HTML }).errors, filled(LT_TEXT, ltHole).errors);
+assert.match(filled(LT_TEXT, ltHole, { formatted: LT_HTML }).formatted, /<b>…<\/b>/);
+console.log('OK The formatted layout is filled from the same form as the text');
+
+// ── PICTURES ────────────────────────────────────────────────────────
+// A text with a picture: the preview (plain text) leaves it out, `parts` puts
+// it back in its place for a preview to draw, and `formatted` is the same text
+// escaped, with line breaks and the picture, for a rich editor or a Copy.
+const PIC = '{picture: src=https://a.co/logo.png; alt=Logo; size=small}';
+const PIC_IMG = '<img src="https://a.co/logo.png" alt="Logo" width="160" style="width:160px;max-width:100%;height:auto;border:0">';
+const pic = filled('Hi {formtext: name=WHO}\n' + PIC + '\n{formtext: name=N; type=number} x2 = {=N * 2} & <more>',
+  { WHO: 'Ana <b>', N: '3' });
+assert.equal(pic.preview, 'Hi Ana <b>\n3 x2 = 6 & <more>');
+assert.deepEqual(pic.parts, [
+  { text: 'Hi Ana <b>\n' },
+  { picture: { src: 'https://a.co/logo.png', alt: 'Logo', size: 'small' } },
+  { text: '\n3 x2 = 6 & <more>' },
+]);
+assert.equal(pic.formatted, 'Hi Ana &lt;b&gt;<br>' + PIC_IMG + '<br>3 x2 = 6 &amp; &lt;more&gt;');
+assert.deepEqual(pic.fields.map(f => f.key), ['WHO', 'N']);
+// A picture alone: nothing to type, the picture is the whole message.
+const only = filled(PIC, {});
+assert.equal(only.preview, '');
+assert.equal(only.formatted, PIC_IMG);
+// Inside a rule, a picture shows only when the rule does.
+const RULED = 'Hi {formtext: name=N; type=number}\n{if: N > 1}' + PIC + '\n{endif}Bye';
+assert.equal(filled(RULED, { N: '0' }).parts, null);
+assert.equal(filled(RULED, { N: '0' }).formatted, null);
+assert.equal(filled(RULED, { N: '2' }).formatted, 'Hi 2<br>' + PIC_IMG + '<br>Bye');
+// No picture, or an address that is not https: nothing changes.
+assert.equal(filled('Hi', {}).parts, null);
+assert.equal(filled('Hi\n{picture: src=http://a.co/l.png}', {}).parts, null);
+assert.equal(filled('Hi\n{picture: src=http://a.co/l.png}', {}).preview, 'Hi');
+// With a layout, the layout is what is formatted, and its pictures still count.
+const inLayout = filled('Hi ' + PIC, {}, { formatted: '<b>Hi</b> ' + PIC });
+assert.equal(inLayout.parts, null);
+assert.equal(ff.pictureCount(inLayout), 1);
+assert.equal(ff.pictureCount(filled('<b>Hi</b>', {}, { formatted: '<b>Hi</b>' })), 0);
+console.log('OK A text with pictures keeps them out of the plain text and in the formatted copy');
+
+// ── A FORMATTED TEXT (the editor's Bold, lists) ─────────────────────
+// The text carries its list lines with their prefix; the layout carries the
+// same fields, so it is filled from the same answers, every value escaped.
+const FMT_TEXT = 'Hi {formtext: name=WHO}, your order is confirmed:\n1. We pack it today\n2. You get a link';
+const FMT_HTML = '<div>Hi {formtext: name=WHO}, your order is <b>confirmed</b>:</div><ol><li>We pack it <u>today</u></li><li>You get a link</li></ol>';
+const fmt = filled(FMT_TEXT, { WHO: 'Ana & <b>' }, { formatted: FMT_HTML });
+assert.equal(fmt.preview, 'Hi Ana & <b>, your order is confirmed:\n1. We pack it today\n2. You get a link');
+assert.equal(fmt.formatted, '<div>Hi Ana &amp; &lt;b&gt;, your order is <b>confirmed</b>:</div><ol><li>We pack it <u>today</u></li><li>You get a link</li></ol>');
+assert.equal(fmt.parts, null);
+console.log('OK A formatted text is filled from the same form, its plain copy keeping list lines');

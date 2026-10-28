@@ -17,7 +17,7 @@ import { useUiStore } from '@/stores/uiStore';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
 import { cn } from '@/lib/utils';
 
-// Ask Fibonax inside the search panel (AI-KNOWLEDGE P1).
+// FiboChat inside the search panel (AI-KNOWLEDGE P1).
 //
 // The answer is built only from the reader's own snippets and Brains. Every
 // claim carries a numbered citation that opens its source, and when nothing in
@@ -54,7 +54,7 @@ export function AskAnswer({ question, onBack, onOpenSource }: AskAnswerProps) {
       const result = await askApi.ask(question);
       setState({ phase: 'done', result });
     } catch (err) {
-      setState({ phase: 'error', message: err instanceof Error ? err.message : 'Could not reach Ask Fibonax. Try again.' });
+      setState({ phase: 'error', message: err instanceof Error ? err.message : 'Could not reach FiboChat. Try again.' });
     }
   }, [question]);
 

@@ -27,6 +27,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Segmented } from '@/components/ui/segmented';
 import { Toggle, ToggleGroup } from '@/components/ui/toggle';
 import { AssetAboutButton } from '@/components/shared/AssetAboutButton';
 import { ReviewStatusMenu } from '@/components/shared/ReviewStatusMenu';
@@ -53,9 +54,10 @@ import { FormInterestDialog } from '@/features/snippets/FormInterestDialog';
 import { FormDateRangeDialog } from '@/features/snippets/FormDateRangeDialog';
 import { FormMenuDialog } from '@/features/snippets/FormMenuDialog';
 import { FormNumberDialog } from '@/features/snippets/FormNumberDialog';
+import { FormPictureDialog } from '@/features/snippets/FormPictureDialog';
+import { FormattedBodyBox, type BodyBoxHandle } from '@/features/snippets/FormattedBodyBox';
 import { FormTextDialog } from '@/features/snippets/FormTextDialog';
 import { FormTimeDialog } from '@/features/snippets/FormTimeDialog';
-import { LinkRuleFields } from '@/features/snippets/LinkRuleFields';
 import { SnippetPreview } from '@/features/snippets/SnippetPreview';
 import { cn, countWords } from '@/lib/utils';
 import { findMenuTokenAt, nextMenuName } from '@/lib/formMenuToken';
@@ -74,6 +76,7 @@ import {
   findRuleAt,
   rulesInBody,
   summarizeEntry,
+  summarizeRule,
   type RuleInBody,
 } from '@/lib/conditionRule';
 import { buildFormNumberToken, DEFAULT_CURRENCY, nextNumberName } from '@/lib/formNumberToken';
@@ -87,11 +90,8 @@ import {
   type DateFormat,
   type TimeFormat,
 } from '@/lib/formDateToken';
-import {
-  LABEL_LINK_MODES,
-  linkFromDraft,
-  type LinkRuleDraft,
-} from '@/lib/linkRule';
+import { fieldNameFromWords } from '@/lib/linkFieldName';
+import { linkValue, parseLinkRule, readLinkAttr } from '@/lib/linkRule';
 import { clearBodySlot, rowBodies, setBodySlot } from '@/lib/snippetBodies';
 import { translateApi, type TranslateTarget } from '@/lib/api/translateApi';
 import {
@@ -181,10 +181,12 @@ const EMPTY_FORM: SnippetFormValues = {
   trigger: '',
   content: '',
   bodies: {},
+  bodies_html: {},
   folder_id: null,
   language: 'EN',
   pinned: false,
   alternative_queries: [],
+  check_unfinished: true,
 };
 
 /**
@@ -235,6 +237,8 @@ const MATH_HINT =
   'Calculated for you. A discounted price, a total, an average: math resolves as the snippet expands, from the numbers filled in. Open one below to see what it does.';
 const LOGIC_HINT =
   'Worked out on its own. A line that shows or hides depending on an answer, the greeting the hour calls for: logic resolves as the snippet expands. Open one below to see what it does.';
+const PICTURES_HINT =
+  'Shown, not typed. A logo, a map or a photo goes into an email with the text. Chats and plain text boxes get the text only.';
 
 // The four inputs the menu builder actually offers, so the rail explains the
 // dialog before it opens rather than after.
@@ -265,18 +269,51 @@ const BUTTON_FIELDS: { label: string; hint: string }[] = [
     hint: 'Whether the button trims the space around it. On a line of its own it leaves a blank line behind unless it does.' },
 ];
 
-// Fill from a pasted link sits under Actions, beside Button, with the tick box
-// and the Add buttons in its footer. It was a toggle that only described the
-// feature, with nothing to press, until v3.84.0; the tick box in each field's
-// own window stays as it was, for a field already in the snippet.
-const LINK_FIELDS: { label: string; hint: string }[] = [
-  { label: 'Add a field',
-    hint: 'Leave Fill from a pasted link ticked, type the label the value comes after on the page, then add a Text, Number, Date or Choice. It arrives with a generic name, like TEXT_1.' },
-  { label: 'A field you already have',
-    hint: 'Open it in its own window and tick Fill from a pasted link there.' },
-  { label: 'At fill time',
-    hint: 'A Link box appears in the form. Paste, and the fields fill. Check them, then insert.' },
+// Fill from a pasted link sits under Actions, beside Button: two numbered
+// steps (the word on the page, the kind of field), one Add field button, and
+// the list of fields that already read a page. It carried a tick box and four
+// Add buttons under about 140 words of explanation until v3.88.0, and before
+// v3.84.0 it only described the feature, with nothing to press. The tick box
+// in each field's own window stays as it was, for a field already in the
+// snippet.
+type PageFieldKind = 'text' | 'number' | 'date' | 'menu';
+
+const PAGE_KIND_OPTIONS: readonly { value: PageFieldKind; label: string }[] = [
+  { value: 'text', label: 'Text' },
+  { value: 'number', label: 'Number' },
+  { value: 'date', label: 'Date' },
+  { value: 'menu', label: 'Choice' },
 ];
+
+const PAGE_KINDS: readonly BodyItemKind[] = ['text', 'number', 'date', 'time', 'menu'];
+const PAGE_NOUN = { one: 'field fills from the link', many: 'fields fill from the link' };
+const PAGE_KIND_WORD: Record<string, string> = {
+  text: 'Text',
+  number: 'Number',
+  date: 'Date',
+  time: 'Time',
+  menu: 'Choice',
+};
+
+/** The `link=` rule a field token carries, in its written spelling, or ''. */
+function pageRuleOf(item: BodyItem): string {
+  const start = item.raw.indexOf(':') + 1;
+  const close = item.raw.lastIndexOf('}');
+  return start === 0 || close < start ? '' : readLinkAttr(item.raw.slice(start, close));
+}
+
+function readsPage(item: BodyItem): boolean {
+  return pageRuleOf(item) !== '';
+}
+
+/** "Text · after Customer", or what a count adds up. */
+function pageDetail(item: BodyItem): string {
+  const rule = parseLinkRule(pageRuleOf(item));
+  const kind = PAGE_KIND_WORD[item.kind] ?? '';
+  if (!rule) return kind;
+  const words = rule.words.join(' or ');
+  return rule.mode === 'before' ? `${kind} · adds up the numbers before ${words}` : `${kind} · after ${words}`;
+}
 
 const MENU_FIELDS: { label: string; hint: string }[] = [
   { label: 'Values',
@@ -374,19 +411,16 @@ const MATH_FORMULAS: readonly {
   },
 ];
 
-// The parts of a show or hide rule, named as FormConditionDialog names them,
-// so the rail explains the window before it opens. The checks are the
-// builder's own (RULE_OPERATORS in @/lib/conditionRule).
-const RULE_FIELDS: { label: string; hint: string }[] = [
-  { label: 'If',
-    hint: 'A field and a check. On a choice, Each option gives every option its own text. The other checks compare with a value: Equals, Does not equal, Is greater than, Is less than, Contains or Is filled.' },
-  { label: 'Then',
-    hint: 'Show or hide the text you type. It can hold fields and formulas too.' },
-  { label: 'Else',
-    hint: 'The opposite happens. A shown text can print something else in its place.' },
-  { label: 'Rules',
-    hint: 'Every rule in the snippet is listed in plain words, below and in the window, with Edit and Remove.' },
-];
+// A show or hide rule as the window reads it back, so the entry shows what
+// one looks like before the window opens. Generic on purpose (🌍).
+const RULE_EXAMPLE = summarizeRule({
+  field: 'PLAN',
+  operator: 'equals',
+  value: 'annual',
+  action: 'show',
+  content: 'Two months free.',
+  otherwise: '',
+});
 
 // A > 0 is the safest opening condition to hand someone: it is true of any
 // filled number field, so the inserted block prints its text rather than
@@ -416,6 +450,7 @@ const BUTTON_KINDS: readonly BodyItemKind[] = ['button'];
 const DATE_KINDS: readonly BodyItemKind[] = ['date', 'time'];
 const AUTO_KINDS: readonly BodyItemKind[] = ['auto'];
 const GREETING_KINDS: readonly BodyItemKind[] = ['greeting'];
+const PICTURE_KINDS: readonly BodyItemKind[] = ['picture'];
 const TEXT_NOUN = { one: 'text field', many: 'text fields' };
 const NUMBER_NOUN = { one: 'number field', many: 'number fields' };
 const MENU_NOUN = { one: 'choice field', many: 'choice fields' };
@@ -423,6 +458,7 @@ const BUTTON_NOUN = { one: 'button', many: 'buttons' };
 const DATE_NOUN = { one: 'date or time field', many: 'date and time fields' };
 const AUTO_NOUN = { one: 'automatic date', many: 'automatic dates' };
 const GREETING_NOUN = { one: 'greeting', many: 'greetings' };
+const PICTURE_NOUN = { one: 'picture', many: 'pictures' };
 const RANGE_NOUN = { one: 'date range count', many: 'date range counts' };
 const isRangeCount = (expression: string) => /^datespan\(/i.test(expression);
 
@@ -521,6 +557,8 @@ export function NewSnippetDialog() {
   const open = mode === 'edit' ? editingSnippet !== null : newOpen;
 
   const [form, setForm] = useState<SnippetFormValues>(EMPTY_FORM);
+  // Counts the bodies loaded into the box, so a new opening reloads it.
+  const [bodyLoads, setBodyLoads] = useState(0);
   // Labels are an association, not snippet content: they save alongside the
   // snippet but never enter the revision RPC, so assigning one doesn't create a
   // version entry. Hence local state rather than a SnippetFormValues field.
@@ -588,16 +626,18 @@ export function NewSnippetDialog() {
   // seeing the choice next to the button is the whole point of it.
   const [dateFormat, setDateFormat] = useState<DateFormat>(DEFAULT_DATE_FORMAT);
   const [timeFormat, setTimeFormat] = useState<TimeFormat>(DEFAULT_TIME_FORMAT);
-  // Where on a pasted page the next field added from the Fill from a pasted
-  // link section reads its value. Ticked to start with, since that is what the
-  // section is for. The label is cleared once a field takes it: a label belongs
-  // to one field, and two fields reading the same label would always fill with
-  // the same answer.
-  const [pageLink, setPageLink] = useState<LinkRuleDraft>({ enabled: true, mode: 'after', words: '' });
-  // An Add button pressed with the box ticked and no label, so nothing to read.
+  // The word before the value on a pasted page, for the next field added from
+  // the Fill from a pasted link entry, and the kind of field it becomes. The
+  // word is cleared once a field takes it: a word belongs to one field, and
+  // two fields reading the same word would always fill with the same answer.
+  const [pageWords, setPageWords] = useState('');
+  const [pageKind, setPageKind] = useState<PageFieldKind>('text');
+  // Add field pressed with no word typed, so nothing to read.
   const [pageLinkError, setPageLinkError] = useState(false);
-  // The rule a Choice added from that section starts with, handed to its window.
+  // The rule and the name a Choice added from that entry starts with, handed
+  // to its window.
   const [menuLink, setMenuLink] = useState('');
+  const [menuName, setMenuName] = useState('');
   // Text-field builder — writes a {formtext:} token at the cursor.
   const [textFieldOpen, setTextFieldOpen] = useState(false);
   // Number-field builder — writes a number token at the cursor. Its own type in
@@ -605,6 +645,8 @@ export function NewSnippetDialog() {
   const [numberFieldOpen, setNumberFieldOpen] = useState(false);
   // Action-button builder — writes a {button}…{/button} token at the cursor.
   const [actionButtonOpen, setActionButtonOpen] = useState(false);
+  // Add a picture — uploads one and writes a {picture:} token at the cursor.
+  const [pictureOpen, setPictureOpen] = useState(false);
   // Which formula window is open: a line of a quote from a price, or a calculator.
   const [formulaWindow, setFormulaWindow] = useState<FormulaWindow | null>(null);
   // Show or hide builder — writes an {if:} block at the cursor, or rewrites the
@@ -679,10 +721,12 @@ export function NewSnippetDialog() {
         trigger:              sanitizeTriggerInput(editingSnippet.triggers[0] ?? ''),
         content:              initialBodies[editingSnippet.language] ?? '',
         bodies:               initialBodies,
+        bodies_html:          editingSnippet.bodies_html ?? {},
         folder_id:            editingSnippet.folder_id,
         language:             editingSnippet.language,
         pinned:               editingSnippet.pinned,
         alternative_queries:  editingSnippet.alternative_queries,
+        check_unfinished:     editingSnippet.check_unfinished,
       });
       // Read once on open: the picker owns the draft from here, so a
       // background refresh can't stomp an in-progress edit.
@@ -707,6 +751,8 @@ export function NewSnippetDialog() {
       setForm(EMPTY_FORM);
       setLabelIds([]);
     }
+    // Every opening is a new body on screen: the box reloads from its layout.
+    setBodyLoads((n) => n + 1);
   }, [open, editingSnippetId]);
 
   // Check the body against its own flag while it is being written, so a wrong
@@ -795,8 +841,15 @@ export function NewSnippetDialog() {
   const translateSlot =
     form.language === 'IT' || form.language === 'ES' || form.language === 'FR';
   const translateAvailable = isProFeatureAvailable('translate');
+  const picturesAvailable = isProFeatureAvailable('snippetPictures');
 
-  const contentRef = useRef<HTMLTextAreaElement | null>(null);
+  const contentRef = useRef<BodyBoxHandle | null>(null);
+
+  // The box reports the layout of the language on screen after every change;
+  // a language with nothing formatted has none.
+  const updateLayout = useCallback((html: string | null) => {
+    setForm((prev) => ({ ...prev, bodies_html: setBodySlot(prev.bodies_html ?? {}, prev.language, html ?? '') }));
+  }, []);
 
   // Insert `value` at the textarea cursor (or append if focus is elsewhere),
   // then re-focus so the user can keep typing without losing position.
@@ -884,43 +937,60 @@ export function NewSnippetDialog() {
     );
   }
 
-  function changePageLink(next: LinkRuleDraft) {
-    setPageLink(next);
+  function changePageWords(raw: string) {
+    // `;` `{` `}` and line breaks would end or split the token, so they never get in.
+    setPageWords(raw.replace(/[;{}\r\n]/g, ''));
     setPageLinkError(false);
   }
 
   /**
-   * The Fill from a pasted link toggle's Add buttons: a new field under a
-   * generic name (TEXT_n, NUM_n, DATE_n), reading the label set above them.
-   * Choice opens its window with the rule filled in, since a menu is nothing
-   * without its options.
+   * The Fill from a pasted link entry's Add field: a new field named after the
+   * word it reads (CUSTOMER from "Customer"), under a generic name when the
+   * word makes none. Choice opens its window with the word and the name filled
+   * in, since a menu is nothing without its options.
    */
-  function addPageField(kind: 'text' | 'number' | 'date' | 'menu') {
-    const link = linkFromDraft(pageLink);
-    if (pageLink.enabled && link === '') {
+  function addPageField() {
+    const link = linkValue(`after:${pageWords}`);
+    if (link === '') {
       setPageLinkError(true);
       return;
     }
-    if (kind === 'menu') {
+    const body = form.content;
+    if (pageKind === 'menu') {
       setItemEdit(null);
       setMenuLink(link);
+      setMenuName(fieldNameFromWords(pageWords, body, ''));
       setMenuFieldOpen(true);
       return;
     }
     insertAtCursor(
-      kind === 'text'
-        ? buildFormTextToken({ name: nextTextName(form.content), default: '', link })
-        : kind === 'number'
+      pageKind === 'text'
+        ? buildFormTextToken({ name: fieldNameFromWords(pageWords, body, nextTextName(body)), default: '', link })
+        : pageKind === 'number'
           ? buildFormNumberToken({
-              name: nextNumberName(form.content),
+              name: fieldNameFromWords(pageWords, body, nextNumberName(body)),
               format: 'plain',
               currency: DEFAULT_CURRENCY,
               default: '',
               link,
             })
-          : buildFormDateToken({ name: nextDateName(form.content, 'date'), kind: 'date', format: dateFormat, link }),
+          : buildFormDateToken({
+              name: fieldNameFromWords(pageWords, body, nextDateName(body, 'date')),
+              kind: 'date',
+              format: dateFormat,
+              link,
+            }),
     );
-    if (link !== '') setPageLink((prev) => ({ ...prev, words: '' }));
+    setPageWords('');
+  }
+
+  /** Opens the window that changes `item`, from the Fill from a pasted link list. */
+  function openItemWindow(item: BodyItem) {
+    setItemEdit(item);
+    if (item.kind === 'text') setTextFieldOpen(true);
+    else if (item.kind === 'number') setNumberFieldOpen(true);
+    else if (item.kind === 'date' || item.kind === 'time') setDateFieldOpen(true);
+    else if (item.kind === 'menu') setMenuFieldOpen(true);
   }
 
   // The rule the caret sits in, when the builder can edit it. A condition typed
@@ -1772,55 +1842,86 @@ export function NewSnippetDialog() {
                 label="Fill from a pasted link"
                 className="mb-2.5"
                 footer={
-                  <div className="flex flex-col gap-2">
-                    <LinkRuleFields
-                      id="sb-page-link"
-                      size="rail"
-                      value={pageLink}
-                      onChange={changePageLink}
-                      modes={LABEL_LINK_MODES}
-                      disabled={saving}
-                      offHint="Tick it and the field you add next fills itself from a web page pasted in the fill form. You check it before inserting."
-                    />
-                    {pageLinkError && (
-                      <p role="alert" className="text-[11px] leading-tight text-danger">
-                        Type the label on the page first, then add the field.
-                      </p>
-                    )}
-                    <div className="flex flex-wrap gap-1.5">
-                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('text')}>
-                        <Plus className="mr-1 h-3 w-3" />
-                        Text
-                      </Button>
-                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('number')}>
-                        <Plus className="mr-1 h-3 w-3" />
-                        Number
-                      </Button>
-                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('date')}>
-                        <Plus className="mr-1 h-3 w-3" />
-                        Date
-                      </Button>
-                      <Button type="button" size="sm" variant="primary" disabled={saving} onClick={() => addPageField('menu')}>
-                        <Plus className="mr-1 h-3 w-3" />
-                        Choice
-                      </Button>
+                  <div className="flex flex-col gap-2.5">
+                    <div>
+                      <label htmlFor="sb-page-words" className={FIELD_LABEL}>
+                        1. Word before the value on the page
+                      </label>
+                      <Input
+                        id="sb-page-words"
+                        value={pageWords}
+                        disabled={saving}
+                        onChange={(e) => changePageWords(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter') return;
+                          // Never the snippet form's own submit: the rail sits inside it.
+                          e.preventDefault();
+                          addPageField();
+                        }}
+                        placeholder="e.g. Customer"
+                        autoComplete="off"
+                        spellCheck={false}
+                        aria-describedby="sb-page-words-hint"
+                        aria-invalid={pageLinkError}
+                        className={cn(
+                          'h-8 rounded-[10px] px-2 text-[11px]',
+                          pageLinkError && 'border-danger focus:border-danger focus:ring-danger/20',
+                        )}
+                      />
+                      {pageLinkError ? (
+                        <p role="alert" className="mt-1 text-[11px] leading-tight text-danger">
+                          Type the word on the page first.
+                        </p>
+                      ) : (
+                        <p id="sb-page-words-hint" className="mt-1 text-[11px] leading-tight text-ink-subtle">
+                          Capitals and accents don&apos;t matter. Another spelling goes after a |,
+                          like Start date|Starts.
+                        </p>
+                      )}
                     </div>
+                    <div>
+                      <span className={FIELD_LABEL}>2. Add it as</span>
+                      <Segmented
+                        options={PAGE_KIND_OPTIONS}
+                        value={pageKind}
+                        onChange={setPageKind}
+                        ariaLabel="Kind of field"
+                        disabled={saving}
+                        className="w-full [&>button]:h-8 [&>button]:flex-1 [&>button]:px-1.5 [&>button]:text-[11px]"
+                      />
+                    </div>
+                    <Button type="button" size="sm" variant="primary" disabled={saving} onClick={addPageField}>
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add field
+                    </Button>
                   </div>
                 }
               >
                 <p className="text-[11px] text-ink-subtle leading-tight">
-                  The person filling the form pastes a page&apos;s link, and the fields fill
-                  themselves from what the page says. They check the answers before
-                  inserting.
+                  A field added here fills itself from a web page whose link is pasted in the
+                  fill form. The person filling it checks the answer before inserting.
                 </p>
-                <dl className="mt-2 flex flex-col gap-1.5">
-                  {LINK_FIELDS.map((f) => (
-                    <div key={f.label}>
-                      <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
-                      <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <p className="mt-2 rounded-[8px] border border-primary/25 bg-primary-light px-2 py-1.5 text-[11px] leading-tight text-ink">
+                  Page says <span className="font-mono">Customer: Anna Ruiz</span> → type{' '}
+                  <span className="font-mono">Customer</span>
+                </p>
+                <p className="mt-2 text-[11px] text-ink-subtle leading-tight">
+                  A field already in the snippet: open it in its window and tick Fill from a
+                  pasted link there.
+                </p>
+                {/* The fields that read a page, whichever window made them, so
+                    what is set up can be seen, changed and taken out from here. */}
+                <div className="mt-2.5">
+                  <ItemListSection
+                    body={form.content}
+                    onReplace={replaceRange}
+                    kinds={PAGE_KINDS}
+                    noun={PAGE_NOUN}
+                    only={readsPage}
+                    detail={pageDetail}
+                    onEdit={openItemWindow}
+                  />
+                </div>
               </Toggle>
             </div>
 
@@ -1880,7 +1981,7 @@ export function NewSnippetDialog() {
             </div>
 
             {/* Logic */}
-            <div className="flex-1 p-4">
+            <div className="p-4 border-b border-line">
               <div className="flex items-center gap-1.5">
                 <p className={SIDEBAR_LABEL}>Logic</p>
                 <Tooltip
@@ -1892,8 +1993,8 @@ export function NewSnippetDialog() {
                 </Tooltip>
               </div>
               {/* Like Choice, the button edits the rule the cursor sits in.
-                  The rules already in the body are listed under the parts, in
-                  the same plain words the window uses, so the logic of a
+                  The rules already in the body are listed under the example,
+                  as the same sentence the window uses, so the logic of a
                   snippet reads without opening anything. */}
               <Toggle
                 label="Show or hide"
@@ -1916,18 +2017,11 @@ export function NewSnippetDialog() {
                 }
               >
                 <p className="text-[11px] text-ink-subtle leading-tight">
-                  Text that prints only when an answer calls for it, the way a form
-                  shows a question only when it applies. If a field equals, contains
-                  or passes a value, then the text shows or hides, else the opposite.
+                  Print a piece of text only when an answer calls for it.
                 </p>
-                <dl className="mt-2 flex flex-col gap-1.5">
-                  {RULE_FIELDS.map((f) => (
-                    <div key={f.label}>
-                      <dt className="font-mono text-[10px] text-ink">{f.label}</dt>
-                      <dd className="text-[11px] text-ink-subtle leading-tight">{f.hint}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <div className="mt-2 rounded-[8px] border border-primary/25 bg-primary-light px-2 py-1.5">
+                  <RuleSummary parts={RULE_EXAMPLE} className="text-[11px]" />
+                </div>
                 {bodyRules.length > 0 && (
                   <div className="mt-2.5 border-t border-line pt-2">
                     <p className="font-mono text-[10px] text-ink">In this snippet</p>
@@ -2027,6 +2121,83 @@ export function NewSnippetDialog() {
                     onReplace={replaceRange}
                     kinds={GREETING_KINDS}
                     noun={GREETING_NOUN}
+                  />
+                </div>
+              </Toggle>
+            </div>
+
+            {/* Pictures — Pro, locked until the plan exists (lib/proFeatures).
+                Pictures already in the body are listed either way, and can
+                always be taken out. */}
+            <div className="flex-1 p-4">
+              <div className="flex items-center gap-1.5">
+                <p className={SIDEBAR_LABEL}>Pictures</p>
+                <Tooltip
+                  label={PICTURES_HINT}
+                  placement="right"
+                  className="flex items-center text-ink-subtle hover:text-ink transition-colors"
+                >
+                  <Info className="h-3 w-3" aria-hidden />
+                </Tooltip>
+              </div>
+              <Toggle
+                label="Picture"
+                className="mb-2.5 mt-2.5"
+                footer={
+                  picturesAvailable ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="primary"
+                      disabled={saving}
+                      onClick={() => {
+                        setItemEdit(null);
+                        setPictureOpen(true);
+                      }}
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add picture
+                    </Button>
+                  ) : (
+                    <ProSoon>
+                      <button
+                        type="button"
+                        aria-disabled="true"
+                        onClick={(event) => event.preventDefault()}
+                        className={cn(
+                          'inline-flex h-8 items-center gap-1.5 rounded-[10px] border border-line bg-card px-3 text-xs font-medium text-ink-muted',
+                          PRO_SOON_CONTROL,
+                        )}
+                      >
+                        <Plus className="h-3 w-3" aria-hidden />
+                        Add picture
+                        <ProSoonLock />
+                      </button>
+                    </ProSoon>
+                  )
+                }
+              >
+                <p className="text-[11px] text-ink-subtle leading-tight">
+                  A logo, a map or a photo, sent with the text. It shows in emails; chats and
+                  plain text boxes get the text only.
+                </p>
+                <p className="mt-2 rounded-[8px] border border-primary/25 bg-primary-light px-2 py-1.5 text-[11px] leading-tight text-ink">
+                  Your logo above the signature
+                </p>
+                <div className="mt-2.5">
+                  <ItemListSection
+                    body={form.content}
+                    onReplace={replaceRange}
+                    kinds={PICTURE_KINDS}
+                    noun={PICTURE_NOUN}
+                    onEdit={
+                      picturesAvailable
+                        ? (item) => {
+                            setItemEdit(item);
+                            setPictureOpen(true);
+                          }
+                        : undefined
+                    }
                   />
                 </div>
               </Toggle>
@@ -2360,22 +2531,18 @@ export function NewSnippetDialog() {
                   })}
                 </div>
               </div>
-              <textarea
+              <FormattedBodyBox
                 id="snippet-content"
                 ref={contentRef}
-                rows={12}
                 value={form.content}
-                onChange={(e) => {
-                  updateBody(e.target.value);
-                  setCaret(e.currentTarget.selectionStart);
-                }}
+                html={form.bodies_html?.[form.language] ?? null}
+                slot={`${bodyLoads}:${form.language}`}
+                onChange={updateBody}
+                onLayoutChange={updateLayout}
                 // Caret position decides whether the menu chip inserts or edits.
-                onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
+                onCaret={setCaret}
                 disabled={saving}
-                className={cn(
-                  'w-full flex-1 min-h-[160px] resize-none rounded-[10px] border border-line bg-card px-3.5 py-3 text-sm text-ink font-mono leading-relaxed placeholder:text-ink-subtle focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50',
-                  contentError && 'border-danger focus:border-danger focus:ring-danger/20',
-                )}
+                invalid={!!contentError}
                 placeholder={BODY_PLACEHOLDER[form.language]}
               />
               {/* Footer: the error and the count share one line. Stacking them
@@ -2498,19 +2665,23 @@ export function NewSnippetDialog() {
               open={menuFieldOpen}
               onOpenChange={(next) => {
                 windowOpenChange(setMenuFieldOpen)(next);
-                if (!next) setMenuLink('');
+                if (!next) {
+                  setMenuLink('');
+                  setMenuName('');
+                }
               }}
               suggestedName={nextMenuName(form.content)}
               initial={itemEdit?.kind === 'menu' ? itemEdit.cfg : null}
               newLink={menuLink}
+              newName={menuName}
               language={form.language}
               list={itemList(MENU_KINDS, MENU_NOUN)}
               readers={editReaders}
               onNew={() => setItemEdit(null)}
               onSubmit={(token) => {
                 submitItem(token);
-                // The section's label went to this menu, like any field it adds.
-                if (menuLink !== '') setPageLink((prev) => ({ ...prev, words: '' }));
+                // The entry's word went to this menu, like any field it adds.
+                if (menuLink !== '') setPageWords('');
               }}
             />
 
@@ -2522,6 +2693,17 @@ export function NewSnippetDialog() {
               onNew={() => setItemEdit(null)}
               onInsert={submitItem}
             />
+
+            {picturesAvailable && (
+              <FormPictureDialog
+                open={pictureOpen}
+                onOpenChange={windowOpenChange(setPictureOpen)}
+                initial={itemEdit?.kind === 'picture' ? itemEdit.cfg : null}
+                list={itemList(PICTURE_KINDS, PICTURE_NOUN)}
+                onNew={() => setItemEdit(null)}
+                onInsert={submitItem}
+              />
+            )}
 
             <FormDateDialog
               open={dateFieldOpen}
@@ -2620,7 +2802,11 @@ export function NewSnippetDialog() {
               <div className="w-px bg-line shrink-0" />
               <SnippetPreview
                 body={form.content}
+                layout={form.bodies_html?.[form.language] ?? null}
                 lang={form.language === 'MULTI' ? '' : form.language}
+                checkUnfinished={form.check_unfinished}
+                onCheckUnfinishedChange={(on) => updateField('check_unfinished', on)}
+                onEditBody={() => contentRef.current?.focus()}
               />
             </>
           )}

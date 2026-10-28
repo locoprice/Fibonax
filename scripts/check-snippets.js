@@ -48,6 +48,11 @@ const cases = [
   { name: 'other prints typed', body: 'Via {formmenu: Email,Phone; name=R; other=Other}.', vals: { R: 'Fax' }, expect: 'Via Fax.' },
   { name: 'other in a rule',    body: '{formmenu: Email,Phone; name=R; other=Other}{if: R = "Fax"} by fax{endif}', vals: { R: 'Fax' }, expect: 'Fax by fax' },
   { name: 'other picks option', body: '{formmenu: Email,Phone; name=R; other=Other} {R}', vals: { R: 'Phone' }, expect: 'Phone Phone' },
+  // A picture is left out of plain text, and alone on its line takes the line.
+  { name: 'picture own line',   body: 'Hi\n{picture: src=https://a.co/l.png; alt=Logo}\nBye', vals: {}, expect: 'Hi\nBye' },
+  { name: 'picture last line',  body: 'Hi\n{picture: src=https://a.co/l.png}', vals: {}, expect: 'Hi' },
+  { name: 'picture first line', body: '{picture: src=https://a.co/l.png; size=full}\nHi {N}', vals: { N: 'Ann' }, expect: 'Hi Ann' },
+  { name: 'picture is no field', body: 'A{picture: src=https://a.co/l.png}B', vals: {}, expect: 'AB' },
 ];
 
 let ok = 0;
@@ -595,6 +600,11 @@ const expansionCases = [
   ['Via {formmenu: Email,Phone; name=R; other=Other}.', { R: 'Fax' }],
   ['{formmenu: Email,Phone; name=R; other=Other; multiple=yes} and {R}', { R: 'Email, Fax' }],
   ['{formmenu: REFUNDABLE,NOT REFUNDABLE; name=R; other=Other}\n' + RATE_RULE, { R: 'Partial' }],
+  ['Hi\n{picture: src=https://a.co/l.png; alt=Logo; size=small}\nBye', {}],
+  ['Hi\n  {picture: src=https://a.co/l.png}  \r\nBye', {}],
+  ['{picture: src=https://a.co/l.png}\nHi', {}],
+  ['Hi\n{picture: src=http://a.co/l.png}', {}],
+  ['{if: A > 1}{picture: src=https://a.co/l.png}\n{endif}Done', { A: '2' }],
 ];
 let expOk = 0;
 for (const [body, vals] of expansionCases) {
@@ -1840,3 +1850,65 @@ if (engine.resolveBody('{greeting}', {}, { lang: 'MULTI' }) !== nowSlotEN) {
 }
 
 console.log('OK Time-of-day greeting parity passed all ' + gok + ' hour/language cases');
+
+// ── FORMATTED LAYOUT ────────────────────────────────────────────────
+// A layout (docs/FORMATTED_SNIPPETS_DESIGN.md) resolves with opts.html: every
+// printed value is escaped, the markup around it is left alone, and {case:}
+// changes letters, never a tag or an entity. Values come from people and from
+// web pages, so an unescaped one would become markup in someone's email. The
+// phone resolves layouts with its own parser; both must give the same answer.
+for (const fn of ['sbEscapeHtml', 'sbApplyCaseModeHtml']) {
+  if (typeof mobile[fn] !== 'function') fail('mobile/index.html no longer defines ' + fn);
+}
+const LAYOUT_CASES = [
+  ['<b>{formtext: name=N}</b>', { N: 'Tom & <i>Jerry</i>' }, {}, '<b>Tom &amp; &lt;i&gt;Jerry&lt;/i&gt;</b>'],
+  ['<td>{N}</td>', { N: 'a<b' }, {}, '<td>a&lt;b</td>'],
+  ['<td>{=A+B}</td>', { A: '2', B: '3' }, {}, '<td>5</td>'],
+  ['{if: A > 1}<i>{N}</i>{else}none{endif}', { A: '2', N: '<x>' }, {}, '<i>&lt;x&gt;</i>'],
+  ['{if: A > 1}<i>{N}</i>{else}none{endif}', { A: '0', N: '<x>' }, {}, 'none'],
+  ['{case: upper}<b style="color:red">tom &amp; jerry</b>{/case}', {}, {}, '<b style="color:red">TOM &amp; JERRY</b>'],
+  ['{case: upper}<b>{N}</b>{/case}', { N: 'a&b' }, {}, '<b>A&amp;B</b>'],
+  ['{case: sentence}hello <b>world</b>. bye{/case}', {}, {}, 'Hello <b>world</b>. Bye'],
+  ['{case: title}hello<br>world{/case}', {}, { lang: 'EN' }, 'Hello<br>World'],
+  ['{case: upper}straße &euro;{/case}', {}, {}, 'STRASSE &euro;'],
+  ['Querido {formtext: name=NOMBRE}', { NOMBRE: 'María' }, { lang: 'ES' }, 'Querida María'],
+  ['<td>Querido <b><i>{formtext: name=NOMBRE}</i></b></td>', { NOMBRE: 'María' }, { lang: 'ES' }, '<td>Querida <b><i>María</i></b></td>'],
+  ['{gender: NOMBRE; m=Querido; f=Querida} <b>{NOMBRE}</b>', { NOMBRE: 'María' }, { lang: 'ES' }, 'Querida <b>María</b>'],
+  // A picture is markup in a layout; its description is escaped, and an
+  // address that is not https prints nothing.
+  ['<td>{picture: src=https://a.co/l.png; alt=Tom "&" <Jerry>; size=small}</td>', {}, {},
+    '<td><img src="https://a.co/l.png" alt="Tom &quot;&amp;&quot; &lt;Jerry&gt;" width="160" style="width:160px;max-width:100%;height:auto;border:0"></td>'],
+  ['{picture: src=https://a.co/l.png}', {}, {},
+    '<img src="https://a.co/l.png" alt="" width="320" style="width:320px;max-width:100%;height:auto;border:0">'],
+  ['<p>{picture: src=javascript:alert(1)}</p><p>{picture: src=https://a.co/x".png}</p>', {}, {}, '<p></p><p></p>'],
+];
+let layoutOk = 0;
+for (const [body, vals, opts, want] of LAYOUT_CASES) {
+  const o = Object.assign({ html: true }, opts);
+  const gotE = engine.resolveBody(body, Object.assign({}, vals), o);
+  const gotM = mobile.resolveBody(body, Object.assign({}, vals), Object.assign({}, o));
+  if (gotE !== want) fail('layout ' + JSON.stringify(body) + ' -> ' + JSON.stringify(gotE) + ', expected ' + JSON.stringify(want));
+  if (gotM !== want) fail('mobile layout ' + JSON.stringify(body) + ' -> ' + JSON.stringify(gotM) + ', expected ' + JSON.stringify(want));
+  layoutOk++;
+}
+// Without opts.html nothing is escaped: every plain snippet prints as before.
+if (engine.resolveBody('<b>{N}</b>', { N: 'a & <i>' }) !== '<b>a & <i></b>' ||
+    mobile.resolveBody('<b>{N}</b>', { N: 'a & <i>' }) !== '<b>a & <i></b>') {
+  fail('a plain body escaped its values');
+}
+// A value with nothing to escape prints the same in a layout as in plain text,
+// dates and numbers included.
+for (const [body, vals, opts] of [
+  ['{formdate: name=D; format=long}', { D: '2026-10-09' }, { lang: 'ES' }],
+  ['{formtext: name=P; type=number; format=currency; currency=EUR}', { P: '326' }, {}],
+  ['{time: DD/MM/YYYY; from=D}', { D: '2026-10-09' }, {}],
+]) {
+  const plain = engine.resolveBody(body, Object.assign({}, vals), opts);
+  const inLayout = engine.resolveBody('<td>' + body + '</td>', Object.assign({}, vals), Object.assign({ html: true }, opts));
+  const inLayoutM = mobile.resolveBody('<td>' + body + '</td>', Object.assign({}, vals), Object.assign({ html: true }, opts));
+  if (inLayout !== '<td>' + engine.sbEscapeHtml(plain) + '</td>' || inLayoutM !== inLayout) {
+    fail('layout value differs from plain for ' + JSON.stringify(body) + ': ' + JSON.stringify(inLayout) + ' / ' + JSON.stringify(inLayoutM) + ' vs ' + JSON.stringify(plain));
+  }
+  layoutOk++;
+}
+console.log('OK Formatted layout parity passed all ' + layoutOk + ' cases');

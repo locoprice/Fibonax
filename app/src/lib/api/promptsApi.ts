@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
+import { notionPushError } from '@/lib/api/notionPushError';
 import type { Prompt, PromptBlock, PromptVersion, StrategyType, ThinkingMode, PreferredModel, ComplexityLevel, IntentCategory, OutputType } from '@/types/database';
 import type { PromptFormValues } from '@/types/schemas';
 import { toReviewStatus, type NewItemOptions } from '@/lib/reviewStatus';
@@ -247,7 +248,7 @@ export const promptsApi: PromptsApi = {
       ok: boolean;
       notion_page_id: string;
     }>(EDGE_FN_PROMPT_PUSH, { body: { prompt_id: id } });
-    if (error) throw toApiError(error);
+    if (error) throw await notionPushError(error);
     if (!data?.ok || !data.notion_page_id) {
       throw new Error('notion-prompt-push returned unexpected response');
     }

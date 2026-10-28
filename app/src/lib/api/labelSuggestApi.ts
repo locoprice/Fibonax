@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { AI_LIMIT_MESSAGE, readEdgeErrorCode } from '@/lib/api/edgeFunctionError';
 import { reconcileSuggestions, type LabelSuggestion, type RawSuggestion } from '@/lib/labelSuggest';
 import type { Label } from '@/types/database';
 
@@ -34,15 +35,18 @@ export interface LabelSuggestApi {
  * Turn an edge-function failure into a sentence a user can act on. The
  * function distinguishes "not wired up yet" from "the model call failed", and
  * those need different responses from whoever sees them.
+ *
+ * The code comes from the response body (readEdgeErrorCode): supabase-js only
+ * says "non-2xx status code" in `message`, so matching on it never hit.
  */
-function suggestError(detail: string | undefined): Error {
-  if (detail?.includes('anthropic_not_configured')) {
-    return new Error('AI suggestions are not configured yet.');
-  }
-  if (detail?.includes('anthropic_bad_output')) {
-    return new Error('The suggestion came back unreadable. Try again.');
-  }
-  return new Error('Could not reach the suggestion service. Try again.');
+const SUGGEST_ERRORS: Record<string, string> = {
+  anthropic_not_configured: 'AI suggestions are not configured yet.',
+  anthropic_bad_output: 'The suggestion came back unreadable. Try again.',
+  rate_limited: AI_LIMIT_MESSAGE,
+};
+
+function suggestError(code: string): Error {
+  return new Error(SUGGEST_ERRORS[code] ?? 'Could not reach the suggestion service. Try again.');
 }
 
 export const labelSuggestApi: LabelSuggestApi = {
@@ -59,8 +63,8 @@ export const labelSuggestApi: LabelSuggestApi = {
       },
     });
 
-    if (error) throw suggestError(error.message);
-    if (!data?.ok) throw suggestError(undefined);
+    if (error) throw suggestError(await readEdgeErrorCode(error));
+    if (!data?.ok) throw suggestError('');
 
     return reconcileSuggestions(data.suggestions ?? [], catalog, assigned);
   },

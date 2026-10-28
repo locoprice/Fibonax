@@ -140,7 +140,7 @@
   <main>
     <div class="doc-meta">
       <span class="badge badge-epd">ePrivacy Directive</span>
-      <span class="doc-date">Last Updated: May 22, 2026</span>
+      <span class="doc-date">Last Updated: October 27, 2026</span>
     </div>
 
     <h1>Cookie Policy</h1>
@@ -171,21 +171,19 @@
         <div class="compare-card">
           <div class="compare-label">Used by Fibonax</div>
           <div class="compare-title"><code>chrome.storage.local</code></div>
-          <p class="compare-body">Stores your snippets, settings, Notion token, and session data on your local device only. Never transmitted to Google's servers. Scoped exclusively to Fibonax — no other extension or website can access it.</p>
+          <p class="compare-body">Keeps a copy of your snippets, your settings and your sign-in session on this device. Never transmitted to Google's servers. Scoped exclusively to Fibonax: no other extension or website can access it.</p>
         </div>
         <div class="compare-card">
           <div class="compare-label">Explicitly NOT used</div>
           <div class="compare-title"><code>chrome.storage.sync</code></div>
-          <p class="compare-body">Deliberately avoided. This API would sync data to Google's servers across your devices. Fibonax stores all sensitive data locally only.</p>
+          <p class="compare-body">Deliberately avoided. This API would sync data to Google's servers across your devices. Fibonax keeps its extension data on this device only.</p>
         </div>
       </div>
 
       <p>Data stored in <code>chrome.storage.local</code> by Fibonax includes:</p>
       <ul>
         <li>Your snippet library (shortcut triggers and expansion text).</li>
-        <li>Notion integration configuration (database ID and encrypted integration token).</li>
         <li>Application preferences and settings.</li>
-        <li>Last Notion sync timestamp.</li>
         <li>Supabase authentication session token (for logged-in users).</li>
       </ul>
 
@@ -298,7 +296,7 @@
         <li>Search for "Fibonax" or filter by extension entries.</li>
         <li>Select and delete the extension's stored data.</li>
       </ol>
-      <p>Note: this will remove your local snippet library and Notion configuration. Your Notion database remains untouched and can be re-synced at any time.</p>
+      <p>Note: this removes the copy of your snippet library stored in the extension. Your snippets stay in your Fibonax account and load again when you sign in to the extension.</p>
     </div>
 
     <!-- 9 -->

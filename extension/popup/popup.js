@@ -128,6 +128,9 @@ var DB = {
             user_id: s.user_id || null,
             body: s.body || '', lang: s.lang || 'EN',
             bodies: (s.bodies && typeof s.bodies === 'object') ? s.bodies : {},
+            // The formatted layout (Bold, lists), active language and per language.
+            bodyHtml: s.body_html || '',
+            bodiesHtml: (s.bodies_html && typeof s.bodies_html === 'object') ? s.bodies_html : {},
             folder: s.folder_id || '', fieldCfg: s.field_cfg || {}, lang_group_id: s.lang_group_id || s.id,
             sort_order: s.sort_order || 0,
             notion_page_id: s.notion_page_id || null,
@@ -136,6 +139,9 @@ var DB = {
             pinned: s.pinned || false,
             // Deprecated snippets expand with a warning (content.js reviewWarning).
             review_status: s.review_status || 'approved',
+            // false = the person asked not to be warned when this snippet's
+            // text looks unfinished (fill-form.js checksUnfinished).
+            check_unfinished: s.check_unfinished !== false,
             expansions: um[s.id] || 0,
             // The fallback anchor for the unused-asset notice: a snippet with no
             // expansion on record is measured from the day it was added, which
@@ -147,28 +153,6 @@ var DB = {
         })
       };
     }).catch(function(e) { console.error('[Fibonax] loadAll:', e); return null; });
-  },
-  upsertSnippet: function(s) {
-    supaFetch('snippets', 'POST', {
-      id: s.id, user_id: SB_CURRENT_USER_ID, title: s.title, shortcut: s.shortcut || '',
-      body: s.body || '', lang: s.lang || 'EN',
-      bodies: (s.bodies && typeof s.bodies === 'object') ? s.bodies : {},
-      folder_id: s.folder || null, field_cfg: s.fieldCfg || {}, lang_group_id: s.lang_group_id || s.id,
-      sort_order: s.sort_order || 0,
-      notion_page_id: s.notion_page_id || null,
-      manually_edited: s.manually_edited || false,
-      ai_generated: s.ai_generated || false,
-      pinned: s.pinned || false
-    }).catch(function(e) {
-      console.error('upsertSnippet:', e);
-      try { showToast('Save failed — changes may not have synced'); } catch (_) {}
-    });
-  },
-  deleteSnippet: function(id) {
-    SBPopupSync.performSnippetDelete(supaFetch, id, function(e) {
-      console.error('deleteSnippet:', e);
-      try { showToast('Delete failed — please retry'); } catch (_) {}
-    });
   },
   upsertFolder: function(f) {
     supaFetch('folders', 'POST', {
@@ -319,67 +303,6 @@ function triggerWouldCollide(key, val) {
   var otherKey = key === 'snippetTrigger' ? 'promptTrigger' : 'snippetTrigger';
   var otherVal = triggerCfg[otherKey];
   return val === otherVal || otherVal.indexOf(val) === 0 || val.indexOf(otherVal) === 0;
-}
-
-// NOTION SYNC — credentials (local cache, reconciled with user_metadata)
-var notionCfg = { apiKey: '', dbId: '' };
-
-function loadNotionCfg(cb) {
-  chrome.storage.local.get('sb_notion_cfg', function(d) {
-    if (d && d.sb_notion_cfg) {
-      notionCfg = d.sb_notion_cfg;
-      if (cb) cb();
-    } else {
-      chrome.storage.sync.get('notionCfg', function(old) {
-        if (old && old.notionCfg) {
-          notionCfg = old.notionCfg;
-          saveNotionCfg();
-          // Drop the roaming copy: storage.sync follows the Google account to
-          // every Chrome it signs into, and this object holds an API key.
-          chrome.storage.sync.remove('notionCfg');
-        }
-        if (cb) cb();
-      });
-    }
-  });
-}
-function saveNotionCfg() {
-  chrome.storage.local.set({ sb_notion_cfg: notionCfg });
-}
-
-// Pull Notion credentials from Supabase user_metadata (written by the dashboard).
-// Merges into local config, overwrites only fields that are currently empty.
-// Calls cb() when done (including on error, so callers always continue).
-function syncNotionCfgFromSupabase(cb) {
-  sbAuthHeaders(function(err, headers) {
-    if (err || !headers) { if (cb) cb(); return; }
-    fetch(SB_SUPA_URL + '/auth/v1/user', { headers: headers })
-      .then(function(r) { return r.json(); })
-      .then(function(j) {
-        var meta = (j && j.user_metadata) ? j.user_metadata : {};
-        var remoteKey = meta.notion_api_key || '';
-        var remoteDb  = meta.notion_db_id  || '';
-        var changed = false;
-        if (!notionCfg.apiKey && remoteKey) { notionCfg.apiKey = remoteKey; changed = true; }
-        if (!notionCfg.dbId  && remoteDb)  { notionCfg.dbId   = remoteDb;  changed = true; }
-        if (changed) saveNotionCfg();
-        if (cb) cb();
-      })
-      .catch(function() { if (cb) cb(); });
-  });
-}
-
-// Push current Notion credentials to Supabase user_metadata so the dashboard stays in sync.
-// Best-effort: failures are silent (local storage is the authoritative source for the extension).
-function pushNotionCfgToSupabase() {
-  sbAuthHeaders(function(err, headers) {
-    if (err || !headers) return;
-    fetch(SB_SUPA_URL + '/auth/v1/user', {
-      method: 'PUT',
-      headers: Object.assign({}, headers, { 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ data: { notion_api_key: notionCfg.apiKey, notion_db_id: notionCfg.dbId } })
-    }).catch(function() {});
-  });
 }
 
 // HELPERS
@@ -781,216 +704,6 @@ function openChangelog() {
 
 function closeChangelog() { gi('cl-bg').className = 'cl-bg'; }
 
-/* ── SYNC STATUS BAR ─────────────────────────────────────── */
-
-function _timeAgo(isoString) {
-  if (!isoString) return 'never';
-  var diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
-  if (diff < 60)   return diff + 's ago';
-  if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
-  if (diff < 86400) return Math.floor(diff / 3600) + ' hr ago';
-  return Math.floor(diff / 86400) + ' days ago';
-}
-
-// Header status chip — a colored dot + text. `state==='refresh'` pulses the dot
-// (syncing). The chip's visibility is owned by updateSyncStatus (hidden until
-// Notion is configured). `color` accepts a hex or a CSS var() string.
-function _setSyncBar(state, text, color) {
-  var chip   = document.getElementById('sb-sync-now');
-  var dotEl  = document.getElementById('sb-sync-icon');
-  var textEl = document.getElementById('sb-sync-text');
-  if (chip) chip.style.display = 'inline-flex';
-  if (dotEl) {
-    dotEl.style.background = color || 'var(--sb-ink-subtle)';
-    if (state === 'refresh') dotEl.classList.add('pulse'); else dotEl.classList.remove('pulse');
-  }
-  if (textEl) textEl.textContent = text;
-}
-
-function updateSyncStatus() {
-  chrome.storage.local.get(
-    ['sb_notion_last_sync_ts', 'sb_notion_sync_error'],
-    function(d) {
-      var lastSync = d && d['sb_notion_last_sync_ts'];
-      var hasError = d && d['sb_notion_sync_error'];
-      var hasNotion = notionCfg && notionCfg.apiKey && notionCfg.dbId;
-      var chip = gi('sb-sync-now');
-
-      // No Notion \u2192 the status chip is not shown at all (nothing to sync).
-      if (!hasNotion) { if (chip) chip.style.display = 'none'; return; }
-
-      if (hasError) {
-        _setSyncBar('warn', 'Sync failed \u2014 tap to retry', 'var(--sb-danger)');
-        return;
-      }
-
-      if (!lastSync) {
-        _setSyncBar('refresh', 'Never synced', 'var(--sb-azure)');
-        return;
-      }
-
-      var ageMin = Math.floor((Date.now() - new Date(lastSync).getTime()) / 60000);
-
-      if (ageMin < 15) {
-        _setSyncBar('check', 'Synced ' + _timeAgo(lastSync), 'var(--sb-ok)');
-      } else if (ageMin < 30) {
-        _setSyncBar('refresh', 'Synced ' + _timeAgo(lastSync), 'var(--sb-azure)');
-      } else {
-        _setSyncBar('warn', 'Not synced \u2014 tap to sync', 'var(--sb-danger)');
-      }
-    }
-  );
-}
-
-// ── NOTION PUSH — App → Notion (bidirectional sync, upsert) ───────
-var NotionPush = {
-
-  // Collect all language variants for a snippet's lang_group_id
-  _getGroupVariants: function(snippet) {
-    var gid = snippet.lang_group_id || snippet.id;
-    var variants = snips.filter(function(s) {
-      return (s.lang_group_id || s.id) === gid;
-    });
-    return variants.length ? variants : [snippet];
-  },
-
-  // Find the Notion page id already assigned to any variant in the group
-  _getGroupPageId: function(variants) {
-    for (var i = 0; i < variants.length; i++) {
-      if (variants[i].notion_page_id) return variants[i].notion_page_id;
-    }
-    return null;
-  },
-
-  // Build Notion page properties from all variants (one row, per-lang Body fields)
-  _buildProps: function(variants) {
-    var props = {};
-
-    // Use EN variant as title/shortcut anchor, fall back to first
-    var anchor = variants[0];
-    for (var i = 0; i < variants.length; i++) {
-      if (variants[i].lang === 'EN') { anchor = variants[i]; break; }
-    }
-
-    props['Nome Snippet'] = {
-      title: [{ text: { content: anchor.title || '' } }]
-    };
-    props['Shortcut'] = {
-      rich_text: [{ text: { content: anchor.shortcut || '' } }]
-    };
-
-    // Per-language body properties — one field per language variant
-    var langPropMap = { 'EN': 'Body EN', 'IT': 'Body IT', 'ES': 'Body ES', 'MULTI': 'Body MULTI' };
-    variants.forEach(function(v) {
-      var propName = langPropMap[v.lang] || ('Body ' + v.lang);
-      var bodyText = (v.body || '').slice(0, 2000);
-      if ((v.body || '').length > 2000) {
-        console.error('[Fibonax] Body truncated to 2000 chars for Notion:', v.title, v.lang);
-      }
-      props[propName] = { rich_text: [{ text: { content: bodyText } }] };
-    });
-
-    if (anchor.folder) {
-      var folderName = anchor.folder;
-      for (var j = 0; j < folders.length; j++) {
-        if (folders[j].id === anchor.folder) { folderName = folders[j].name; break; }
-      }
-      props['Categoria'] = { select: { name: folderName } };
-    }
-
-    if (anchor.versione) {
-      props['Versione'] = {
-        rich_text: [{ text: { content: anchor.versione || '' } }]
-      };
-    }
-
-    return props;
-  },
-
-  // Unified push — creates or updates the single Notion page for a snippet group
-  push: function(snippet) {
-    if (!notionCfg || !notionCfg.apiKey || !notionCfg.dbId) return;
-    var variants = this._getGroupVariants(snippet);
-    var pageId   = this._getGroupPageId(variants);
-    if (!pageId) {
-      this._create(variants);
-    } else {
-      this._update(pageId, variants);
-    }
-  },
-
-  _create: function(variants) {
-    var self = this;
-    fetch('https://api.notion.com/v1/pages', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + notionCfg.apiKey,
-        'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28'
-      },
-      body: JSON.stringify({
-        parent: { database_id: notionCfg.dbId },
-        properties: self._buildProps(variants)
-      })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data && data.id) {
-        variants.forEach(function(v) {
-          v.notion_page_id = data.id;
-          DB.upsertSnippet(v);
-        });
-      } else {
-        console.error('[Fibonax] Notion create returned no id:', data);
-      }
-    })
-    .catch(function(err) {
-      console.error('[Fibonax] Notion push failed:', err.message);
-    });
-  },
-
-  _update: function(pageId, variants) {
-    var self = this;
-    fetch('https://api.notion.com/v1/pages/' + pageId, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': 'Bearer ' + notionCfg.apiKey,
-        'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28'
-      },
-      body: JSON.stringify({ properties: self._buildProps(variants) })
-    })
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-    })
-    .catch(function(err) {
-      console.error('[Fibonax] Notion update failed:', err.message);
-    });
-  },
-
-  archive: function(notionPageId) {
-    if (!notionCfg || !notionCfg.apiKey) return;
-    if (!notionPageId) return;
-
-    fetch('https://api.notion.com/v1/pages/' + notionPageId, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': 'Bearer ' + notionCfg.apiKey,
-        'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28'
-      },
-      body: JSON.stringify({ archived: true })
-    })
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-    })
-    .catch(function(err) {
-      console.error('[Fibonax] Notion archive failed:', err.message);
-    });
-  }
-
-};
-
 function applyPopupGreeting(session) {
   var greetEl = document.getElementById('pop-greet');
   var nameEl  = document.getElementById('pop-name');
@@ -1119,178 +832,7 @@ function boot() {
     });
 
     showWelcome();
-
-    // Check if alarm fetched fresh snippets while popup was closed
-    chrome.storage.local.get('sb_alarm_sync_result', function(d) {
-      if (d && d.sb_alarm_sync_result && d.sb_alarm_sync_result.snippets) {
-        var alarmSnippets = d.sb_alarm_sync_result.snippets;
-        var alarmTs = d.sb_alarm_sync_result.timestamp;
-        var age = Date.now() - new Date(alarmTs).getTime();
-
-        if (age < 600000 && alarmSnippets.length > 0) {
-          alarmSnippets.forEach(function(ns) {
-            // Match on id first, then on notion_page_id AND lang. Every language
-            // variant of a Notion page shares one notion_page_id, so matching on
-            // it alone collapsed a whole multi-language group onto its first row:
-            // the last language synced won and the others lost their body.
-            // Mirrors the comparator in _runNotionSync below.
-            var idx = -1;
-            for (var i = 0; i < snips.length; i++) {
-              if (snips[i].id === ns.id) { idx = i; break; }
-            }
-            if (idx === -1 && ns.notion_page_id) {
-              for (var k = 0; k < snips.length; k++) {
-                if (snips[k].notion_page_id === ns.notion_page_id &&
-                    (snips[k].lang || 'EN') === (ns.lang || 'EN')) { idx = k; break; }
-              }
-            }
-            if (idx > -1) {
-              // Keep the local row's id: an incoming variant carries the Notion
-              // id, and letting it through renamed the row out of its group.
-              snips[idx] = Object.assign({}, snips[idx], ns, { id: snips[idx].id });
-            } else {
-              snips.push(ns);
-            }
-          });
-          syncSnippets();
-          refreshUI();
-        }
-      }
-    });
-
-    loadNotionCfg(function() {
-      updateSyncStatus();
-
-      if (!notionCfg.apiKey || !notionCfg.dbId) {
-        // Config is incomplete — check Supabase (set from the dashboard) before syncing.
-        syncNotionCfgFromSupabase(function() { _runNotionSync(); });
-      } else {
-        _runNotionSync();
-      }
-    });
-
-    // Refresh status bar timestamp every 60 seconds
-    setInterval(updateSyncStatus, 60000);
-}
-
-function _runNotionSync(cb, force) {
-    NotionSync.run(notionCfg, {
-
-          onProgress: function(state) {
-                  if (state === 'syncing') {
-                            _setSyncBar('refresh', 'Syncing with Notion\u2026', '#1B4FD8');
-                  } else {
-                            updateSyncStatus();
-                  }
-          },
-
-          onComplete: function(notionSnippets, success) {
-                  if (success) {
-                            chrome.storage.local.remove('sb_notion_sync_error');
-                  }
-
-                  if (!notionSnippets || !notionSnippets.length) {
-                            updateSyncStatus();
-                            if (cb) cb();
-                            return;
-                  }
-
-                  var changed = false;
-                  notionSnippets.forEach(function(ns) {
-                            var existingIdx = -1;
-                            // Priority 1: exact id match (stable for multi-lang variants)
-                            for (var i = 0; i < snips.length; i++) {
-                                        if (snips[i].id === ns.id) { existingIdx = i; break; }
-                            }
-                            // Priority 2: notion_page_id + lang (handles legacy single-lang snippets)
-                            if (existingIdx === -1 && ns.notion_page_id) {
-                                        for (var i = 0; i < snips.length; i++) {
-                                                  if (snips[i].notion_page_id === ns.notion_page_id &&
-                                                      (snips[i].lang || 'EN') === (ns.lang || 'EN')) { existingIdx = i; break; }
-                                        }
-                            }
-                            if (existingIdx > -1) {
-                                        var existing = snips[existingIdx];
-                                        if (!existing.manually_edited &&
-                                            (existing.title !== ns.title || existing.body !== ns.body || existing.shortcut !== ns.shortcut)) {
-                                                      snips[existingIdx] = Object.assign({}, existing, ns, { id: existing.id });
-                                                      DB.upsertSnippet(snips[existingIdx]);
-                                                      changed = true;
-                                        }
-                            } else {
-                                        snips.push(ns);
-                                        DB.upsertSnippet(ns);
-                                        DB.updateStats(ns.id, 0, 0, null);
-                                        changed = true;
-                            }
-                  });
-                  // Persist Notion snippets to Supabase so they survive popup reload when debounce blocks
-                  // re-sync — but skip any snippet the user has manually edited to avoid overwriting edits.
-                  notionSnippets.forEach(function(ns) {
-                    var local = null;
-                    for (var j = 0; j < snips.length; j++) {
-                      if (snips[j].id === ns.id) { local = snips[j]; break; }
-                    }
-                    if (!local && ns.notion_page_id) {
-                      for (var j = 0; j < snips.length; j++) {
-                        if (snips[j].notion_page_id === ns.notion_page_id &&
-                            (snips[j].lang || 'EN') === (ns.lang || 'EN')) { local = snips[j]; break; }
-                      }
-                    }
-                    if (!local || !local.manually_edited) DB.upsertSnippet(ns);
-                  });
-
-                  // Deletion detection: remove snippets that came from Notion
-                  // but are no longer in the Notion response (deleted in Notion)
-                  if (success && notionSnippets.length > 0) {
-                    var notionIds = {};
-                    notionSnippets.forEach(function(ns) {
-                      if (ns.notion_page_id) notionIds[ns.notion_page_id] = true;
-                    });
-
-                    var toDelete = [];
-                    snips.forEach(function(s) {
-                      if (s.notion_page_id && !notionIds[s.notion_page_id]) {
-                        toDelete.push(s.id);
-                      }
-                    });
-
-                    if (toDelete.length > 0) {
-                      toDelete.forEach(function(id) {
-                        snips = SBPopupSync.removeSnippetFromList(snips, id);
-                      });
-                      syncSnippets();
-                      toDelete.forEach(function(id) { DB.deleteSnippet(id); });
-                      changed = true;
-                    }
-                  }
-
-                  if (changed) {
-                            syncSnippets();
-                            showToast('Notion synced \u2014 ' + notionSnippets.length + ' snippet(s) updated');
-                  }
-                  // Always refresh the sidebar and snippet list after sync so
-                  // imported snippets are visible even when no diff was detected.
-                  refreshUI();
-                  updateSyncStatus();
-                  if (cb) cb();
-          },
-
-          onError: function(err) {
-                  console.error('[Fibonax] Notion sync failed:', err.message);
-
-                  chrome.storage.local.set({
-                            sb_notion_sync_error: {
-                                        message: err.message,
-                                        timestamp: new Date().toISOString()
-                            }
-                  });
-
-                  updateSyncStatus();
-                  if (cb) cb();
-          }
-
-    }, force || false);
+    showReviewPrompt();
 }
 
 // UI REFRESH
@@ -1409,8 +951,8 @@ function inaCurrent() {
 }
 
 // Drop mirror entries and snoozes for assets that no longer exist. Without this
-// a deleted snippet keeps its row for ever, and an id reused by Notion sync
-// would inherit a stranger's snooze. Runs once per authoritative load, over
+// a deleted snippet keeps its row for ever, and a reused id would inherit a
+// stranger's snooze. Runs once per authoritative load, over
 // snippets AND prompts together so neither section prunes the other's keys.
 function inaPrune() {
   var SBI = window.SBInactivity;
@@ -1653,7 +1195,7 @@ function folderTooltip(fid){
 }
 
 // "Villa Serena / Preventivi" — used wherever a nested folder has to read as
-// one line (move menus, Notion's flat Categoria select).
+// one line (move menus).
 function folderPathLabel(fid){
   var parts=[], cur=findFolder(fid), guard=0, seen={};
   while(cur && guard++<MAX_FOLDER_DEPTH+2){
@@ -1770,6 +1312,13 @@ function renderSkeleton(el){
 // the raw row (whose `.body` is empty when content lives in `bodies`), then any
 // sibling-row variant, then the primary row's own body. Mirrors the dashboard
 // editor, which reads bodies[lang] first.
+// The formatted layout (Bold, lists) of the body detailBody gives, or ''.
+function detailLayout(s, lang, vars){
+  var lm=(s.bodiesHtml && typeof s.bodiesHtml==='object') ? s.bodiesHtml[lang] : null;
+  if(typeof lm==='string' && lm) return lm;
+  if(vars[lang] && vars[lang].bodyHtml) return vars[lang].bodyHtml;
+  return (lang===(s.lang||'EN')) ? (s.bodyHtml||'') : '';
+}
 function detailBody(s, lang, vars){
   var bm = (s.bodies && typeof s.bodies==='object') ? s.bodies[lang] : null;
   if(typeof bm==='string' && bm.trim()) return bm;
@@ -1797,7 +1346,9 @@ function detailForm(body, lang){
     var box = ctrl.closest('.d-fields').querySelector('.d-othertxt[data-otherkey="' + ctrl.getAttribute('data-fkey') + '"]');
     other[ctrl.getAttribute('data-fkey')] = box ? box.value : '';
   });
-  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked, other: other }); }
+  var open=findSnip(expandedId);
+  var layout=open ? detailLayout(open, lang, findVariants(open)) : '';
+  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked, other: other, formatted: layout||null }); }
   catch(e){ return { fields:[], buttons:[], preview:body, errors:[], sections:[], layout:'flat', steps:[] }; }
 }
 // Effective values for a body: what the operator entered, else each field's
@@ -1824,12 +1375,15 @@ function detailActiveBody(s){
 // Live-update the open detail's preview from the current field inputs.
 function updateDetailPreview(id){
   var s=findSnip(id); if(!s) return;
-  var body=detailActiveBody(s);
-  var out=resolveFilled(body, detailActiveLang(s));
+  var vm=detailForm(detailActiveBody(s), detailActiveLang(s));
   var wrap=document.querySelector('.detail[data-detail="'+id+'"]');
   var pv=wrap?wrap.querySelector('.d-body'):null;
-  if(wrap) window.SBFillFormUI.refresh(wrap.querySelector('.d-fields'), detailForm(body, detailActiveLang(s)));
-  if(pv){ pv.textContent=out; if(out.trim()) pv.classList.remove('plain'); else pv.classList.add('plain'); }
+  if(wrap) window.SBFillFormUI.refresh(wrap.querySelector('.d-fields'), vm);
+  if(pv){
+    window.SBFillFormUI.showPreview(pv, vm);
+    if(vm.preview.trim()||vm.formatted) pv.classList.remove('plain'); else pv.classList.add('plain');
+  }
+  if(wrap) window.SBFillFormUI.pictureNote(wrap.querySelector('.ff-picnote'), vm, 'copy');
 }
 function copyFilled(id){
   var s=findSnip(id); if(!s) return;
@@ -1838,15 +1392,82 @@ function copyFilled(id){
   var form=document.querySelector('.d-fields[data-fid="'+id+'"]');
   if(!window.SBFillFormUI.validate(form,vm)) return;
   var out=vm.preview;
-  try{ navigator.clipboard.writeText(out||''); }catch(e){}
-  showToast('Copied filled text');
+  checkThenCopy(s, out, vm, form, function(){
+    copyWithPictures(out, vm.formatted);
+    showToast('Copied filled text');
+  });
+}
+// The text, and with a text that has pictures its formatted copy too: an email
+// takes the pictures, a chat or a plain box the text alone.
+function copyWithPictures(text, html){
+  if(!html||typeof ClipboardItem!=='function'||!navigator.clipboard.write){
+    try{ navigator.clipboard.writeText(text||''); }catch(e){}
+    return;
+  }
+  navigator.clipboard.write([new ClipboardItem({
+    'text/plain': new Blob([text||''], { type:'text/plain' }),
+    'text/html': new Blob([html], { type:'text/html' })
+  })]).catch(function(e){
+    console.error('copyWithPictures: the formatted copy was refused, copying the text', e);
+    navigator.clipboard.writeText(text||'').catch(function(e2){ console.error('copyWithPictures:', e2); });
+  });
 }
 // Enter inside an open detail copies the primary action (filled when the body
 // is dynamic, otherwise the raw body).
 function copyDetailPrimary(id){
   var s=findSnip(id); if(!s) return;
   var body=detailActiveBody(s);
-  if(resolveFilled(body, detailActiveLang(s))!==body) copyFilled(id); else copyBody(id);
+  if(resolveFilled(body, detailActiveLang(s))!==body) copyFilled(id); else copyFinishedBody(id);
+}
+
+// ── BEFORE IT GOES OUT ──────────────────────────────────────────────
+// The same check, and the same window, as the page: SBFillForm.unfinished()
+// decides, SBFillFormUI.unfinishedDialog() shows it. "Copy raw" copies the
+// template on purpose, braces and all, so it is the one copy not checked.
+function checkThenCopy(s, text, vm, form, copy){
+  var M=window.SBFillForm, UI=window.SBFillFormUI;
+  var fields=vm?vm.fields:[];
+  var items=(M&&M.unfinished&&M.checksUnfinished(s))?M.unfinished(text, fields):[];
+  if(!items.length||!UI||!UI.unfinishedDialog){ copy(); return; }
+  var canFix=!!form&&items.some(function(it){ return !!it.key; });
+  UI.unfinishedDialog({
+    items: items,
+    fields: fields,
+    primary: canFix?'fix':'edit',
+    anyway: 'copy-anyway',
+    mute: !!s.id,
+    onPrimary: function(){
+      if(canFix) UI.flag(form, vm, items);
+      else inaOpenInDashboard(s.id);
+    },
+    // The copy goes first, while the click still counts as the person's:
+    // a clipboard write that waits for the network can be refused. The
+    // switch is saved after, and its toast follows.
+    onAnyway: function(muted, done){
+      if(!muted){ copy(); return; }
+      done();
+      copy();
+      muteUnfinished(s, showToast);
+    },
+    onClose: function(){}
+  });
+}
+
+// "Don't warn me about this snippet again": saved by the worker, which also
+// writes the expansion cache, so the page stops warning at once too.
+function muteUnfinished(s, done){
+  var M=window.SBFillForm;
+  try{
+    chrome.runtime.sendMessage({ type:'snippet_check_unfinished', id:s.id, on:false }, function(res){
+      var ok=!chrome.runtime.lastError && !!(res&&res.ok);
+      if(chrome.runtime.lastError) console.error('muteUnfinished:', chrome.runtime.lastError.message);
+      if(ok) s.check_unfinished=false;
+      done(M.unfinishedText(ok?'muted':'mute-failed'));
+    });
+  }catch(e){
+    console.error('muteUnfinished:', e);
+    done(M.unfinishedText('mute-failed'));
+  }
 }
 
 // ── ADJUST PANEL ────────────────────────────────────────────────────
@@ -1981,7 +1602,8 @@ function renderDetailHtml(s){
   var vm=detailForm(body, active);
   var hasFields=vm.fields.length>0;
   var resolved=vm.preview;
-  var isDynamic=hasFields || (resolved!==body);
+  // A formatted text is shown and copied as it looks, even with nothing to fill.
+  var isDynamic=hasFields || (resolved!==body) || !!vm.formatted;
 
   var h='<div class="detail" data-detail="'+esc(s.id)+'">'
     +(s.review_status==='deprecated'?'<div class="d-warn" role="alert">'+esc(REVIEW_DEPRECATED_NOTE)+'</div>':'')
@@ -2051,6 +1673,8 @@ function renderDetailHtml(s){
       ? 'Fill the fields, then <b>Copy filled</b> \u2014 same result as expanding <b>'+esc(trig)+esc(shortWord(s.shortcut))+'</b> in a page.'
       : '<b>Copy filled</b> resolves dates &amp; formulas \u2014 same result as expanding <b>'+esc(trig)+esc(shortWord(s.shortcut))+'</b> in a page.';
     h+='<div class="'+pvCls+'">'+esc(resolved)+'</div>'
+      // Where the pictures go when the copy is pasted; only with pictures.
+      +(vm.formatted?'<p class="ff-picnote" role="status" hidden></p>':'')
       +'<div class="d-note">'+note+'</div>'
       +'<div class="d-acts">'
         +'<button class="d-btn pri" type="button" data-copyfilled="'+esc(s.id)+'">'+copyIco+'Copy filled</button>'
@@ -2062,7 +1686,7 @@ function renderDetailHtml(s){
     var bodyCls  = body.trim() ? 'd-body' : 'd-body plain';
     h+='<div class="'+bodyCls+'">'+bodyHtml+'</div>'
       +'<div class="d-acts">'
-        +'<button class="d-btn pri" type="button" data-copybody="'+esc(s.id)+'">'+copyIco+'Copy body</button>'
+        +'<button class="d-btn pri" type="button" data-copyfinished="'+esc(s.id)+'">'+copyIco+'Copy body</button>'
         +scBtn+editBtn
       +'</div>';
   }
@@ -2260,6 +1884,9 @@ function wireListRows(el){
   el.querySelectorAll('[data-copyfilled]').forEach(function(btn){
     btn.addEventListener('click',function(e){ e.stopPropagation(); copyFilled(btn.dataset.copyfilled); });
   });
+  el.querySelectorAll('[data-copyfinished]').forEach(function(btn){
+    btn.addEventListener('click',function(e){ e.stopPropagation(); copyFinishedBody(btn.dataset.copyfinished); });
+  });
   el.querySelectorAll('[data-copysc]').forEach(function(btn){
     btn.addEventListener('click',function(e){ e.stopPropagation(); var s=findSnip(btn.dataset.copysc); if(s) doCopyShortcut(s); });
   });
@@ -2304,6 +1931,10 @@ function wireListRows(el){
   });
   bindDetailAdjust(el);
   bindDetailLink(el);
+  // The open snippet's pictures are drawn into its preview once it is on screen.
+  el.querySelectorAll('.detail[data-detail]').forEach(function(wrap){
+    if(wrap.querySelector('.ff-picnote')) updateDetailPreview(wrap.getAttribute('data-detail'));
+  });
 }
 
 // What one field holds right now, read off its control. A menu is every
@@ -2634,6 +2265,18 @@ function copyBody(id){
   try{ navigator.clipboard.writeText(body||''); }catch(e){}
   showToast('Copied '+lang+' body');
 }
+// A body with nothing to resolve is already the finished text, so its Copy is
+// the message itself and is checked like Copy filled.
+function copyFinishedBody(id){
+  var s=findSnip(id); if(!s) return;
+  var vars=findVariants(s);
+  var lang=(detailLang && vars[detailLang]) ? detailLang : (s.lang||'EN');
+  var body=detailBody(s, lang, vars);
+  checkThenCopy(s, body, null, null, function(){
+    try{ navigator.clipboard.writeText(body||''); }catch(e){}
+    showToast('Copied '+lang+' body');
+  });
+}
 
 function flashChip(id){
   var row=document.querySelector('.item[data-id="'+id+'"]');
@@ -2931,6 +2574,67 @@ function dismissWelcome(){
   chrome.storage.local.set(next);
 }
 
+// ── REVIEW REQUEST ─────────────────────────────────────────────────
+// A free account is asked for a Chrome Web Store review after 10 sign-ins, at
+// most 5 times. shared/review-prompt.js holds the rule; the server holds the
+// counts (review_prompt_* functions), so they follow the person to any device.
+// The card is drawn only when the server says it counted the view, so a sixth
+// can never be shown whatever this code decided. Any failure leaves it hidden.
+function revRpc(name, body) {
+  return new Promise(function(resolve) {
+    sbAuthHeaders(function(err, headers) {
+      if (err || !headers) { resolve(null); return; }
+      fetch(SB_SUPA_URL + '/rest/v1/rpc/' + name, {
+        method: 'POST',
+        headers: { apikey: headers.apikey, Authorization: headers.Authorization, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {})
+      }).then(function(r) {
+        if (!r.ok) { console.warn('[Fibonax] Review request: ' + name + ' answered HTTP ' + r.status); return null; }
+        return r.text().then(function(t) { try { return t ? JSON.parse(t) : null; } catch(e) { return null; } });
+      }).then(resolve, function(e) {
+        console.warn('[Fibonax] Review request: ' + name + ' failed', e);
+        resolve(null);
+      });
+    });
+  });
+}
+function showReviewPrompt() {
+  var R = SBReviewPrompt;
+  revRpc('review_prompt_status').then(function(body) {
+    if (!R.shouldShow(R.readStatus(body))) return null;
+    return revRpc('review_prompt_record_view');
+  }).then(function(counted) {
+    var card = gi('rev-card');
+    if (counted !== true || !card) return;
+    gi('rev-msg').textContent = R.MESSAGE;
+    var go = gi('rev-go');
+    go.textContent = R.REVIEW_LABEL;
+    go.href = R.REVIEW_URL;
+    go.setAttribute('aria-label', R.REVIEW_ARIA_LABEL);
+    gi('rev-stop').textContent = R.STOP_LABEL;
+    card.style.display = '';
+  });
+}
+// The popup closes when the review tab takes focus, which can cut a request
+// short, so the review link waits for the stop to be saved (1.5 s at most)
+// before it opens the tab.
+function stopReviewPrompt(reason) {
+  var card = gi('rev-card'); if (card) card.style.display = 'none';
+  return revRpc('review_prompt_stop', { p_reason: reason });
+}
+function openReviewPage() {
+  var opened = false;
+  function open() {
+    if (opened) return;
+    opened = true;
+    var url = SBReviewPrompt.REVIEW_URL;
+    try { chrome.tabs.create({ url: url }); }
+    catch(e) { try { window.open(url, '_blank'); } catch(e2) {} }
+  }
+  stopReviewPrompt(SBReviewPrompt.STOP_REVIEWED).then(open);
+  setTimeout(open, 1500);
+}
+
 // ── MODE SWITCHER ──────────────────────────────────────────────────
 function setMode(m) {
   activeMode = m;
@@ -2991,7 +2695,7 @@ function setMode(m) {
 }
 
 // SETTINGS — read-only trigger info + extension-local preferences. All
-// management (snippets, folders, triggers, Notion, team sync) lives in the
+// management (snippets, folders, triggers, team sync) lives in the
 // dashboard; the pane only mirrors state and hosts the two local prefs.
 function openCfg(){
   applyTriggerCfgToInputs();
@@ -3043,6 +2747,8 @@ on('sq','input', function(e){
   else { selIdx=-1; renderList(e.target.value); }
 });
 on('wel-ok','click', dismissWelcome);
+on('rev-go','click', function(e){ e.preventDefault(); openReviewPage(); });
+on('rev-stop','click', function(){ stopReviewPrompt(SBReviewPrompt.STOP_DISMISSED); });
 on('cfg-default-lang','change', function(e){ userPrefs.defaultLang = e.target.value; saveUserPrefs(); });
 on('tcfg-saint','change', function(e){ saintOn = e.target.checked; SBSaintOfDay.saveEnabled(saintOn); showSaint(); });
 // Interactive Steps switch in the Prompts tab.
@@ -3277,23 +2983,6 @@ on('sq','paste', function(){ setTimeout(function(){
   expandedId=null; if(!v) searchAllFolders=false;
   if(activeMode==='prompts') renderPrompts(v); else if(activeMode==='brains') renderBrains(v); else renderList(v);
 },0); });
-
-// ── SYNC NOW BUTTON ──────────────────────────────────────
-var syncNowBtn = document.getElementById('sb-sync-now');
-if (syncNowBtn) {
-  syncNowBtn.addEventListener('click', function() {
-    syncNowBtn.disabled = true;
-    _setSyncBar('refresh', 'Syncing now\u2026', '#1B4FD8');
-
-    chrome.storage.local.remove('sb_notion_sync_error');
-    NotionSync.reset();
-
-    _runNotionSync(function() {
-      syncNowBtn.disabled = false;
-      updateSyncStatus();
-    }, true);
-  });
-}
 
 // ── AUTH GATE (AUTH-EXT-001 phase A) ──────────────────────────────
 // OTP flow: pending state persists in chrome.storage.local under 'sb_otp_pending'

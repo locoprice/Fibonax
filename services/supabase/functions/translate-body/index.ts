@@ -17,7 +17,7 @@
 //   SUPABASE_URL       — injected automatically by the runtime
 //   SUPABASE_ANON_KEY  — injected automatically by the runtime
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
 import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.110.0';
 import { maskTokens, unmaskTokens } from './tokenMask.ts';
 
@@ -82,6 +82,14 @@ function json(payload: unknown, status: number): Response {
   });
 }
 
+/** The answer once the caller has used up their AI calls (ai_call_allow). */
+function rateLimited(): Response {
+  return new Response(JSON.stringify({ error: 'rate_limited' }), {
+    status: 429,
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Retry-After': '3600' },
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS_HEADERS });
@@ -137,15 +145,23 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, translation: body, unchanged: true }, 200);
   }
 
+  // ── Per-person limit (ai_call_allow, 20261026150000_ai_call_limit.sql) ──
+  const { data: allowed, error: limitError } = await userClient.rpc('ai_call_allow', { p_kind: 'translate' });
+  if (limitError) {
+    console.error('translate-body: AI limit check failed', JSON.stringify({ code: limitError.code ?? null }));
+    return json({ error: 'limit_check_failed' }, 503);
+  }
+  if (allowed !== true) return rateLimited();
+
   // ── Translate ────────────────────────────────────────────────────
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
   let raw: string;
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-opus-5',
-      // Thinking is on by default on Opus 5 and shares this budget with the
-      // response, so it is sized well above the longest body we accept.
+      model: 'claude-opus-5-5',
+      // Thinking shares this budget with the response, so it is sized well
+      // above the longest body we accept.
       max_tokens: 8192,
       system: SYSTEM_PROMPT,
       output_config: {

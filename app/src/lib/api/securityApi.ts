@@ -126,12 +126,28 @@ export const securityApi = {
    * are derived server-side; repeat calls for the same session are no-ops.
    * Never throws — a failed log write must not break the login flow.
    */
-  async logLoginEvent(method: LoginMethod): Promise<void> {
-    try {
-      const { error } = await supabase.rpc('log_login_event', { p_method: method });
-      if (error) console.warn('securityApi: login event not recorded', error);
-    } catch (err) {
-      console.warn('securityApi: login event not recorded', err);
-    }
+  logLoginEvent(method: LoginMethod): Promise<void> {
+    lastLoginEvent = recordLoginEvent(method);
+    return lastLoginEvent;
+  },
+
+  /**
+   * Resolves once the sign-in just made has been recorded, at once when none is
+   * in flight. The review prompt reads its sign-in count after this, so the
+   * login that reaches the threshold is counted before it asks.
+   */
+  whenLoginRecorded(): Promise<void> {
+    return lastLoginEvent;
   },
 };
+
+let lastLoginEvent: Promise<void> = Promise.resolve();
+
+async function recordLoginEvent(method: LoginMethod): Promise<void> {
+  try {
+    const { error } = await supabase.rpc('log_login_event', { p_method: method });
+    if (error) console.warn('securityApi: login event not recorded', error);
+  } catch (err) {
+    console.warn('securityApi: login event not recorded', err);
+  }
+}

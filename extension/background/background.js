@@ -1,6 +1,5 @@
 // ── FIBONAX BACKGROUND v2.32.0 — Fix: Notion sync no longer overwrites manually-edited snippets ──
 importScripts('../auth/auth.js');
-importScripts('../services/notion-sync/notion-sync.js');
 
 var SUPA_URL = SB_SUPA_URL;
 
@@ -146,9 +145,9 @@ function inListQuoted(values) {
 /**
  * Bodies for the ids the user accepted in the injection panel.
  *
- * Takes `{id, kind}` pairs, never bare ids, because the two kinds live in
- * different tables with different id types and there is no one query that
- * serves both. Reading only memory_shards was the original defect: a snippet id
+ * Takes `{id, kind}` pairs, never bare ids, because the kinds live in
+ * different tables, some with different id types, and there is no one query that
+ * serves them all. Reading only memory_shards was the original defect: a snippet id
  * matched nothing there, and because it is not uuid-shaped it also made the
  * request 400, so the whole batch came back empty and every accepted item was
  * inserted as a heading over a blank line.
@@ -173,13 +172,16 @@ function memoryBodies(items) {
   var list = Array.isArray(items) ? items : [];
   var shardIds = [];
   var snippetIds = [];
+  var promptIds = [];
 
   for (var i = 0; i < list.length; i++) {
     var entry = list[i];
     if (!entry || !entry.id) continue;
     var id = String(entry.id);
     if (entry.kind === 'snippet') snippetIds.push(id);
-    else if (MEMORY_ID_RE.test(id)) shardIds.push(id);
+    else if (!MEMORY_ID_RE.test(id)) continue;
+    else if (entry.kind === 'prompt') promptIds.push(id);
+    else shardIds.push(id);
   }
 
   function tag(kind) {
@@ -205,6 +207,11 @@ function memoryBodies(items) {
   if (snippetIds.length) {
     jobs.push(supaFetch('snippets',
       'select=id,lang,body,bodies&is_active=is.true&review_status=neq.archived&id=in.(' + inListQuoted(snippetIds) + ')').then(tag('snippet')));
+  }
+  if (promptIds.length) {
+    // A prompt keeps its text in `content`; the alias hands it back as `body`.
+    jobs.push(supaFetch('prompts',
+      'select=id,body:content&review_status=neq.archived&id=in.(' + promptIds.join(',') + ')').then(tag('prompt')));
   }
   if (!jobs.length) return Promise.resolve([]);
 
@@ -244,14 +251,68 @@ function supaRpc(fn, params) {
   });
 }
 
+// Updates the rows a filter matches and answers with them as saved. RLS
+// decides what may be written, so an empty answer means nothing was: the
+// caller tells that apart from success rather than assuming it.
+function supaPatch(table, qs, body) {
+  return new Promise(function(resolve, reject) {
+    sbAuthHeaders(function(err, headers) {
+      if (err || !headers) { reject(new Error('not_authed')); return; }
+      fetch(SUPA_URL + '/rest/v1/' + table + '?' + qs, {
+        method: 'PATCH',
+        headers: {
+          'apikey': headers.apikey,
+          'Authorization': headers.Authorization,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(body || {})
+      }).then(function(r) {
+        if (!r.ok) { reject(new Error(table + ' answered HTTP ' + r.status)); return; }
+        return r.json().then(function(rows) { resolve(Array.isArray(rows) ? rows : []); }, reject);
+      }, reject);
+    });
+  });
+}
+
+// "Don't warn me about this snippet again", ticked on the unfinished-text
+// warning. Saved on the snippet itself so every device and the editor see it,
+// then written into the expansion cache at once, so the very next expansion
+// already honours it rather than waiting for the next sync.
+function setCheckUnfinished(id, on) {
+  return supaPatch('snippets', 'id=eq.' + encodeURIComponent(id) + '&select=id,check_unfinished',
+    { check_unfinished: on }).then(function(rows) {
+    if (!rows.length) return false;
+    return new Promise(function(resolve) {
+      chrome.storage.local.get('snippets', function(data) {
+        var list = (data && Array.isArray(data.snippets)) ? data.snippets : null;
+        if (chrome.runtime.lastError || !list) { resolve(true); return; }
+        var next = list.map(function(s) {
+          return s && s.id === id ? Object.assign({}, s, { check_unfinished: on }) : s;
+        });
+        chrome.storage.local.set({ snippets: next }, function() {
+          if (chrome.runtime.lastError) {
+            console.warn('[Fibonax] expansion cache write:', chrome.runtime.lastError.message);
+          }
+          resolve(true);
+        });
+      });
+    });
+  });
+}
+
 /**
  * Rank candidates for a draft. Summaries and scores, never bodies: the panel
  * lists what it found before anything is fetched to insert.
+ *
+ * Brain items and prompts. Snippets are text to expand, not context, and
+ * listing them buried the Brain items. The search leaves prompts out unless
+ * they are asked for by name, which is why 'prompt' is spelled out here.
  */
 function knowledgeSearch(query, limit) {
   return supaRpc('knowledge_search', {
     p_query: query || null,
-    p_kinds: null,
+    p_kinds: ['memory', 'prompt'],
     p_label_ids: null,
     p_container_ids: null,
     p_limit: typeof limit === 'number' ? limit : 40
@@ -315,6 +376,23 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
     supaRpc('memory_save_shard', msg.payload || {}).then(function(id) {
       try { sendResponse({ ok: true, id: id }); } catch(e) {}
     }, function() {
+      try { sendResponse({ ok: false }); } catch(e) {}
+    });
+    return true;
+  }
+
+  // The unfinished-text switch, from the warning in the page or the popup.
+  // Only this one column, and only a yes or no: the page never writes a
+  // snippet's content through here.
+  if (msg.type === 'snippet_check_unfinished') {
+    if (typeof msg.id !== 'string' || msg.id === '' || typeof msg.on !== 'boolean') {
+      try { sendResponse({ ok: false }); } catch(e) {}
+      return;
+    }
+    setCheckUnfinished(msg.id, msg.on).then(function(saved) {
+      try { sendResponse({ ok: saved }); } catch(e) {}
+    }, function(err) {
+      console.error('[Fibonax] Could not save the unfinished-text switch:', err && err.message);
       try { sendResponse({ ok: false }); } catch(e) {}
     });
     return true;
@@ -461,7 +539,7 @@ function loadData() {
       // service worker had no body to cache, which is why a snippet edited on
       // the dashboard kept expanding its old text until the popup was opened.
       var snipQs = 'select=id,title,shortcut,alternative_queries,folder_id,lang,lang_group_id,sort_order,' +
-        'body,bodies,field_cfg,pinned,review_status' +
+        'body,bodies,field_cfg,pinned,review_status,check_unfinished' +
         // Archived snippets never expand (AI-KNOWLEDGE P2), like disabled ones.
         '&is_active=eq.true&review_status=neq.archived&order=sort_order';
       Promise.all([
@@ -884,6 +962,7 @@ chrome.contextMenus.onClicked.addListener(function(info, tab) {
         title:     s.title,
         shortcut:  s.shortcut || '',
         body:      s.body || '',
+        bodyHtml:  s.body_html || '',
         lang:      s.lang || 'EN',
         folder:    s.folder_id || '',
         fieldCfg:  s.field_cfg || {},
@@ -943,6 +1022,9 @@ function writeExpansionCache(rows) {
           shortcut: s.shortcut || '',
           body: s.body || '',
           bodies: (s.bodies && typeof s.bodies === 'object') ? s.bodies : {},
+          // The formatted layout (Bold, lists), active language and per language.
+          bodyHtml: s.body_html || '',
+          bodiesHtml: (s.bodies_html && typeof s.bodies_html === 'object') ? s.bodies_html : {},
           lang: s.lang || 'EN',
           folder: s.folder_id || '',
           fieldCfg: s.field_cfg || {},
@@ -952,6 +1034,9 @@ function writeExpansionCache(rows) {
           pinned: s.pinned || false,
           // Read by content.js: a deprecated snippet expands with a warning.
           review_status: s.review_status || 'approved',
+          // Read by content.js: false means the person asked not to be warned
+          // when this snippet's text looks unfinished.
+          check_unfinished: s.check_unfinished !== false,
           // The worker does not fetch usage, but the popup hydrates its list
           // from this same cache and reads s.stats.uses unguarded. Writing the
           // zeroed shape keeps that contract; DB.loadAll overwrites it with the
@@ -1074,7 +1159,7 @@ if (chrome.commands && chrome.commands.onCommand) {
 }
 
 // ── LEGACY SEED / ROAMING-KEY PURGE ──────────────────────────────
-// Two things had to leave the browser on update:
+// Three things had to leave the browser on update:
 //   1. chrome.storage.sync copies of 'snippets' and 'notionCfg'. sync roams to
 //      every Chrome signed into the same Google account, so snippet content and
 //      a Notion API key travelled between profiles. Credentials never belong in
@@ -1084,9 +1169,17 @@ if (chrome.commands && chrome.commands.onCommand) {
 //      installs, and a sign-out left the previous session's cache in place, so
 //      the picker served a library to someone with no account. Signed-in installs
 //      are untouched: their cache is their own data.
+//   3. Everything the pull from Notion kept locally, including the Notion API
+//      key, signed in or not. The pull was retired in v3.86.0.
+var NOTION_PULL_KEYS = ['sb_notion_cfg', 'sb_notion_last_sync_ts', 'sb_notion_sync_error',
+  'sb_notion_sync_lock', 'sb_notion_snippet_cache', 'sb_alarm_sync_result'];
+
 function sbPurgeLegacyLocalData() {
   try {
     chrome.storage.sync.remove(['snippets', 'notionCfg'], function() {
+      if (chrome.runtime.lastError) { /* key may not exist */ }
+    });
+    chrome.storage.local.remove(NOTION_PULL_KEYS, function() {
       if (chrome.runtime.lastError) { /* key may not exist */ }
     });
     chrome.storage.local.get('sb_session', function(d) {
@@ -1187,7 +1280,6 @@ chrome.runtime.onStartup.addListener(function() {
   // roaming keys from another Chrome after updating would otherwise keep them.
   sbMigrateRoamingPrefs();
   initMenus();
-  bgNotionSync();
   sbRefreshActionIcon();
 });
 
@@ -1199,9 +1291,8 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
   // sbClearSession fires auth_changed, which rebuilds the menus signed-out.
   if (typeof sbCheckSessionAlive === 'function') sbCheckSessionAlive(function() {});
   // Refresh the context menu from Supabase so snippets/folders created on the
-  // dashboard show up without needing to open the popup, then run Notion sync.
+  // dashboard show up without needing to open the popup.
   forceRefreshMenus();
-  _alarmSync();
 });
 
 // ── MENU FRESHNESS — keep the right-click menu in sync with the dashboard ──
@@ -1244,80 +1335,3 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   // other listeners), producing "message channel closed" noise and leaks.
 });
 
-
-// ── BACKGROUND NOTION SYNC (delegates to NotionSync module) ───────
-function bgNotionSync() {
-  try {
-    chrome.storage.local.get('sb_notion_cfg', function (d) {
-      var cfg = d && d.sb_notion_cfg ? d.sb_notion_cfg : null;
-
-      // Fallback: migrate from sync → local if needed
-      if (!cfg || !cfg.apiKey || !cfg.dbId) {
-        chrome.storage.sync.get('notionCfg', function (sd) {
-          var sCfg = sd && sd.notionCfg ? sd.notionCfg : null;
-          if (!sCfg || !sCfg.apiKey || !sCfg.dbId) return;
-          chrome.storage.local.set({sb_notion_cfg: sCfg}, function() {
-            // Drop the roaming copy: an API key must not sit in storage.sync.
-            chrome.storage.sync.remove('notionCfg');
-          });
-          _bgRunSync(sCfg);
-        });
-        return;
-      }
-
-      _bgRunSync(cfg);
-    });
-  } catch (e) {
-    console.error('[Fibonax BG] Notion cfg read failed:', e.message);
-  }
-}
-
-function _bgRunSync(cfg) {
-  NotionSync.reset();
-  NotionSync.run(cfg, {
-    onComplete: function () {},
-    onError: function (err) {
-      console.error('[Fibonax BG] Notion bg-sync failed:', err.message);
-    }
-  });
-}
-
-// ── ALARM SYNC — silent background sync every 5 minutes ─────────
-function _alarmSync() {
-  chrome.storage.local.get('sb_notion_cfg', function(d) {
-    var cfg = (d && d.sb_notion_cfg) ? d.sb_notion_cfg : null;
-    if (!cfg || !cfg.apiKey || !cfg.dbId) {
-      return;
-    }
-
-    // Check debounce — skip if synced in last 3 minutes
-    chrome.storage.local.get('sb_notion_last_sync_ts', function(sd) {
-      var lastSync = sd && sd['sb_notion_last_sync_ts'];
-      if (lastSync) {
-        var elapsed = Date.now() - new Date(lastSync).getTime();
-        if (elapsed < 180000) {
-          return;
-        }
-      }
-
-      NotionSync.reset();
-      NotionSync.run(cfg, {
-        onProgress: function() {},
-        onComplete: function(snippets, success) {
-          if (!success) return;
-          if (snippets.length > 0) {
-            chrome.storage.local.set({
-              sb_alarm_sync_result: {
-                snippets: snippets,
-                timestamp: new Date().toISOString()
-              }
-            });
-          }
-        },
-        onError: function(err) {
-          console.error('[Fibonax Alarm] Sync failed:', err.message);
-        }
-      });
-    });
-  });
-}

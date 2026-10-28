@@ -1,7 +1,7 @@
 /**
  * The elements a snippet body holds, for the editor's lists: every field,
- * button, automatic date and greeting, where it sits, and the settings its
- * window loads to change it.
+ * button, automatic date, greeting and picture, where it sits, and the
+ * settings its window loads to change it.
  *
  * Every element the editor inserts is listed with Edit and Remove (root
  * CLAUDE.md, Edit and Remove for every element). A window opens on what it
@@ -44,8 +44,16 @@ import {
   type NamedShift,
 } from '@/lib/formTimeToken';
 import { readLinkAttr } from '@/lib/linkRule';
+import {
+  buildPictureToken,
+  isPictureSrc,
+  PICTURE_SIZE_OPTIONS,
+  PICTURE_SIZES,
+  type PictureConfig,
+  type PictureSize,
+} from '@/lib/pictureToken';
 
-export type BodyItemKind = 'text' | 'number' | 'date' | 'time' | 'menu' | 'button' | 'auto' | 'greeting';
+export type BodyItemKind = 'text' | 'number' | 'date' | 'time' | 'menu' | 'button' | 'auto' | 'greeting' | 'picture';
 
 interface ItemBase {
   /** Where the element sits. `end` is exclusive. */
@@ -64,7 +72,8 @@ export type BodyItem =
   | (ItemBase & { kind: 'menu'; cfg: FormMenuConfig | null })
   | (ItemBase & { kind: 'button'; cfg: FormButtonConfig | null })
   | (ItemBase & { kind: 'auto'; cfg: FormTimeConfig | null })
-  | (ItemBase & { kind: 'greeting'; cfg: null });
+  | (ItemBase & { kind: 'greeting'; cfg: null })
+  | (ItemBase & { kind: 'picture'; cfg: PictureConfig | null });
 
 const BUTTON_CLOSE = '{/button}';
 
@@ -211,12 +220,23 @@ export function parseFormTimeToken(raw: string): FormTimeConfig | null {
   return timeFormState(cfg) ? cfg : null;
 }
 
+export function parsePictureToken(raw: string): PictureConfig | null {
+  const attrs = attrsOf(raw);
+  if (!attrs || !onlyKeys(attrs, ['src', 'alt', 'size'])) return null;
+  const src = attrs.get('src') ?? '';
+  const size = (attrs.get('size') ?? 'medium') as PictureSize;
+  if (!isPictureSrc(src) || !PICTURE_SIZES.includes(size)) return null;
+  const cfg: PictureConfig = { src, alt: attrs.get('alt') ?? '', size };
+  return sameSettings(buildPictureToken(cfg), raw) ? cfg : null;
+}
+
 function kindOf(raw: string): BodyItemKind | null {
   if (/^\{\s*formtext:/i.test(raw)) return /;\s*type\s*=\s*number\s*(?:;|\}$)/i.test(raw) ? 'number' : 'text';
   if (/^\{\s*formdate:/i.test(raw)) return /;\s*type\s*=\s*time\s*(?:;|\}$)/i.test(raw) ? 'time' : 'date';
   if (/^\{\s*formmenu:/i.test(raw)) return 'menu';
   if (/^\{\s*time:/i.test(raw)) return 'auto';
   if (/^\{\s*greeting\s*(?::|\})/i.test(raw)) return 'greeting';
+  if (/^\{\s*picture:/i.test(raw)) return 'picture';
   return null;
 }
 
@@ -240,6 +260,8 @@ function itemOf(kind: BodyItemKind, start: number, end: number, raw: string): Bo
       return { ...base, kind, name: '', cfg: parseFormTimeToken(raw) };
     case 'greeting':
       return { ...base, kind, name: '', cfg: null };
+    case 'picture':
+      return { ...base, kind, name: '', cfg: parsePictureToken(raw) };
   }
 }
 
@@ -298,6 +320,10 @@ export function itemDetail(item: BodyItem): string {
     }
     case 'greeting':
       return innerOf(item.raw).trim() || 'Hello, by time of day';
+    case 'picture': {
+      const size = PICTURE_SIZE_OPTIONS.find((o) => o.value === item.cfg?.size)?.label;
+      return size ? `${size} picture` : 'Picture';
+    }
   }
 }
 
@@ -307,6 +333,7 @@ export function itemTitle(item: BodyItem): string {
   if (item.kind === 'button') return item.cfg?.label || 'Button';
   if (item.kind === 'auto') return 'Automatic date';
   if (item.kind === 'greeting') return 'Greeting';
+  if (item.kind === 'picture') return item.cfg?.alt || 'Picture';
   return 'Unnamed';
 }
 

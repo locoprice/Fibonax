@@ -20,7 +20,7 @@
 // Environment secrets (all injected automatically by the runtime):
 //   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',

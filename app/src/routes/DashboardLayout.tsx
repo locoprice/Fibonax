@@ -9,6 +9,7 @@ import { JotFormModal } from '@/components/layout/JotFormModal';
 import { OnboardingModal } from '@/features/onboarding/OnboardingModal';
 import { GlobalSearch } from '@/features/search/GlobalSearch';
 import { PendingInviteBanner } from '@/features/org/PendingInviteBanner';
+import { ReviewPromptBanner } from '@/features/reviewPrompt/ReviewPromptBanner';
 import { Toast } from '@/components/ui/Toast';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -68,6 +69,7 @@ export function DashboardLayout() {
     <div className="flex h-screen min-w-[1024px] flex-col bg-bg text-ink">
       <Topbar />
       <PendingInviteBanner />
+      <ReviewPromptBanner />
       <div className="flex min-h-0 min-w-0 flex-1">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">

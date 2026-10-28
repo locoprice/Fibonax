@@ -257,6 +257,14 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // What a row's badge says. The database calls a Brain item 'memory'; the
+  // person reading the list calls it a Brain.
+  var KIND_LABELS = { memory: 'Brain', prompt: 'Prompt', snippet: 'Snippet' };
+
+  function kindLabel(kind) {
+    return KIND_LABELS[kind] || kind;
+  }
+
   // ── One fact, one row (injection step A) ─────────────────────────────────
   //
   // A snippet translated into four languages is four rows in the database and
@@ -537,7 +545,7 @@
       // reachable however short the panel has been clamped.
       html += '<div class="plist">';
       if (!results.length) {
-        html += '<div class="empty">Nothing in your Brains matches what you are writing.' +
+        html += '<div class="empty">Nothing in your Brains or prompts matches what you are writing.' +
                 '<br>Save something first, or keep typing and refresh.</div>';
       } else {
         // A browse, not a match. Say so rather than letting a list of recent
@@ -561,7 +569,7 @@
           html += '<label class="item"><input type="checkbox" data-id="' + esc(c.id) + '"' + on + '>' +
                   '<span class="txt"><span class="nm">' + esc(c.name) + '</span>' +
                   '<span class="sub">' + (deprecated[c.id] ? '<span class="dep">Deprecated</span>' : '') +
-                  '<span class="kind">' + esc(c.kind) + '</span>' + langHtml +
+                  '<span class="kind">' + esc(kindLabel(c.kind)) + '</span>' + langHtml +
                   c.tokens + 't · ' + esc(c.summary || 'No summary') + '</span></span></label>';
         }
       }
@@ -760,7 +768,7 @@
       var picked = checkedCandidates();
       if (!picked.length || !composer) return;
 
-      // Kind travels with the id: the two kinds are stored in different tables,
+      // Kind travels with the id: the kinds are stored in different tables,
       // and keying anything on a bare id would collide the day a snippet id and
       // a shard id match, which uuid-shaped snippet ids make possible.
       // The row to fetch is the chosen translation's, which is not always the
@@ -945,6 +953,7 @@
   var API = {
     findComposer: findComposer,
     hostConfig: hostConfig,
+    kindLabel: kindLabel,
     readComposer: readComposer,
     factsFromSearchRows: factsFromSearchRows,
     preselect: preselect,

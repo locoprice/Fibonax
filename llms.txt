@@ -104,7 +104,7 @@ There is no single "extension vs. standalone app" parity switch. What is actuall
 | Dashboard (frontend) | `https://app.fibonax.com`. Netlify site built from the root `netlify.toml` (`base = "app"`, publishes `app/dist`). Also the origin whitelisted in `extension/manifest.json`'s `externally_connectable`, used for the extension's SSO handoff. `app.sprintbrain.com` is kept there too and permanently redirected (301) to `app.fibonax.com`. |
 | Marketing site | `https://fibonax.com`, a separate Netlify site with its own config at `app/public/landing/netlify.toml` (no build step; `www` goes to the apex; `sprintbrain.com` is redirected to `fibonax.com`). Pages: home, `pricing/`, `legal/`, plus generated `it/` and `es/`. |
 | User manual | `https://docs.fibonax.com`, Mintlify, source `user-docs/`, page map in `docs/USER_DOCS.md` |
-| Notion sync | Per account, user configured (Settings -> Notion, `app/src/features/settings/NotionSyncPanel.tsx`). Each user supplies their own integration token and database ID. There is no single project wide Notion database. |
+| Notion | One way only. "Push to Notion" on a snippet or prompt sends it to the team Notion database through the `notion-snippet-push` / `notion-prompt-push` edge functions, which hold the token as a server secret. The extension's pull from Notion, and the per-account token and database ID in Settings that fed it, were retired in v3.86.0. |
 
 The Supabase anon/publishable key is intentionally committed client side (`app/src/lib/supabase.ts`, `extension/auth/auth.js`). Row Level Security is the actual security boundary, not key secrecy. The Notion integration token and `ANTHROPIC_API_KEY` are the real secrets and live only as Supabase edge function secrets; they are never in the repo and never reach the browser.
 
@@ -137,9 +137,8 @@ Fibonax/
 │   ├── formula-engine.js         # Shared CSP-safe formula parser, loaded before content.js
 │   ├── background/background.js  # Service worker: context menus, sync, alarms
 │   ├── content/{content.js,memory-picker.js,chat-capture.js,save-selection.js}
-│   ├── popup/{popup.html,popup.js,sync-deletion.js}
+│   ├── popup/{popup.html,popup.js}
 │   ├── auth/auth.js
-│   ├── services/notion-sync/notion-sync.js
 │   ├── shared/{fill-form.js,fill-form-ui.js,fill-form-ui.css,snippet-stats.js,inactivity.js,
 │   │           memory-pack.js,memory-chunk.js,interactive-steps.js,saint-of-day.js,tooltip.js,tokens/}
 │   └── assets/icons/

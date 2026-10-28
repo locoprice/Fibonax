@@ -61,7 +61,7 @@ export function reviewStatusHint(status: ReviewStatus): string {
     case 'under_review':
       return 'Waiting for an approver. It works in the meantime.';
     case 'approved':
-      return 'Approved. Ask Fibonax prefers approved items.';
+      return 'Approved. FiboChat prefers approved items.';
     case 'deprecated':
       return 'Out of date. It still works, with a warning, and Ask treats it as outdated.';
     case 'archived':

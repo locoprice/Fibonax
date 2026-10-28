@@ -8,8 +8,8 @@
 //    admin, teams with no other admin deleted, then the auth.users row, which
 //    cascades to everything personal. See
 //    services/supabase/migrations/20261018120000_delete_account.sql.
-// 2. Storage: the person's folder in avatars, company-logos and memory-docs,
-//    and the cover folder of each team step 1 deleted. This runs after the
+// 2. Storage: the person's folder in avatars, company-logos, memory-docs and
+//    snippet-pictures, and the cover folder of each team step 1 deleted. This runs after the
 //    database commit, because a failed delete must leave every file in place.
 //    A file that will not go is logged with its bucket and path for cleanup;
 //    the account is already gone, so the caller still gets success.
@@ -17,7 +17,7 @@
 // Environment secrets (all injected automatically by the runtime):
 //   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 
-import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -28,7 +28,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-const USER_BUCKETS = ['avatars', 'company-logos', 'memory-docs'];
+const USER_BUCKETS = ['avatars', 'company-logos', 'memory-docs', 'snippet-pictures'];
 const TEAM_COVER_BUCKET = 'team-covers';
 const LIST_PAGE = 1000;
 
