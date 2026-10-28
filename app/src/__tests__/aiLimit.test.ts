@@ -13,7 +13,7 @@ vi.mock('@/lib/supabase', () => ({ supabase: { functions: { invoke } } }));
 
 import { askApi } from '@/lib/api/askApi';
 import { draftApi } from '@/lib/api/draftApi';
-import { AI_LIMIT_MESSAGE } from '@/lib/api/edgeFunctionError';
+import { AI_LIMIT_MESSAGE, AI_PRO_CHECK_MESSAGE, AI_PRO_MESSAGE } from '@/lib/api/edgeFunctionError';
 import { labelSuggestApi } from '@/lib/api/labelSuggestApi';
 import { translateApi } from '@/lib/api/translateApi';
 
@@ -67,8 +67,42 @@ describe('the AI limit message', () => {
       .replace(/\r\n/g, '\n');
     const match = /var AI_LIMIT_TEXT='([^']*)';/.exec(mobile);
     expect(match?.[1]).toBe(AI_LIMIT_MESSAGE);
-    expect(mobile).toContain('var PICTURE_ERRORS={\n  rate_limited:AI_LIMIT_TEXT,');
-    expect(mobile).toContain('var ASK_ERRORS={\n  rate_limited:AI_LIMIT_TEXT,');
+    expect(mobile).toContain('var PICTURE_ERRORS={\n  pro_required:AI_PRO_TEXT,\n  pro_check_failed:AI_PRO_CHECK_TEXT,\n  rate_limited:AI_LIMIT_TEXT,');
+    expect(mobile).toContain('var ASK_ERRORS={\n  pro_required:AI_PRO_TEXT,\n  pro_check_failed:AI_PRO_CHECK_TEXT,\n  rate_limited:AI_LIMIT_TEXT,');
+  });
+});
+
+// Pro only (is_pro, 20261028150000_pro_plan.sql): every AI edge function
+// answers 403 `pro_required` to an account that is not Pro.
+describe('the Pro message', () => {
+  const SNIPPET = { name: 'Payment terms', body: 'Payment is due in 30 days.', folderName: null, language: 'EN' } as const;
+
+  it('reaches every AI feature', async () => {
+    failWith(403, 'pro_required');
+    await expect(draftApi.draft({ kind: 'snippet', text: DRAFT_TEXT })).rejects.toThrow(AI_PRO_MESSAGE);
+    failWith(403, 'pro_required');
+    await expect(askApi.ask('What is the refund rule?')).rejects.toThrow(AI_PRO_MESSAGE);
+    failWith(403, 'pro_required');
+    await expect(translateApi.translateBody('Hello there', 'IT')).rejects.toThrow(AI_PRO_MESSAGE);
+    failWith(403, 'pro_required');
+    await expect(labelSuggestApi.suggestForSnippet(SNIPPET, [], [])).rejects.toThrow(AI_PRO_MESSAGE);
+  });
+
+  it('says so when the plan could not be read', async () => {
+    failWith(503, 'pro_check_failed');
+    await expect(draftApi.draft({ kind: 'snippet', text: DRAFT_TEXT })).rejects.toThrow(AI_PRO_CHECK_MESSAGE);
+    failWith(503, 'pro_check_failed');
+    await expect(askApi.ask('What is the refund rule?')).rejects.toThrow(AI_PRO_CHECK_MESSAGE);
+    failWith(503, 'pro_check_failed');
+    await expect(translateApi.translateBody('Hello there', 'IT')).rejects.toThrow(AI_PRO_CHECK_MESSAGE);
+    failWith(503, 'pro_check_failed');
+    await expect(labelSuggestApi.suggestForSnippet(SNIPPET, [], [])).rejects.toThrow(AI_PRO_CHECK_MESSAGE);
+  });
+
+  it('is worded the same on the phone', () => {
+    const mobile = readFileSync(resolve(process.cwd(), 'public', 'mobile', 'index.html'), 'utf8');
+    expect(/var AI_PRO_TEXT='([^']*)';/.exec(mobile)?.[1]).toBe(AI_PRO_MESSAGE);
+    expect(/var AI_PRO_CHECK_TEXT='([^']*)';/.exec(mobile)?.[1]).toBe(AI_PRO_CHECK_MESSAGE);
   });
 });
 

@@ -9177,7 +9177,13 @@ var PICTURE_TIP='Text in a screenshot? Copy it with Live Text on iPhone or Googl
 /* Every AI feature counts against one per-person limit (ai_call_allow).
    Same words as AI_LIMIT_MESSAGE in app/src/lib/api/edgeFunctionError.ts. */
 var AI_LIMIT_TEXT='You have reached the AI limit: 30 uses an hour and 200 a day. Try again later.';
+/* Every AI feature is Pro only (is_pro). Same words as AI_PRO_MESSAGE and
+   AI_PRO_CHECK_MESSAGE in app/src/lib/api/edgeFunctionError.ts. */
+var AI_PRO_TEXT='AI features are part of Fibonax Pro.';
+var AI_PRO_CHECK_TEXT='Could not check your plan. Try again.';
 var PICTURE_ERRORS={
+  pro_required:AI_PRO_TEXT,
+  pro_check_failed:AI_PRO_CHECK_TEXT,
   rate_limited:AI_LIMIT_TEXT,
   invalid_picture:'That file is not a picture Fibonax can read.',
   picture_too_large:'That picture is too large to read. Try a smaller one.',
@@ -10792,6 +10798,8 @@ var ASK_MIN=3, ASK_MAX=1000;
 var PRO_SOON_LABEL='Available to Pro users soon';
 var ASK_AVAILABLE=false;
 var ASK_ERRORS={
+  pro_required:AI_PRO_TEXT,
+  pro_check_failed:AI_PRO_CHECK_TEXT,
   rate_limited:AI_LIMIT_TEXT,
   anthropic_not_configured:'FiboChat is not set up yet.',
   anthropic_request_failed:'The answer service did not respond. Try again.',

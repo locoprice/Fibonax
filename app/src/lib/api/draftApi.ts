@@ -1,5 +1,10 @@
 import { supabase } from '@/lib/supabase';
-import { AI_LIMIT_MESSAGE, readEdgeErrorCode } from '@/lib/api/edgeFunctionError';
+import {
+  AI_LIMIT_MESSAGE,
+  AI_PRO_CHECK_MESSAGE,
+  AI_PRO_MESSAGE,
+  readEdgeErrorCode,
+} from '@/lib/api/edgeFunctionError';
 import { parseDraftResponse, type DraftKind, type DraftResult } from '@/lib/aiDraft';
 
 // Draft with AI (AI-KNOWLEDGE P3).
@@ -16,6 +21,8 @@ const DRAFT_ERRORS: Record<string, string> = {
   draft_refused: 'The AI declined to draft from this text.',
   draft_empty: 'The AI found nothing to draft in this text.',
   draft_too_long: 'The updated text would be longer than one Brain item can hold.',
+  pro_check_failed: AI_PRO_CHECK_MESSAGE,
+  pro_required: AI_PRO_MESSAGE,
   rate_limited: AI_LIMIT_MESSAGE,
   target_not_found: "That item no longer exists, or you don't have access to it.",
   target_read_failed: 'Could not read that item. Try again.',

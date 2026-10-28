@@ -403,6 +403,16 @@ Deno.serve(async (req: Request) => {
   } = await userClient.auth.getUser();
   if (authError || !user) return json({ error: 'unauthorized' }, 401);
 
+  // ── Pro only (is_pro, 20261028150000_pro_plan.sql) ───────────────
+  // Every AI call is paid for by the Pro plan. Asked before anything else, so
+  // a free account learns why at once and nothing is read or parsed for it.
+  const { data: pro, error: proError } = await userClient.rpc('is_pro');
+  if (proError) {
+    console.error('draft-with-ai: Pro check failed', JSON.stringify({ code: proError.code ?? null }));
+    return json({ error: 'pro_check_failed' }, 503);
+  }
+  if (pro !== true) return json({ error: 'pro_required' }, 403);
+
   // ── Parse the request ────────────────────────────────────────────
   let payload: { kind?: unknown; text?: unknown; folders?: unknown; labels?: unknown; target_id?: unknown };
   try {
