@@ -53,6 +53,25 @@ const label = (LIB.match(/export const PRO_SOON_LABEL = '([^']+)'/) || [])[1];
 check('the dashboard label is "Available to Pro users soon"', label === 'Available to Pro users soon', String(label));
 check('the phone shows the same words', MOBILE.includes("var PRO_SOON_LABEL='" + label + "';"));
 
+// ── 1b. One answer to a free account ────────────────────────────────────────
+// The AI edge functions refuse an account that is not Pro (is_pro,
+// 20261028150000_pro_plan.sql). The dashboard and the phone say why in the
+// same words.
+const EDGE_ERRORS = read('app/src/lib/api/edgeFunctionError.ts');
+const proText = (EDGE_ERRORS.match(/export const AI_PRO_MESSAGE = '([^']+)'/) || [])[1];
+const proCheckText = (EDGE_ERRORS.match(/export const AI_PRO_CHECK_MESSAGE = '([^']+)'/) || [])[1];
+check('the phone says the same words as the dashboard to a free account',
+  Boolean(proText) && MOBILE.includes("var AI_PRO_TEXT='" + proText + "';")
+  && Boolean(proCheckText) && MOBILE.includes("var AI_PRO_CHECK_TEXT='" + proCheckText + "';"));
+check('the phone answers pro_required in Ask and in Read a picture', (MOBILE.match(/ {2}pro_required:AI_PRO_TEXT,/g) || []).length === 2);
+for (const fn of ['ask-sprintbrain', 'draft-with-ai', 'translate-body', 'suggest-labels', 'read-picture']) {
+  const source = read('services/supabase/functions/' + fn + '/index.ts');
+  const proAt = source.indexOf("userClient.rpc('is_pro')");
+  const limitAt = source.indexOf("userClient.rpc('ai_call_allow'");
+  check(fn + ' refuses a free account before it counts or calls the AI service',
+    proAt !== -1 && limitAt !== -1 && proAt < limitAt && source.includes("json({ error: 'pro_required' }, 403)"));
+}
+
 // ── 2. The phone's switch ──────────────────────────────────────────────────
 const phone = MOBILE.match(/var ASK_AVAILABLE=(true|false);/);
 check('the phone has an Ask switch', phone !== null);

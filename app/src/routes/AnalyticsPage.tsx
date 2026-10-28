@@ -122,22 +122,14 @@ export function AnalyticsPage() {
             showOverview={showOverview}
             onChangePrivate={changePrivate}
             onChangeOverview={changeOverview}
-          />
+          >
+            <ActivityOverviewSection data={activity} showPrivate={showPrivate} />
+            <ContributionActivity data={activity} showPrivate={showPrivate} />
+          </ActivityHeatmap>
         ) : (
           <div className="h-[260px] animate-pulse rounded-[16px] bg-card" />
         )}
       </div>
-
-      {activity && showOverview && (
-        <>
-          <div className="mt-6">
-            <ActivityOverviewSection data={activity} showPrivate={showPrivate} />
-          </div>
-          <div className="mt-6">
-            <ContributionActivity data={activity} showPrivate={showPrivate} />
-          </div>
-        </>
-      )}
 
       {/* Side by side only once a third of the row can hold the triggers
           table (321px of min-content). Below that they stack, which is why

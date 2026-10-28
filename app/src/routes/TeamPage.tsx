@@ -141,6 +141,7 @@ export function TeamPage() {
         id: folder.user_id,
         name: owner?.display_name ?? null,
         email: owner?.email ?? null,
+        avatar: owner?.avatar_url ?? null,
         highlight: folder.user_id === currentUserId,
       });
     }
@@ -151,6 +152,7 @@ export function TeamPage() {
         id: g.principal_id,
         name: m?.display_name ?? null,
         email: m?.email ?? null,
+        avatar: m?.avatar_url ?? null,
         highlight: g.principal_id === currentUserId,
       });
     }
@@ -277,24 +279,38 @@ function PeopleCard({
           Loading people…
         </p>
       ) : (
-        <ul className="divide-y divide-line">
+        // Faces first: a grid of tiles, each the person's photo (or initial),
+        // name, then role and email on one muted line. Three tiles share the
+        // width a single row used to take, so a team fits in a glance.
+        <ul className="grid grid-cols-2 gap-x-2 gap-y-1 p-3 xl:grid-cols-3 2xl:grid-cols-4">
           {members.map((m) => {
             const isYou = m.user_id === currentUserId;
             // The directory falls back to the email as the display name, so
-            // only a real name earns the email a line of its own.
+            // only a real name earns the email a place on the second line.
             const name = m.display_name.trim();
             const hasName = name !== '' && name.toLowerCase() !== m.email.toLowerCase();
             return (
-              <li key={m.user_id} className="flex items-center gap-3 px-5 py-3">
-                <Avatar name={m.display_name} email={m.email} highlight={isYou} size="md" />
+              <li key={m.user_id} className="flex min-w-0 items-center gap-3 rounded-[12px] px-2 py-2">
+                <Avatar
+                  src={m.avatar_url}
+                  name={m.display_name}
+                  email={m.email}
+                  highlight={isYou}
+                  size="lg"
+                />
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium text-ink">
                     {hasName ? name : m.email}
                     {isYou && <span className="font-normal text-ink-subtle"> (you)</span>}
                   </span>
-                  {hasName && <span className="truncate text-xs text-ink-subtle">{m.email}</span>}
+                  <span
+                    className="truncate text-xs text-ink-subtle"
+                    title={hasName ? m.email : undefined}
+                  >
+                    {ROLE_LABEL[m.role]}
+                    {hasName && ` · ${m.email}`}
+                  </span>
                 </span>
-                <span className="shrink-0 text-xs text-ink-muted">{ROLE_LABEL[m.role]}</span>
               </li>
             );
           })}

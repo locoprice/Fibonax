@@ -1,5 +1,10 @@
 import { supabase } from '@/lib/supabase';
-import { AI_LIMIT_MESSAGE, readEdgeErrorCode } from '@/lib/api/edgeFunctionError';
+import {
+  AI_LIMIT_MESSAGE,
+  AI_PRO_CHECK_MESSAGE,
+  AI_PRO_MESSAGE,
+  readEdgeErrorCode,
+} from '@/lib/api/edgeFunctionError';
 
 // Machine translation for a snippet body (TRANSLATE-001).
 //
@@ -39,6 +44,8 @@ const TRANSLATE_ERRORS: Record<string, string> = {
   translation_refused: 'This text could not be translated.',
   source_too_long: 'This body is too long to translate.',
   empty_source: 'There is no English text to translate.',
+  pro_check_failed: AI_PRO_CHECK_MESSAGE,
+  pro_required: AI_PRO_MESSAGE,
   rate_limited: AI_LIMIT_MESSAGE,
 };
 

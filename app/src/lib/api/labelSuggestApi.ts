@@ -1,5 +1,10 @@
 import { supabase } from '@/lib/supabase';
-import { AI_LIMIT_MESSAGE, readEdgeErrorCode } from '@/lib/api/edgeFunctionError';
+import {
+  AI_LIMIT_MESSAGE,
+  AI_PRO_CHECK_MESSAGE,
+  AI_PRO_MESSAGE,
+  readEdgeErrorCode,
+} from '@/lib/api/edgeFunctionError';
 import { reconcileSuggestions, type LabelSuggestion, type RawSuggestion } from '@/lib/labelSuggest';
 import type { Label } from '@/types/database';
 
@@ -42,6 +47,8 @@ export interface LabelSuggestApi {
 const SUGGEST_ERRORS: Record<string, string> = {
   anthropic_not_configured: 'AI suggestions are not configured yet.',
   anthropic_bad_output: 'The suggestion came back unreadable. Try again.',
+  pro_check_failed: AI_PRO_CHECK_MESSAGE,
+  pro_required: AI_PRO_MESSAGE,
   rate_limited: AI_LIMIT_MESSAGE,
 };
 
