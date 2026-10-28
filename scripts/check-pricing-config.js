@@ -30,6 +30,10 @@ const FORMAT = {
   fiboTokensPerSnippet: (v) => String(v),
   fiboTokensPerPrompt: (v) => String(v),
   fiboTokensPerBrain: (v) => String(v),
+  monthlyBonusPercent: (v) => `${v}%`,
+  fiboTokensPerMonthlyTopUp: (v) => v.toLocaleString('en-US'),
+  foundingDiscountPercent: (v) => `${v}%`,
+  foundingTopUpEuros: (v) => `€${v}`,
 };
 
 const problems = [];
@@ -52,6 +56,18 @@ const times = Array.from(html.matchAll(/<time datetime="([^"]+)">/g)).map((m) =>
 if (times.length === 0) problems.push('no <time datetime> for the deadline');
 for (const value of times) {
   if (value !== pricing.deadline) problems.push(`<time datetime="${value}"> differs from PRICING.deadline "${pricing.deadline}"`);
+}
+// The derived numbers must follow from the ones they come from, so a change
+// to the top-up, the rate, the bonus or the discount cannot leave one behind.
+const near = (a, b) => Math.abs(a - b) < 1e-9;
+if (!near(pricing.fiboTokensPerTopUp * pricing.euroPerFiboToken, pricing.topUpEuros)) {
+  problems.push('fiboTokensPerTopUp × euroPerFiboToken must equal topUpEuros');
+}
+if (pricing.fiboTokensPerMonthlyTopUp !== Math.round(pricing.fiboTokensPerTopUp * (1 + pricing.monthlyBonusPercent / 100))) {
+  problems.push('fiboTokensPerMonthlyTopUp must be fiboTokensPerTopUp plus monthlyBonusPercent');
+}
+if (!near(pricing.foundingTopUpEuros, pricing.topUpEuros * (1 - pricing.foundingDiscountPercent / 100))) {
+  problems.push('foundingTopUpEuros must be topUpEuros less foundingDiscountPercent');
 }
 if (Date.parse(pricing.closesFrom) - Date.parse(pricing.deadline) !== 1000) {
   problems.push('PRICING.closesFrom must be one second after PRICING.deadline');

@@ -1179,6 +1179,126 @@
   ],
   "pricingEntries": [
     {
+      "find": "Register by December 31, 2026 and keep the free daily allowance, <span",
+      "replace": "Regístrate antes del 31 de diciembre de 2026 y conserva la cuota diaria gratuita, <span",
+      "count": 1
+    },
+    {
+      "find": "</span> off every top-up and the rates reserved for founders, for as long as you have your account.",
+      "replace": "</span> de descuento en cada recarga y las tarifas reservadas a los fundadores, mientras tengas tu cuenta.",
+      "count": 1
+    },
+    {
+      "find": "</span> off every top-up, for life: <span",
+      "replace": "</span> de descuento en cada recarga, de por vida: <span",
+      "count": 1
+    },
+    {
+      "find": "</span> of FiboTokens for <span",
+      "replace": "</span> de FiboTokens por <span",
+      "count": 1
+    },
+    {
+      "find": "</span> more than a one-time top-up. Stop whenever you like.",
+      "replace": "</span> más que una recarga única. Déjalo cuando quieras.",
+      "count": 1
+    },
+    {
+      "find": ">2,750<",
+      "replace": ">2750<",
+      "count": 2
+    },
+    {
+      "find": "Top-ups open on January 1, 2027. Founding Members pay <span",
+      "replace": "Las recargas abren el 1 de enero de 2027. Los Founding Members pagan <span",
+      "count": 1
+    },
+    {
+      "find": "</span> for every <span",
+      "replace": "</span> por cada recarga de <span",
+      "count": 1
+    },
+    {
+      "find": "</span> top-up. Prices include VAT.",
+      "replace": "</span>. Precios con IVA incluido.",
+      "count": 1
+    },
+    {
+      "find": "</strong> added every month, with <span",
+      "replace": "</strong> añadidos cada mes, con un <span",
+      "count": 1
+    },
+    {
+      "find": "</span> more FiboTokens</span>",
+      "replace": "</span> más de FiboTokens</span>",
+      "count": 1
+    },
+    {
+      "find": "</span> off every top-up, for life</span>",
+      "replace": "</span> de descuento en cada recarga, de por vida</span>",
+      "count": 1
+    },
+    {
+      "find": "</strong> with monthly auto top-up<",
+      "replace": "</strong> con la recarga automática mensual<",
+      "count": 1
+    },
+    {
+      "find": "</strong> off every top-up, for life<",
+      "replace": "</strong> de descuento en cada recarga, de por vida<",
+      "count": 1
+    },
+    {
+      "find": "All prices include VAT. Top-ups open on January 1, 2027. The free allowance applies today.",
+      "replace": "Todos los precios incluyen IVA. Las recargas abren el 1 de enero de 2027. La cuota gratuita se aplica desde hoy.",
+      "count": 1
+    },
+    {
+      "find": "</strong> FiboTokens land in your account. Founding Members pay <span",
+      "replace": "</strong> FiboTokens llegan a tu cuenta. Los Founding Members pagan <span",
+      "count": 1
+    },
+    {
+      "find": "</span> for the same amount.",
+      "replace": "</span> por la misma cantidad.",
+      "count": 1
+    },
+    {
+      "find": "No. FiboTokens you buy never expire. They stay in your account until you use them.",
+      "replace": "No. Los FiboTokens que compras nunca caducan. Se quedan en tu cuenta hasta que los uses.",
+      "count": 1
+    },
+    {
+      "find": "Anyone who registers by December 31, 2026. Founding Members keep the free daily allowance for life, get <span",
+      "replace": "Quien se registra antes del 31 de diciembre de 2026. Los Founding Members conservan la cuota diaria gratuita de por vida, tienen un <span",
+      "count": 1
+    },
+    {
+      "find": "</span> off every top-up, also with monthly auto top-up, and the rates reserved for founders, under the terms.",
+      "replace": "</span> de descuento en cada recarga, también con la recarga automática mensual, y las tarifas reservadas a los fundadores, según las condiciones.",
+      "count": 1
+    },
+    {
+      "find": "Yes. Every price on this page includes VAT. What you see is what you pay.",
+      "replace": "Sí. Todos los precios de esta página incluyen IVA. Lo que ves es lo que pagas.",
+      "count": 1
+    },
+    {
+      "find": "What each use costs, and that FiboTokens never expire.",
+      "replace": "Cuánto cuesta cada uso, y que los FiboTokens nunca caducan.",
+      "count": 1
+    },
+    {
+      "find": "How lifetime price protection and the <span",
+      "replace": "Cómo funcionan el precio protegido de por vida y el descuento de fundador del <span",
+      "count": 1
+    },
+    {
+      "find": "</span> founding discount work.",
+      "replace": "</span>.",
+      "count": 1
+    },
+    {
       "find": "Pricing — Fibonax",
       "replace": "Precio — Fibonax",
       "count": 1
@@ -1259,11 +1379,6 @@
       "count": 1
     },
     {
-      "find": "Register by December 31, 2026 and keep the free daily allowance, a permanent discount on every top-up and the rates reserved for founders, for as long as you have your account.",
-      "replace": "Regístrate antes del 31 de diciembre de 2026 y conserva la cuota diaria gratuita, un descuento permanente en cada recarga y las tarifas reservadas a los fundadores, mientras tengas tu cuenta.",
-      "count": 1
-    },
-    {
       "find": "Get started free →",
       "replace": "Empieza gratis →",
       "count": 2
@@ -1334,11 +1449,6 @@
       "count": 1
     },
     {
-      "find": "A discount on every FiboToken top-up, for life. The percentage is announced before top-ups open.",
-      "replace": "Un descuento en cada recarga de FiboTokens, de por vida. El porcentaje se anuncia antes de que abran las recargas.",
-      "count": 1
-    },
-    {
       "find": "Lifetime price protection",
       "replace": "Precio protegido de por vida",
       "count": 1
@@ -1374,11 +1484,6 @@
       "count": 1
     },
     {
-      "find": "Bonus FiboTokens",
-      "replace": "FiboTokens extra",
-      "count": 1
-    },
-    {
       "find": "per month, stop any time",
       "replace": "al mes, déjalo cuando quieras",
       "count": 1
@@ -1386,16 +1491,6 @@
     {
       "find": "</span> added every month: <strong",
       "replace": "</span> añadidos cada mes: <strong",
-      "count": 1
-    },
-    {
-      "find": "</strong> FiboTokens plus bonus FiboTokens, announced before launch. Stop whenever you like.",
-      "replace": "</strong> FiboTokens más FiboTokens extra, anunciados antes del lanzamiento. Déjalo cuando quieras.",
-      "count": 1
-    },
-    {
-      "find": "</strong> added every month, with bonus FiboTokens on top",
-      "replace": "</strong> añadidos cada mes, con FiboTokens extra",
       "count": 1
     },
     {
@@ -1519,11 +1614,6 @@
       "count": 1
     },
     {
-      "find": "Top-ups open on January 1, 2027. Create your account now and your founding discount is ready when they do.",
-      "replace": "Las recargas abren el 1 de enero de 2027. Crea tu cuenta ahora y tu descuento de fundador estará listo ese día.",
-      "count": 1
-    },
-    {
       "find": "Top up in steps of <strong",
       "replace": "Recarga en tramos de <strong",
       "count": 1
@@ -1541,11 +1631,6 @@
     {
       "find": "Balance and history in your account",
       "replace": "Saldo e historial en tu cuenta",
-      "count": 1
-    },
-    {
-      "find": "Founding Members: a permanent discount on every top-up",
-      "replace": "Founding Members: un descuento permanente en cada recarga",
       "count": 1
     },
     {
@@ -1709,11 +1794,6 @@
       "count": 1
     },
     {
-      "find": "A permanent top-up discount",
-      "replace": "Un descuento permanente en recargas",
-      "count": 1
-    },
-    {
       "find": "Special conditions where they apply",
       "replace": "Condiciones especiales cuando apliquen",
       "count": 1
@@ -1736,11 +1816,6 @@
     {
       "find": "Shown before you subscribe",
       "replace": "Visible antes de suscribirte",
-      "count": 1
-    },
-    {
-      "find": "FiboToken values and rates are confirmed before top-ups open on January 1, 2027. The free allowance applies today.",
-      "replace": "El valor de los FiboTokens y las tarifas se confirman antes de que abran las recargas el 1 de enero de 2027. La cuota gratuita se aplica desde hoy.",
       "count": 1
     },
     {
@@ -1771,11 +1846,6 @@
     {
       "find": "</span> whenever you like and <strong",
       "replace": "</span> cuando quieras y <strong",
-      "count": 1
-    },
-    {
-      "find": "</strong> FiboTokens land in your account. Founding Members pay less for the same FiboTokens.",
-      "replace": "</strong> FiboTokens llegan a tu cuenta. Los Founding Members pagan menos por los mismos FiboTokens.",
       "count": 1
     },
     {
@@ -1844,11 +1914,6 @@
       "count": 1
     },
     {
-      "find": "The expiry policy is published with the terms before top-ups open. You will be able to read it before you buy.",
-      "replace": "La política de caducidad se publica con las condiciones antes de que abran las recargas. Podrás leerla antes de comprar.",
-      "count": 1
-    },
-    {
       "find": "Can I cancel or get a refund?",
       "replace": "¿Puedo cancelar o pedir un reembolso?",
       "count": 1
@@ -1864,18 +1929,8 @@
       "count": 1
     },
     {
-      "find": "Anyone who registers by December 31, 2026. Founding Members keep the free daily allowance for life, get a permanent discount on every top-up and the rates reserved for founders, under the terms.",
-      "replace": "Quien se registra antes del 31 de diciembre de 2026. Los Founding Members conservan la cuota diaria gratuita de por vida, tienen un descuento permanente en cada recarga y las tarifas reservadas a los fundadores, según las condiciones.",
-      "count": 1
-    },
-    {
       "find": "Is VAT included?",
       "replace": "¿El IVA está incluido?",
-      "count": 1
-    },
-    {
-      "find": "Whether VAT is included in the prices shown is stated clearly before top-ups open, together with the final rates.",
-      "replace": "Si el IVA está incluido en los precios mostrados se indica claramente antes de que abran las recargas, junto con las tarifas definitivas.",
       "count": 1
     },
     {
@@ -1944,18 +1999,8 @@
       "count": 1
     },
     {
-      "find": "What each use costs and when FiboTokens expire.",
-      "replace": "Cuánto cuesta cada uso y cuándo caducan los FiboTokens.",
-      "count": 1
-    },
-    {
       "find": "Who is a Founding Member and what they keep.",
       "replace": "Quién es Founding Member y qué conserva.",
-      "count": 1
-    },
-    {
-      "find": "How lifetime price protection and the permanent discount work.",
-      "replace": "Cómo funcionan el precio protegido de por vida y el descuento permanente.",
       "count": 1
     },
     {
@@ -2001,7 +2046,7 @@
     {
       "find": ">2,500<",
       "replace": ">2500<",
-      "count": 5
+      "count": 4
     },
     {
       "find": "Exchange rate",

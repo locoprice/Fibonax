@@ -521,7 +521,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <div>
       <span class="founding-badge" data-closed="Founding Members enrollment has closed">Founding Members enrollment closes</span>
       <h2 id="founding-title" data-closed="Founding Members are in.">Your founding benefits start here</h2>
-      <p data-closed="Anyone who registered by December 31, 2026 keeps their founding benefits for life. New accounts start with the free daily allowance and pay only for what they use beyond it.">Register by December 31, 2026 and keep the free daily allowance, a permanent discount on every top-up and the rates reserved for founders, for as long as you have your account.</p>
+      <p data-closed="Anyone who registered by December 31, 2026 keeps their founding benefits for life. New accounts start with the free daily allowance and pay only for what they use beyond it.">Register by December 31, 2026 and keep the free daily allowance, <span data-pricing="foundingDiscountPercent">20%</span> off every top-up and the rates reserved for founders, for as long as you have your account.</p>
       <a class="btn btn-primary" href="https://app.fibonax.com/signup" data-closed="Get started free →">Register before the deadline →</a>
     </div>
     <div>
@@ -537,7 +537,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     </div>
     <div class="founding-benefits">
       <div><h3>Permanent free plan</h3><p>15 snippets, 10 prompts and 5 Brains every day, for life.</p></div>
-      <div><h3>Permanent top-up discount</h3><p>A discount on every FiboToken top-up, for life. The percentage is announced before top-ups open.</p></div>
+      <div><h3>Permanent top-up discount</h3><p><span data-pricing="foundingDiscountPercent">20%</span> off every top-up, for life: <span data-pricing="topUpEuros">€25</span> of FiboTokens for <span data-pricing="foundingTopUpEuros">€20</span>.</p></div>
       <div><h3>Lifetime price protection</h3><p>Rates reserved for founders, under the terms you can read before you register.</p></div>
     </div>
   </section>
@@ -548,7 +548,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <div class="topup-row">
       <div class="topup" role="group" aria-label="Top-up method">
         <button type="button" class="topup-option" data-topup="once" aria-pressed="true">One-time top-up</button>
-        <button type="button" class="topup-option" data-topup="monthly" aria-pressed="false">Monthly auto top-up <span class="topup-bonus">Bonus FiboTokens</span></button>
+        <button type="button" class="topup-option" data-topup="monthly" aria-pressed="false">Monthly auto top-up <span class="topup-bonus">+<span data-pricing="monthlyBonusPercent">10%</span> FiboTokens</span></button>
       </div>
     </div>
     <div class="plan-grid">
@@ -572,16 +572,16 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <h3 class="plan-name" id="plan-payg"><span class="topup-once">FiboTokens, bought once</span><span class="topup-monthly">FiboTokens, added every month</span></h3>
         <p class="plan-price"><span class="plan-amount"><span data-pricing="topUpEuros">€25</span></span><span class="plan-per topup-once">per top-up</span><span class="plan-per topup-monthly">per month, stop any time</span></p>
         <p class="plan-tagline topup-once">Top up <span data-pricing="topUpEuros">€25</span> and get <strong data-pricing="fiboTokensPerTopUp">2,500</strong> FiboTokens. Spend them only when your free daily allowance is used up. Nothing recurring.</p>
-        <p class="plan-tagline topup-monthly"><span data-pricing="topUpEuros">€25</span> added every month: <strong data-pricing="fiboTokensPerTopUp">2,500</strong> FiboTokens plus bonus FiboTokens, announced before launch. Stop whenever you like.</p>
+        <p class="plan-tagline topup-monthly"><span data-pricing="topUpEuros">€25</span> added every month: <strong data-pricing="fiboTokensPerMonthlyTopUp">2,750</strong> FiboTokens, <span data-pricing="monthlyBonusPercent">10%</span> more than a one-time top-up. Stop whenever you like.</p>
         <a class="btn btn-primary plan-cta" href="https://app.fibonax.com/signup">Buy FiboTokens</a>
-        <p class="plan-note">Top-ups open on January 1, 2027. Create your account now and your founding discount is ready when they do.</p>
+        <p class="plan-note">Top-ups open on January 1, 2027. Founding Members pay <span data-pricing="foundingTopUpEuros">€20</span> for every <span data-pricing="topUpEuros">€25</span> top-up. Prices include VAT.</p>
         <ul class="plan-list">
           <li class="topup-once"><span>Top up in steps of <strong data-pricing="topUpEuros">€25</strong>, as often as you like</span></li>
-          <li class="topup-monthly"><span><strong data-pricing="topUpEuros">€25</strong> added every month, with bonus FiboTokens on top</span></li>
+          <li class="topup-monthly"><span><strong data-pricing="topUpEuros">€25</strong> added every month, with <span data-pricing="monthlyBonusPercent">10%</span> more FiboTokens</span></li>
           <li><span>1 FiboToken = <strong data-pricing="euroPerFiboToken">€0.01</strong></span></li>
           <li><span>One FiboToken for every use, whatever it is</span></li>
           <li><span>Balance and history in your account</span></li>
-          <li><span>Founding Members: a permanent discount on every top-up</span></li>
+          <li><span>Founding Members: <span data-pricing="foundingDiscountPercent">20%</span> off every top-up, for life</span></li>
         </ul>
       </article>
       <article class="plan" aria-labelledby="plan-monthly">
@@ -616,15 +616,15 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <tbody>
         <tr><th scope="row">Price</th><td data-label="Free"><strong>€0</strong></td><td data-label="Pay as you go"><strong>From <span data-pricing="topUpEuros">€25</span> per top-up</strong></td><td data-label="Monthly subscription">Announced before launch</td></tr>
         <tr><th scope="row">Recurring payment</th><td data-label="Free">No</td><td data-label="Pay as you go">Only with monthly auto top-up, and you can stop any time</td><td data-label="Monthly subscription">Yes, monthly</td></tr>
-        <tr><th scope="row">Purchased FiboTokens</th><td data-label="Free">No</td><td data-label="Pay as you go"><strong data-pricing="fiboTokensPerTopUp">2,500</strong> for every <span data-pricing="topUpEuros">€25</span></td><td data-label="Monthly subscription">Included in the plan</td></tr>
+        <tr><th scope="row">Purchased FiboTokens</th><td data-label="Free">No</td><td data-label="Pay as you go"><strong data-pricing="fiboTokensPerTopUp">2,500</strong> for every <span data-pricing="topUpEuros">€25</span>, <strong data-pricing="fiboTokensPerMonthlyTopUp">2,750</strong> with monthly auto top-up</td><td data-label="Monthly subscription">Included in the plan</td></tr>
         <tr><th scope="row">Free daily allowance</th><td data-label="Free"><strong data-pricing="freeSnippetsPerDay">15</strong> snippets, <strong data-pricing="freePromptsPerDay">10</strong> prompts, <strong data-pricing="freeBrainsPerDay">5</strong> Brains</td><td data-label="Pay as you go">Your free allowance first, then FiboTokens</td><td data-label="Monthly subscription">Your free allowance first, then the plan</td></tr>
         <tr><th scope="row">Cost per use</th><td data-label="Free">Nothing within the allowance</td><td data-label="Pay as you go"><strong data-pricing="fiboTokensPerSnippet">1</strong> FiboToken per snippet, <strong data-pricing="fiboTokensPerPrompt">1</strong> per prompt, <strong data-pricing="fiboTokensPerBrain">1</strong> per Brain</td><td data-label="Monthly subscription">Announced before launch</td></tr>
-        <tr><th scope="row">Founding Member benefit</th><td data-label="Free">The free allowance, for life</td><td data-label="Pay as you go">A permanent top-up discount</td><td data-label="Monthly subscription">Special conditions where they apply</td></tr>
+        <tr><th scope="row">Founding Member benefit</th><td data-label="Free">The free allowance, for life</td><td data-label="Pay as you go"><strong data-pricing="foundingDiscountPercent">20%</strong> off every top-up, for life</td><td data-label="Monthly subscription">Special conditions where they apply</td></tr>
         <tr><th scope="row">Cancellation</th><td data-label="Free">Nothing to cancel</td><td data-label="Pay as you go">Nothing to cancel: you bought once</td><td data-label="Monthly subscription">Shown before you subscribe</td></tr>
       </tbody>
     </table>
     </div>
-    <p class="pr-note">FiboToken values and rates are confirmed before top-ups open on January 1, 2027. The free allowance applies today.</p>
+    <p class="pr-note">All prices include VAT. Top-ups open on January 1, 2027. The free allowance applies today.</p>
     </div>
   </section>
 
@@ -635,7 +635,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <article class="step">
         <span class="step-number" aria-hidden="true">1</span>
         <h3>Top up</h3>
-        <p>Add <span data-pricing="topUpEuros">€25</span> whenever you like and <strong data-pricing="fiboTokensPerTopUp">2,500</strong> FiboTokens land in your account. Founding Members pay less for the same FiboTokens.</p>
+        <p>Add <span data-pricing="topUpEuros">€25</span> whenever you like and <strong data-pricing="fiboTokensPerTopUp">2,500</strong> FiboTokens land in your account. Founding Members pay <span data-pricing="foundingTopUpEuros">€20</span> for the same amount.</p>
       </article>
       <article class="step">
         <span class="step-number" aria-hidden="true">2</span>
@@ -660,10 +660,10 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <div class="pr-faq">
       <details><summary>What counts as a use?</summary><p>Expanding a snippet, expanding a prompt or adding a Brain to a chat. Writing, editing and organising your library never costs anything.</p></details>
       <details><summary>What happens when I reach the daily allowance?</summary><p>You can keep writing and organising. Expanding resumes the next day, or straight away if you have FiboTokens.</p></details>
-      <details><summary>Do FiboTokens expire?</summary><p>The expiry policy is published with the terms before top-ups open. You will be able to read it before you buy.</p></details>
+      <details><summary>Do FiboTokens expire?</summary><p>No. FiboTokens you buy never expire. They stay in your account until you use them.</p></details>
       <details><summary>Can I cancel or get a refund?</summary><p>A top-up is a one-time purchase, so there is nothing to cancel. Monthly plans will show their renewal, cancellation and refund rules before you subscribe.</p></details>
-      <details><summary>What does Founding Member mean?</summary><p>Anyone who registers by December 31, 2026. Founding Members keep the free daily allowance for life, get a permanent discount on every top-up and the rates reserved for founders, under the terms.</p></details>
-      <details><summary>Is VAT included?</summary><p>Whether VAT is included in the prices shown is stated clearly before top-ups open, together with the final rates.</p></details>
+      <details><summary>What does Founding Member mean?</summary><p>Anyone who registers by December 31, 2026. Founding Members keep the free daily allowance for life, get <span data-pricing="foundingDiscountPercent">20%</span> off every top-up, also with monthly auto top-up, and the rates reserved for founders, under the terms.</p></details>
+      <details><summary>Is VAT included?</summary><p>Yes. Every price on this page includes VAT. What you see is what you pay.</p></details>
     </div>
   </section>
 
@@ -706,9 +706,9 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <ul>
         <li>The free plan and its daily allowance.</li>
         <li>Top-up prices and what a FiboToken is worth.</li>
-        <li>What each use costs and when FiboTokens expire.</li>
+        <li>What each use costs, and that FiboTokens never expire.</li>
         <li>Who is a Founding Member and what they keep.</li>
-        <li>How lifetime price protection and the permanent discount work.</li>
+        <li>How lifetime price protection and the <span data-pricing="foundingDiscountPercent">20%</span> founding discount work.</li>
         <li>Renewal, cancellation and refunds for monthly plans.</li>
         <li>How your personal data is handled.</li>
       </ul>
@@ -949,6 +949,10 @@ var PRICING = {
   fiboTokensPerSnippet: 1,
   fiboTokensPerPrompt: 1,
   fiboTokensPerBrain: 1,
+  monthlyBonusPercent: 10,
+  fiboTokensPerMonthlyTopUp: 2750,
+  foundingDiscountPercent: 20,
+  foundingTopUpEuros: 20,
   // Madrid is UTC+01:00 at this winter deadline, whatever the visitor's zone.
   deadline: '2026-12-31T23:59:59+01:00',
   closesFrom: '2027-01-01T00:00:00+01:00'

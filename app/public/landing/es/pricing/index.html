@@ -521,7 +521,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <div>
       <span class="founding-badge" data-closed="La inscripción como Founding Member se ha cerrado">La inscripción como Founding Member se cierra</span>
       <h2 id="founding-title" data-closed="Los Founding Members ya están dentro.">Tus ventajas de fundador empiezan aquí</h2>
-      <p data-closed="Quien se registró antes del 31 de diciembre de 2026 conserva sus ventajas de fundador de por vida. Las cuentas nuevas empiezan con la cuota diaria gratuita y pagan solo lo que usan más allá.">Regístrate antes del 31 de diciembre de 2026 y conserva la cuota diaria gratuita, un descuento permanente en cada recarga y las tarifas reservadas a los fundadores, mientras tengas tu cuenta.</p>
+      <p data-closed="Quien se registró antes del 31 de diciembre de 2026 conserva sus ventajas de fundador de por vida. Las cuentas nuevas empiezan con la cuota diaria gratuita y pagan solo lo que usan más allá.">Regístrate antes del 31 de diciembre de 2026 y conserva la cuota diaria gratuita, <span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada recarga y las tarifas reservadas a los fundadores, mientras tengas tu cuenta.</p>
       <a class="btn btn-primary" href="https://app.fibonax.com/signup" data-closed="Empieza gratis →">Regístrate antes de la fecha límite →</a>
     </div>
     <div>
@@ -537,7 +537,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     </div>
     <div class="founding-benefits">
       <div><h3>Plan gratuito permanente</h3><p>15 snippets, 10 prompts y 5 Brains cada día, de por vida.</p></div>
-      <div><h3>Descuento permanente en recargas</h3><p>Un descuento en cada recarga de FiboTokens, de por vida. El porcentaje se anuncia antes de que abran las recargas.</p></div>
+      <div><h3>Descuento permanente en recargas</h3><p><span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada recarga, de por vida: <span data-pricing="topUpEuros">€25</span> de FiboTokens por <span data-pricing="foundingTopUpEuros">€20</span>.</p></div>
       <div><h3>Precio protegido de por vida</h3><p>Tarifas reservadas a los fundadores, según las condiciones que puedes leer antes de registrarte.</p></div>
     </div>
   </section>
@@ -548,7 +548,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <div class="topup-row">
       <div class="topup" role="group" aria-label="Método de recarga">
         <button type="button" class="topup-option" data-topup="once" aria-pressed="true">Recarga única</button>
-        <button type="button" class="topup-option" data-topup="monthly" aria-pressed="false">Recarga automática mensual <span class="topup-bonus">FiboTokens extra</span></button>
+        <button type="button" class="topup-option" data-topup="monthly" aria-pressed="false">Recarga automática mensual <span class="topup-bonus">+<span data-pricing="monthlyBonusPercent">10%</span> FiboTokens</span></button>
       </div>
     </div>
     <div class="plan-grid">
@@ -572,16 +572,16 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <h3 class="plan-name" id="plan-payg"><span class="topup-once">FiboTokens, comprados una vez</span><span class="topup-monthly">FiboTokens, añadidos cada mes</span></h3>
         <p class="plan-price"><span class="plan-amount"><span data-pricing="topUpEuros">€25</span></span><span class="plan-per topup-once">por recarga</span><span class="plan-per topup-monthly">al mes, déjalo cuando quieras</span></p>
         <p class="plan-tagline topup-once">Recarga <span data-pricing="topUpEuros">€25</span> y recibe <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens. Los gastas solo cuando se agota tu cuota diaria gratuita. Nada recurrente.</p>
-        <p class="plan-tagline topup-monthly"><span data-pricing="topUpEuros">€25</span> añadidos cada mes: <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens más FiboTokens extra, anunciados antes del lanzamiento. Déjalo cuando quieras.</p>
+        <p class="plan-tagline topup-monthly"><span data-pricing="topUpEuros">€25</span> añadidos cada mes: <strong data-pricing="fiboTokensPerMonthlyTopUp">2750</strong> FiboTokens, <span data-pricing="monthlyBonusPercent">10%</span> más que una recarga única. Déjalo cuando quieras.</p>
         <a class="btn btn-primary plan-cta" href="https://app.fibonax.com/signup">Comprar FiboTokens</a>
-        <p class="plan-note">Las recargas abren el 1 de enero de 2027. Crea tu cuenta ahora y tu descuento de fundador estará listo ese día.</p>
+        <p class="plan-note">Las recargas abren el 1 de enero de 2027. Los Founding Members pagan <span data-pricing="foundingTopUpEuros">€20</span> por cada recarga de <span data-pricing="topUpEuros">€25</span>. Precios con IVA incluido.</p>
         <ul class="plan-list">
           <li class="topup-once"><span>Recarga en tramos de <strong data-pricing="topUpEuros">€25</strong>, tantas veces como quieras</span></li>
-          <li class="topup-monthly"><span><strong data-pricing="topUpEuros">€25</strong> añadidos cada mes, con FiboTokens extra</span></li>
+          <li class="topup-monthly"><span><strong data-pricing="topUpEuros">€25</strong> añadidos cada mes, con un <span data-pricing="monthlyBonusPercent">10%</span> más de FiboTokens</span></li>
           <li><span>1 FiboToken = <strong data-pricing="euroPerFiboToken">€0.01</strong></span></li>
           <li><span>Un FiboToken por cada uso, sea cual sea</span></li>
           <li><span>Saldo e historial en tu cuenta</span></li>
-          <li><span>Founding Members: un descuento permanente en cada recarga</span></li>
+          <li><span>Founding Members: <span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada recarga, de por vida</span></li>
         </ul>
       </article>
       <article class="plan" aria-labelledby="plan-monthly">
@@ -616,15 +616,15 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <tbody>
         <tr><th scope="row">Precio</th><td data-label="Gratis"><strong>€0</strong></td><td data-label="Pago por uso"><strong>Desde <span data-pricing="topUpEuros">€25</span> por recarga</strong></td><td data-label="Suscripción mensual">Se anuncia antes del lanzamiento</td></tr>
         <tr><th scope="row">Pago recurrente</th><td data-label="Gratis">No</td><td data-label="Pago por uso">Solo con la recarga automática mensual, y puedes dejarla cuando quieras</td><td data-label="Suscripción mensual">Sí, cada mes</td></tr>
-        <tr><th scope="row">FiboTokens comprados</th><td data-label="Gratis">No</td><td data-label="Pago por uso"><strong data-pricing="fiboTokensPerTopUp">2500</strong> por cada <span data-pricing="topUpEuros">€25</span></td><td data-label="Suscripción mensual">Incluidos en el plan</td></tr>
+        <tr><th scope="row">FiboTokens comprados</th><td data-label="Gratis">No</td><td data-label="Pago por uso"><strong data-pricing="fiboTokensPerTopUp">2500</strong> por cada <span data-pricing="topUpEuros">€25</span>, <strong data-pricing="fiboTokensPerMonthlyTopUp">2750</strong> con la recarga automática mensual</td><td data-label="Suscripción mensual">Incluidos en el plan</td></tr>
         <tr><th scope="row">Cuota diaria gratuita</th><td data-label="Gratis"><strong data-pricing="freeSnippetsPerDay">15</strong> snippets, <strong data-pricing="freePromptsPerDay">10</strong> prompts, <strong data-pricing="freeBrainsPerDay">5</strong> Brains</td><td data-label="Pago por uso">Primero tu cuota gratuita, luego los FiboTokens</td><td data-label="Suscripción mensual">Primero tu cuota gratuita, luego el plan</td></tr>
         <tr><th scope="row">Coste por uso</th><td data-label="Gratis">Nada dentro de la cuota</td><td data-label="Pago por uso"><strong data-pricing="fiboTokensPerSnippet">1</strong> FiboToken por snippet, <strong data-pricing="fiboTokensPerPrompt">1</strong> por prompt, <strong data-pricing="fiboTokensPerBrain">1</strong> por Brain</td><td data-label="Suscripción mensual">Se anuncia antes del lanzamiento</td></tr>
-        <tr><th scope="row">Ventaja Founding Member</th><td data-label="Gratis">La cuota gratuita, de por vida</td><td data-label="Pago por uso">Un descuento permanente en recargas</td><td data-label="Suscripción mensual">Condiciones especiales cuando apliquen</td></tr>
+        <tr><th scope="row">Ventaja Founding Member</th><td data-label="Gratis">La cuota gratuita, de por vida</td><td data-label="Pago por uso"><strong data-pricing="foundingDiscountPercent">20%</strong> de descuento en cada recarga, de por vida</td><td data-label="Suscripción mensual">Condiciones especiales cuando apliquen</td></tr>
         <tr><th scope="row">Cancelación</th><td data-label="Gratis">Nada que cancelar</td><td data-label="Pago por uso">Nada que cancelar: compraste una vez</td><td data-label="Suscripción mensual">Visible antes de suscribirte</td></tr>
       </tbody>
     </table>
     </div>
-    <p class="pr-note">El valor de los FiboTokens y las tarifas se confirman antes de que abran las recargas el 1 de enero de 2027. La cuota gratuita se aplica desde hoy.</p>
+    <p class="pr-note">Todos los precios incluyen IVA. Las recargas abren el 1 de enero de 2027. La cuota gratuita se aplica desde hoy.</p>
     </div>
   </section>
 
@@ -635,7 +635,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <article class="step">
         <span class="step-number" aria-hidden="true">1</span>
         <h3>Recarga</h3>
-        <p>Añade <span data-pricing="topUpEuros">€25</span> cuando quieras y <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens llegan a tu cuenta. Los Founding Members pagan menos por los mismos FiboTokens.</p>
+        <p>Añade <span data-pricing="topUpEuros">€25</span> cuando quieras y <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens llegan a tu cuenta. Los Founding Members pagan <span data-pricing="foundingTopUpEuros">€20</span> por la misma cantidad.</p>
       </article>
       <article class="step">
         <span class="step-number" aria-hidden="true">2</span>
@@ -660,10 +660,10 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <div class="pr-faq">
       <details><summary>¿Qué cuenta como uso?</summary><p>Expandir un snippet, expandir un prompt o añadir un Brain a un chat. Escribir, editar y organizar tu biblioteca nunca cuesta nada.</p></details>
       <details><summary>¿Qué pasa cuando llego a la cuota diaria?</summary><p>Puedes seguir escribiendo y organizando. Las expansiones se reanudan al día siguiente, o al momento si tienes FiboTokens.</p></details>
-      <details><summary>¿Caducan los FiboTokens?</summary><p>La política de caducidad se publica con las condiciones antes de que abran las recargas. Podrás leerla antes de comprar.</p></details>
+      <details><summary>¿Caducan los FiboTokens?</summary><p>No. Los FiboTokens que compras nunca caducan. Se quedan en tu cuenta hasta que los uses.</p></details>
       <details><summary>¿Puedo cancelar o pedir un reembolso?</summary><p>Una recarga es una compra única, así que no hay nada que cancelar. Los planes mensuales mostrarán sus reglas de renovación, cancelación y reembolso antes de suscribirte.</p></details>
-      <details><summary>¿Qué significa Founding Member?</summary><p>Quien se registra antes del 31 de diciembre de 2026. Los Founding Members conservan la cuota diaria gratuita de por vida, tienen un descuento permanente en cada recarga y las tarifas reservadas a los fundadores, según las condiciones.</p></details>
-      <details><summary>¿El IVA está incluido?</summary><p>Si el IVA está incluido en los precios mostrados se indica claramente antes de que abran las recargas, junto con las tarifas definitivas.</p></details>
+      <details><summary>¿Qué significa Founding Member?</summary><p>Quien se registra antes del 31 de diciembre de 2026. Los Founding Members conservan la cuota diaria gratuita de por vida, tienen un <span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada recarga, también con la recarga automática mensual, y las tarifas reservadas a los fundadores, según las condiciones.</p></details>
+      <details><summary>¿El IVA está incluido?</summary><p>Sí. Todos los precios de esta página incluyen IVA. Lo que ves es lo que pagas.</p></details>
     </div>
   </section>
 
@@ -706,9 +706,9 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <ul>
         <li>El plan gratuito y su cuota diaria.</li>
         <li>Los precios de las recargas y el valor de un FiboToken.</li>
-        <li>Cuánto cuesta cada uso y cuándo caducan los FiboTokens.</li>
+        <li>Cuánto cuesta cada uso, y que los FiboTokens nunca caducan.</li>
         <li>Quién es Founding Member y qué conserva.</li>
-        <li>Cómo funcionan el precio protegido de por vida y el descuento permanente.</li>
+        <li>Cómo funcionan el precio protegido de por vida y el descuento de fundador del <span data-pricing="foundingDiscountPercent">20%</span>.</li>
         <li>Renovación, cancelación y reembolsos de los planes mensuales.</li>
         <li>Cómo se tratan tus datos personales.</li>
       </ul>
@@ -949,6 +949,10 @@ var PRICING = {
   fiboTokensPerSnippet: 1,
   fiboTokensPerPrompt: 1,
   fiboTokensPerBrain: 1,
+  monthlyBonusPercent: 10,
+  fiboTokensPerMonthlyTopUp: 2750,
+  foundingDiscountPercent: 20,
+  foundingTopUpEuros: 20,
   // Madrid is UTC+01:00 at this winter deadline, whatever the visitor's zone.
   deadline: '2026-12-31T23:59:59+01:00',
   closesFrom: '2027-01-01T00:00:00+01:00'
