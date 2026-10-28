@@ -1184,8 +1184,8 @@
       "count": 1
     },
     {
-      "find": "Fibonax is free every day: 15 snippets, 10 prompts and 5 Brains. Beyond that, credits you buy once and spend as you go. No subscription. Founding Members who join by December 31, 2026 keep their benefits for life.",
-      "replace": "Fibonax es gratis cada día: 15 snippets, 10 prompts y 5 Brains. Más allá, créditos que compras una vez y gastas cuando los necesitas. Sin suscripción. Los Founding Members que se registren antes del 31 de diciembre de 2026 conservan sus ventajas de por vida.",
+      "find": "Fibonax is free every day: 15 snippets, 10 prompts and 5 Brains. Beyond that, FiboTokens you buy once and spend as you go. No subscription. Founding Members who join by December 31, 2026 keep their benefits for life.",
+      "replace": "Fibonax es gratis cada día: 15 snippets, 10 prompts y 5 Brains. Más allá, FiboTokens que compras una vez y gastas cuando los necesitas. Sin suscripción. Los Founding Members que se registren antes del 31 de diciembre de 2026 conservan sus ventajas de por vida.",
       "count": 1
     },
     {
@@ -1199,13 +1199,13 @@
       "count": 1
     },
     {
-      "find": "Free every day. <span>Credits</span> when you need more.",
-      "replace": "Gratis cada día. <span>Créditos</span> cuando necesitas más.",
+      "find": "Free every day. <span>FiboTokens</span> when you need more.",
+      "replace": "Gratis cada día. <span>FiboTokens</span> cuando necesitas más.",
       "count": 1
     },
     {
-      "find": "Every day you get 15 snippets, 10 prompts and 5 Brains for free. Beyond that, credits you buy once and spend as you go. No subscription.",
-      "replace": "Cada día tienes 15 snippets, 10 prompts y 5 Brains gratis. Más allá, créditos que compras una vez y gastas cuando los necesitas. Sin suscripción.",
+      "find": "Every day you get 15 snippets, 10 prompts and 5 Brains for free. Beyond that, FiboTokens you buy once and spend as you go. No subscription.",
+      "replace": "Cada día tienes 15 snippets, 10 prompts y 5 Brains gratis. Más allá, FiboTokens que compras una vez y gastas cuando los necesitas. Sin suscripción.",
       "count": 1
     },
     {
@@ -1334,8 +1334,8 @@
       "count": 1
     },
     {
-      "find": "A discount on every credit top-up, for life. The percentage is announced before top-ups open.",
-      "replace": "Un descuento en cada recarga de créditos, de por vida. El porcentaje se anuncia antes de que abran las recargas.",
+      "find": "A discount on every FiboToken top-up, for life. The percentage is announced before top-ups open.",
+      "replace": "Un descuento en cada recarga de FiboTokens, de por vida. El porcentaje se anuncia antes de que abran las recargas.",
       "count": 1
     },
     {
@@ -1354,8 +1354,8 @@
       "count": 1
     },
     {
-      "find": "Start free. Buy credits once when you need more, or have them added every month. A monthly plan comes later for people who prefer one fixed price.",
-      "replace": "Empieza gratis. Compra créditos una vez cuando necesites más, o recíbelos cada mes. Más adelante llegará un plan mensual para quien prefiera un precio fijo.",
+      "find": "Start free. Buy FiboTokens once when you need more, or have them added every month. A monthly plan comes later for people who prefer one fixed price.",
+      "replace": "Empieza gratis. Compra FiboTokens una vez cuando necesites más, o recíbelos cada mes. Más adelante llegará un plan mensual para quien prefiera un precio fijo.",
       "count": 1
     },
     {
@@ -1374,8 +1374,8 @@
       "count": 1
     },
     {
-      "find": "Bonus credits",
-      "replace": "Créditos extra",
+      "find": "Bonus FiboTokens",
+      "replace": "FiboTokens extra",
       "count": 1
     },
     {
@@ -1389,13 +1389,13 @@
       "count": 1
     },
     {
-      "find": "</strong> credits plus bonus credits, announced before launch. Stop whenever you like.",
-      "replace": "</strong> créditos más créditos extra, anunciados antes del lanzamiento. Déjalo cuando quieras.",
+      "find": "</strong> FiboTokens plus bonus FiboTokens, announced before launch. Stop whenever you like.",
+      "replace": "</strong> FiboTokens más FiboTokens extra, anunciados antes del lanzamiento. Déjalo cuando quieras.",
       "count": 1
     },
     {
-      "find": "</strong> added every month, with bonus credits on top",
-      "replace": "</strong> añadidos cada mes, con créditos extra",
+      "find": "</strong> added every month, with bonus FiboTokens on top",
+      "replace": "</strong> añadidos cada mes, con FiboTokens extra",
       "count": 1
     },
     {
@@ -1484,13 +1484,13 @@
       "count": 2
     },
     {
-      "find": "Credits, bought once",
-      "replace": "Créditos, comprados una vez",
+      "find": "FiboTokens, bought once",
+      "replace": "FiboTokens, comprados una vez",
       "count": 1
     },
     {
-      "find": "Credits, added every month",
-      "replace": "Créditos, añadidos cada mes",
+      "find": "FiboTokens, added every month",
+      "replace": "FiboTokens, añadidos cada mes",
       "count": 1
     },
     {
@@ -1499,8 +1499,8 @@
       "count": 2
     },
     {
-      "find": "credits. Spend them only when your free daily allowance is used up. Nothing recurring.",
-      "replace": "créditos. Los gastas solo cuando se agota tu cuota diaria gratuita. Nada recurrente.",
+      "find": "FiboTokens. Spend them only when your free daily allowance is used up. Nothing recurring.",
+      "replace": "FiboTokens. Los gastas solo cuando se agota tu cuota diaria gratuita. Nada recurrente.",
       "count": 1
     },
     {
@@ -1514,8 +1514,8 @@
       "count": 1
     },
     {
-      "find": ">Buy credits<",
-      "replace": ">Comprar créditos<",
+      "find": ">Buy FiboTokens<",
+      "replace": ">Comprar FiboTokens<",
       "count": 1
     },
     {
@@ -1534,13 +1534,8 @@
       "count": 1
     },
     {
-      "find": "1 credit = <strong",
-      "replace": "1 crédito = <strong",
-      "count": 1
-    },
-    {
-      "find": "A fixed credit cost for every use",
-      "replace": "Un coste fijo en créditos por cada uso",
+      "find": "A fixed FiboToken price for every use",
+      "replace": "Un precio fijo en FiboTokens por cada uso",
       "count": 1
     },
     {
@@ -1574,8 +1569,8 @@
       "count": 1
     },
     {
-      "find": "For people who prefer one monthly price with credits included. Plans and prices are announced before they open.",
-      "replace": "Para quien prefiere un precio mensual con créditos incluidos. Los planes y precios se anuncian antes de abrir.",
+      "find": "For people who prefer one monthly price with FiboTokens included. Plans and prices are announced before they open.",
+      "replace": "Para quien prefiere un precio mensual con FiboTokens incluidos. Los planes y precios se anuncian antes de abrir.",
       "count": 1
     },
     {
@@ -1589,8 +1584,8 @@
       "count": 1
     },
     {
-      "find": "Credits included every month",
-      "replace": "Créditos incluidos cada mes",
+      "find": "FiboTokens included every month",
+      "replace": "FiboTokens incluidos cada mes",
       "count": 1
     },
     {
@@ -1609,8 +1604,8 @@
       "count": 1
     },
     {
-      "find": "The free allowance comes first on every option. Credits and plans only cover what you use beyond it.",
-      "replace": "La cuota gratuita va primero en todas las opciones. Los créditos y planes solo cubren lo que usas más allá.",
+      "find": "The free allowance comes first on every option. FiboTokens and plans only cover what you use beyond it.",
+      "replace": "La cuota gratuita va primero en todas las opciones. Los FiboTokens y planes solo cubren lo que usas más allá.",
       "count": 1
     },
     {
@@ -1649,8 +1644,8 @@
       "count": 1
     },
     {
-      "find": "Purchased credits",
-      "replace": "Créditos comprados",
+      "find": "Purchased FiboTokens",
+      "replace": "FiboTokens comprados",
       "count": 1
     },
     {
@@ -1669,8 +1664,8 @@
       "count": 1
     },
     {
-      "find": "Your free allowance first, then credits",
-      "replace": "Primero tu cuota gratuita, luego los créditos",
+      "find": "Your free allowance first, then FiboTokens",
+      "replace": "Primero tu cuota gratuita, luego los FiboTokens",
       "count": 1
     },
     {
@@ -1689,8 +1684,8 @@
       "count": 1
     },
     {
-      "find": "</strong> credit per snippet, <strong",
-      "replace": "</strong> crédito por snippet, <strong",
+      "find": "</strong> FiboToken per snippet, <strong",
+      "replace": "</strong> FiboToken por snippet, <strong",
       "count": 1
     },
     {
@@ -1744,23 +1739,23 @@
       "count": 1
     },
     {
-      "find": "Credit values and rates are confirmed before top-ups open on January 1, 2027. The free allowance applies today.",
-      "replace": "El valor de los créditos y las tarifas se confirman antes de que abran las recargas el 1 de enero de 2027. La cuota gratuita se aplica desde hoy.",
+      "find": "FiboToken values and rates are confirmed before top-ups open on January 1, 2027. The free allowance applies today.",
+      "replace": "El valor de los FiboTokens y las tarifas se confirman antes de que abran las recargas el 1 de enero de 2027. La cuota gratuita se aplica desde hoy.",
       "count": 1
     },
     {
-      "find": "How credits work",
-      "replace": "Cómo funcionan los créditos",
-      "count": 2
-    },
-    {
-      "find": "One credit is worth <span",
-      "replace": "Un crédito vale <span",
+      "find": "How FiboTokens work",
+      "replace": "Cómo funcionan los FiboTokens",
       "count": 1
     },
     {
-      "find": "</span>. Every use has a fixed price in credits, and the free allowance is always spent first.",
-      "replace": "</span>. Cada uso tiene un precio fijo en créditos y la cuota gratuita siempre se gasta primero.",
+      "find": "One FiboToken is worth <span",
+      "replace": "Un FiboToken vale <span",
+      "count": 1
+    },
+    {
+      "find": "</span>. Every use has a fixed price in FiboTokens, and the free allowance is always spent first.",
+      "replace": "</span>. Cada uso tiene un precio fijo en FiboTokens y la cuota gratuita siempre se gasta primero.",
       "count": 1
     },
     {
@@ -1779,8 +1774,8 @@
       "count": 1
     },
     {
-      "find": "</strong> credits land in your account. Founding Members pay less for the same credits.",
-      "replace": "</strong> créditos llegan a tu cuenta. Los Founding Members pagan menos por los mismos créditos.",
+      "find": "</strong> FiboTokens land in your account. Founding Members pay less for the same FiboTokens.",
+      "replace": "</strong> FiboTokens llegan a tu cuenta. Los Founding Members pagan menos por los mismos FiboTokens.",
       "count": 1
     },
     {
@@ -1789,18 +1784,13 @@
       "count": 1
     },
     {
-      "find": "Your free daily allowance goes first. Only after that does a use cost credits.",
-      "replace": "Primero se usa la cuota diaria gratuita. Solo después un uso cuesta créditos.",
+      "find": "Your free daily allowance goes first. Only after that does a use cost FiboTokens.",
+      "replace": "Primero se usa la cuota diaria gratuita. Solo después un uso cuesta FiboTokens.",
       "count": 1
     },
     {
       "find": "Expand a snippet <strong",
       "replace": "Expandir un snippet <strong",
-      "count": 1
-    },
-    {
-      "find": "</span> credit</strong>",
-      "replace": "</span> crédito</strong>",
       "count": 1
     },
     {
@@ -1812,11 +1802,6 @@
       "find": "Use a Brain <strong",
       "replace": "Usar un Brain <strong",
       "count": 1
-    },
-    {
-      "find": "</span> credits</strong>",
-      "replace": "</span> créditos</strong>",
-      "count": 2
     },
     {
       "find": "See where you stand",
@@ -1849,13 +1834,13 @@
       "count": 1
     },
     {
-      "find": "You can keep writing and organising. Expanding resumes the next day, or straight away if you have credits.",
-      "replace": "Puedes seguir escribiendo y organizando. Las expansiones se reanudan al día siguiente, o al momento si tienes créditos.",
+      "find": "You can keep writing and organising. Expanding resumes the next day, or straight away if you have FiboTokens.",
+      "replace": "Puedes seguir escribiendo y organizando. Las expansiones se reanudan al día siguiente, o al momento si tienes FiboTokens.",
       "count": 1
     },
     {
-      "find": "Do credits expire?",
-      "replace": "¿Caducan los créditos?",
+      "find": "Do FiboTokens expire?",
+      "replace": "¿Caducan los FiboTokens?",
       "count": 1
     },
     {
@@ -1904,8 +1889,8 @@
       "count": 1
     },
     {
-      "find": "Start with 15 snippets, 10 prompts and 5 Brains a day, and buy credits only when you need more.",
-      "replace": "Empieza con 15 snippets, 10 prompts y 5 Brains al día y compra créditos solo cuando necesites más.",
+      "find": "Start with 15 snippets, 10 prompts and 5 Brains a day, and buy FiboTokens only when you need more.",
+      "replace": "Empieza con 15 snippets, 10 prompts y 5 Brains al día y compra FiboTokens solo cuando necesites más.",
       "count": 1
     },
     {
@@ -1954,13 +1939,13 @@
       "count": 1
     },
     {
-      "find": "Top-up prices and what a credit is worth.",
-      "replace": "Los precios de las recargas y el valor de un crédito.",
+      "find": "Top-up prices and what a FiboToken is worth.",
+      "replace": "Los precios de las recargas y el valor de un FiboToken.",
       "count": 1
     },
     {
-      "find": "What each use costs and when credits expire.",
-      "replace": "Cuánto cuesta cada uso y cuándo caducan los créditos.",
+      "find": "What each use costs and when FiboTokens expire.",
+      "replace": "Cuánto cuesta cada uso y cuándo caducan los FiboTokens.",
       "count": 1
     },
     {
@@ -1999,8 +1984,8 @@
       "count": 1
     },
     {
-      "find": "A question about credits, plans or your founding benefits? Write to us and a person answers. Your message is used only to reply to you.",
-      "replace": "¿Una pregunta sobre créditos, planes o tus ventajas de fundador? Escríbenos y te responde una persona. Tu mensaje se usa solo para responderte.",
+      "find": "A question about FiboTokens, plans or your founding benefits? Write to us and a person answers. Your message is used only to reply to you.",
+      "replace": "¿Una pregunta sobre FiboTokens, planes o tus ventajas de fundador? Escríbenos y te responde una persona. Tu mensaje se usa solo para responderte.",
       "count": 1
     },
     {
@@ -2016,7 +2001,12 @@
     {
       "find": ">2,500<",
       "replace": ">2500<",
-      "count": 4
+      "count": 5
+    },
+    {
+      "find": "Exchange rate",
+      "replace": "Tipo de cambio",
+      "count": 2
     }
   ]
 }

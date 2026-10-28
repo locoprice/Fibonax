@@ -24,12 +24,12 @@ const FORMAT = {
   freeSnippetsPerDay: (v) => String(v),
   freePromptsPerDay: (v) => String(v),
   freeBrainsPerDay: (v) => String(v),
-  euroPerCredit: (v) => `€${v.toFixed(2)}`,
+  euroPerFiboToken: (v) => `€${v.toFixed(2)}`,
   topUpEuros: (v) => `€${v}`,
-  creditsPerTopUp: (v) => v.toLocaleString('en-US'),
-  creditsPerSnippet: (v) => String(v),
-  creditsPerPrompt: (v) => String(v),
-  creditsPerBrain: (v) => String(v),
+  fiboTokensPerTopUp: (v) => v.toLocaleString('en-US'),
+  fiboTokensPerSnippet: (v) => String(v),
+  fiboTokensPerPrompt: (v) => String(v),
+  fiboTokensPerBrain: (v) => String(v),
 };
 
 const problems = [];
