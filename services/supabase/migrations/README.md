@@ -126,7 +126,7 @@ From the 2026-10-26 global audit. Rules, one new table of timestamps and indexes
 
 | File | Status | Notes |
 |---|---|---|
-| `20261028120000_org_member_directory_avatar.sql` | ⏳ pending | `org_member_directory()` gains `avatar_url` (the profile photo from Settings → Account or Google sign-in, https only) so the Team page, the faces on a shared folder and the share window show photos. Also fixes the display name: it read `display_name`, which no account carries (0 of 87), so everyone showed as their email; it now reads `full_name`, then `name`, then the email, like `my_pending_invitations()`. Drop + create because the return type changes; no policy, view or function depends on it. Dashboard v3.100.0 reads the new column and tolerates its absence. |
+| `20261028120000_org_member_directory_avatar.sql` | ✅ applied 2026-10-28 | `org_member_directory()` gains `avatar_url` (the profile photo from Settings → Account or Google sign-in, https only) so the Team page, the faces on a shared folder and the share window show photos. Also fixes the display name: it read `display_name`, which no account carries (0 of 87), so everyone showed as their email; it now reads `full_name`, then `name`, then the email, like `my_pending_invitations()`. Drop + create because the return type changes; no policy, view or function depends on it. Dashboard v3.100.0 reads the new column and tolerates its absence. Run by the owner in the SQL editor (the MCP apply waited for a confirmation that never arrived), so it has no row in the migration history; verified after: one function, the five-column return type, `anon` cannot run it, `authenticated` can. |
 
 ## Adding a new migration
 
