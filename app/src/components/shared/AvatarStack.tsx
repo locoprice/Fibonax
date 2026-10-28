@@ -5,6 +5,8 @@ export interface StackMember {
   id: string;
   name?: string | null;
   email?: string | null;
+  /** Profile photo (https), when the person set one. */
+  avatar?: string | null;
   /** Render as the current user (solid fill). */
   highlight?: boolean;
 }
@@ -34,6 +36,7 @@ export function AvatarStack({ members, max = 5, size = 'xs', className }: Avatar
             key={m.id}
             name={m.name}
             email={m.email}
+            src={m.avatar}
             highlight={m.highlight}
             size={size}
             className="ring-2 ring-card"

@@ -395,6 +395,8 @@ export interface OrgMember {
   email: string;
   display_name: string;
   role: OrgRole;
+  /** Profile photo set in Settings → Account (https), or null for the initial. */
+  avatar_url: string | null;
 }
 
 /** Lifecycle of an `organization_invitations` row. */

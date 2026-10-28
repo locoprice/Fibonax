@@ -304,7 +304,14 @@ export function FolderShareModal({ folder, onClose, onShared }: FolderShareModal
                       key={m.user_id}
                       selected={principal === m.user_id}
                       onSelect={() => setPrincipal(m.user_id)}
-                      avatar={<Avatar name={m.display_name} email={m.email} size="sm" />}
+                      avatar={
+                        <Avatar
+                          name={m.display_name}
+                          email={m.email}
+                          src={m.avatar_url}
+                          size="sm"
+                        />
+                      }
                       title={m.display_name || m.email}
                       subtitle={m.email}
                       badge={m.role !== 'member' ? m.role : undefined}
@@ -389,6 +396,7 @@ export function FolderShareModal({ folder, onClose, onShared }: FolderShareModal
                         ) : (
                           <Avatar
                             name={nameFor(g.principal_id)}
+                            src={memberById.get(g.principal_id)?.avatar_url ?? null}
                             highlight={g.principal_id === currentUserId}
                             size="sm"
                           />

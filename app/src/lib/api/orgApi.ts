@@ -4,6 +4,7 @@ import {
   buildTeamCoverPath,
   COVER_MAX_BYTES,
   objectPathFromPublicUrl,
+  pickHttpsUrl,
   TEAM_COVER_BUCKET,
   validateCoverSource,
   validateImageFile,
@@ -32,6 +33,7 @@ type DirectoryRow = {
   email: string;
   display_name: string;
   role: OrgRole;
+  avatar_url: string | null;
 };
 
 export interface OrgApi {
@@ -127,6 +129,9 @@ export const orgApi: OrgApi = {
       email: r.email,
       display_name: r.display_name,
       role: r.role,
+      // The function already keeps non-https values back; this is the same
+      // guard every surface applies to a photo address before rendering it.
+      avatar_url: pickHttpsUrl({ avatar_url: r.avatar_url }, 'avatar_url'),
     }));
   },
 

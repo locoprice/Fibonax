@@ -1,7 +1,7 @@
 {
   "name": "sprintbrain-dashboard",
   "private": true,
-  "version": "3.99.1",
+  "version": "3.100.0",
   "type": "module",
   "description": "Fibonax SaaS dashboard (desktop-only). React + Vite + Tailwind + shadcn.",
   "scripts": {
