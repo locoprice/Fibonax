@@ -30,10 +30,18 @@ const FORMAT = {
   fiboTokensPerSnippet: (v) => String(v),
   fiboTokensPerPrompt: (v) => String(v),
   fiboTokensPerBrain: (v) => String(v),
-  monthlyBonusPercent: (v) => `${v}%`,
-  fiboTokensPerMonthlyTopUp: (v) => v.toLocaleString('en-US'),
+  pack50Euros: (v) => `€${v}`,
+  pack50Tokens: (v) => v.toLocaleString('en-US'),
+  pack50BonusPercent: (v) => `${v}%`,
+  pack100Euros: (v) => `€${v}`,
+  pack100Tokens: (v) => v.toLocaleString('en-US'),
+  pack100BonusPercent: (v) => `${v}%`,
   foundingDiscountPercent: (v) => `${v}%`,
   foundingTopUpEuros: (v) => `€${v}`,
+  foundingPack50Euros: (v) => `€${v}`,
+  foundingPack100Euros: (v) => `€${v}`,
+  monthlyEuros: (v) => `€${v.toFixed(2)}`,
+  rateSetOn: (v) => new Date(`${v}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }),
 };
 
 const problems = [];
@@ -63,11 +71,18 @@ const near = (a, b) => Math.abs(a - b) < 1e-9;
 if (!near(pricing.fiboTokensPerTopUp * pricing.euroPerFiboToken, pricing.topUpEuros)) {
   problems.push('fiboTokensPerTopUp × euroPerFiboToken must equal topUpEuros');
 }
-if (pricing.fiboTokensPerMonthlyTopUp !== Math.round(pricing.fiboTokensPerTopUp * (1 + pricing.monthlyBonusPercent / 100))) {
-  problems.push('fiboTokensPerMonthlyTopUp must be fiboTokensPerTopUp plus monthlyBonusPercent');
-}
-if (!near(pricing.foundingTopUpEuros, pricing.topUpEuros * (1 - pricing.foundingDiscountPercent / 100))) {
-  problems.push('foundingTopUpEuros must be topUpEuros less foundingDiscountPercent');
+const packs = [
+  ['topUpEuros', 'fiboTokensPerTopUp', null, 'foundingTopUpEuros'],
+  ['pack50Euros', 'pack50Tokens', 'pack50BonusPercent', 'foundingPack50Euros'],
+  ['pack100Euros', 'pack100Tokens', 'pack100BonusPercent', 'foundingPack100Euros'],
+];
+for (const [euros, tokens, bonus, founding] of packs) {
+  const base = Math.round(pricing[euros] / pricing.euroPerFiboToken);
+  const expected = Math.round(base * (1 + (bonus ? pricing[bonus] : 0) / 100));
+  if (pricing[tokens] !== expected) problems.push(`${tokens} must be ${expected} (${euros} at euroPerFiboToken${bonus ? ` plus ${bonus}` : ''})`);
+  if (!near(pricing[founding], pricing[euros] * (1 - pricing.foundingDiscountPercent / 100))) {
+    problems.push(`${founding} must be ${euros} less foundingDiscountPercent`);
+  }
 }
 if (Date.parse(pricing.closesFrom) - Date.parse(pricing.deadline) !== 1000) {
   problems.push('PRICING.closesFrom must be one second after PRICING.deadline');

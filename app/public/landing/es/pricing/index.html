@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#1B4FD8">
 <title>Precio — Fibonax</title>
-<meta name="description" content="Fibonax es gratis cada día: 15 snippets, 10 prompts y 5 Brains. Más allá, FiboTokens que compras una vez y gastas cuando los necesitas. Sin suscripción. Los Founding Members que se registren antes del 31 de diciembre de 2026 conservan sus ventajas de por vida.">
+<meta name="description" content="Fibonax is free every day: 15 snippets, 10 prompts and 5 Brains. Más allá, compras FiboTokens una vez y te los quedas para siempre, o pasas a ilimitado con un pequeño plan mensual. Los Founding Members que se registren antes del 31 de diciembre de 2026 conservan sus ventajas de por vida.">
 <link rel="canonical" href="https://fibonax.com/es/pricing/">
 <link rel="alternate" hreflang="en" href="https://fibonax.com/pricing/">
 <link rel="alternate" hreflang="es" href="https://fibonax.com/es/pricing/">
@@ -273,10 +273,18 @@ footer{padding:28px 20px}
 .pricing-page .btn,.pm-dialog .btn{min-height:44px}
 .pricing-page .hero-eyebrow::before{animation:none}
 .pricing-lead{max-width:680px;margin:0 auto;font-size:clamp(17px,2vw,20px);line-height:1.5;color:var(--text2)}
-.rate-board{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--space-3) var(--space-4);margin-top:var(--space-6);padding:var(--space-3) var(--space-6);background:var(--card);border:1px solid var(--border);border-radius:var(--r-pill);box-shadow:var(--shadow-sm);font-size:15px;color:var(--text2)}
-.rate-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--primary)}
-.rate-pair strong{font-family:var(--sb-mono);font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
-.rate-sep{width:1px;height:18px;background:var(--border)}
+/* Exchange-rate card under the lead: the FiboToken rate, read like a currency board. */
+.rate-board{max-width:640px;margin:var(--space-8) auto 0;padding:var(--space-6) var(--space-8);background:var(--card);border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:var(--r);box-shadow:var(--shadow-md);text-align:center}
+.rate-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--space-2) var(--space-3)}
+.rate-label{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.rate-chip{display:inline-flex;align-items:center;gap:var(--space-1);padding:4px 10px;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill)}
+.rate-main{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:var(--space-3);margin-top:var(--space-4);font-family:var(--sb-mono);font-variant-numeric:tabular-nums;color:var(--text)}
+.rate-unit{font-size:clamp(22px,3vw,30px);font-weight:700}
+.rate-eq{font-size:clamp(22px,3vw,30px);color:var(--text3)}
+.rate-value{font-size:clamp(44px,7vw,72px);font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--primary)}
+.rate-sub{margin-top:var(--space-3);font-size:15px;color:var(--text2)}
+.rate-sub strong{font-family:var(--sb-mono);font-weight:700;color:var(--text)}
+.rate-note{max-width:520px;margin:var(--space-4) auto 0;padding-top:var(--space-4);border-top:1px solid var(--border);font-size:14px;line-height:1.6;color:var(--text2)}
 .pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
 .pricing-artwork{margin:0;min-width:0;aspect-ratio:1}
 .pricing-artwork canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .6s ease}
@@ -313,14 +321,6 @@ footer{padding:28px 20px}
 .founding-benefits{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-6);padding-top:var(--space-6);border-top:1px solid var(--navy-soft)}
 .founding-benefits h3{font-size:16px;font-weight:700;margin:0 0 var(--space-1);letter-spacing:0;line-height:1.4}
 .founding-benefits p{font-size:14px;line-height:1.6}
-/* Top-up switch above the cards: the chosen method is an attribute on the
-   plans section and the stylesheet shows the matching wording. */
-.topup-row{text-align:center;margin-top:var(--space-6)}
-.topup{display:inline-flex;gap:var(--space-1);padding:var(--space-1);background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--r-pill)}
-.topup-option{display:inline-flex;align-items:center;gap:var(--space-2);min-height:44px;padding:0 18px;font:inherit;font-size:15px;font-weight:600;color:var(--text2);background:transparent;border:0;border-radius:var(--r-pill);cursor:pointer;transition:background .15s,color .15s}
-.topup-option[aria-pressed="true"]{background:var(--card);color:var(--text);box-shadow:var(--shadow-sm)}
-.topup-bonus{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:var(--r-pill)}
-#plans[data-topup="once"] .topup-monthly,#plans[data-topup="monthly"] .topup-once{display:none}
 /* Plan cards: three ways to pay. */
 .plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-6);margin-top:var(--space-8)}
 .plan-list li:empty{display:none}
@@ -333,6 +333,15 @@ footer{padding:28px 20px}
 .plan-amount{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--text)}
 .plan-per{font-size:14px;color:var(--text2)}
 .plan-tagline{font-size:15px;line-height:1.55;color:var(--text2)}
+.plan-from{font-size:14px;color:var(--text2)}
+.plan-flag{display:inline-flex;align-items:center;padding:4px 10px;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill)}
+/* FiboToken packs inside the Pay as you go card. */
+.packs{list-style:none;display:grid;gap:var(--space-2)}
+.packs li{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--r-btn);font-size:15px;color:var(--text2)}
+.pack-price{font-size:17px;font-weight:800;color:var(--text)}
+.pack-tokens{text-align:right}
+.pack-tokens strong{font-weight:700;color:var(--text)}
+.pack-bonus{display:inline-block;margin-left:var(--space-2);font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:var(--r-pill)}
 .plan-cta{width:100%;white-space:normal;text-align:center}
 .plan-note{font-size:13px;line-height:1.5;color:var(--text3)}
 .plan-list{list-style:none;display:grid;gap:var(--space-3);padding-top:var(--space-4);border-top:1px solid var(--border);font-size:15px;line-height:1.5}
@@ -403,7 +412,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 .skip-link:focus{top:var(--space-3)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:960px){.plan-grid,.steps{grid-template-columns:1fr;max-width:560px;margin-left:auto;margin-right:auto}.founding{grid-template-columns:1fr}.founding-benefits{grid-template-columns:1fr}}
-@media(max-width:800px){.rate-board{border-radius:var(--r);padding:var(--space-3) var(--space-4)}.rate-sep{display:none}.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.pricing-table td{padding:var(--space-6) 0}.pr-section{margin-top:var(--space-12)}.founding{padding:var(--space-6)}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.step{padding:var(--space-6)}
+@media(max-width:800px){.rate-board{padding:var(--space-6) var(--space-4)}.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.pricing-table td{padding:var(--space-6) 0}.pr-section{margin-top:var(--space-12)}.founding{padding:var(--space-6)}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.step{padding:var(--space-6)}
   .compare thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
   .compare,.compare tbody,.compare tr,.compare th,.compare td{display:block;width:auto}
   .compare tr{padding:var(--space-4);border-top:1px solid var(--border)}
@@ -412,7 +421,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   .compare td{padding:var(--space-3) 0 0;border:0}
   .compare td::before{display:block}
   .pm-dialog{padding:var(--space-6)}}
-@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.pm-tab,.topup-option,.pr-faq summary::after{transition:none}}
+@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.pm-tab,.pr-faq summary::after{transition:none}}
 </style>
 </head>
 <body class="pricing-layout">
@@ -495,13 +504,13 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   <div class="hero-inner">
   <div class="hero-eyebrow">Precio</div>
   <h1>Gratis cada día. <span>FiboTokens</span> cuando necesitas más.</h1>
-  <p class="pricing-lead">Cada día tienes 15 snippets, 10 prompts y 5 Brains gratis. Más allá, FiboTokens que compras una vez y gastas cuando los necesitas. Sin suscripción.</p>
-  <div class="rate-board" role="note" aria-label="Tipo de cambio">
-    <span class="rate-label">Tipo de cambio</span>
-    <span class="rate-pair"><strong>1 FiboToken</strong> = <strong data-pricing="euroPerFiboToken">€0.01</strong></span>
-    <span class="rate-sep" aria-hidden="true"></span>
-    <span class="rate-pair"><strong data-pricing="topUpEuros">€25</strong> = <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens</span>
-  </div>
+  <p class="pricing-lead">Every day you get 15 snippets, 10 prompts and 5 Brains for free. Más allá, compras FiboTokens una vez y te los quedas para siempre. Sin necesidad de suscripción.</p>
+  <section class="rate-board" aria-labelledby="rate-title">
+    <div class="rate-head"><h2 class="rate-label" id="rate-title">Tipo de cambio actual</h2><span class="rate-chip"><span aria-hidden="true">↕</span> Tipo variable</span></div>
+    <p class="rate-main"><span class="rate-unit">1 FiboToken</span><span class="rate-eq" aria-hidden="true">=</span><span class="sr-only">vale</span><span class="rate-value" data-pricing="euroPerFiboToken">€0,01</span></p>
+    <p class="rate-sub"><strong data-pricing="topUpEuros">€25</strong> = <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens · Tipo fijado el <span data-pricing="rateSetOn">28 de octubre de 2026</span></p>
+    <p class="rate-note">Como una divisa, el tipo del FiboToken es variable: puede cambiar con el tiempo y oscilar con el mercado. Un nuevo tipo solo se aplica a los paquetes nuevos. Los FiboTokens que ya tienes conservan su valor: un FiboToken, un uso.</p>
+  </section>
   <div class="pricing-content">
   <figure class="pricing-artwork" aria-hidden="true">
     <canvas></canvas>
@@ -521,7 +530,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <div>
       <span class="founding-badge" data-closed="La inscripción como Founding Member se ha cerrado">La inscripción como Founding Member se cierra</span>
       <h2 id="founding-title" data-closed="Los Founding Members ya están dentro.">Tus ventajas de fundador empiezan aquí</h2>
-      <p data-closed="Quien se registró antes del 31 de diciembre de 2026 conserva sus ventajas de fundador de por vida. Las cuentas nuevas empiezan con la cuota diaria gratuita y pagan solo lo que usan más allá.">Regístrate antes del 31 de diciembre de 2026 y conserva la cuota diaria gratuita, <span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada recarga y las tarifas reservadas a los fundadores, mientras tengas tu cuenta.</p>
+      <p data-closed="Quien se registró antes del 31 de diciembre de 2026 conserva sus ventajas de fundador de por vida. Las cuentas nuevas empiezan con la cuota diaria gratuita y pagan solo lo que usan más allá.">Regístrate antes del 31 de diciembre de 2026 y conserva la cuota diaria gratuita, <span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada paquete de FiboTokens y las tarifas reservadas a los fundadores, mientras tengas tu cuenta.</p>
       <a class="btn btn-primary" href="https://app.fibonax.com/signup" data-closed="Empieza gratis →">Regístrate antes de la fecha límite →</a>
     </div>
     <div>
@@ -537,20 +546,14 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     </div>
     <div class="founding-benefits">
       <div><h3>Plan gratuito permanente</h3><p>15 snippets, 10 prompts y 5 Brains cada día, de por vida.</p></div>
-      <div><h3>Descuento permanente en recargas</h3><p><span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada recarga, de por vida: <span data-pricing="topUpEuros">€25</span> de FiboTokens por <span data-pricing="foundingTopUpEuros">€20</span>.</p></div>
+      <div><h3>Descuento permanente en recargas</h3><p><span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada paquete de FiboTokens, de por vida: <span data-pricing="foundingTopUpEuros">€20</span>, <span data-pricing="foundingPack50Euros">€40</span> y <span data-pricing="foundingPack100Euros">€80</span> en lugar de <span data-pricing="topUpEuros">€25</span>, <span data-pricing="pack50Euros">€50</span> y <span data-pricing="pack100Euros">€100</span>.</p></div>
       <div><h3>Precio protegido de por vida</h3><p>Tarifas reservadas a los fundadores, según las condiciones que puedes leer antes de registrarte.</p></div>
     </div>
   </section>
 
-  <section class="pr-section" id="plans" aria-labelledby="plans-title" data-topup="once">
+  <section class="pr-section" id="plans" aria-labelledby="plans-title">
     <h2 id="plans-title">Elige cómo pagar</h2>
-    <p class="pr-intro">Empieza gratis. Compra FiboTokens una vez cuando necesites más, o recíbelos cada mes. Más adelante llegará un plan mensual para quien prefiera un precio fijo.</p>
-    <div class="topup-row">
-      <div class="topup" role="group" aria-label="Método de recarga">
-        <button type="button" class="topup-option" data-topup="once" aria-pressed="true">Recarga única</button>
-        <button type="button" class="topup-option" data-topup="monthly" aria-pressed="false">Recarga automática mensual <span class="topup-bonus">+<span data-pricing="monthlyBonusPercent">10%</span> FiboTokens</span></button>
-      </div>
-    </div>
+    <p class="pr-intro">Empieza gratis. Cuando necesites más, compras FiboTokens una vez y te los quedas para siempre, o pasas a ilimitado por <span data-pricing="monthlyEuros">€4,90</span> al mes.</p>
     <div class="plan-grid">
       <article class="plan" aria-labelledby="plan-free">
         <p class="plan-kind">Gratis</p>
@@ -569,32 +572,36 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <article class="plan plan-featured" aria-labelledby="plan-payg">
         <p class="plan-badge">Recomendado</p>
         <p class="plan-kind">Pago por uso</p>
-        <h3 class="plan-name" id="plan-payg"><span class="topup-once">FiboTokens, comprados una vez</span><span class="topup-monthly">FiboTokens, añadidos cada mes</span></h3>
-        <p class="plan-price"><span class="plan-amount"><span data-pricing="topUpEuros">€25</span></span><span class="plan-per topup-once">por recarga</span><span class="plan-per topup-monthly">al mes, déjalo cuando quieras</span></p>
-        <p class="plan-tagline topup-once">Recarga <span data-pricing="topUpEuros">€25</span> y recibe <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens. Los gastas solo cuando se agota tu cuota diaria gratuita. Nada recurrente.</p>
-        <p class="plan-tagline topup-monthly"><span data-pricing="topUpEuros">€25</span> añadidos cada mes: <strong data-pricing="fiboTokensPerMonthlyTopUp">2750</strong> FiboTokens, <span data-pricing="monthlyBonusPercent">10%</span> más que una recarga única. Déjalo cuando quieras.</p>
+        <h3 class="plan-name" id="plan-payg">Compras una vez. Tuyos para siempre.</h3>
+        <p class="plan-price"><span class="plan-from">Desde</span><span class="plan-amount"><span data-pricing="topUpEuros">€25</span></span><span class="plan-per">compra única</span><span class="plan-flag">No caducan nunca</span></p>
+        <p class="plan-tagline">Pagas una vez, sin suscripción. Tus FiboTokens no caducan nunca y se quedan en tu cuenta hasta que los uses.</p>
+        <ul class="packs" aria-label="Paquetes de FiboTokens">
+          <li><span class="pack-price" data-pricing="topUpEuros">€25</span><span class="pack-tokens"><strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens</span></li>
+          <li><span class="pack-price" data-pricing="pack50Euros">€50</span><span class="pack-tokens"><strong data-pricing="pack50Tokens">5250</strong> FiboTokens <span class="pack-bonus">+<span data-pricing="pack50BonusPercent">5%</span></span></span></li>
+          <li><span class="pack-price" data-pricing="pack100Euros">€100</span><span class="pack-tokens"><strong data-pricing="pack100Tokens">11.000</strong> FiboTokens <span class="pack-bonus">+<span data-pricing="pack100BonusPercent">10%</span></span></span></li>
+        </ul>
         <a class="btn btn-primary plan-cta" href="https://app.fibonax.com/signup">Comprar FiboTokens</a>
-        <p class="plan-note">Las recargas abren el 1 de enero de 2027. Los Founding Members pagan <span data-pricing="foundingTopUpEuros">€20</span> por cada recarga de <span data-pricing="topUpEuros">€25</span>. Precios con IVA incluido.</p>
+        <p class="plan-note">Los paquetes abren el 1 de enero de 2027. Los Founding Members tienen un <span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada paquete: <span data-pricing="foundingTopUpEuros">€20</span>, <span data-pricing="foundingPack50Euros">€40</span> y <span data-pricing="foundingPack100Euros">€80</span>. Precios con IVA incluido.</p>
         <ul class="plan-list">
-          <li class="topup-once"><span>Recarga en tramos de <strong data-pricing="topUpEuros">€25</strong>, tantas veces como quieras</span></li>
-          <li class="topup-monthly"><span><strong data-pricing="topUpEuros">€25</strong> añadidos cada mes, con un <span data-pricing="monthlyBonusPercent">10%</span> más de FiboTokens</span></li>
-          <li><span>1 FiboToken = <strong data-pricing="euroPerFiboToken">€0.01</strong></span></li>
-          <li><span>Un FiboToken por cada uso, sea cual sea</span></li>
+          <li><span>Una compra única, nada recurrente</span></li>
+          <li><span>Tus FiboTokens no caducan nunca</span></li>
+          <li><span>1 FiboToken = <strong data-pricing="euroPerFiboToken">€0,01</strong> al tipo variable de hoy, un FiboToken por cada uso</span></li>
+          <li><span>Los paquetes más grandes incluyen FiboTokens extra</span></li>
           <li><span>Saldo e historial en tu cuenta</span></li>
-          <li><span>Founding Members: <span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada recarga, de por vida</span></li>
         </ul>
       </article>
       <article class="plan" aria-labelledby="plan-monthly">
         <p class="plan-kind">Suscripción mensual</p>
-        <h3 class="plan-name" id="plan-monthly">Un precio fijo</h3>
-        <p class="plan-price"><span class="plan-amount">Más adelante</span><span class="plan-per">pago recurrente</span></p>
-        <p class="plan-tagline">Para quien prefiere un precio mensual con FiboTokens incluidos. Los planes y precios se anuncian antes de abrir.</p>
+        <h3 class="plan-name" id="plan-monthly">Ilimitado, cada día</h3>
+        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€4,90</span><span class="plan-per">al mes</span></p>
+        <p class="plan-tagline">Snippets, prompts y Brains ilimitados por un pequeño precio mensual. Sin FiboTokens que contar.</p>
         <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Comparar planes</a>
+        <p class="plan-note">Abre el 1 de enero de 2027. La renovación y la cancelación se muestran antes de suscribirte. Precio con IVA incluido.</p>
         <ul class="plan-list">
-          <li><span>Un precio mensual claro</span></li>
-          <li><span>FiboTokens incluidos cada mes</span></li>
-          <li><span>Renovación y cancelación visibles antes de suscribirte</span></li>
-          <li><span>Condiciones Founding Member cuando apliquen</span></li>
+          <li><span>Usos ilimitados de snippets, prompts y Brains</span></li>
+          <li><span>Sin FiboTokens</span></li>
+          <li><span>Extensión de Chrome, dashboard web y teléfono</span></li>
+          <li><span>El mismo precio para todos</span></li>
         </ul>
       </article>
     </div>
@@ -602,7 +609,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 
   <section class="pr-section" id="compare" aria-labelledby="compare-title">
     <h2 id="compare-title">Compara las tres opciones</h2>
-    <p class="pr-intro">La cuota gratuita va primero en todas las opciones. Los FiboTokens y planes solo cubren lo que usas más allá.</p>
+    <p class="pr-intro">Todas las opciones empiezan con la cuota diaria gratuita. El pago por uso y el plan mensual solo cubren lo que usas más allá.</p>
     <div class="compare-toggle-row">
       <button type="button" class="btn btn-ghost" id="compare-toggle" aria-expanded="true" aria-controls="compare-body" data-open="Comparar planes" data-close="Ocultar la comparación">Ocultar la comparación</button>
     </div>
@@ -614,28 +621,28 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <tr><th scope="col">Qué obtienes</th><th scope="col">Gratis</th><th scope="col" class="is-featured">Pago por uso</th><th scope="col">Suscripción mensual</th></tr>
       </thead>
       <tbody>
-        <tr><th scope="row">Precio</th><td data-label="Gratis"><strong>€0</strong></td><td data-label="Pago por uso"><strong>Desde <span data-pricing="topUpEuros">€25</span> por recarga</strong></td><td data-label="Suscripción mensual">Se anuncia antes del lanzamiento</td></tr>
-        <tr><th scope="row">Pago recurrente</th><td data-label="Gratis">No</td><td data-label="Pago por uso">Solo con la recarga automática mensual, y puedes dejarla cuando quieras</td><td data-label="Suscripción mensual">Sí, cada mes</td></tr>
-        <tr><th scope="row">FiboTokens comprados</th><td data-label="Gratis">No</td><td data-label="Pago por uso"><strong data-pricing="fiboTokensPerTopUp">2500</strong> por cada <span data-pricing="topUpEuros">€25</span>, <strong data-pricing="fiboTokensPerMonthlyTopUp">2750</strong> con la recarga automática mensual</td><td data-label="Suscripción mensual">Incluidos en el plan</td></tr>
-        <tr><th scope="row">Cuota diaria gratuita</th><td data-label="Gratis"><strong data-pricing="freeSnippetsPerDay">15</strong> snippets, <strong data-pricing="freePromptsPerDay">10</strong> prompts, <strong data-pricing="freeBrainsPerDay">5</strong> Brains</td><td data-label="Pago por uso">Primero tu cuota gratuita, luego los FiboTokens</td><td data-label="Suscripción mensual">Primero tu cuota gratuita, luego el plan</td></tr>
-        <tr><th scope="row">Coste por uso</th><td data-label="Gratis">Nada dentro de la cuota</td><td data-label="Pago por uso"><strong data-pricing="fiboTokensPerSnippet">1</strong> FiboToken por snippet, <strong data-pricing="fiboTokensPerPrompt">1</strong> por prompt, <strong data-pricing="fiboTokensPerBrain">1</strong> por Brain</td><td data-label="Suscripción mensual">Se anuncia antes del lanzamiento</td></tr>
-        <tr><th scope="row">Ventaja Founding Member</th><td data-label="Gratis">La cuota gratuita, de por vida</td><td data-label="Pago por uso"><strong data-pricing="foundingDiscountPercent">20%</strong> de descuento en cada recarga, de por vida</td><td data-label="Suscripción mensual">Condiciones especiales cuando apliquen</td></tr>
-        <tr><th scope="row">Cancelación</th><td data-label="Gratis">Nada que cancelar</td><td data-label="Pago por uso">Nada que cancelar: compraste una vez</td><td data-label="Suscripción mensual">Visible antes de suscribirte</td></tr>
+        <tr><th scope="row">Precio</th><td data-label="Gratis"><strong>€0</strong></td><td data-label="Pago por uso"><strong>Desde <span data-pricing="topUpEuros">€25</span>, una vez</strong></td><td data-label="Suscripción mensual"><strong><span data-pricing="monthlyEuros">€4,90</span> al mes</strong></td></tr>
+        <tr><th scope="row">Pago recurrente</th><td data-label="Gratis">No</td><td data-label="Pago por uso">No, una compra única</td><td data-label="Suscripción mensual">Sí, cada mes</td></tr>
+        <tr><th scope="row">FiboTokens</th><td data-label="Gratis">No hacen falta</td><td data-label="Pago por uso"><strong data-pricing="fiboTokensPerTopUp">2500</strong> por <span data-pricing="topUpEuros">€25</span>, <strong data-pricing="pack50Tokens">5250</strong> por <span data-pricing="pack50Euros">€50</span>, <strong data-pricing="pack100Tokens">11.000</strong> por <span data-pricing="pack100Euros">€100</span></td><td data-label="Suscripción mensual">No hacen falta</td></tr>
+        <tr><th scope="row">Caducidad</th><td data-label="Gratis">La cuota se renueva cada día</td><td data-label="Pago por uso"><strong>Nunca</strong></td><td data-label="Suscripción mensual">Ilimitado mientras estés suscrito</td></tr>
+        <tr><th scope="row">Uso diario</th><td data-label="Gratis"><strong data-pricing="freeSnippetsPerDay">15</strong> snippets, <strong data-pricing="freePromptsPerDay">10</strong> prompts, <strong data-pricing="freeBrainsPerDay">5</strong> Brains</td><td data-label="Pago por uso">Primero tu cuota gratuita, luego <strong data-pricing="fiboTokensPerSnippet">1</strong> FiboToken por uso</td><td data-label="Suscripción mensual"><strong>Ilimitado</strong></td></tr>
+        <tr><th scope="row">Ventaja Founding Member</th><td data-label="Gratis">La cuota gratuita, de por vida</td><td data-label="Pago por uso"><strong data-pricing="foundingDiscountPercent">20%</strong> de descuento en cada paquete, de por vida</td><td data-label="Suscripción mensual">El mismo precio para todos</td></tr>
+        <tr><th scope="row">Cancelación</th><td data-label="Gratis">Nada que cancelar</td><td data-label="Pago por uso">Nada que cancelar: compraste una vez</td><td data-label="Suscripción mensual">Condiciones visibles antes de suscribirte</td></tr>
       </tbody>
     </table>
     </div>
-    <p class="pr-note">Todos los precios incluyen IVA. Las recargas abren el 1 de enero de 2027. La cuota gratuita se aplica desde hoy.</p>
+    <p class="pr-note">Todos los precios incluyen IVA. Los paquetes y el plan mensual abren el 1 de enero de 2027. La cuota gratuita se aplica desde hoy.</p>
     </div>
   </section>
 
   <section class="pr-section" id="fibotokens" aria-labelledby="fibotokens-title">
     <h2 id="fibotokens-title">Cómo funcionan los FiboTokens</h2>
-    <p class="pr-intro">Un FiboToken vale <span data-pricing="euroPerFiboToken">€0.01</span>. Cada uso cuesta lo mismo, un FiboToken, y la cuota gratuita siempre se gasta primero.</p>
+    <p class="pr-intro">Un FiboToken vale <span data-pricing="euroPerFiboToken">€0,01</span>. Cada uso cuesta lo mismo, un FiboToken, y la cuota gratuita siempre se gasta primero.</p>
     <div class="steps">
       <article class="step">
         <span class="step-number" aria-hidden="true">1</span>
-        <h3>Recarga</h3>
-        <p>Añade <span data-pricing="topUpEuros">€25</span> cuando quieras y <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens llegan a tu cuenta. Los Founding Members pagan <span data-pricing="foundingTopUpEuros">€20</span> por la misma cantidad.</p>
+        <h3>Compra un paquete, una vez</h3>
+        <p>Elige <span data-pricing="topUpEuros">€25</span>, <span data-pricing="pack50Euros">€50</span> o <span data-pricing="pack100Euros">€100</span>. Los paquetes más grandes añaden FiboTokens extra y los Founding Members pagan un <span data-pricing="foundingDiscountPercent">20%</span> menos. Tus FiboTokens no caducan nunca.</p>
       </article>
       <article class="step">
         <span class="step-number" aria-hidden="true">2</span>
@@ -658,11 +665,13 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   <section class="pr-section" id="faq" aria-labelledby="faq-title">
     <h2 id="faq-title">Preguntas sobre el pago</h2>
     <div class="pr-faq">
-      <details><summary>¿Qué cuenta como uso?</summary><p>Expandir un snippet, expandir un prompt o añadir un Brain a un chat. Escribir, editar y organizar tu biblioteca nunca cuesta nada.</p></details>
-      <details><summary>¿Qué pasa cuando llego a la cuota diaria?</summary><p>Puedes seguir escribiendo y organizando. Las expansiones se reanudan al día siguiente, o al momento si tienes FiboTokens.</p></details>
+      <details><summary>¿El pago por uso es una suscripción?</summary><p>No. Es una compra única. Pagas una vez, los FiboTokens llegan a tu cuenta y se quedan ahí hasta que los uses. Nada se renueva.</p></details>
       <details><summary>¿Caducan los FiboTokens?</summary><p>No. Los FiboTokens que compras nunca caducan. Se quedan en tu cuenta hasta que los uses.</p></details>
-      <details><summary>¿Puedo cancelar o pedir un reembolso?</summary><p>Una recarga es una compra única, así que no hay nada que cancelar. Los planes mensuales mostrarán sus reglas de renovación, cancelación y reembolso antes de suscribirte.</p></details>
-      <details><summary>¿Qué significa Founding Member?</summary><p>Quien se registra antes del 31 de diciembre de 2026. Los Founding Members conservan la cuota diaria gratuita de por vida, tienen un <span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada recarga, también con la recarga automática mensual, y las tarifas reservadas a los fundadores, según las condiciones.</p></details>
+      <details><summary>¿Puede cambiar el tipo de cambio?</summary><p>Sí. Como una divisa, el tipo del FiboToken es variable y puede oscilar con el mercado. Cualquier cambio solo se aplica a los paquetes nuevos y se muestra en esta página antes de comprar. Los FiboTokens que ya tienes conservan su valor: un FiboToken, un uso.</p></details>
+      <details><summary>¿Qué cuenta como uso?</summary><p>Expandir un snippet, expandir un prompt o añadir un Brain a un chat. Escribir, editar y organizar tu biblioteca nunca cuesta nada.</p></details>
+      <details><summary>¿Qué pasa cuando llego a la cuota diaria?</summary><p>Puedes seguir escribiendo y organizando. Las expansiones se reanudan al día siguiente, o al momento con FiboTokens o el plan mensual.</p></details>
+      <details><summary>¿Puedo cancelar o pedir un reembolso?</summary><p>Un paquete es una compra única, así que no hay nada que cancelar. El plan mensual muestra sus reglas de renovación, cancelación y reembolso antes de suscribirte.</p></details>
+      <details><summary>¿Qué significa Founding Member?</summary><p>Quien se registra antes del 31 de diciembre de 2026. Los Founding Members conservan la cuota diaria gratuita de por vida, tienen un <span data-pricing="foundingDiscountPercent">20%</span> de descuento en cada paquete de FiboTokens además del extra del paquete, y las tarifas reservadas a los fundadores, según las condiciones.</p></details>
       <details><summary>¿El IVA está incluido?</summary><p>Sí. Todos los precios de esta página incluyen IVA. Lo que ves es lo que pagas.</p></details>
     </div>
   </section>
@@ -705,11 +714,11 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <p>Antes de registrarte o comprar, las condiciones explican, en palabras sencillas:</p>
       <ul>
         <li>El plan gratuito y su cuota diaria.</li>
-        <li>Los precios de las recargas y el valor de un FiboToken.</li>
+        <li>Los precios de los paquetes, el valor de un FiboToken y cómo puede cambiar el tipo variable.</li>
         <li>Cuánto cuesta cada uso, y que los FiboTokens nunca caducan.</li>
         <li>Quién es Founding Member y qué conserva.</li>
         <li>Cómo funcionan el precio protegido de por vida y el descuento de fundador del <span data-pricing="foundingDiscountPercent">20%</span>.</li>
-        <li>Renovación, cancelación y reembolsos de los planes mensuales.</li>
+        <li>Renovación, cancelación y reembolsos del plan mensual.</li>
         <li>Cómo se tratan tus datos personales.</li>
       </ul>
       <div class="pm-links">
@@ -949,11 +958,20 @@ var PRICING = {
   fiboTokensPerSnippet: 1,
   fiboTokensPerPrompt: 1,
   fiboTokensPerBrain: 1,
-  monthlyBonusPercent: 10,
-  fiboTokensPerMonthlyTopUp: 2750,
+  pack50Euros: 50,
+  pack50Tokens: 5250,
+  pack50BonusPercent: 5,
+  pack100Euros: 100,
+  pack100Tokens: 11000,
+  pack100BonusPercent: 10,
   foundingDiscountPercent: 20,
   foundingTopUpEuros: 20,
+  foundingPack50Euros: 40,
+  foundingPack100Euros: 80,
+  monthlyEuros: 4.9,
   // Madrid is UTC+01:00 at this winter deadline, whatever the visitor's zone.
+  // The day the current exchange rate was set; shown on the rate card.
+  rateSetOn: '2026-10-28',
   deadline: '2026-12-31T23:59:59+01:00',
   closesFrom: '2027-01-01T00:00:00+01:00'
 };
@@ -1000,20 +1018,6 @@ var PRICING = {
   window.addEventListener('pageshow', tick);
   window.addEventListener('pagehide', function () { clearTimeout(timeout); });
   tick();
-})();
-
-// Top-up switch: the chosen method is an attribute on the plans section and
-// the stylesheet shows the matching wording. Without JavaScript the page
-// shows the one-time top-up, the default in the markup.
-(function () {
-  var plans = document.getElementById('plans');
-  var options = Array.from(plans.querySelectorAll('.topup-option'));
-  options.forEach(function (option) {
-    option.addEventListener('click', function () {
-      plans.setAttribute('data-topup', option.getAttribute('data-topup'));
-      options.forEach(function (other) { other.setAttribute('aria-pressed', String(other === option)); });
-    });
-  });
 })();
 
 // The comparison starts folded behind Compare plans, as on the reference
