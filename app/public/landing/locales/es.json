@@ -1125,6 +1125,56 @@
       "find": "\"description\": \"One place for your Snippets, Prompts and Brains. Built to give every AI the context it needs to work better.\"",
       "replace": "\"description\": \"Un solo lugar para tus Snippets, Prompts y Brains. Diseñado para dar a cada IA el contexto que necesita para trabajar mejor.\"",
       "count": 1
+    },
+    {
+      "find": "      <div class=\"faq-eyebrow\">Frequently asked questions</div>\n      <h2 id=\"faq-title\">Questions, answered.</h2>\n      <p>The short version of what people ask before they start.</p>",
+      "replace": "      <div class=\"faq-eyebrow\">Preguntas frecuentes</div>\n      <h2 id=\"faq-title\">Respuestas a tus preguntas.</h2>\n      <p>La versión corta de lo que la gente pregunta antes de empezar.</p>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>What is Fibonax?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>One place for your Snippets, Prompts and Brains. Snippets are reusable text you insert by typing a short trigger. Prompts are your best AI instructions, saved and ready to reuse. Brains hold what an AI should know about your work. You use all three from the Chrome extension, the dashboard and your phone, and they always show the same library.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>¿Qué es Fibonax?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Un solo lugar para tus Snippets, Prompts y Brains. Los snippets son textos reutilizables que insertas escribiendo un atajo corto. Los prompts son tus mejores instrucciones para la IA, guardadas y listas para reutilizar. Los Brains contienen lo que una IA debe saber de tu trabajo. Usas los tres desde la extensión de Chrome, el dashboard y tu teléfono, y siempre muestran la misma biblioteca.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>Do I need to be technical to use it?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>No. You write a snippet once, give it a short trigger and type that trigger wherever you need the text. Fields, dates and calculations are added from menus, not code. If you can fill in a form, you can use Fibonax.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>¿Necesito conocimientos técnicos para usarlo?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>No. Escribes un snippet una vez, le das un atajo corto y escribes ese atajo donde necesites el texto. Los campos, las fechas y los cálculos se añaden desde menús, sin código. Si sabes rellenar un formulario, sabes usar Fibonax.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>Where does it work?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>In Google Chrome on a computer, in any text field on any website: email, chat, documents and AI tools, with no setup per site. Browsers that install extensions from the Chrome Web Store work too. On the few pages Chrome keeps extensions out of, the right-click menu or a copy from the popup gets the same text in. On your phone, open <a href=\"https://app.fibonax.com/mobile/\">app.fibonax.com/mobile</a> in the browser, fill in a snippet and paste it into any app.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>¿Dónde funciona?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>En Google Chrome en un ordenador, en cualquier campo de texto de cualquier sitio web: correo, chat, documentos y herramientas de IA, sin configurar nada sitio por sitio. También funcionan los navegadores que instalan extensiones desde la Chrome Web Store. En las pocas páginas donde Chrome no deja entrar a las extensiones, el menú del botón derecho o una copia desde el popup insertan el mismo texto. En el teléfono, abre <a href=\"https://app.fibonax.com/mobile/\">app.fibonax.com/mobile</a> en el navegador, rellena un snippet y pégalo en cualquier app.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>Which AI tools does it work with?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Any assistant you type into. Prompts and Brains go into ChatGPT, Claude, Gemini and the others, and the same context follows you when you switch. Fibonax is not tied to one AI.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>¿Con qué herramientas de IA funciona?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Con cualquier asistente en el que escribas. Los prompts y los Brains entran en ChatGPT, Claude, Gemini y los demás, y el mismo contexto te acompaña cuando cambias. Fibonax no está atado a una sola IA.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>Can I bring my snippets from another tool?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Yes. On the Snippets page, Import reads a Text Blaze export, a Fibonax export or a plain list of snippets. Text Blaze fields and conditions keep working as they are. You can export everything to a file at any time, so nothing is locked in.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>¿Puedo traer mis snippets desde otra herramienta?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Sí. En la página Snippets, Importar lee una exportación de Text Blaze, una exportación de Fibonax o una lista sencilla de snippets. Los campos y las condiciones de Text Blaze siguen funcionando tal cual. Puedes exportarlo todo a un archivo en cualquier momento, así que nada queda bloqueado.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>Can my team use it?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Yes. Share a folder with your whole team or with chosen teammates, and everything inside it appears in their extension and dashboard straight away. You decide who can use, edit or manage each folder.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>¿Puede usarlo mi equipo?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Sí. Comparte un folder con todo el equipo o con compañeros concretos, y todo lo que contiene aparece al instante en su extensión y su dashboard. Tú decides quién puede usar, editar o gestionar cada folder.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>How much does it cost?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Anyone who signs up by December 31, 2026 keeps Fibonax free for life. From January 1, 2027, new accounts start with a free usage allowance and then pay only for what they use. There is no monthly or yearly subscription. See the <a href=\"pricing/\">pricing page</a>.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>¿Cuánto cuesta?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Quien se registre antes del 31 de diciembre de 2026 conserva Fibonax gratis de por vida. Desde el 1 de enero de 2027, las cuentas nuevas empiezan con un uso gratuito incluido y después pagan solo por lo que usan. No hay suscripción mensual ni anual. Consulta la <a href=\"pricing/\">página de precios</a>.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>Where is my data stored, and who can see it?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Your account and everything in it are stored in the European Union, in Ireland, encrypted at rest and in transit. Fibonax does not read the pages you browse and never sells your data. A Brain reaches an AI only when you choose to add it to a chat. The <a href=\"/legal/privacy-policy.html\">privacy policy</a> has the details.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\">\n        <summary class=\"faq-q\"><span>¿Dónde se guardan mis datos y quién puede verlos?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\"><p>Tu cuenta y todo lo que contiene se guardan en la Unión Europea, en Irlanda, cifrados tanto en reposo como en tránsito. Fibonax no lee las páginas que visitas y nunca vende tus datos. Un Brain llega a una IA solo cuando tú decides añadirlo a un chat. Los detalles están en la <a href=\"/legal/privacy-policy.html\">política de privacidad</a>.</p></div>\n      </details>",
+      "count": 1
+    },
+    {
+      "find": "Still have a question? <a href=\"mailto:fibonaxai@gmail.com\">Write to us</a> or read the <a href=\"https://docs.fibonax.com/\" target=\"_blank\" rel=\"noopener\">user guide</a>.",
+      "replace": "¿Todavía tienes una pregunta? <a href=\"mailto:fibonaxai@gmail.com\">Escríbenos</a> o lee la <a href=\"https://docs.fibonax.com/\" target=\"_blank\" rel=\"noopener\">guía de usuario</a>.",
+      "count": 1
     }
   ],
   "pricingEntries": [
