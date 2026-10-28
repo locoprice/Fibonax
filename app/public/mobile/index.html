@@ -1517,7 +1517,7 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <button type="button" class="ask-row sb-hidden" data-ask-for="srch">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-      <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
+      <span class="ask-row-t"><span class="ask-row-l">FiboChat</span><span class="ask-row-q"></span></span>
       <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </button>
     <div data-filter-panel-slot></div>
@@ -1644,7 +1644,7 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <button type="button" class="ask-row sb-hidden" data-ask-for="prompt-srch">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-      <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
+      <span class="ask-row-t"><span class="ask-row-l">FiboChat</span><span class="ask-row-q"></span></span>
       <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </button>
     <div data-filter-panel-slot></div>
@@ -1704,7 +1704,7 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <button type="button" class="ask-row sb-hidden" data-ask-for="mem-srch">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-      <span class="ask-row-t"><span class="ask-row-l">Ask Fibonax</span><span class="ask-row-q"></span></span>
+      <span class="ask-row-t"><span class="ask-row-l">FiboChat</span><span class="ask-row-q"></span></span>
       <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </button>
     <div data-filter-panel-slot></div>
@@ -1966,7 +1966,7 @@ svg.brain-type-icon{stroke-width:1.8}
     <div class="sb-sheet-handle-area">
       <div class="sb-sheet-handle"></div>
     </div>
-    <div class="sb-sheet-title" id="sb-ask-title">Ask Fibonax</div>
+    <div class="sb-sheet-title" id="sb-ask-title">FiboChat</div>
     <div class="ask-body" id="sb-ask-body" aria-live="polite"></div>
   </div>
 </div>
@@ -10785,7 +10785,7 @@ var ASK_VERDICTS=[
   {value:'conflicting',label:'Conflicts with policy'}
 ];
 var ASK_MIN=3, ASK_MAX=1000;
-/* Ask Fibonax needs Pro, and the Pro plan does not exist yet. Until it does
+/* FiboChat needs Pro, and the Pro plan does not exist yet. Until it does
    the row stays where it will live, locked, and nothing here can send a
    request. Keep in step with PRO_SOON_LABEL and the 'ask' switch in
    app/src/lib/proFeatures.ts: scripts/check-pro-gate.js. */
@@ -10793,7 +10793,7 @@ var PRO_SOON_LABEL='Available to Pro users soon';
 var ASK_AVAILABLE=false;
 var ASK_ERRORS={
   rate_limited:AI_LIMIT_TEXT,
-  anthropic_not_configured:'Ask Fibonax is not set up yet.',
+  anthropic_not_configured:'FiboChat is not set up yet.',
   anthropic_request_failed:'The answer service did not respond. Try again.',
   anthropic_bad_output:'The answer came back unreadable. Try again.',
   question_too_short:'Write a few more words.',
@@ -10801,7 +10801,7 @@ var ASK_ERRORS={
   search_failed:'Could not search your Fibonax. Try again.',
   sources_read_failed:'Could not read the matching items. Try again.'
 };
-var ASK_FALLBACK='Could not reach Ask Fibonax. Try again.';
+var ASK_FALLBACK='Could not reach FiboChat. Try again.';
 var askState=null, _askSeq=0, _askSheetTimer=null;
 
 function syncAskRow(inputId){

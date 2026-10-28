@@ -41,7 +41,7 @@ describe('the AI limit message', () => {
     await expect(draftApi.draft({ kind: 'snippet', text: DRAFT_TEXT })).rejects.toThrow(AI_LIMIT_MESSAGE);
   });
 
-  it('reaches Ask Fibonax', async () => {
+  it('reaches FiboChat', async () => {
     failWith(429, 'rate_limited');
     await expect(askApi.ask('What is the refund rule?')).rejects.toThrow(AI_LIMIT_MESSAGE);
   });

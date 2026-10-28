@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { toReviewStatus } from '@/lib/reviewStatus';
 
-// Ask Fibonax (AI-KNOWLEDGE P1, docs/AI_KNOWLEDGE_PLAN.md).
+// FiboChat (AI-KNOWLEDGE P1, docs/AI_KNOWLEDGE_PLAN.md).
 //
 // The pure half: what the ask-sprintbrain function answers, read defensively,
 // and the feedback vocabulary. No network here, so all of it is testable.

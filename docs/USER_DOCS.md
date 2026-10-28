@@ -65,7 +65,7 @@ A new page gets a row here and an entry in the `docs.json` menu in the same chan
 These exist in the product but don't work for users, so the manual stays silent about them until they're fixed. When one is fixed, document it in the same task.
 
 - **Translate from EN** (snippet editor): the `translate-body` edge function is not deployed. Shown locked for Pro since v3.61.0.
-- **Ask Fibonax** (dashboard search panel, phone) and **Draft with AI** (snippet, prompt and Brain item editors): locked for Pro since v3.61.0 ("Available to Pro users soon"). Their pages are kept, unpublished, in `docs/pro-features/`, with the lines to restore when they turn on.
+- **FiboChat** (dashboard search panel, phone) and **Draft with AI** (snippet, prompt and Brain item editors): locked for Pro since v3.61.0 ("Available to Pro users soon"). Their pages are kept, unpublished, in `docs/pro-features/`, with the lines to restore when they turn on.
 - **Notion button on prompt cards**: the `notion-prompt-push` edge function is not deployed, so since v3.96.1 the button is hidden for everyone (`PROMPT_NOTION_PUSH_AVAILABLE` in `app/src/lib/notionTeam.ts`).
 - **Push to Notion** (snippets): writes to one database set on the server, not to the account's own Notion. Since v3.86.1 it works only for members of the team that owns that database, and since v3.96.1 nobody else sees it (`NOTION_TEAM_ID` in `app/src/lib/notionTeam.ts`, pinned to the server's id by a test).
 - **Triggers card**: the Shortcut prefix buttons and the Snippet key / Prompt key choices are saved but never read by the extension.

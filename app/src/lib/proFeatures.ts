@@ -17,7 +17,7 @@
 export const PRO_SOON_LABEL = 'Available to Pro users soon';
 
 export type ProFeature =
-  /** Ask Fibonax: the search panel's answer row. */
+  /** FiboChat: the search panel's answer row. */
   | 'ask'
   /** Draft from text, in the snippet, prompt and Brain item editors. */
   | 'draft'
