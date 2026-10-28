@@ -1584,8 +1584,8 @@
       "count": 1
     },
     {
-      "find": "No monthly / yearly subscription. No pathetic marketing.",
-      "replace": "Sin suscripciones mensuales / anuales. Sin marketing patético.",
+      "find": "No mandatory monthly or yearly subscription, but you can choose to pay as you go. No pathetic marketing.",
+      "replace": "Sin suscripción mensual ni anual obligatoria, pero puedes elegir pagar por uso. Sin marketing patético.",
       "count": 1
     },
     {
