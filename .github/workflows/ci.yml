@@ -95,6 +95,9 @@ jobs:
       - name: Landing translation parity check
         run: node scripts/build-landing-i18n.js --check
 
+      - name: Pricing page numbers match PRICING
+        run: node scripts/check-pricing-config.js
+
       - name: Landing FAQ structured data
         run: node scripts/check-landing-faq.js
 
