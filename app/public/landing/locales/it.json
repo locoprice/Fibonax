@@ -1549,8 +1549,8 @@
       "count": 1
     },
     {
-      "find": "A fixed FiboToken price for every use",
-      "replace": "Un prezzo fisso in FiboToken per ogni uso",
+      "find": "One FiboToken for every use, whatever it is",
+      "replace": "Un FiboToken per ogni uso, qualunque sia",
       "count": 1
     },
     {
@@ -1769,8 +1769,8 @@
       "count": 1
     },
     {
-      "find": "</span>. Every use has a fixed price in FiboTokens, and the free allowance is always spent first.",
-      "replace": "</span>. Ogni uso ha un prezzo fisso in FiboToken e la quota gratuita viene sempre usata per prima.",
+      "find": "</span>. Every use costs the same, one FiboToken, and the free allowance is always spent first.",
+      "replace": "</span>. Ogni uso costa lo stesso, un FiboToken, e la quota gratuita viene sempre usata per prima.",
       "count": 1
     },
     {
@@ -1817,11 +1817,6 @@
       "find": "Use a Brain <strong",
       "replace": "Usa un Brain <strong",
       "count": 1
-    },
-    {
-      "find": "</span> FiboTokens</strong>",
-      "replace": "</span> FiboToken</strong>",
-      "count": 2
     },
     {
       "find": "See where you stand",

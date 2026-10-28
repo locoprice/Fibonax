@@ -579,7 +579,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
           <li class="topup-once"><span>Ricarica a passi di <strong data-pricing="topUpEuros">€25</strong>, tutte le volte che vuoi</span></li>
           <li class="topup-monthly"><span><strong data-pricing="topUpEuros">€25</strong> aggiunti ogni mese, con FiboToken bonus in più</span></li>
           <li><span>1 FiboToken = <strong data-pricing="euroPerFiboToken">€0.01</strong></span></li>
-          <li><span>Un prezzo fisso in FiboToken per ogni uso</span></li>
+          <li><span>Un FiboToken per ogni uso, qualunque sia</span></li>
           <li><span>Saldo e cronologia nel tuo account</span></li>
           <li><span>Founding Member: uno sconto permanente su ogni ricarica</span></li>
         </ul>
@@ -618,7 +618,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <tr><th scope="row">Pagamento ricorrente</th><td data-label="Gratis">No</td><td data-label="A consumo">Solo con la ricarica automatica mensile, e puoi smettere quando vuoi</td><td data-label="Abbonamento mensile">Sì, ogni mese</td></tr>
         <tr><th scope="row">FiboToken acquistati</th><td data-label="Gratis">No</td><td data-label="A consumo"><strong data-pricing="fiboTokensPerTopUp">2.500</strong> per ogni <span data-pricing="topUpEuros">€25</span></td><td data-label="Abbonamento mensile">Inclusi nel piano</td></tr>
         <tr><th scope="row">Quota giornaliera gratuita</th><td data-label="Gratis"><strong data-pricing="freeSnippetsPerDay">15</strong> snippet, <strong data-pricing="freePromptsPerDay">10</strong> prompt, <strong data-pricing="freeBrainsPerDay">5</strong> Brain</td><td data-label="A consumo">Prima la quota gratuita, poi i FiboToken</td><td data-label="Abbonamento mensile">Prima la quota gratuita, poi il piano</td></tr>
-        <tr><th scope="row">Costo per uso</th><td data-label="Gratis">Niente entro la quota</td><td data-label="A consumo"><strong data-pricing="fiboTokensPerSnippet">1</strong> FiboToken per snippet, <strong data-pricing="fiboTokensPerPrompt">2</strong> per prompt, <strong data-pricing="fiboTokensPerBrain">3</strong> per Brain</td><td data-label="Abbonamento mensile">Annunciato prima del lancio</td></tr>
+        <tr><th scope="row">Costo per uso</th><td data-label="Gratis">Niente entro la quota</td><td data-label="A consumo"><strong data-pricing="fiboTokensPerSnippet">1</strong> FiboToken per snippet, <strong data-pricing="fiboTokensPerPrompt">1</strong> per prompt, <strong data-pricing="fiboTokensPerBrain">1</strong> per Brain</td><td data-label="Abbonamento mensile">Annunciato prima del lancio</td></tr>
         <tr><th scope="row">Vantaggio Founding Member</th><td data-label="Gratis">La quota gratuita, a vita</td><td data-label="A consumo">Uno sconto permanente sulle ricariche</td><td data-label="Abbonamento mensile">Condizioni speciali dove previste</td></tr>
         <tr><th scope="row">Disdetta</th><td data-label="Gratis">Niente da disdire</td><td data-label="A consumo">Niente da disdire: hai comprato una volta</td><td data-label="Abbonamento mensile">Mostrato prima di abbonarti</td></tr>
       </tbody>
@@ -630,7 +630,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 
   <section class="pr-section" id="fibotokens" aria-labelledby="fibotokens-title">
     <h2 id="fibotokens-title">Come funzionano i FiboToken</h2>
-    <p class="pr-intro">Un FiboToken vale <span data-pricing="euroPerFiboToken">€0.01</span>. Ogni uso ha un prezzo fisso in FiboToken e la quota gratuita viene sempre usata per prima.</p>
+    <p class="pr-intro">Un FiboToken vale <span data-pricing="euroPerFiboToken">€0.01</span>. Ogni uso costa lo stesso, un FiboToken, e la quota gratuita viene sempre usata per prima.</p>
     <div class="steps">
       <article class="step">
         <span class="step-number" aria-hidden="true">1</span>
@@ -643,8 +643,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <p>Prima si usa la quota giornaliera gratuita. Solo dopo un uso costa FiboToken.</p>
         <ul class="rates">
           <li>Espandi uno snippet <strong><span data-pricing="fiboTokensPerSnippet">1</span> FiboToken</strong></li>
-          <li>Espandi un prompt <strong><span data-pricing="fiboTokensPerPrompt">2</span> FiboToken</strong></li>
-          <li>Usa un Brain <strong><span data-pricing="fiboTokensPerBrain">3</span> FiboToken</strong></li>
+          <li>Espandi un prompt <strong><span data-pricing="fiboTokensPerPrompt">1</span> FiboToken</strong></li>
+          <li>Usa un Brain <strong><span data-pricing="fiboTokensPerBrain">1</span> FiboToken</strong></li>
         </ul>
       </article>
       <article class="step">
@@ -947,8 +947,8 @@ var PRICING = {
   topUpEuros: 25,
   fiboTokensPerTopUp: 2500,
   fiboTokensPerSnippet: 1,
-  fiboTokensPerPrompt: 2,
-  fiboTokensPerBrain: 3,
+  fiboTokensPerPrompt: 1,
+  fiboTokensPerBrain: 1,
   // Madrid is UTC+01:00 at this winter deadline, whatever the visitor's zone.
   deadline: '2026-12-31T23:59:59+01:00',
   closesFrom: '2027-01-01T00:00:00+01:00'

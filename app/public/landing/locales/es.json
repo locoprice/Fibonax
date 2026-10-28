@@ -1534,8 +1534,8 @@
       "count": 1
     },
     {
-      "find": "A fixed FiboToken price for every use",
-      "replace": "Un precio fijo en FiboTokens por cada uso",
+      "find": "One FiboToken for every use, whatever it is",
+      "replace": "Un FiboToken por cada uso, sea cual sea",
       "count": 1
     },
     {
@@ -1754,8 +1754,8 @@
       "count": 1
     },
     {
-      "find": "</span>. Every use has a fixed price in FiboTokens, and the free allowance is always spent first.",
-      "replace": "</span>. Cada uso tiene un precio fijo en FiboTokens y la cuota gratuita siempre se gasta primero.",
+      "find": "</span>. Every use costs the same, one FiboToken, and the free allowance is always spent first.",
+      "replace": "</span>. Cada uso cuesta lo mismo, un FiboToken, y la cuota gratuita siempre se gasta primero.",
       "count": 1
     },
     {
