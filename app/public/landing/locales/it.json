@@ -1194,6 +1194,26 @@
   ],
   "pricingEntries": [
     {
+      "find": "aria-label=\"Breadcrumb\"",
+      "replace": "aria-label=\"Percorso di navigazione\"",
+      "count": 1
+    },
+    {
+      "find": "\"name\": \"Pricing\"",
+      "replace": "\"name\": \"Prezzo\"",
+      "count": 1
+    },
+    {
+      "find": "\"item\": \"https://fibonax.com/\"",
+      "replace": "\"item\": \"https://fibonax.com/it/\"",
+      "count": 1
+    },
+    {
+      "find": "\"item\": \"https://fibonax.com/pricing/\"",
+      "replace": "\"item\": \"https://fibonax.com/it/pricing/\"",
+      "count": 1
+    },
+    {
       "find": "</strong> FiboTokens</span></li>",
       "replace": "</strong> FiboToken</span></li>",
       "count": 1

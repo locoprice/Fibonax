@@ -1179,6 +1179,36 @@
   ],
   "pricingEntries": [
     {
+      "find": "aria-label=\"Breadcrumb\"",
+      "replace": "aria-label=\"Ruta de navegación\"",
+      "count": 1
+    },
+    {
+      "find": "\"name\": \"Pricing\"",
+      "replace": "\"name\": \"Precio\"",
+      "count": 1
+    },
+    {
+      "find": "\"item\": \"https://fibonax.com/\"",
+      "replace": "\"item\": \"https://fibonax.com/es/\"",
+      "count": 1
+    },
+    {
+      "find": "\"item\": \"https://fibonax.com/pricing/\"",
+      "replace": "\"item\": \"https://fibonax.com/es/pricing/\"",
+      "count": 1
+    },
+    {
+      "find": ">Home</a></li>",
+      "replace": ">Inicio</a></li>",
+      "count": 1
+    },
+    {
+      "find": "\"name\": \"Home\"",
+      "replace": "\"name\": \"Inicio\"",
+      "count": 1
+    },
+    {
       "find": "Current exchange rate",
       "replace": "Tipo de cambio actual",
       "count": 1

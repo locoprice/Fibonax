@@ -12,6 +12,16 @@
 <link rel="alternate" hreflang="it" href="https://fibonax.com/it/pricing/">
 <link rel="alternate" hreflang="x-default" href="https://fibonax.com/pricing/">
 <link rel="icon" type="image/png" sizes="128x128" href="../../icon128.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://fibonax.com/it/" },
+    { "@type": "ListItem", "position": 2, "name": "Prezzo", "item": "https://fibonax.com/it/pricing/" }
+  ]
+}
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -272,6 +282,15 @@ footer{padding:28px 20px}
 .pricing-page{flex:1}
 .pricing-page .btn,.pm-dialog .btn{min-height:44px}
 .pricing-page .hero-eyebrow::before{animation:none}
+/* Breadcrumb in the eyebrow slot: Home › Pricing. */
+.crumbs{margin-bottom:var(--space-2)}
+.crumbs ol{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;list-style:none}
+.crumbs li{display:inline-flex;align-items:center}
+.crumbs li+li::before{content:"\203A";margin:0 6px 0 2px;color:var(--text3)}
+.crumbs a{display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-1);color:var(--text2);text-decoration:none;border-radius:var(--r-btn)}
+.crumbs a:hover{color:var(--primary);text-decoration:underline}
+.crumbs a:focus-visible{outline:3px solid var(--primary);outline-offset:-3px}
+.crumbs [aria-current="page"]{color:var(--primary)}
 .pricing-lead{max-width:680px;margin:0 auto;font-size:clamp(17px,2vw,20px);line-height:1.5;color:var(--text2)}
 /* Exchange-rate card under the lead: the FiboToken rate, read like a currency board. */
 .rate-board{max-width:640px;margin:var(--space-8) auto 0;padding:var(--space-6) var(--space-8);background:var(--card);border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:var(--r);box-shadow:var(--shadow-md);text-align:center}
@@ -502,7 +521,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 </div>
 <main id="pricing" class="hero pricing-page" tabindex="-1">
   <div class="hero-inner">
-  <div class="hero-eyebrow">Prezzo</div>
+  <nav class="hero-eyebrow crumbs" aria-label="Percorso di navigazione"><ol><li><a href="../">Home</a></li><li aria-current="page">Prezzo</li></ol></nav>
   <h1>Gratis ogni giorno. <span>FiboToken</span> quando ti serve di più.</h1>
   <p class="pricing-lead">Every day you get 15 snippets, 10 prompts and 5 Brains for free. Oltre, compri FiboToken una volta e li tieni per sempre. Nessun abbonamento necessario.</p>
   <section class="rate-board" aria-labelledby="rate-title">
