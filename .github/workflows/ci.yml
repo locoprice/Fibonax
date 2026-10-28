@@ -95,6 +95,9 @@ jobs:
       - name: Landing translation parity check
         run: node scripts/build-landing-i18n.js --check
 
+      - name: Landing FAQ structured data
+        run: node scripts/check-landing-faq.js
+
       - name: Industry-neutral wording check
         run: node scripts/check-industry-neutral.js
 

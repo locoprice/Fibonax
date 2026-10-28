@@ -929,6 +929,53 @@ body.cm-locked{overflow:hidden}
   .ps-card{padding:28px 24px 26px}
   .ps-head{margin-bottom:44px}}
 
+/* ── FAQ ───────────────────────────────────────────────────── */
+.faq{padding:100px 24px 112px;background:var(--bg-alt);border-top:1px solid var(--border);scroll-margin-top:80px}
+.faq-inner{max-width:760px;margin:0 auto}
+.faq-head{text-align:center;margin-bottom:48px}
+.faq-eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:12px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--primary);margin-bottom:16px}
+.faq-head h2{
+  font-size:clamp(32px,4vw,44px);font-weight:800;letter-spacing:-1.4px;
+  line-height:1.08;color:var(--text);margin-bottom:14px}
+.faq-head p{
+  font-size:17px;color:var(--text2);max-width:480px;
+  margin:0 auto;line-height:1.55}
+.faq-list{display:flex;flex-direction:column;gap:12px}
+.faq-item{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  box-shadow:var(--shadow-sm);overflow:hidden}
+.faq-item[open]{border-color:#C9D6FA}
+.faq-q{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:20px 24px;cursor:pointer;list-style:none;
+  font-size:17px;font-weight:600;line-height:1.4;color:var(--text)}
+.faq-q::-webkit-details-marker{display:none}
+.faq-q:hover,.faq-item[open] .faq-q{color:var(--primary)}
+.faq-q:focus-visible{outline:3px solid var(--primary);outline-offset:-3px;border-radius:var(--r)}
+.faq-icon{
+  position:relative;flex-shrink:0;width:28px;height:28px;border-radius:50%;
+  background:var(--primary-lt);color:var(--primary);transition:transform .2s}
+.faq-icon::before,.faq-icon::after{
+  content:"";position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);background:currentColor;border-radius:1px}
+.faq-icon::before{width:12px;height:2px}
+.faq-icon::after{width:2px;height:12px}
+.faq-item[open] .faq-icon{transform:rotate(45deg)}
+.faq-a{padding:0 24px 22px;font-size:15.5px;line-height:1.65;color:var(--text2)}
+.faq-a p+p{margin-top:10px}
+.faq-a a{color:var(--primary);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.faq-more{text-align:center;margin-top:40px;font-size:15px;color:var(--text2);line-height:1.6}
+.faq-more a{color:var(--primary);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+@media(prefers-reduced-motion:reduce){.faq-icon{transition:none}}
+@media(max-width:720px){
+  .faq{padding:72px 20px 80px}
+  .faq-head{margin-bottom:36px}
+  .faq-q{padding:18px;font-size:16px}
+  .faq-a{padding:0 18px 20px;font-size:15px}}
+
 /* Free-access campaign integrated into the dark closing section. */
 #prompt-access{margin:48px auto 40px;padding:40px 0 0;max-width:var(--max);border-top:1px solid #2b2d33;scroll-margin-top:90px;text-align:left;color:#f6f7fa}
 #prompt-access .pa-card{display:grid;grid-template-columns:1.1fr 1fr;gap:36px 48px;align-items:center;background:transparent}
@@ -1214,6 +1261,7 @@ body.cm-locked{overflow:hidden}
     </a>
     <div class="nav-links">
       <a href="#features" class="nav-link">Funciones</a>
+      <a href="#faq" class="nav-link">FAQ</a>
       <a href="pricing/" class="nav-link">Precio</a>
       <a href="https://app.fibonax.com/mobile/" class="nav-link">Mobile</a>
       <a href="mailto:fibonaxai@gmail.com" class="nav-link" id="nav-contact-open">Contacto</a>
@@ -1265,6 +1313,7 @@ body.cm-locked{overflow:hidden}
   </div>
   <div class="nav-drawer-links">
     <a href="#features" class="nav-link">Funciones</a>
+    <a href="#faq" class="nav-link">FAQ</a>
       <a href="pricing/" class="nav-link">Precio</a>
     <a href="https://app.fibonax.com/mobile/" class="nav-link">Mobile</a>
     <a href="https://github.com/locoprice/Fibonax" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>Star en GitHub</a>
@@ -1914,6 +1963,64 @@ body.cm-locked{overflow:hidden}
 </section>
 
 
+<section class="faq" id="faq" aria-labelledby="faq-title" itemscope itemtype="https://schema.org/FAQPage">
+  <div class="faq-inner">
+
+    <header class="faq-head">
+      <div class="faq-eyebrow">Preguntas frecuentes</div>
+      <h2 id="faq-title">Respuestas a tus preguntas.</h2>
+      <p>La versión corta de lo que la gente pregunta antes de empezar.</p>
+    </header>
+
+    <div class="faq-list">
+
+      <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary class="faq-q"><span itemprop="name">¿Qué es Fibonax?</span><span class="faq-icon" aria-hidden="true"></span></summary>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">Un solo lugar para tus Snippets, Prompts y Brains. Los snippets son textos reutilizables que insertas escribiendo un atajo corto. Los prompts son tus mejores instrucciones para la IA, guardadas y listas para reutilizar. Los Brains contienen lo que una IA debe saber de tu trabajo. Usas los tres desde la extensión de Chrome, el dashboard y tu teléfono, y siempre muestran la misma biblioteca.</p></div>
+      </details>
+
+      <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary class="faq-q"><span itemprop="name">¿Necesito conocimientos técnicos para usarlo?</span><span class="faq-icon" aria-hidden="true"></span></summary>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">No. Escribes un snippet una vez, le das un atajo corto y escribes ese atajo donde necesites el texto. Los campos, las fechas y los cálculos se añaden desde menús, sin código. Si sabes rellenar un formulario, sabes usar Fibonax.</p></div>
+      </details>
+
+      <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary class="faq-q"><span itemprop="name">¿Dónde funciona?</span><span class="faq-icon" aria-hidden="true"></span></summary>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">En Google Chrome en un ordenador, en cualquier campo de texto de cualquier sitio web: correo, chat, documentos y herramientas de IA, sin configurar nada sitio por sitio. También funcionan los navegadores que instalan extensiones desde la Chrome Web Store. En las pocas páginas donde Chrome no deja entrar a las extensiones, el menú del botón derecho o una copia desde el popup insertan el mismo texto. En el teléfono, abre <a href="https://app.fibonax.com/mobile/">app.fibonax.com/mobile</a> en el navegador, rellena un snippet y pégalo en cualquier app.</p></div>
+      </details>
+
+      <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary class="faq-q"><span itemprop="name">¿Con qué herramientas de IA funciona?</span><span class="faq-icon" aria-hidden="true"></span></summary>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">Con cualquier asistente en el que escribas. Los prompts y los Brains entran en ChatGPT, Claude, Gemini y los demás, y el mismo contexto te acompaña cuando cambias. Fibonax no está atado a una sola IA.</p></div>
+      </details>
+
+      <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary class="faq-q"><span itemprop="name">¿Puedo traer mis snippets desde otra herramienta?</span><span class="faq-icon" aria-hidden="true"></span></summary>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">Sí. En la página Snippets, Importar lee una exportación de Text Blaze, una exportación de Fibonax o una lista sencilla de snippets. Los campos y las condiciones de Text Blaze siguen funcionando tal cual. Puedes exportarlo todo a un archivo en cualquier momento, así que nada queda bloqueado.</p></div>
+      </details>
+
+      <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary class="faq-q"><span itemprop="name">¿Puede usarlo mi equipo?</span><span class="faq-icon" aria-hidden="true"></span></summary>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">Sí. Comparte un folder con todo el equipo o con compañeros concretos, y todo lo que contiene aparece al instante en su extensión y su dashboard. Tú decides quién puede usar, editar o gestionar cada folder.</p></div>
+      </details>
+
+      <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary class="faq-q"><span itemprop="name">¿Cuánto cuesta?</span><span class="faq-icon" aria-hidden="true"></span></summary>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">Quien se registre antes del 31 de diciembre de 2026 conserva Fibonax gratis de por vida. Desde el 1 de enero de 2027, las cuentas nuevas empiezan con un uso gratuito incluido y después pagan solo por lo que usan. No hay suscripción mensual ni anual. Consulta la <a href="pricing/">página de precios</a>.</p></div>
+      </details>
+
+      <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary class="faq-q"><span itemprop="name">¿Dónde se guardan mis datos y quién puede verlos?</span><span class="faq-icon" aria-hidden="true"></span></summary>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">Tu cuenta y todo lo que contiene se guardan en la Unión Europea, en Irlanda, cifrados tanto en reposo como en tránsito. Fibonax no lee las páginas que visitas y nunca vende tus datos. Un Brain llega a una IA solo cuando tú decides añadirlo a un chat. Los detalles están en la <a href="/legal/privacy-policy.html">política de privacidad</a>.</p></div>
+      </details>
+
+    </div>
+
+    <p class="faq-more">¿Todavía tienes una pregunta? <a href="mailto:fibonaxai@gmail.com">Escríbenos</a> o lee la <a href="https://docs.fibonax.com/" target="_blank" rel="noopener">guía de usuario</a>.</p>
+
+  </div>
+</section>
+
 <section class="foot-statement context-finale">
   <div class="foot-statement-inner">
     <h2 class="context-finale-title">Dale a tu IA el contexto que necesita.</h2>
@@ -1969,6 +2076,7 @@ body.cm-locked{overflow:hidden}
   <div class="foot-inner">
     <div class="foot-links">
       <a href="pricing/">Precio</a>
+      <a href="#faq">FAQ</a>
       <a href="https://app.fibonax.com/mobile/">Mobile</a>
       <a href="https://github.com/locoprice/Fibonax" target="_blank" rel="noopener">GitHub</a>
       <a href="mailto:fibonaxai@gmail.com" id="contact-open">Soporte</a>
@@ -2474,7 +2582,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.97.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.98.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
