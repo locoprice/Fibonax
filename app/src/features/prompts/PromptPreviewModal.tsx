@@ -17,7 +17,7 @@ import { applyInteractiveSteps, loadInteractiveSteps } from '@/lib/interactiveSt
 function brainNote(brain: ResolvedPrompt['unavailable'][number]): string {
   const name = brain.name || 'The Brain';
   if (brain.reason === 'empty') return `The Brain “${name}” is empty, so there is nothing to add.`;
-  if (brain.reason === 'failed') return `The Brain “${name}” could not be loaded. Check your connection and try again.`;
+  if (brain.reason === 'failed') return `The Brain “${name}” could not be loaded. Check your connection.`;
   return `The Brain “${name}” is not available here: it may be in the trash, or it belongs to the prompt's author.`;
 }
 
@@ -63,10 +63,19 @@ export function PromptPreviewModal() {
   const [brainError, setBrainError] = useState(false);
   const [brainAttempt, setBrainAttempt] = useState(0);
 
+  // Nothing is carried from one open to the next: a reopened window reads the
+  // Brain again before Copy is offered, and an error belongs to the open it
+  // happened in.
   useEffect(() => {
+    if (isOpen) return;
+    setBrains(null);
+    setBrainError(false);
+  }, [isOpen]);
+
+  useEffect(() => {
+    setBrainError(false);
     if (!isOpen || refs.length === 0) return;
     let live = true;
-    setBrainError(false);
     resolvePromptBrains(built).then(
       (resolved) => {
         if (live) setBrains({ built, ...resolved });
@@ -83,6 +92,14 @@ export function PromptPreviewModal() {
   const brainsReady = refs.length === 0 || brains?.built === built;
   const brainsPending = !brainsReady && !brainError;
   const unavailable = brainsReady && brains ? brains.unavailable : [];
+  // A read that failed, of the module or of a Brain, can be tried again.
+  const canRetry = brainError || unavailable.some((brain) => brain.reason === 'failed');
+
+  function retryBrains() {
+    setBrains(null);
+    setBrainError(false);
+    setBrainAttempt((n) => n + 1);
+  }
   const assembled = brainsReady && brains ? brains.text : brainsReady ? built : labelBrainTokens(built);
 
   // What Copy puts on the clipboard, so the preview never differs from the paste.
@@ -179,19 +196,21 @@ export function PromptPreviewModal() {
             )}
             {brainError && (
               <p className="text-danger" role="alert">
-                The Brain could not be loaded. Check your connection.{' '}
-                <button
-                  type="button"
-                  onClick={() => setBrainAttempt((n) => n + 1)}
-                  className="font-medium text-primary underline-offset-2 hover:underline"
-                >
-                  Try again
-                </button>
+                The Brain could not be loaded. Check your connection.
               </p>
             )}
             {unavailable.map((brain) => (
               <p key={brain.id}>{brainNote(brain)}</p>
             ))}
+            {canRetry && (
+              <button
+                type="button"
+                onClick={retryBrains}
+                className="self-start font-medium text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                Try again
+              </button>
+            )}
           </div>
           <button
             type="button"

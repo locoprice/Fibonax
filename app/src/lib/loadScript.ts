@@ -8,7 +8,8 @@
  * give the same answer whether it ran in the extension, on the phone or here.
  *
  * A script is appended once and marked when it has loaded; a second caller
- * waits on the same tag.
+ * waits on the same tag. A tag that failed is removed, so the next call loads
+ * the file afresh rather than waiting on events that have already fired.
  */
 export function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -37,7 +38,14 @@ export function loadScript(src: string): Promise<void> {
       },
       { once: true },
     );
-    el.addEventListener('error', () => reject(new Error(`Could not load ${src}`)), { once: true });
+    el.addEventListener(
+      'error',
+      () => {
+        el.remove();
+        reject(new Error(`Could not load ${src}`));
+      },
+      { once: true },
+    );
     document.head.appendChild(el);
   });
 }

@@ -20,6 +20,7 @@ import { DEFAULT_TRIGGER_CONFIG, sanitizeTriggerInput } from '@/lib/triggerUtils
 import { classifyPrompt } from '@/lib/intentEngine';
 import { placeMenu } from '@/lib/menuPlacement';
 import { assembleBlocks, foldReasoningIntoConstraints } from '@/lib/promptUtils';
+import { labelBrainTokens } from '@/lib/promptBrain';
 import { loadInteractiveSteps, saveInteractiveSteps } from '@/lib/interactiveSteps';
 import {
   usePromptEvaluator,
@@ -128,11 +129,13 @@ const EXAMPLE_PROMPT: ExamplePrompt = {
   intentCategory: 'Writing',
 };
 
-// A draft from the AI writes the five blocks' text. The Brain the Context
-// block carries is a choice, not text, so it stays, and the block stays on.
+// A draft from the AI, or the example, writes the five blocks' text. The Brain
+// a switched-on Context block carries is a choice, not text, so it stays, and
+// the block stays on. A Brain on a switched-off block stays off.
 function withBrainKept(next: PromptBlock[], prev: PromptBlock[]): PromptBlock[] {
-  const brain = prev.find((b) => b.type === 'context')?.brain ?? null;
-  if (!brain) return next;
+  const context = prev.find((b) => b.type === 'context');
+  if (!context?.enabled || !context.brain) return next;
+  const brain = context.brain;
   return next.map((b) => (b.type === 'context' ? { ...b, brain, enabled: true } : b));
 }
 
@@ -394,6 +397,12 @@ function BrainPicker({ value, onChange }: BrainPickerProps) {
   const spaces = useMemoryStore((s) => s.spaces);
   const totals = useMemoryStore((s) => s.totals);
   const loaded = useMemoryStore((s) => s.loaded);
+  const loading = useMemoryStore((s) => s.loadingSpaces);
+  const storeError = useMemoryStore((s) => s.error);
+  const loadSpaces = useMemoryStore((s) => s.loadSpaces);
+  // The list never arrived. The store keeps one error for every Brain read, so
+  // it only counts here while the list is still missing.
+  const failed = !loaded && !loading && storeError !== null;
 
   const known = value ? (spaces.find((space) => space.id === value.id) ?? null) : null;
   const options = spaces.map((space) => ({
@@ -401,12 +410,17 @@ function BrainPicker({ value, onChange }: BrainPickerProps) {
     label: `${space.name} · ${describeItems(totals.get(space.id)?.items ?? 0)}`,
   }));
   if (value && !known) {
-    options.unshift({ value: value.id, label: `${value.name || 'Brain'} · not available` });
+    // Named as missing only once the list is in: until then it is simply the saved choice.
+    options.unshift({ value: value.id, label: loaded ? `${value.name || 'Brain'} · not available` : value.name || 'Brain' });
   }
   const unavailable = value !== null && loaded && !known;
 
   let hint: string;
-  if (unavailable) {
+  if (failed) {
+    hint = 'Your Brains could not be loaded. Check your connection.';
+  } else if (!loaded) {
+    hint = 'Loading your Brains…';
+  } else if (unavailable) {
     hint = "This Brain is not available: it may be in the trash, or it belongs to the prompt's author. Pick another, or choose None.";
   } else if (value) {
     hint = `Everything in “${known?.name ?? value.name}” goes into the prompt each time you use it, as it is that day.`;
@@ -435,7 +449,21 @@ function BrainPicker({ value, onChange }: BrainPickerProps) {
         options={options}
         placeholder="None"
       />
-      <span className="mt-1.5 block text-[11px] leading-relaxed text-[#7A7A85]">{hint}</span>
+      <span className="mt-1.5 block text-[11px] leading-relaxed text-[#7A7A85]" role={failed ? 'alert' : undefined}>
+        {hint}
+        {failed && (
+          <>
+            {' '}
+            <button
+              type="button"
+              onClick={() => void loadSpaces()}
+              className="font-medium text-[#6080C8] underline-offset-2 hover:text-[#1B4FD8] hover:underline focus:outline-none focus:ring-1 focus:ring-[#1B4FD8]/30"
+            >
+              Try again
+            </button>
+          </>
+        )}
+      </span>
     </div>
   );
 }
@@ -761,7 +789,7 @@ export function PromptBlockEditor() {
 
   function loadExample() {
     setName(EXAMPLE_PROMPT.name);
-    setBlocks(EXAMPLE_PROMPT.blocks.map((b) => ({ ...b })));
+    setBlocks((prev) => withBrainKept(EXAMPLE_PROMPT.blocks.map((b) => ({ ...b })), prev));
     setStrategyType(EXAMPLE_PROMPT.strategyType);
     setPreferredModel(EXAMPLE_PROMPT.preferredModel);
     setOutputType(EXAMPLE_PROMPT.outputType);
@@ -840,7 +868,7 @@ export function PromptBlockEditor() {
         createdAt: version.created_at,
         // The assembled text is what a reader compares: the blocks are how it
         // was built, and a diff of their JSON reads as machinery, not writing.
-        body: version.content,
+        body: labelBrainTokens(version.content),
         note: version.edit_note,
       })),
     [versions],
