@@ -77,6 +77,15 @@ interface FormNumberDialogProps {
   readers?: number;
   /** Leaves the field being changed as it is and starts a new one. */
   onNew?: () => void;
+  /**
+   * The name a new field starts with, when an amount in an email layout
+   * named it after the words beside it. '' or left out for the suggested name.
+   */
+  newName?: string;
+  /** The default a new field starts with: the amount it stands in for. */
+  newDefault?: string;
+  /** The currency that amount showed, which the field then prints in. */
+  newCurrency?: CurrencyCode | null;
   onInsert: (token: string) => void;
 }
 
@@ -101,6 +110,9 @@ export function FormNumberDialog({
   list,
   readers = 0,
   onNew,
+  newName = '',
+  newDefault = '',
+  newCurrency = null,
   onInsert,
 }: FormNumberDialogProps) {
   const [name, setName] = useState('');
@@ -128,13 +140,13 @@ export function FormNumberDialog({
       setLabel(initial.label ?? '');
       return;
     }
-    setName(suggestedName);
-    setFormat('plain');
-    setCurrency(DEFAULT_CURRENCY);
-    setDefaultValue('');
+    setName(newName || suggestedName);
+    setFormat(newCurrency ? 'currency' : 'plain');
+    setCurrency(newCurrency ?? DEFAULT_CURRENCY);
+    setDefaultValue(newDefault);
     setLink(NUMBER_LINK_START);
     setLabel('');
-  }, [open, suggestedName, initial]);
+  }, [open, suggestedName, initial, newName, newDefault, newCurrency]);
 
   const nameValid = isValidFieldName(name);
   const defaultValid = isValidNumberDefault(defaultValue);

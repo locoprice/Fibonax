@@ -1,0 +1,44 @@
+---
+title: "Use an email layout"
+sidebarTitle: "Email layouts"
+description: "Turn an email you send often into a snippet that looks exactly like it, with its names, dates and amounts as fields. It lands in Gmail or Outlook as the email, and in a chat as plain text."
+---
+
+Some messages are not plain text: a summary in a table, a header in your colours, a logo at the top. Paste one into a snippet and it stays exactly as it is. Then turn the parts that change into fields, and every time you use it, Fibonax fills them in and puts the whole thing into your email.
+
+## Set it up
+
+1. Open the snippet editor and click **Use an email layout** at the right of the bar above **Body**.
+2. Copy the email: click in it, press <kbd>Ctrl</kbd>+<kbd>A</kbd> then <kbd>Ctrl</kbd>+<kbd>C</kbd> (<kbd>Cmd</kbd> on a Mac), and paste it in the window. The window shows it as it will look and says what it kept, like `Layout kept: 3 tables, 1 picture`. If you have the email as an `.html` file instead, click **Open a file**.
+3. Click **Use this layout**. The email takes the place of the text in the body.
+4. Select a value that changes from one message to the next, like a name, a date or an amount. A small bar appears: **Make it a field: Text, Number, Date, Choice**. Pick one.
+   - **Text** and **Number** open their window with the value already filled in as the default, and the field named after the words next to it: `CUSTOMER` for a value after "Customer", `TOTAL` for one after "Total". An amount with a currency sign becomes a number in that currency. Click **Insert**.
+   - **Date** goes straight in, named the same way.
+   - **Choice** opens its window so you can type the options.
+   The field takes the value's place as a blue chip. Repeat for every value that changes.
+5. **Save**. The preview on the right shows the finished email, filled in as you answer the form.
+
+Everything else in the editor works as it does for plain text: calculations, show or hide rules, greetings, [Fill from link](/text-snippets/fill-from-link), version history, languages and export.
+
+## Use it
+
+Expand the snippet the way you always do. The form asks for the same fields, its preview shows the finished email, and:
+
+- In **Gmail** and **Outlook on the web**, the filled email goes in exactly as the layout, tables, colours and pictures included. **Copy** in the extension popup, in the editor preview and on your phone copies it the same way, ready to paste into an email.
+- In **chats and plain text boxes**, like WhatsApp, the same snippet goes in as plain text: each row of a table becomes one line, with its cells side by side (a cell with several lines keeps them), and pictures are left out.
+
+Pictures stay where the email keeps them. If one of them is taken down, the message shows a blank where it was.
+
+Put in the wrong one? **Undo insertion** on the card that appears right after takes the whole email out again, pictures included.
+
+## Change your mind
+
+**Remove layout**, at the right of the bar, keeps the words and drops the layout. **Undo** next to it puts the layout back.
+
+To change the layout itself, paste the new email with **Use an email layout** and make the fields again.
+
+## Limits
+
+- An email larger than 200 KB is refused. Try one with fewer pictures or tables.
+- A show or hide rule in a layout starts and ends inside the same table cell or paragraph.
+- Anything in the email that could run, like scripts or forms, is taken out when it comes in. Only the layout is kept.

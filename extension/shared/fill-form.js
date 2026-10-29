@@ -931,12 +931,18 @@
   // ── A LAYOUT ON SCREEN ──────────────────────────────────────────
   // What a preview draws for a formatted text (`formatted`): the layout read
   // in an inert document and rebuilt node by node, keeping lines, lists, Bold,
-  // Italic, Underline, text colours and https pictures. Layouts come from
-  // teammates too, so nothing in one runs, and no attribute comes through but
-  // a picture's address, description and size, and a colour written as
-  // `#rgb`, `#rrggbb` or `rgb()`. Needs a browser; returns null without one.
+  // Italic, Underline, text colours and https pictures. An email layout is
+  // drawn in a frame instead (isEmailLayout, layoutDocument below); here its
+  // table reads as the plain text does, a row to a line with its cells side
+  // by side, for a page that refuses the frame. Layouts come from teammates
+  // too, so nothing in one runs, and no
+  // attribute comes through but a picture's address, description and size,
+  // and a colour written as `#rgb`, `#rrggbb` or `rgb()`. Needs a browser;
+  // returns null without one.
   var LAYOUT_KEEP = { DIV: 'div', P: 'div', BR: 'br', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u',
-    UL: 'ul', OL: 'ol', LI: 'li' };
+    UL: 'ul', OL: 'ol', LI: 'li', TABLE: 'div', TR: 'div', TD: 'span', TH: 'span',
+    H1: 'div', H2: 'div', H3: 'div', H4: 'div', H5: 'div', H6: 'div', BLOCKQUOTE: 'div' };
+  var LAYOUT_CELL = { TD: 1, TH: 1 };
   var LAYOUT_SKIP = { SCRIPT: 1, STYLE: 1, TEMPLATE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, HEAD: 1, TITLE: 1 };
   var PICTURE_WIDTH_SIZE = { 160: 'small', 320: 'medium', 600: 'full' };
   var LAYOUT_COLOR_RE = /^(#[0-9a-f]{3}|#[0-9a-f]{6}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+)\s*)?\))$/i;
@@ -979,9 +985,44 @@
         if (color) el.style.setProperty('color', color, 'important');
         to.appendChild(el);
         copy(n, el);
+        if (LAYOUT_CELL[tag]) to.appendChild(d.createTextNode(' '));
       });
     })(source, out);
     return out;
+  }
+
+  // What the formatting bar writes (docToHtml in app/src/lib/formattedBody.ts),
+  // in the editor's order. A layout holding anything else is an email's.
+  var LAYOUT_BAR_TAGS = ['DIV', 'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'UL', 'OL', 'LI', 'IMG'];
+
+  // Whether a layout is an email's rather than the bar's lines, lists and
+  // marks: a tag outside the bar's set, or an attribute on anything but a
+  // picture. The editor decides the same in app/src/lib/emailLayout.ts, which
+  // runs before this module has loaded; scripts/check-fill-form.js pins the
+  // two lists to each other. Needs a browser; false without one.
+  function isEmailLayout(html) {
+    if (!html || typeof DOMParser === 'undefined') return false;
+    var all = new DOMParser().parseFromString(String(html), 'text/html').body.querySelectorAll('*');
+    for (var i = 0; i < all.length; i++) {
+      var tag = all[i].tagName.toUpperCase();
+      if (LAYOUT_BAR_TAGS.indexOf(tag) === -1) return true;
+      if (tag !== 'IMG' && all[i].attributes.length > 0) return true;
+    }
+    return false;
+  }
+
+  // The document a preview frame shows an email layout in, the same on every
+  // surface (the dashboard's LayoutFrame.tsx, the popup, the overlay and the
+  // phone): the layout as the email will show it, a base font for text it
+  // leaves unstyled, and tables and pictures no wider than the frame, so a
+  // 600px card reads in a popup or on a phone. The frame runs no scripts.
+  function layoutDocument(html) {
+    return '<!doctype html><html><head><meta charset="utf-8"><style>' +
+      'html,body{margin:0;padding:0}' +
+      'body{font:14px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#111;background:#fff;padding:8px}' +
+      'img{max-width:100%;height:auto}' +
+      'table{max-width:100%}' +
+      '</style></head><body>' + String(html == null ? '' : html) + '</body></html>';
   }
 
   // Comparison form of a piece of page text or of the author's word: case,
@@ -1496,6 +1537,9 @@
     pictureText: pictureText,
     pictureCount: pictureCount,
     layoutFragment: layoutFragment,
+    isEmailLayout: isEmailLayout,
+    layoutDocument: layoutDocument,
+    LAYOUT_BAR_TAGS: LAYOUT_BAR_TAGS,
     linkSummary: linkSummary,
     linkNote: linkNote,
     LINK_TEXT: LINK_TEXT,

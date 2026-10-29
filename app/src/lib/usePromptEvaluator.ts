@@ -137,6 +137,13 @@ function gradeBlock(blocks: PromptBlock[], spec: BlockSpec): EvalCriterion {
     weight: spec.weight,
   };
 
+  // A Context block that carries a Brain hands the AI everything in that Brain
+  // at use time, whatever else is typed: full credit, as the richest context
+  // the editor can give.
+  if (enabled && spec.type === 'context' && block?.brain) {
+    return { ...base, status: 'pass', value: 1, rationale: 'A Brain provides the context.' };
+  }
+
   // Not contributing at all — empty or switched off.
   if (!enabled || !content) {
     return {
@@ -287,7 +294,7 @@ export function evaluatePrompt(input: EvaluatorInput): EvalResult {
       0.75, assembled, AUDIENCE_SIGNAL,
       'An audience or reading level is named.',
       'No audience named — tell the model who the response is for.',
-      'e.g. "Write for non-technical hospitality managers." or "Explain it to a beginner."',
+      'e.g. "Write for non-technical managers." or "Explain it to a beginner."',
       'Name the audience',
     ),
     signalCriterion(

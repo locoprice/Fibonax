@@ -313,6 +313,10 @@ interface SbFillFormApi {
   pictureCount(vm: SbFillFormViewModel): number;
   /** A formatted text rebuilt for the screen: lines, lists, marks, https pictures, nothing else. */
   layoutFragment(html: string): DocumentFragment | null;
+  /** Whether a layout is an email's, rather than the bar's lines, lists and marks. */
+  isEmailLayout(html: string): boolean;
+  /** The document a preview frame shows an email layout in, the same on every surface. */
+  layoutDocument(html: string): string;
 }
 
 interface SbFormulaEngineApi {
@@ -364,6 +368,7 @@ const ENGINE_SCRIPTS = [
   '/extension/formula-engine.js',
   '/extension/shared/fill-form.js',
 ] as const;
+
 
 /** One in-flight load shared by every caller; retried only after a failure. */
 let pending: Promise<SbFillFormApi> | null = null;

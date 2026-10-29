@@ -430,7 +430,7 @@ var CHANGELOG = [
     ]},
   { version:'v2.98.0', date:'2026-07-11', label:'feat: fill snippet fields and copy the result from the popup',
     changes:[
-      {type:'new', text:'Open a snippet in the popup and, if it has fields like {guest_name}, fill them right there and hit Copy filled — you get the finished text ready to paste into WhatsApp Web or anywhere the in-field trigger is awkward.'},
+      {type:'new', text:'Open a snippet in the popup and, if it has fields like {customer_name}, fill them right there and hit Copy filled — you get the finished text ready to paste into WhatsApp Web or anywhere the in-field trigger is awkward.'},
       {type:'new', text:'Dates, formulas and conditional blocks resolve too, using the same engine as the in-page trigger, so the copied text matches exactly. Copy raw still gives you the untouched template.'}
     ]},
   { version:'v2.97.0', date:'2026-07-11', label:'feat: popup redesign — a faster, search-first launcher',
@@ -2336,15 +2336,50 @@ function renderPrompts(q) {
 // shared/interactive-steps.js owns the key, the storage and the block.
 var interactiveStepsOn = false;
 
+// A prompt that carries a Brain (its Context block holds a `{brain: …}` token,
+// shared/memory-pack.js) is handed to `cb` finished by the service worker, the
+// reader the """ menu uses, so the two hand out the same text: the Brain as it
+// is now, read when the prompt is copied. `note` says when a Brain was left
+// out (not this person's, in the trash, empty, or not reachable), '' when
+// none was. A worker that does not answer leaves a visible line per Brain.
+// Every other prompt is handed over at once.
+function promptBrainText(p, cb){
+  var content = p.content || '';
+  if (!SBMemoryPack.promptBrainRefs(content).length) { cb(content, ''); return; }
+  function unread(){
+    cb(SBMemoryPack.resolvePromptBrains(content, {}, 'failed'),
+       SBMemoryPack.brainGapNote(SBMemoryPack.promptBrainGaps(content, {}, 'failed')));
+  }
+  try {
+    chrome.runtime.sendMessage({ type: 'prompt_texts', texts: [content] }, function(res){
+      var ok = !chrome.runtime.lastError && res && res.ok && Array.isArray(res.texts) && typeof res.texts[0] === 'string';
+      if (!ok) { unread(); return; }
+      cb(res.texts[0], (Array.isArray(res.notes) && res.notes[0]) || '');
+    });
+  } catch(e) { unread(); }
+}
+
 function copyPrompt(pid){
   var p = findPrompt(pid); if (!p) return;
-  var text = SBInteractiveSteps.apply(p.content||'', interactiveStepsOn);
-  try { navigator.clipboard.writeText(text); } catch(_) {}
-  var nm = gi('pname-'+pid);
-  var orig = nm ? nm.textContent : '';
-  if (nm) nm.textContent = '✓ Copied!';
-  setTimeout(function() { if (nm) nm.textContent = orig; }, 1500);
-  showToast(text !== (p.content||'') ? 'Prompt copied with Interactive Steps' : 'Prompt copied');
+  promptBrainText(p, function(content, note){
+    var text = SBInteractiveSteps.apply(content, interactiveStepsOn);
+    var msg = text !== content ? 'Prompt copied with Interactive Steps' : 'Prompt copied';
+    if (note) msg += '. ' + note;
+    // What the Brain added, against the note Copy whole Brain shows past BRAIN_LONG_TOKENS.
+    else if (SBMemoryPack.estimateTokens(content) - SBMemoryPack.estimateTokens(p.content || '') > BRAIN_LONG_TOKENS) msg += '. Long Brain: check the paste';
+    function copied(){
+      var nm = gi('pname-'+pid);
+      var orig = nm ? nm.textContent : '';
+      if (nm) nm.textContent = '✓ Copied!';
+      setTimeout(function() { if (nm) nm.textContent = orig; }, 1500);
+      showToast(msg);
+    }
+    // The copy can run a moment after the click while the worker reads the
+    // Brain; a refused clipboard is said, never shown as a copy.
+    var write;
+    try { write = navigator.clipboard.writeText(text); } catch(_) { write = Promise.reject(new Error('clipboard')); }
+    write.then(copied, function(){ showToast('Could not copy. Try again'); });
+  });
 }
 
 // ── BRAINS TAB ─────────────────────────────────────────────────────
@@ -2388,9 +2423,10 @@ function findBrainItem(id){ for (var i = 0; i < brainItems.length; i++) { if (br
 function brainItemsOf(bid){ return brainItems.filter(function(it){ return it.space_id === bid; }); }
 function brainTokens(items){ return items.reduce(function(t, it){ return t + (Number(it.token_estimate) || 0); }, 0); }
 // What an AI chat receives: the block the Context button inserts, built by the
-// shared module, as the phone's Copy whole Brain builds it.
+// shared module, as the phone's Copy whole Brain and a Brain inside a prompt
+// build it.
 function brainBlock(items){
-  return SBMemoryPack.formatInjectedBlock({ items: items.map(function(it){ return { name: it.name, text: it.body || '' }; }) });
+  return SBMemoryPack.formatBrainBlock(items);
 }
 
 function loadBrains(){

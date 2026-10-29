@@ -336,13 +336,22 @@
   // web pages. A picture the page will not load (some sites refuse outside
   // pictures) shows as a labelled box. Pictures already drawn are kept, so
   // typing in the form does not make them blink.
+  // An email layout is drawn in a frame of its own instead, as the dashboard
+  // draws it (LayoutFrame.tsx): the card with its tables, colours and spacing,
+  // in a document that runs nothing and reads nothing of the page
+  // (layoutDocument in fill-form.js). The frame stays across redraws and only
+  // its body is rewritten, so typing in the form does not reload it. A page
+  // whose policy refuses the frame gets the card as lines and cells instead.
   function showPreview(box, vm) {
     if (!box) return;
-    // A formatted text draws its layout; anything else, its text.
-    var layout = vm.formatted && !vm.parts && root.SBFillForm.layoutFragment
-      ? root.SBFillForm.layoutFragment(vm.formatted) : null;
-    box.classList.toggle('ff-layout', !!layout);
-    if (layout) { box.textContent = ''; box.appendChild(layout); return; }
+    var M = root.SBFillForm;
+    var layout = vm.formatted && !vm.parts ? String(vm.formatted) : '';
+    var framed = !!layout && !box._ffNoFrame && M.isEmailLayout(layout) && layoutFrame(box, layout);
+    box.classList.toggle('ff-framed', framed);
+    if (framed) { box.classList.remove('ff-layout'); return; }
+    var lines = layout ? M.layoutFragment(layout) : null;
+    box.classList.toggle('ff-layout', !!lines);
+    if (lines) { box.textContent = ''; box.appendChild(lines); return; }
     if (!vm.parts) { box.textContent = vm.preview; return; }
     var drawn = {};
     Array.prototype.forEach.call(box.querySelectorAll('[data-ff-pic]'), function(n) {
@@ -367,6 +376,86 @@
       });
       img.src = pic.src;
       box.appendChild(img);
+    });
+  }
+
+  // Draws an email layout in the box's frame, making the frame on the first
+  // call. False once the page has refused the frame.
+  function layoutFrame(box, html) {
+    var M = root.SBFillForm;
+    var frame = box.querySelector('iframe.ff-frame');
+    if (frame && frame._ffHtml === html) return true;
+    if (frame && frame._ffReady) {
+      frame._ffHtml = html;
+      frame.contentDocument.body.innerHTML = html;
+      sizeFrame(frame);
+      return true;
+    }
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.className = 'ff-frame';
+      frame.title = 'Layout';
+      frame.setAttribute('sandbox', 'allow-same-origin');
+      frame.setAttribute('referrerpolicy', 'no-referrer');
+      frame.addEventListener('load', function() {
+        var inner = frame.contentDocument;
+        // The frame's first, blank document loads before the layout does.
+        if (inner && inner.URL !== 'about:srcdoc') return;
+        if (!inner || !inner.body) {
+          // The page's policy refused the frame: the card as lines and cells.
+          box._ffNoFrame = true;
+          box.classList.remove('ff-framed');
+          box.classList.add('ff-layout');
+          box.textContent = '';
+          box.appendChild(M.layoutFragment(frame._ffHtml));
+          return;
+        }
+        frame._ffReady = true;
+        sizeFrame(frame);
+      });
+      // A card wraps differently at every width, and a pane hidden behind a
+      // switch (the overlay's Preview on a narrow window) measures nothing
+      // until it shows: the height is read again whenever the frame's own
+      // size changes.
+      if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(function() { sizeFrame(frame); }).observe(frame);
+      }
+      box.textContent = '';
+      box.appendChild(frame);
+    }
+    // Asked again before the first document has loaded: the newest layout wins.
+    frame._ffHtml = html;
+    frame.srcdoc = M.layoutDocument(html);
+    readyFrame(frame, 40);
+    return true;
+  }
+
+  // The frame's load waits for the card's pictures, so the height is read as
+  // soon as the layout's document has its body, and the frame takes redraws
+  // from then on.
+  function readyFrame(frame, tries) {
+    var inner = frame.contentDocument;
+    if (inner && inner.URL === 'about:srcdoc' && inner.body && inner.readyState !== 'loading') {
+      frame._ffReady = true;
+      sizeFrame(frame);
+      return;
+    }
+    if (tries > 0) setTimeout(function() { readyFrame(frame, tries - 1); }, 50);
+  }
+
+  // The frame as tall as the card, and again as each of its pictures arrives.
+  // The box around it scrolls; the frame never does. A frame that is not laid
+  // out yet (a hidden pane) measures nothing and keeps its height for now.
+  function sizeFrame(frame) {
+    var inner = frame.contentDocument;
+    if (!inner || !inner.body) return;
+    var height = inner.body.offsetHeight;
+    if (!height) return;
+    frame.style.height = Math.min(Math.max(height, 40), 2400) + 'px';
+    Array.prototype.forEach.call(inner.images, function(img) {
+      if (img._ffSized) return;
+      img._ffSized = true;
+      img.addEventListener('load', function() { sizeFrame(frame); });
     });
   }
 

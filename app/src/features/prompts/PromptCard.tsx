@@ -15,6 +15,7 @@ import { useUiStore } from '@/stores/uiStore';
 import { useLabelStore } from '@/stores/labelStore';
 import { usePromptStore } from '@/stores/promptStore';
 import { resolveLabels } from '@/lib/labelUtils';
+import { labelBrainTokens } from '@/lib/promptBrain';
 import { assembleBlocks } from '@/lib/promptUtils';
 import { maxPromptUsage, promptStatus } from '@/lib/statusSignals';
 import { evaluatePrompt, promptToEvaluatorInput } from '@/lib/usePromptEvaluator';
@@ -53,8 +54,8 @@ function getPreviewText(prompt: Prompt): string {
   if (prompt.blocks) {
     const assembled = assembleBlocks(prompt.blocks);
     if (assembled) {
-      // Strip markdown headers for the card preview
-      const stripped = assembled.replace(/^##\s+\w+\n/gm, '').trim();
+      // Strip markdown headers for the card preview; a Brain reads as its name.
+      const stripped = labelBrainTokens(assembled.replace(/^##\s+\w+\n/gm, '')).trim();
       return stripped.length > PREVIEW_LIMIT
         ? `${stripped.slice(0, PREVIEW_LIMIT).trim()}…`
         : stripped;

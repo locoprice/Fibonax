@@ -10,8 +10,9 @@
  *
  * Loaded the same way `fillFormEngine.ts` loads the formula engine, from
  * `/extension/*`, which `extensionScriptsPlugin` serves in dev and copies into
- * dist at build.
+ * dist at build (lib/loadScript.ts).
  */
+import { loadScript } from '@/lib/loadScript';
 
 export interface SbChunkResult {
   chunks: string[];
@@ -32,38 +33,6 @@ declare global {
 }
 
 const CHUNKER_SRC = '/extension/shared/memory-chunk.js';
-
-function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[data-sb-engine="${src}"]`);
-    if (existing) {
-      if (existing.dataset.sbLoaded === 'true') {
-        resolve();
-        return;
-      }
-      existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener('error', () => reject(new Error(`Could not load ${src}`)), {
-        once: true,
-      });
-      return;
-    }
-
-    const el = document.createElement('script');
-    el.src = src;
-    el.async = false;
-    el.dataset.sbEngine = src;
-    el.addEventListener(
-      'load',
-      () => {
-        el.dataset.sbLoaded = 'true';
-        resolve();
-      },
-      { once: true },
-    );
-    el.addEventListener('error', () => reject(new Error(`Could not load ${src}`)), { once: true });
-    document.head.appendChild(el);
-  });
-}
 
 /** The chunker, loading it on first use. Throws if the file cannot be served. */
 export async function loadMemoryChunk(): Promise<SbMemoryChunkApi> {
