@@ -9,8 +9,10 @@
 -- WHO IS PRO. The plan lives where 20261027140000_review_prompt.sql already
 -- reads it: the account's app_metadata, which only the service role can write.
 -- An account is Pro while app_metadata.plan is 'pro' and app_metadata.pro_until
--- (the end of the month already paid for, an ISO timestamp) has not passed, so
--- a subscription that is not renewed lapses on its own. Nobody can make
+-- (the end of the month already paid for) has not passed, so a subscription
+-- that is not renewed lapses on its own. Write pro_until as an ISO 8601
+-- timestamp with its offset, as the statement below does: words such as
+-- 'tomorrow' or 'infinity' are refused or never lapse. Nobody can make
 -- themselves Pro from the dashboard, the phone or the API. Billing sets both
 -- keys when it exists; until then the owners grant Pro by hand:
 --
@@ -53,15 +55,17 @@ begin
     return false;
   end if;
 
-  -- A missing or unreadable date is not Pro: the paid-until date is what
-  -- makes the plan monthly, so it is never assumed.
+  -- A missing, unreadable or endless date is not Pro: the paid-until date is
+  -- what makes the plan monthly, so it is never assumed. An unreadable one is
+  -- logged, since it means a paying account is being treated as free.
   begin
     v_until := (v_meta->>'pro_until')::timestamptz;
   exception when others then
+    raise warning 'is_pro: unreadable pro_until for user %', auth.uid();
     return false;
   end;
 
-  return v_until is not null and v_until > now();
+  return v_until is not null and isfinite(v_until) and v_until > now();
 end;
 $$;
 
