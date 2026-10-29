@@ -294,7 +294,7 @@ export function evaluatePrompt(input: EvaluatorInput): EvalResult {
       0.75, assembled, AUDIENCE_SIGNAL,
       'An audience or reading level is named.',
       'No audience named — tell the model who the response is for.',
-      'e.g. "Write for non-technical hospitality managers." or "Explain it to a beginner."',
+      'e.g. "Write for non-technical managers." or "Explain it to a beginner."',
       'Name the audience',
     ),
     signalCriterion(

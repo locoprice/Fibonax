@@ -430,7 +430,7 @@ var CHANGELOG = [
     ]},
   { version:'v2.98.0', date:'2026-07-11', label:'feat: fill snippet fields and copy the result from the popup',
     changes:[
-      {type:'new', text:'Open a snippet in the popup and, if it has fields like {guest_name}, fill them right there and hit Copy filled — you get the finished text ready to paste into WhatsApp Web or anywhere the in-field trigger is awkward.'},
+      {type:'new', text:'Open a snippet in the popup and, if it has fields like {customer_name}, fill them right there and hit Copy filled — you get the finished text ready to paste into WhatsApp Web or anywhere the in-field trigger is awkward.'},
       {type:'new', text:'Dates, formulas and conditional blocks resolve too, using the same engine as the in-page trigger, so the copied text matches exactly. Copy raw still gives you the untouched template.'}
     ]},
   { version:'v2.97.0', date:'2026-07-11', label:'feat: popup redesign — a faster, search-first launcher',

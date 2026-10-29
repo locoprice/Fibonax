@@ -1,14 +1,19 @@
-// Gate for the server functions in services/supabase/functions/, including the
-// instructions they send to the AI model.
+// Gate for what the product ships and every new account sees:
+//   - the server functions in services/supabase/functions/, including the
+//     instructions they send to the AI model;
+//   - the Getting started window (app/src/features/onboarding/);
+//   - the dashboard's sample data (app/src/mock/).
 //
 // Fibonax ships to every industry (root CLAUDE.md, Industry-Neutral). The
 // suggest-labels prompt once told the model it worked for a hospitality team
-// and gave {guest_name} as its example placeholder. This keeps the words the
-// user manual already bans (vertical-words.js) out of every function.
+// and gave {guest_name} as its example placeholder, and the Getting started
+// window called Fibonax "text expansion built for hospitality teams". This
+// keeps the words the user manual already bans (vertical-words.js) out of
+// all of them.
 //
-// The extension and the phone page are not scanned yet: CLAUDE.md lists known
-// gaps there (the extension's selection keywords, the phone's numeric
-// heuristic) that are separate work.
+// The rest of the dashboard, the extension and the phone page are not scanned
+// yet: their comments still use those words as examples, so a line scan there
+// would need those comments rewritten first.
 //
 // Run from the repository root: node scripts/check-industry-neutral.js
 
@@ -16,35 +21,43 @@ const fs = require('fs');
 const path = require('path');
 const { VERTICAL } = require('./vertical-words');
 
-const FUNCTIONS = 'services/supabase/functions';
-const ROOT = path.join(__dirname, '..', FUNCTIONS);
-
-const files = fs.existsSync(ROOT)
-  ? fs.readdirSync(ROOT, { recursive: true })
-    .map((f) => f.split(path.sep).join('/'))
-    .filter((f) => f.endsWith('.ts'))
-    .sort()
-  : [];
-
-// A scan that finds nothing would pass while checking nothing.
-if (files.length === 0) {
-  console.error(`X no .ts files in ${FUNCTIONS}/: the gate would check nothing`);
-  process.exit(1);
-}
+const AREAS = [
+  { dir: 'services/supabase/functions', what: 'server functions' },
+  { dir: 'app/src/features/onboarding', what: 'the Getting started window' },
+  { dir: 'app/src/mock', what: 'sample data' },
+];
 
 const problems = [];
-for (const file of files) {
-  const lines = fs.readFileSync(path.join(ROOT, file), 'utf8').split(/\r?\n/);
-  lines.forEach((line, i) => {
-    const word = line.match(VERTICAL);
-    if (word) problems.push(`${FUNCTIONS}/${file}:${i + 1} says "${word[0]}": server functions must fit every industry`);
-  });
+const counts = [];
+for (const { dir, what } of AREAS) {
+  const root = path.join(__dirname, '..', dir);
+  const files = fs.existsSync(root)
+    ? fs.readdirSync(root, { recursive: true })
+      .map((f) => f.split(path.sep).join('/'))
+      .filter((f) => /\.tsx?$/.test(f))
+      .sort()
+    : [];
+
+  // A scan that finds nothing would pass while checking nothing.
+  if (files.length === 0) {
+    console.error(`X no .ts or .tsx files in ${dir}/: the gate would check nothing`);
+    process.exit(1);
+  }
+
+  for (const file of files) {
+    const lines = fs.readFileSync(path.join(root, file), 'utf8').split(/\r?\n/);
+    lines.forEach((line, i) => {
+      const word = line.match(VERTICAL);
+      if (word) problems.push(`${dir}/${file}:${i + 1} says "${word[0]}": ${what} must fit every industry`);
+    });
+  }
+  counts.push(`${what} (${files.length} file${files.length === 1 ? '' : 's'})`);
 }
 
 if (problems.length > 0) {
   for (const p of problems) console.error(`X ${p}`);
-  console.error(`\n${problems.length} problem(s) in ${FUNCTIONS}/.`);
+  console.error(`\n${problems.length} problem(s).`);
   process.exit(1);
 }
 
-console.log(`OK server functions: ${files.length} files, no hospitality words`);
+console.log(`OK industry-neutral: ${counts.join(', ')}, no hospitality words`);

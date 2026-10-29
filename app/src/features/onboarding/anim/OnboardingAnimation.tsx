@@ -522,7 +522,7 @@ function Scene1(): ReactElement {
                 <span style={{ fontFamily: FONT, fontSize: 13.5, color: INK_MUT }}>Productivity</span>
               </div>
               <div style={{ fontFamily: FONT, fontSize: 15, color: INK_MUT, marginTop: 18, lineHeight: 1.55, maxWidth: 520 }}>
-                Type a shortcut, get a full multilingual message. Text expansion built for hospitality teams.
+                Type a shortcut, get a full multilingual message. Text expansion built for every team.
               </div>
             </div>
             <div
@@ -1112,7 +1112,7 @@ function CompanionHome({ scroll = 0 }: { scroll?: number }): ReactElement {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
               <span style={{ fontFamily: FONT, fontSize: 13, opacity: 0.78, fontWeight: 500 }}>Welcome</span>
-              <span style={{ fontFamily: FONT, fontSize: 20, fontWeight: 700, letterSpacing: '-.4px' }}>LeibTour</span>
+              <span style={{ fontFamily: FONT, fontSize: 20, fontWeight: 700, letterSpacing: '-.4px' }}>Aurora Studio</span>
             </div>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,.18)', border: '2px solid rgba(255,255,255,.3)' }} />
           </div>
@@ -1186,9 +1186,9 @@ function CompanionHome({ scroll = 0 }: { scroll?: number }): ReactElement {
           ))}
         </div>
         <div style={{ padding: '8px 16px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <SnipCard title="Booking Quote" sc="!!quoteEN" lang="EN" />
-          <SnipCard title="Preventivo Prenotazione" sc="!!quoteIT" lang="IT" />
-          <SnipCard title="Check-in Instructions" sc="!!checkin" lang="MULTI" />
+          <SnipCard title="Price Quote" sc="!!quoteEN" lang="EN" />
+          <SnipCard title="Preventivo" sc="!!quoteIT" lang="IT" />
+          <SnipCard title="Appointment Reminder" sc="!!remind" lang="MULTI" />
           <SnipCard title="Firma / Signature" sc="!!firm" lang="MULTI" />
         </div>
       </div>
@@ -1250,7 +1250,7 @@ function DetailScreen({ t }: { t: number }): ReactElement {
           <svg viewBox="0 0 9 16" width="9" height="16" fill="none">
             <path d="M8 1L1 8L8 15" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, letterSpacing: '-.3px', marginLeft: 4 }}>Booking Quote</span>
+          <span style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, letterSpacing: '-.3px', marginLeft: 4 }}>Price Quote</span>
           <span style={{ marginLeft: 'auto', background: 'rgba(255,255,255,.22)', borderRadius: 5, padding: '3px 7px', fontFamily: FONT, fontSize: 10, fontWeight: 700 }}>EN</span>
         </div>
       </div>
@@ -1289,12 +1289,12 @@ function DetailScreen({ t }: { t: number }): ReactElement {
             Dear Marco,
             <br />
             <br />
-            Thank you for choosing <b>Villa Aurora</b>. For 12–19 July (7 nights), your total is <b>€4,900</b>, including final cleaning and concierge.
+            Thank you for choosing <b>Aurora Studio</b>. For the project from 12 to 19 July, your total is <b>€4,900</b>, including materials and support.
             <br />
             <br />
             Warm regards,
             <br />
-            LeibTour
+            Aurora Studio
           </div>
         </div>
       </div>
@@ -1496,10 +1496,10 @@ function Scene3(): ReactElement {
       <div style={{ position: 'absolute', left: cardX, top: cardY, width: cardW, transform: `scale(${sc})`, transformOrigin: '40% 30%' }}>
         <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 40px 90px rgba(0,0,0,.16), 0 6px 20px rgba(0,0,0,.08)', border: `1px solid ${LINE}` }}>
           <div style={{ height: 56, borderBottom: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 12, background: '#FAFAFA' }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#EDEDF0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, fontWeight: 700, color: INK_MUT, fontSize: 14 }}>G</div>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#EDEDF0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, fontWeight: 700, color: INK_MUT, fontSize: 14 }}>M</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: FONT, fontSize: 14.5, fontWeight: 700, color: INK }}>Reply to guest · Villa Aurora</div>
-              <div style={{ fontFamily: FONT, fontSize: 12, color: INK_SUB, marginTop: 1 }}>booking inquiry · 12–19 Jul</div>
+              <div style={{ fontFamily: FONT, fontSize: 14.5, fontWeight: 700, color: INK }}>Reply to customer · Marco Rossi</div>
+              <div style={{ fontFamily: FONT, fontSize: 12, color: INK_SUB, marginTop: 1 }}>quote request · 12–19 Jul</div>
             </div>
             <span style={{ color: INK_SUB, fontSize: 18 }}>⋯</span>
           </div>
@@ -1528,7 +1528,7 @@ function Scene3(): ReactElement {
                   <span style={{ fontFamily: FONT, fontSize: 12, color: INK_SUB, fontWeight: 600 }}>English</span>
                 </div>
                 <div style={{ fontSize: 15.5, lineHeight: 1.6, color: INK }}>
-                  Thank you for choosing <b>Villa Aurora</b>. For 12–19 July (7 nights), your total is <b>€4,900</b>, including final cleaning and concierge. A 30% deposit confirms your dates.
+                  Thank you for choosing <b>Aurora Studio</b>. For the project from 12 to 19 July, your total is <b>€4,900</b>, including materials and support. A 30% deposit confirms your dates.
                 </div>
                 <div style={{ height: 16 }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, opacity: easeOut(clamp((lt - 2.7) / 0.6, 0, 1)) }}>
@@ -1536,7 +1536,7 @@ function Scene3(): ReactElement {
                   <span style={{ fontFamily: FONT, fontSize: 12, color: INK_SUB, fontWeight: 600 }}>Italiano</span>
                 </div>
                 <div style={{ fontSize: 15.5, lineHeight: 1.6, color: INK, opacity: easeOut(clamp((lt - 2.7) / 0.6, 0, 1)) }}>
-                  Grazie per aver scelto <b>Villa Aurora</b>. Dal 12 al 19 luglio (7 notti), il totale è <b>€4.900</b>, incluse pulizie finali e concierge.
+                  Grazie per aver scelto <b>Aurora Studio</b>. Per il progetto dal 12 al 19 luglio, il totale è <b>€4.900</b>, inclusi materiali e assistenza.
                 </div>
               </div>
             )}
@@ -1576,7 +1576,7 @@ function Scene3(): ReactElement {
               >
                 <Logo size={26} radius={7} />
                 <div>
-                  <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: INK }}>Booking Quote · EN</div>
+                  <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: INK }}>Price Quote · EN</div>
                   <div style={{ fontFamily: MONO, fontSize: 11, color: AZURE, fontWeight: 600 }}>{TRIGGER} → expand</div>
                 </div>
                 <span style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, color: INK_SUB, background: '#F4F4F5', borderRadius: 5, padding: '3px 7px', marginLeft: 4 }}>TAB</span>
@@ -1608,7 +1608,7 @@ function Outro(): ReactElement {
           <div style={{ fontFamily: FONT, fontSize: 58, fontWeight: 700, color: INK, letterSpacing: '-1.6px' }}>Fibonax</div>
           <div style={{ height: 4, background: AZURE, borderRadius: 2, marginTop: 12, width: lerp(0, 300, easeOut(uw)) }} />
         </div>
-        <div style={{ fontFamily: FONT, fontSize: 22, color: INK_MUT, opacity: easeOut(tp), letterSpacing: '-.2px' }}>Text expansion for hospitality teams.</div>
+        <div style={{ fontFamily: FONT, fontSize: 22, color: INK_MUT, opacity: easeOut(tp), letterSpacing: '-.2px' }}>Text expansion for every team.</div>
       </div>
     </Scene>
   );
