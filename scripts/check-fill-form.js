@@ -35,6 +35,26 @@ if (JSON.stringify(editorTags) !== JSON.stringify(ff.LAYOUT_BAR_TAGS)) {
   fail('the bar\'s tags differ between emailLayout.ts (' + editorTags.join(' ') + ') and fill-form.js (' +
     ff.LAYOUT_BAR_TAGS.join(' ') + '): the editor and the previews would disagree on what an email layout is');
 }
+// ── THE EXPANSION CACHE CARRIES WHAT THE FILL FORM NEEDS ────────────
+// The service worker refreshes the snippets content.js expands from, with
+// its own column list. A column writeExpansionCache reads but the query does
+// not ask for arrives empty: body_html was missing, and every formatted
+// snippet expanded as plain text a moment after sign-in.
+const bgSrc = require('fs').readFileSync(path.join(__dirname, '..', 'extension', 'background', 'background.js'), 'utf8')
+  .replace(/^\s*\/\/.*$/gm, '');
+const qs = /var snipQs = ([^;]*);/.exec(bgSrc);
+const cacheFn = /function writeExpansionCache\(rows\) \{[\s\S]*?\n\}/.exec(bgSrc);
+if (!qs || !cacheFn) fail('background.js no longer builds its snippet query or writeExpansionCache where this gate looks');
+const asked = (qs[1].match(/'([^']*)'/g) || []).map((s) => s.slice(1, -1)).join('')
+  .replace(/^select=/, '').split('&')[0].split(',');
+const read = Array.from(new Set((cacheFn[0].match(/\bs\.([a-z_]+)/g) || []).map((m) => m.slice(2))));
+const missing = read.filter((col) => asked.indexOf(col) === -1);
+if (missing.length) {
+  fail('the expansion cache reads ' + missing.join(', ') + ' but the service worker never asks for ' +
+    (missing.length > 1 ? 'them' : 'it') + ': those snippets would expand without it');
+}
+console.log('OK The expansion cache asks for every column it keeps (' + read.length + ')');
+
 const framed = ff.layoutDocument('<table><tr><td>x</td></tr></table>');
 if (framed.indexOf('<!doctype html>') !== 0 || framed.indexOf('<table><tr><td>x</td></tr></table>') === -1) {
   fail('layoutDocument no longer wraps the layout in a document of its own');

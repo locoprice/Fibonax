@@ -631,8 +631,13 @@ function loadData() {
       // cache content.js reads (see writeExpansionCache below). Without them the
       // service worker had no body to cache, which is why a snippet edited on
       // the dashboard kept expanding its old text until the popup was opened.
+      // body_html and bodies_html are the layouts (the formatting bar, pictures,
+      // an email layout). Left out, this refresh wiped them from the cache a
+      // moment after sign-in, and every formatted snippet expanded as plain
+      // text. scripts/check-fill-form.js pins that every column
+      // writeExpansionCache reads is asked for here.
       var snipQs = 'select=id,title,shortcut,alternative_queries,folder_id,lang,lang_group_id,sort_order,' +
-        'body,bodies,field_cfg,pinned,review_status,check_unfinished' +
+        'body,bodies,body_html,bodies_html,field_cfg,pinned,review_status,check_unfinished' +
         // Archived snippets never expand (AI-KNOWLEDGE P2), like disabled ones.
         '&is_active=eq.true&review_status=neq.archived&order=sort_order';
       Promise.all([
