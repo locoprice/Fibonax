@@ -3291,9 +3291,11 @@ svg.brain-type-icon{stroke-width:1.8}
   // ── A LAYOUT ON SCREEN ──────────────────────────────────────────
   // What a preview draws for a formatted text (`formatted`): the layout read
   // in an inert document and rebuilt node by node, keeping lines, lists, Bold,
-  // Italic, Underline, text colours and https pictures. An email layout's
+  // Italic, Underline, text colours and https pictures. An email layout is
+  // drawn in a frame instead (isEmailLayout, layoutDocument below); here its
   // table reads as the plain text does, a row to a line with its cells side
-  // by side. Layouts come from teammates too, so nothing in one runs, and no
+  // by side, for a page that refuses the frame. Layouts come from teammates
+  // too, so nothing in one runs, and no
   // attribute comes through but a picture's address, description and size,
   // and a colour written as `#rgb`, `#rrggbb` or `rgb()`. Needs a browser;
   // returns null without one.
@@ -3347,6 +3349,40 @@ svg.brain-type-icon{stroke-width:1.8}
       });
     })(source, out);
     return out;
+  }
+
+  // What the formatting bar writes (docToHtml in app/src/lib/formattedBody.ts),
+  // in the editor's order. A layout holding anything else is an email's.
+  var LAYOUT_BAR_TAGS = ['DIV', 'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'UL', 'OL', 'LI', 'IMG'];
+
+  // Whether a layout is an email's rather than the bar's lines, lists and
+  // marks: a tag outside the bar's set, or an attribute on anything but a
+  // picture. The editor decides the same in app/src/lib/emailLayout.ts, which
+  // runs before this module has loaded; scripts/check-fill-form.js pins the
+  // two lists to each other. Needs a browser; false without one.
+  function isEmailLayout(html) {
+    if (!html || typeof DOMParser === 'undefined') return false;
+    var all = new DOMParser().parseFromString(String(html), 'text/html').body.querySelectorAll('*');
+    for (var i = 0; i < all.length; i++) {
+      var tag = all[i].tagName.toUpperCase();
+      if (LAYOUT_BAR_TAGS.indexOf(tag) === -1) return true;
+      if (tag !== 'IMG' && all[i].attributes.length > 0) return true;
+    }
+    return false;
+  }
+
+  // The document a preview frame shows an email layout in, the same on every
+  // surface (the dashboard's LayoutFrame.tsx, the popup, the overlay and the
+  // phone): the layout as the email will show it, a base font for text it
+  // leaves unstyled, and tables and pictures no wider than the frame, so a
+  // 600px card reads in a popup or on a phone. The frame runs no scripts.
+  function layoutDocument(html) {
+    return '<!doctype html><html><head><meta charset="utf-8"><style>' +
+      'html,body{margin:0;padding:0}' +
+      'body{font:14px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#111;background:#fff;padding:8px}' +
+      'img{max-width:100%;height:auto}' +
+      'table{max-width:100%}' +
+      '</style></head><body>' + String(html == null ? '' : html) + '</body></html>';
   }
 
   // Comparison form of a piece of page text or of the author's word: case,
@@ -3861,6 +3897,9 @@ svg.brain-type-icon{stroke-width:1.8}
     pictureText: pictureText,
     pictureCount: pictureCount,
     layoutFragment: layoutFragment,
+    isEmailLayout: isEmailLayout,
+    layoutDocument: layoutDocument,
+    LAYOUT_BAR_TAGS: LAYOUT_BAR_TAGS,
     linkSummary: linkSummary,
     linkNote: linkNote,
     LINK_TEXT: LINK_TEXT,
@@ -3989,6 +4028,9 @@ svg.brain-type-icon{stroke-width:1.8}
 .ff-layout b{font-weight:700!important;}
 .ff-layout i{font-style:italic!important;}
 .ff-layout u{text-decoration:underline!important;}
+/* An email layout in a preview: a frame sized to the card that takes no clicks (the box around it scrolls). */
+.ff-framed{white-space:normal!important;}
+.ff-frame{display:block!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;background:#fff;border-radius:8px;pointer-events:none;}
 </style>
 <script>
 // DOM presentation shared by the overlay, popup and mobile fill forms.
@@ -4329,13 +4371,22 @@ svg.brain-type-icon{stroke-width:1.8}
   // web pages. A picture the page will not load (some sites refuse outside
   // pictures) shows as a labelled box. Pictures already drawn are kept, so
   // typing in the form does not make them blink.
+  // An email layout is drawn in a frame of its own instead, as the dashboard
+  // draws it (LayoutFrame.tsx): the card with its tables, colours and spacing,
+  // in a document that runs nothing and reads nothing of the page
+  // (layoutDocument in fill-form.js). The frame stays across redraws and only
+  // its body is rewritten, so typing in the form does not reload it. A page
+  // whose policy refuses the frame gets the card as lines and cells instead.
   function showPreview(box, vm) {
     if (!box) return;
-    // A formatted text draws its layout; anything else, its text.
-    var layout = vm.formatted && !vm.parts && root.SBFillForm.layoutFragment
-      ? root.SBFillForm.layoutFragment(vm.formatted) : null;
-    box.classList.toggle('ff-layout', !!layout);
-    if (layout) { box.textContent = ''; box.appendChild(layout); return; }
+    var M = root.SBFillForm;
+    var layout = vm.formatted && !vm.parts ? String(vm.formatted) : '';
+    var framed = !!layout && !box._ffNoFrame && M.isEmailLayout(layout) && layoutFrame(box, layout);
+    box.classList.toggle('ff-framed', framed);
+    if (framed) { box.classList.remove('ff-layout'); return; }
+    var lines = layout ? M.layoutFragment(layout) : null;
+    box.classList.toggle('ff-layout', !!lines);
+    if (lines) { box.textContent = ''; box.appendChild(lines); return; }
     if (!vm.parts) { box.textContent = vm.preview; return; }
     var drawn = {};
     Array.prototype.forEach.call(box.querySelectorAll('[data-ff-pic]'), function(n) {
@@ -4360,6 +4411,86 @@ svg.brain-type-icon{stroke-width:1.8}
       });
       img.src = pic.src;
       box.appendChild(img);
+    });
+  }
+
+  // Draws an email layout in the box's frame, making the frame on the first
+  // call. False once the page has refused the frame.
+  function layoutFrame(box, html) {
+    var M = root.SBFillForm;
+    var frame = box.querySelector('iframe.ff-frame');
+    if (frame && frame._ffHtml === html) return true;
+    if (frame && frame._ffReady) {
+      frame._ffHtml = html;
+      frame.contentDocument.body.innerHTML = html;
+      sizeFrame(frame);
+      return true;
+    }
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.className = 'ff-frame';
+      frame.title = 'Layout';
+      frame.setAttribute('sandbox', 'allow-same-origin');
+      frame.setAttribute('referrerpolicy', 'no-referrer');
+      frame.addEventListener('load', function() {
+        var inner = frame.contentDocument;
+        // The frame's first, blank document loads before the layout does.
+        if (inner && inner.URL !== 'about:srcdoc') return;
+        if (!inner || !inner.body) {
+          // The page's policy refused the frame: the card as lines and cells.
+          box._ffNoFrame = true;
+          box.classList.remove('ff-framed');
+          box.classList.add('ff-layout');
+          box.textContent = '';
+          box.appendChild(M.layoutFragment(frame._ffHtml));
+          return;
+        }
+        frame._ffReady = true;
+        sizeFrame(frame);
+      });
+      // A card wraps differently at every width, and a pane hidden behind a
+      // switch (the overlay's Preview on a narrow window) measures nothing
+      // until it shows: the height is read again whenever the frame's own
+      // size changes.
+      if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(function() { sizeFrame(frame); }).observe(frame);
+      }
+      box.textContent = '';
+      box.appendChild(frame);
+    }
+    // Asked again before the first document has loaded: the newest layout wins.
+    frame._ffHtml = html;
+    frame.srcdoc = M.layoutDocument(html);
+    readyFrame(frame, 40);
+    return true;
+  }
+
+  // The frame's load waits for the card's pictures, so the height is read as
+  // soon as the layout's document has its body, and the frame takes redraws
+  // from then on.
+  function readyFrame(frame, tries) {
+    var inner = frame.contentDocument;
+    if (inner && inner.URL === 'about:srcdoc' && inner.body && inner.readyState !== 'loading') {
+      frame._ffReady = true;
+      sizeFrame(frame);
+      return;
+    }
+    if (tries > 0) setTimeout(function() { readyFrame(frame, tries - 1); }, 50);
+  }
+
+  // The frame as tall as the card, and again as each of its pictures arrives.
+  // The box around it scrolls; the frame never does. A frame that is not laid
+  // out yet (a hidden pane) measures nothing and keeps its height for now.
+  function sizeFrame(frame) {
+    var inner = frame.contentDocument;
+    if (!inner || !inner.body) return;
+    var height = inner.body.offsetHeight;
+    if (!height) return;
+    frame.style.height = Math.min(Math.max(height, 40), 2400) + 'px';
+    Array.prototype.forEach.call(inner.images, function(img) {
+      if (img._ffSized) return;
+      img._ffSized = true;
+      img.addEventListener('load', function() { sizeFrame(frame); });
     });
   }
 

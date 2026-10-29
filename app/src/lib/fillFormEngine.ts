@@ -312,6 +312,10 @@ interface SbFillFormApi {
   pictureCount(vm: SbFillFormViewModel): number;
   /** A formatted text rebuilt for the screen: lines, lists, marks, https pictures, nothing else. */
   layoutFragment(html: string): DocumentFragment | null;
+  /** Whether a layout is an email's, rather than the bar's lines, lists and marks. */
+  isEmailLayout(html: string): boolean;
+  /** The document a preview frame shows an email layout in, the same on every surface. */
+  layoutDocument(html: string): string;
 }
 
 interface SbFormulaEngineApi {

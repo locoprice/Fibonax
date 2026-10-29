@@ -116,13 +116,19 @@ Valentina's answers on 2026-10-27 (every recommended option): the entry is a **U
 - `SnippetPreview.tsx` draws an email layout in the same `LayoutFrame`; the bar's lines keep `layoutFragment`. `layoutFragment` itself now draws a table's rows as lines with the cells a space apart, so the popup and the phone read a card as its plain text does until steps 3 and 4 give them the frame.
 - The overlay already pasted `formatted` as `text/html` (2.7). Its "did it land" check now reads the field as it shows (`innerText`), because a table's cells run together in `textContent` and the plain line was never found, which inserted the text a second time.
 
+### 2.10 The extension's previews and Undo (v3.103.0, step 3)
+
+- Every preview but the dashboard's (the overlay's, the popup's, the phone's) draws an email layout in a frame, as the dashboard does: `showPreview` in `extension/shared/fill-form-ui.js` puts the card in an `iframe` with `sandbox="allow-same-origin"` and no scripts, showing the document `layoutDocument` in `fill-form.js` builds (a base font, pictures and tables no wider than the frame, so a 600px card reads in the popup and on the phone). `LayoutFrame.tsx` shows the same document. The frame stays across redraws and only its body is rewritten, so typing in the form does not reload it; its height is read as soon as its document exists, again as each picture arrives, and again whenever the frame's own size changes (a pane behind a switch, a narrower window). A page whose policy refuses the frame gets `layoutFragment`'s lines and cells instead. Which layouts are an email's is decided by `isEmailLayout` in `fill-form.js`, the editor's rule from `emailLayout.ts` again; `scripts/check-fill-form.js` pins the two tag lists to each other.
+- The overlay's "did it land" check (`_cePasteLand`) now ignores case as well as spacing: a card's first line shows in capitals (`text-transform`), `innerText` reads it so, and the plain text was inserted a second time.
+- Undo after a card lands (`_ceRemoveFormatted` in `content.js`): the Undo card still deletes the measured text, then takes out every block the insert added once it holds nothing, tables, rows and cells included (`_CE_BLOCKS`), the card's pictures, and the line break an email copied from Gmail ends with. When the editor dropped the line break that followed the trigger (Chrome does, pasting a block), the layout's break stands in for it and stays. A card pasted into the middle of a line splits the line in two; with the card gone, the rest is put back on its line. Proven against Chrome's own paste (`insertHTML`) in five shapes (a line, between breaks, an empty field, mid-line, line start) and in jsdom (`app/src/__tests__/layoutUndo.test.ts`). Gmail itself and Outlook web are still to be tried with the develop extension.
+
 ## 3. Order of work
 
 One feature, built in five steps. Each step passes the gates and bumps the version. The editor's **Use a formatted layout** entry stays hidden until step 4 is done, so develop never offers a layout that a fill surface cannot insert (⚡ Authoring and Expansion Parity). Nothing is promoted to `main` before step 5.
 
 1. **Database and engine.** Migration, revision RPC, review guard, `html` resolving, `formatted` in the fill form, phone parser port, gate cases. Nothing visible.
 2. **Editor.** Built (2.9): the cleaner, the plain body, paste and open an `.html` file, chips, Make it a field, Remove layout and Undo, the preview frame, the switch on, and the manual page `user-docs/text-snippets/email-layouts.mdx`. Save, history, duplicate and export came with the bar (2.8).
-3. **Extension.** Undo after a card lands in Gmail (the Undo card measures text; a removed card may leave the table behind), Outlook web checked, popup preview in a frame.
+3. **Extension.** Built (2.10): Undo takes a card out whole, and the overlay, popup and phone previews draw it in a frame. Gmail itself and Outlook web are still to be tried with the develop extension.
 4. **Mobile.** Preview in a frame at 375px; Copy checked on the phone; Share plain.
 5. **Release.** Store listing check, and the promotion to `main`.
 
@@ -140,7 +146,7 @@ One feature, built in five steps. Each step passes the gates and bumps the versi
 
 ## 5. Risks
 
-- **Undo after a formatted insert.** The Undo card measures inserted text; a removed card may leave empty table cells behind. Step 3 must prove Undo, or change how a formatted insert is undone.
+- **Undo after a formatted insert.** The Undo card measures inserted text; a removed card left its empty tables behind. Since 2.10 the empty blocks the insert added go too, with the card's pictures and its trailing break, and a split line is rejoined: proven against Chrome's own paste, still to be seen in Gmail itself.
 - **Other editors.** Outlook web and helpdesk editors handle a pasted layout their own way. Gmail is the target; others are tested and named in the manual.
 - **Gmail on the phone** may simplify the two-column rows.
 - **Images** are linked, not hosted by Fibonax. A layout whose image address stops working shows a broken image.
