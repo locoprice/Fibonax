@@ -1,15 +1,14 @@
 // Gate for what the product ships and every new account sees:
 //   - the server functions in services/supabase/functions/, including the
 //     instructions they send to the AI model;
-//   - the Getting started window (app/src/features/onboarding/);
-//   - the dashboard's sample data (app/src/mock/).
+//   - the Getting started window (app/src/features/onboarding/).
 //
 // Fibonax ships to every industry (root CLAUDE.md, Industry-Neutral). The
 // suggest-labels prompt once told the model it worked for a hospitality team
 // and gave {guest_name} as its example placeholder, and the Getting started
 // window called Fibonax "text expansion built for hospitality teams". This
 // keeps the words the user manual already bans (vertical-words.js) out of
-// all of them.
+// both.
 //
 // The rest of the dashboard, the extension and the phone page are not scanned
 // yet: their comments still use those words as examples, so a line scan there
@@ -24,7 +23,6 @@ const { VERTICAL } = require('./vertical-words');
 const AREAS = [
   { dir: 'services/supabase/functions', what: 'server functions' },
   { dir: 'app/src/features/onboarding', what: 'the Getting started window' },
-  { dir: 'app/src/mock', what: 'sample data' },
 ];
 
 const problems = [];

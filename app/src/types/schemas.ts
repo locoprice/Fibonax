@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// Zod schemas. Used at the boundary when the follow-up ticket wires Supabase;
-// today they validate mock fixtures so drift is caught at build time.
+// Zod schemas. The row schemas mirror src/types/database.ts; no read parses
+// with them yet. The form schemas further down validate the CRUD dialogs.
 
 export const profileSchema = z.object({
   id: z.string().uuid(),
