@@ -6,28 +6,28 @@ import type {
   ActivityDay,
   ActivityMonth,
   ActivityOverview,
-  AnalyticsSummary,
-  TopTrigger,
-  UsagePoint,
 } from '@/types/database';
+import type { TeamUsageRow, UsageEventRow, UsageInput, UsageSnippetRow } from '@/lib/usageAnalytics';
 
-// Live aggregation over public.snippet_events. The extension writes one row per
-// successful snippet expansion (ANALYTICS-001). We pull the last 14 days (and
-// 53 weeks for the activity grid), bucket client-side, and shape into what the
-// page expects. Events are read in pages (fetchAllPages): one read stopped at
-// the server's 1,000-row cap, and an account with more uses than that saw
-// totals that were silently short.
+// Live reads over public.snippet_events. The extension and the phone write one
+// row per real snippet insert (ANALYTICS-001). Two readers here:
 //
-// When usage outgrows in-process aggregation (~ tens of thousands of events
-// a year), move this to a Postgres RPC.
+//   getUsage()     the raw inputs of the Analytics figures (your own inserts for
+//                  the last two years, the library, last uses). The figures
+//                  themselves are decided by extension/shared/usage-analytics.js
+//                  (lib/usageAnalytics.ts), the same file the phone runs.
+//   getActivity()  the year grid and the month-by-month overview.
+//
+// Events are read in pages (fetchAllPages): one read stopped at the server's
+// 1,000-row cap, and an account with more uses than that saw totals that were
+// silently short.
 
 export interface AnalyticsApi {
-  getSummary(): Promise<AnalyticsSummary>;
+  getUsage(loadFrom: Date): Promise<UsageInput>;
+  getTeamUsage(from: Date, to: Date): Promise<TeamUsageRow[] | null>;
   getActivity(): Promise<ActivityData>;
 }
 
-const WINDOW_DAYS = 14;
-const SECONDS_SAVED_PER_TRIGGER = 30;
 // 53 columns = 52 full weeks + the current (partial) week — matches the
 // GitHub contribution graph footprint.
 const ACTIVITY_WEEKS = 53;
@@ -48,17 +48,6 @@ function dayKey(iso: string): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
-}
-
-function buildDayRange(days: number): string[] {
-  const out: string[] = [];
-  const today = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    out.push(dayKey(d.toISOString()));
-  }
-  return out;
 }
 
 /** Local midnight of the most recent Sunday on or before `d`. */
@@ -176,81 +165,77 @@ function buildOverview(input: OverviewInput): ActivityOverview {
   };
 }
 
-function aggregate(events: EventRow[], totalSnippets: number): AnalyticsSummary {
-  const days = buildDayRange(WINDOW_DAYS);
-  const dayIndex = new Map(days.map((d, i) => [d, i]));
-
-  const dailyCounts = new Array<number>(WINDOW_DAYS).fill(0);
-  const perShortcutDaily = new Map<string, number[]>();
-  const perShortcutTotal = new Map<string, number>();
-
-  for (const ev of events) {
-    const k = dayKey(ev.created_at);
-    const idx = dayIndex.get(k);
-    if (idx === undefined) continue; // outside window guard
-    dailyCounts[idx] = (dailyCounts[idx] ?? 0) + 1;
-
-    const sc = ev.shortcut || '';
-    perShortcutTotal.set(sc, (perShortcutTotal.get(sc) ?? 0) + 1);
-    let arr = perShortcutDaily.get(sc);
-    if (!arr) {
-      arr = new Array<number>(WINDOW_DAYS).fill(0);
-      perShortcutDaily.set(sc, arr);
-    }
-    arr[idx] = (arr[idx] ?? 0) + 1;
-  }
-
-  const daily_usage: UsagePoint[] = days.map((date, i) => ({
-    date,
-    count: dailyCounts[i] ?? 0,
-  }));
-
-  // last 7 days = trailing slice of the 14d bucket
-  const triggers_this_week = dailyCounts
-    .slice(WINDOW_DAYS - 7)
-    .reduce((a, b) => a + b, 0);
-
-  const top_triggers: TopTrigger[] = Array.from(perShortcutTotal.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([trigger, count]) => ({
-      trigger,
-      count,
-      trend: perShortcutDaily.get(trigger) ?? new Array<number>(WINDOW_DAYS).fill(0),
-    }));
-
-  return {
-    total_snippets: totalSnippets,
-    triggers_this_week,
-    estimated_seconds_saved: events.length * SECONDS_SAVED_PER_TRIGGER,
-    top_trigger: top_triggers[0]?.trigger ?? '',
-    daily_usage,
-    top_triggers,
-  };
-}
-
 export const analyticsApi: AnalyticsApi = {
-  async getSummary() {
+  async getUsage(loadFrom) {
     const userId = await currentUserId();
+    const fromIso = loadFrom.toISOString();
 
-    const totalRes = await supabase
-      .from('snippets')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
-    if (totalRes.error) throw toApiError(totalRes.error);
+    const [events, snippets, foldersRes, lastUsedRes] = await Promise.all([
+      // Your own inserts only: snippet_events RLS is select-own, and these are
+      // figures about how YOU work. Team figures come from getTeamUsage().
+      fetchAllPages<UsageEventRow>((from, to) =>
+        supabase
+          .from('snippet_events')
+          .select('snippet_id, created_at, fields_filled, lang')
+          .eq('user_id', userId)
+          .gte('created_at', fromIso)
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
+      // The library you can read (yours and shared with you), as the snippet
+      // list shows it. Archived snippets never expand, so they are left out, as
+      // the phone leaves them out.
+      fetchAllPages<UsageSnippetRow>((from, to) =>
+        supabase
+          .from('snippets')
+          .select('id, title, shortcut, folder_id, lang, created_at')
+          .neq('review_status', 'archived')
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
+      supabase.from('folders').select('id, name'),
+      supabase.rpc('snippet_last_used'),
+    ]);
+    if (foldersRes.error) throw toApiError(foldersRes.error);
+    // Last uses decide "never used" and "not used for 90 days". Without them
+    // those two would be guessed from two years of your own inserts only, so
+    // a failure here is an error, not a quiet fallback.
+    if (lastUsedRes.error) throw toApiError(lastUsedRes.error);
 
-    const fromIso = new Date(Date.now() - WINDOW_DAYS * 86400_000).toISOString();
-    const events = await fetchAllPages<EventRow>((from, to) =>
-      supabase
-        .from('snippet_events')
-        .select('shortcut, created_at')
-        .eq('user_id', userId)
-        .gte('created_at', fromIso)
-        .order('id', { ascending: true })
-        .range(from, to),
+    const lastUsed: Record<string, string> = {};
+    for (const row of (lastUsedRes.data ?? []) as Array<{ snippet_id: string; last_used_at: string }>) {
+      if (row.snippet_id && row.last_used_at) lastUsed[row.snippet_id] = row.last_used_at;
+    }
+
+    return {
+      events,
+      snippets,
+      folders: (foldersRes.data ?? []) as Array<{ id: string; name: string }>,
+      lastUsed,
+      loadedFrom: fromIso,
+    };
+  },
+
+  async getTeamUsage(from, to) {
+    const { data, error } = await supabase.rpc('team_usage_by_member', {
+      p_from: from.toISOString(),
+      p_to: to.toISOString(),
+    });
+    if (error) {
+      // PGRST202: the function is not installed on this database. The page
+      // then hides the Team table rather than showing an error for a feature
+      // the server does not carry yet.
+      if ((error as { code?: string }).code === 'PGRST202') return null;
+      throw toApiError(error);
+    }
+    return ((data ?? []) as Array<{ user_id: string; member_name: string | null; uses: number | string; snippets: number | string }>).map(
+      (row) => ({
+        user_id: row.user_id,
+        member_name: row.member_name,
+        uses: Number(row.uses) || 0,
+        snippets: Number(row.snippets) || 0,
+      }),
     );
-
-    return aggregate(events, totalRes.count ?? 0);
   },
 
   async getActivity() {

@@ -170,7 +170,10 @@
   }
 
   // Totals for one window: the figures the summary row prints.
-  function windowTotals(list, days, startDate) {
+  // `known` says whether a snippet id is still in the library: a deleted one
+  // counts as an insert but not as one of the "different snippets used", so that
+  // figure and the library-health share always agree.
+  function windowTotals(list, days, startDate, known) {
     var perDay = {};
     var snippetsUsed = {};
     var fields = 0;
@@ -179,7 +182,7 @@
       var ev = list[i];
       var k = dayKey(new Date(ev.t));
       perDay[k] = (perDay[k] || 0) + 1;
-      if (ev.snippet_id) snippetsUsed[ev.snippet_id] = true;
+      if (ev.snippet_id && known(ev.snippet_id)) snippetsUsed[ev.snippet_id] = true;
       var f = Math.max(0, Number(ev.fields_filled) || 0);
       fields += f;
       if (f > 0) withFields++;
@@ -288,8 +291,9 @@
       else if (t >= prevMs) prev.push(ev);
     }
 
-    var totals = windowTotals(cur, p, r.start);
-    var prevTotals = windowTotals(prev, p, r.prevStart);
+    function known(id) { return !!snipById[id]; }
+    var totals = windowTotals(cur, p, r.start, known);
+    var prevTotals = windowTotals(prev, p, r.prevStart, known);
 
     // Daily series, with the previous period's same day beside it and a
     // trailing 7-day average once a period is long enough for one to mean

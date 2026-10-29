@@ -55,7 +55,7 @@ CI runs all three on every push to `develop`.
 | Account, branding, unused months, Santo del Giorno switch, dashboard footer (saint of the day, days to Christmas), delete account | `app/src/features/settings/{AccountPanel,BrandingPanel,InactivityPanel,SaintOfDayPanel,DeleteAccountPanel}.tsx`, `services/supabase/functions/delete-account/`, `app/src/components/layout/{SaintOfDay,ChristmasCountdown}.tsx` | `settings/account` |
 | Triggers, Insert automatically | `InlineTriggerPanel.tsx`, `AutoInsertPanel.tsx`, `extension/auth/auth.js` | `settings/triggers` |
 | Password, devices, login activity | `app/src/features/settings/{PasswordPanel,SecurityPanel}.tsx` | `settings/security` |
-| Analytics | `app/src/routes/AnalyticsPage.tsx`, `app/src/features/analytics/`, `app/src/lib/api/analyticsApi.ts` | `settings/analytics` |
+| Analytics (dashboard and phone) | `app/src/routes/AnalyticsPage.tsx`, `app/src/features/analytics/`, `app/src/lib/api/analyticsApi.ts`, `app/src/lib/usageAnalytics.ts`, `extension/shared/usage-analytics.js`, the Analytics view in `app/public/mobile/index.html` | `settings/analytics` |
 | Overviews | | `index`, `introduction`, `text-snippets/overview`, `prompts/overview` |
 
 A new page gets a row here and an entry in the `docs.json` menu in the same change.
@@ -72,7 +72,6 @@ These exist in the product but don't work for users, so the manual stays silent 
 - **Label suggestions**: shown locked for Pro since v3.61.0 (switch `labels` in `app/src/lib/proFeatures.ts`); the `suggest-labels` function is not deployed.
 - **Read a picture** (phone, Save to Brain): built locked for Pro in v3.63.0 (switch `picture`, and `PICTURE_AVAILABLE` on the phone); the `read-picture` function is not deployed. Its section is kept, unpublished, in `docs/pro-features/read-picture.mdx`. The phone page documents the free way instead: copy the text with Live Text or Google Lens, then Paste & save.
 - **Add a picture** (snippet editor, Pictures section): built locked for Pro in v3.94.0 (switch `snippetPictures`); the `snippet-pictures` storage bucket is not applied. Its section is kept, unpublished, in `docs/pro-features/snippet-pictures.mdx`, to go into `text-snippets/dynamic-fields.mdx`.
-- **Analytics cards**: "across 4 folders" and the "12%" change are fixed text, and "last 30 days" doesn't match the 14-day data window.
 
 Documented as limits instead: the phone page ignores `{elseif:}` and `{else}`.
 

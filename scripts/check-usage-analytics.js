@@ -62,7 +62,8 @@ check('period label', [r.period, r.label, r.rangeLabel, r.prevRangeLabel],
   [7, 'Last 7 days', 'Oct 22 – Oct 28, 2026', 'Oct 15 – Oct 21, 2026']);
 check('uses vs previous', [r.totals.uses.cur, r.totals.uses.prev, r.totals.uses.text], [7, 4, '+75%']);
 check('active days', [r.totals.activeDays.cur, r.totals.activeDays.prev], [6, 4]);
-check('snippets used', [r.totals.snippetsUsed.cur, r.totals.snippetsUsed.prev], [4, 3]);
+// The deleted snippet's insert counts in the totals, not among the snippets used.
+check('snippets used', [r.totals.snippetsUsed.cur, r.totals.snippetsUsed.prev, r.health.usedInPeriod], [3, 3, 3]);
 check('fields filled', [r.totals.fieldsFilled.cur, r.totals.avgFieldsPerUse, r.totals.usesWithFieldsShare], [6, 0.9, 42.9]);
 check('time saved', [r.totals.secondsSaved.cur, UA.formatDuration(r.totals.secondsSaved.cur)], [210, '4 min']);
 check('best day (ties go to the latest)', r.totals.bestDay, { date: '2026-10-28', label: 'Oct 28', count: 2 });

@@ -1123,12 +1123,12 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .sb-folder-new-form{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 2px}
 /* Folder-icon glyphs render at the container's font-size, inheriting text color —
    keeps mobile byte-identical to the extension & dashboard SVG set. */
-.folder-pill-ico svg,.fbadge-ico svg,.sb-field-ico svg,.sb-folder-row-ico svg,.det-folder-ico svg,.an-folder-ico svg,.sb-fico-opt svg,.snip-icon svg,.prompt-icon svg,.an-recent-ico svg{
+.folder-pill-ico svg,.fbadge-ico svg,.sb-field-ico svg,.sb-folder-row-ico svg,.det-folder-ico svg,.sb-fico-opt svg,.snip-icon svg,.prompt-icon svg{
   width:1em;height:1em;display:inline-block;vertical-align:-.125em;
   stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round
 }
 /* Keep the approved Snippets glyph identical to the landing on every surface. */
-.mqa-ico svg.snippet-icon,.an-recent-ico svg.snippet-icon,
+.mqa-ico svg.snippet-icon,
 .mqa-ico svg.prompt-type-icon,.prompt-icon svg.prompt-type-icon{stroke-width:1.8}
 svg.brain-type-icon{stroke-width:1.8}
 /* New-folder icon picker (matches the extension folder-modal + dashboard FolderDialog).
@@ -1302,11 +1302,13 @@ svg.brain-type-icon{stroke-width:1.8}
 .empty .spinner{margin:0 auto 14px}
 
 /* ── ANALYTICS VIEW ──────────────────────────────── */
+/* Every figure comes from SBUsageAnalytics (extension/shared/usage-analytics.js,
+   inlined between the SB_USAGE_ANALYTICS markers), the module the dashboard's
+   Analytics page loads, so the two pages print the same numbers. The frame is
+   the library band's; the period picker rides on the band and the four headline
+   figures overlap its bottom edge like the quick-action bar. */
 #view-analytics{overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding-bottom:calc(110px + env(safe-area-inset-bottom))}
-/* The library band's frame (navy, greeting and account on top, the page's
-   name), with Refresh where the count pill sits and the summary under it.
-   The four figures overlap the band's bottom edge like the quick-action bar. */
 .an-band{padding-bottom:48px}
 .an-band-sub{margin-top:8px;font-size:13.5px;font-weight:500;line-height:1.45;color:var(--navy-copy)}
 .an-refresh{width:44px;height:44px;flex-shrink:0;border-radius:var(--r-btn);
@@ -1316,76 +1318,82 @@ svg.brain-type-icon{stroke-width:1.8}
 .an-refresh:active{background:rgba(255,255,255,.22);transform:scale(.97)}
 .an-refresh[disabled]{cursor:default}
 .an-refresh svg{width:18px;height:18px;display:block}
-.an-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 4px;
-  margin-top:-28px;position:relative;z-index:2}
-.an-kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);padding:16px;
-  box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
-/* Refresh button spin animation */
 @keyframes an-spin{to{transform:rotate(360deg)}}
 #an-refresh-btn.spinning svg{animation:an-spin .7s linear infinite}
 @media(prefers-reduced-motion:reduce){#an-refresh-btn.spinning svg{animation:none}}
-.an-kpi-val{font-size:30px;font-weight:750;letter-spacing:-1px;color:var(--text);
-  font-variant-numeric:tabular-nums;line-height:1.1}
-.an-kpi-lbl{font-size:12.5px;font-weight:600;line-height:1.35;color:var(--text2)}
-.an-kpi-tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;
-  border-radius:9999px;margin-top:8px}
-.an-kpi-tag.good{background:#F0FDF4;color:#15803D}
-.an-kpi-tag.warn{background:#FFF7ED;color:#C2410C}
+/* Period: a glass segmented control on the band, the filled segment white. */
+.an-period{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:14px;padding:4px;
+  border-radius:14px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16)}
+.an-period button{min-height:40px;border:0;border-radius:10px;background:transparent;color:#fff;
+  font-family:inherit;font-size:13px;font-weight:650;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.an-period button[aria-pressed="true"]{background:#fff;color:var(--navy)}
+.an-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 4px;
+  margin-top:-28px;position:relative;z-index:2}
+.an-kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);padding:14px;
+  box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.an-kpi-lbl{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text3)}
+.an-kpi-val{font-size:26px;font-weight:750;letter-spacing:-.8px;color:var(--text);
+  font-variant-numeric:tabular-nums;line-height:1.15;margin-top:4px}
+.an-kpi-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.an-kpi-prev{font-size:11.5px;color:var(--text2);font-variant-numeric:tabular-nums}
+.an-kpi-hint{font-size:11.5px;line-height:1.4;color:var(--text3);margin-top:4px}
+/* How a figure moved: an arrow and the shared module's wording. The arrow
+   carries the direction, so colour is never the only signal. */
+.an-chg{display:inline-flex;align-items:center;gap:2px;padding:2px 8px;border-radius:9999px;
+  font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;
+  background:var(--bg-alt);color:var(--text2)}
+.an-chg.up{background:#F0FDF4;color:#15803D}
+.an-chg.down{background:var(--danger-bg);color:var(--danger)}
 .an-sec{padding:0 16px}
 .an-sec .msec{padding-left:0;padding-right:0}
+.an-sec-sub{font-size:12.5px;line-height:1.45;color:var(--text2);margin:-4px 0 10px}
 .an-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);
   padding:0 16px;box-shadow:var(--shadow-sm);overflow:hidden}
-.an-lang-row{display:flex;align-items:center;gap:10px;padding:12px 0;
-  border-bottom:1px solid var(--bg-alt)}
-.an-lang-row:last-child{border-bottom:none}
-.an-lang-pill{min-width:46px;flex-shrink:0}
-.an-lang-bar-wrap{flex:1;height:7px;background:var(--bg-alt);border-radius:4px;overflow:hidden}
-.an-lang-bar{height:100%;border-radius:4px;transition:width .5s ease}
-.an-lang-count{font-size:13px;font-weight:700;color:var(--text);
-  min-width:26px;text-align:right;flex-shrink:0}
-.an-lang-pct{font-size:11px;color:var(--text3);min-width:32px;text-align:right;flex-shrink:0}
-.an-folder-row{display:flex;align-items:center;gap:10px;padding:12px 0;
-  border-bottom:1px solid var(--bg-alt)}
-.an-folder-row:last-child{border-bottom:none}
-.an-folder-rank{font-size:11px;font-weight:800;color:var(--text3);
-  min-width:18px;text-align:center;flex-shrink:0}
-.an-folder-ico{font-size:20px;line-height:1;flex-shrink:0}
-.an-folder-info{flex:1;min-width:0}
-.an-folder-name{font-size:14px;font-weight:600;color:var(--text);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.an-folder-bar-wrap{height:4px;background:var(--bg-alt);border-radius:2px;
-  margin-top:5px;overflow:hidden}
-.an-folder-bar{height:100%;background:var(--primary);border-radius:2px;
-  transition:width .5s ease}
-.an-folder-cnt{font-size:14px;font-weight:700;color:var(--primary-copy);flex-shrink:0}
-.an-health-row{display:flex;flex-direction:column;gap:7px;padding:12px 0;
-  border-bottom:1px solid var(--bg-alt)}
-.an-health-row:last-child{border-bottom:none}
-.an-health-top{display:flex;justify-content:space-between;align-items:center}
-.an-health-lbl{font-size:13px;font-weight:600;color:var(--text)}
-.an-health-pct{font-size:14px;font-weight:800;color:var(--primary-copy)}
-.an-health-pct.h-warn{color:var(--warn-deep)}
-.an-health-pct.h-ok{color:var(--success)}
-.an-health-bar-wrap{height:6px;background:var(--bg-alt);border-radius:3px;overflow:hidden}
-.an-health-bar{height:100%;border-radius:3px;background:var(--primary);
-  transition:width .5s ease}
-.an-health-bar.h-warn{background:var(--warn-deep)}
-.an-health-bar.h-ok{background:var(--success)}
-.an-recent-item{display:flex;align-items:center;gap:12px;padding:12px 0;
-  border-bottom:1px solid var(--bg-alt);cursor:pointer;
-  -webkit-tap-highlight-color:transparent;transition:background .1s}
-.an-recent-item:last-child{border-bottom:none}
-.an-recent-item:active{background:var(--bg-alt);
-  margin:0 -16px;padding-left:16px;padding-right:16px}
-.an-recent-ico{width:40px;height:40px;border-radius:12px;flex-shrink:0;
-  background:var(--primary-lt);color:var(--primary-copy);
-  display:flex;align-items:center;justify-content:center;font-size:19px}
-.an-recent-info{flex:1;min-width:0}
-.an-recent-title{font-size:14px;font-weight:700;color:var(--text);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.an-recent-meta{display:flex;align-items:center;gap:6px;margin-top:3px}
-.an-recent-date{font-size:11px;color:var(--text3)}
-.an-empty-sec{padding:24px 0;text-align:center;color:var(--text2);font-size:13px}
+.an-card.pad{padding:14px 16px}
+.an-facts{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px}
+.an-fact dt{font-size:11.5px;color:var(--text2)}
+.an-fact dd{margin:2px 0 0;font-size:16px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.an-fact dd.an-fact-hint{font-size:11.5px;font-weight:500;color:var(--text3)}
+/* Inserts per day, drawn as an SVG: bars for this period, a dashed line for
+   the one before, a dark line for the 7-day average. */
+.an-chart svg{display:block;width:100%;height:auto}
+.an-chart-axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text3);margin-top:4px}
+.an-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:11.5px;color:var(--text2)}
+.an-legend span{display:inline-flex;align-items:center;gap:6px}
+.an-key{width:12px;height:3px;border-radius:2px;background:var(--primary)}
+.an-key.bar{height:10px;width:8px}
+.an-key.prev{background:none;border-top:2px dashed var(--text3);height:0}
+.an-key.avg{background:var(--text)}
+/* Ranked rows: top snippets, movers, folders, languages, team. */
+.an-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bg-alt)}
+.an-row:last-child{border-bottom:none}
+.an-row[role="button"]{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.an-row[role="button"]:active{background:var(--bg-alt);margin:0 -16px;padding-left:16px;padding-right:16px}
+.an-rank{min-width:18px;font-size:11.5px;font-weight:700;color:var(--text3);text-align:center;flex-shrink:0}
+.an-main{flex:1;min-width:0}
+.an-title{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-me{font-weight:500;color:var(--text2)}
+.an-detail{font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.an-bar{height:5px;background:var(--bg-alt);border-radius:3px;overflow:hidden;margin-top:6px}
+.an-bar span{display:block;height:100%;background:var(--primary);border-radius:3px}
+.an-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.an-num{font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.an-num small{font-size:11px;font-weight:500;color:var(--text3)}
+.an-sub-h{font-size:13px;font-weight:700;color:var(--text);padding:12px 0 2px;display:flex;align-items:center;gap:6px}
+.an-sub-h svg{width:15px;height:15px;stroke:var(--text2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* When: weekday by hour, Monday first, local time. */
+.an-grid{display:grid;grid-template-columns:30px repeat(24,1fr);gap:2px;align-items:center}
+.an-grid .an-gl{font-size:9.5px;color:var(--text3);text-align:right;padding-right:4px}
+.an-grid .an-gh{font-size:9.5px;color:var(--text3);height:12px}
+.an-grid i{display:block;aspect-ratio:1;border-radius:2px;background:var(--bg-alt)}
+.an-grid i.l1{background:rgba(27,79,216,.18)}
+.an-grid i.l2{background:rgba(27,79,216,.40)}
+.an-grid i.l3{background:rgba(27,79,216,.65)}
+.an-grid i.l4{background:var(--primary)}
+.an-msg{padding:22px 4px;text-align:center;font-size:13px;line-height:1.5;color:var(--text2)}
+.an-retry{margin-top:10px;min-height:40px;padding:0 16px;border-radius:var(--r-btn);border:1px solid var(--border);
+  background:var(--card);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.an-more{font-size:11.5px;color:var(--text3);padding:8px 0}
 /* Detail view hides the global tab bar */
 .sb-detail-view .mtab,.sb-detail-view .mtab-indicator{display:none !important}
 </style>
@@ -1766,7 +1774,7 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <div class="lib-title-row">
       <h1 class="lib-title">Analytics</h1>
-      <button class="an-refresh" id="an-refresh-btn" type="button" aria-label="Refresh analytics">
+      <button class="an-refresh" id="an-refresh-btn" type="button" aria-label="Refresh figures">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -1777,53 +1785,16 @@ svg.brain-type-icon{stroke-width:1.8}
       </button>
     </div>
     <p class="an-band-sub" id="an-hdr-sub">Loading…</p>
+    <div class="an-period" role="group" aria-label="Period" id="an-period">
+      <button type="button" data-an-period="7" aria-pressed="false">7 days</button>
+      <button type="button" data-an-period="30" aria-pressed="true">30 days</button>
+      <button type="button" data-an-period="90" aria-pressed="false">90 days</button>
+      <button type="button" data-an-period="365" aria-pressed="false">12 months</button>
+    </div>
   </header>
 
-  <!-- KPI Cards -->
-  <div class="an-kpi-grid">
-    <div class="an-kpi">
-      <div class="an-kpi-val" id="an-total">—</div>
-      <div class="an-kpi-lbl">Total snippets</div>
-    </div>
-    <div class="an-kpi">
-      <div class="an-kpi-val" id="an-folders-cnt">—</div>
-      <div class="an-kpi-lbl">Active folders</div>
-    </div>
-    <div class="an-kpi">
-      <div class="an-kpi-val" id="an-interactive">—</div>
-      <div class="an-kpi-lbl">Interactive templates</div>
-      <span class="an-kpi-tag good" id="an-interactive-pct" style="display:none"></span>
-    </div>
-    <div class="an-kpi">
-      <div class="an-kpi-val" id="an-noshortcut">—</div>
-      <div class="an-kpi-lbl">Missing shortcuts</div>
-      <span class="an-kpi-tag warn" id="an-noshortcut-tag" style="display:none">Assign some!</span>
-    </div>
-  </div>
-
-  <!-- By Language -->
-  <div class="an-sec">
-    <div class="msec"><h2 class="msec-t">By language</h2></div>
-    <div class="an-card"><div id="an-lang-list"></div></div>
-  </div>
-
-  <!-- Top Folders -->
-  <div class="an-sec">
-    <div class="msec"><h2 class="msec-t">Top folders</h2></div>
-    <div class="an-card"><div id="an-folder-list"></div></div>
-  </div>
-
-  <!-- Library Health -->
-  <div class="an-sec">
-    <div class="msec"><h2 class="msec-t">Library health</h2></div>
-    <div class="an-card"><div id="an-health-list"></div></div>
-  </div>
-
-  <!-- Recently Modified -->
-  <div class="an-sec">
-    <div class="msec"><h2 class="msec-t">Recently changed</h2></div>
-    <div class="an-card"><div id="an-recent-list"></div></div>
-  </div>
+  <!-- Filled by renderAnalytics() from SBUsageAnalytics.compute(). -->
+  <div id="an-body"></div>
 
   <!-- Footer -->
   <div class="mpage-footer" style="padding-top:24px">
@@ -5415,6 +5386,559 @@ svg.brain-type-icon{stroke-width:1.8}
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
 </script>
 <!-- SB_MEMORY_CHUNK:END -->
+<!-- SB_USAGE_ANALYTICS:BEGIN (generated from extension/shared/usage-analytics.js by scripts/sync-usage-analytics.js, do not edit) -->
+<script>
+// USAGE ANALYTICS — one reading of "how is my library being used".
+//
+// The dashboard's Analytics page and the phone's Analytics page used to count
+// on their own. The phone counted only what the library holds (no use at all),
+// and the dashboard printed a comparison it never computed ("+12% vs previous
+// 7 days" was typed into the page). Here every figure both pages show is
+// decided once, from the same inputs, so the two can never disagree:
+//
+//   events     the caller's own rows of public.snippet_events (one per real
+//              insert, written by the extension and by the phone), at least
+//              LOAD_DAYS back: { snippet_id, created_at, fields_filled }
+//   snippets   the library the caller can read: { id, title, shortcut,
+//              folder_id, lang, created_at }
+//   folders    { id, name }
+//   lastUsed   snippet_last_used(): { snippet_id: iso } over ALL time, across
+//              the team for a shared snippet. It is what "never used" and "not
+//              used for 90 days" read, because the event window is finite.
+//   period     7, 30, 90 or 365 days, ending today
+//   now        a timestamp, passed in so the gate can pin the clock
+//
+// Rules that keep the numbers honest:
+//   - Days are LOCAL calendar days, stepped with setDate, so a day across a
+//     clock change is still one day. "Last 7 days" is today and the 6 before.
+//   - The previous period is the same number of days immediately before, so
+//     every change compares like with like. A change from 0 has no percentage;
+//     it reads "New", never "+100%" or "Infinity".
+//   - An insert of a snippet that no longer exists still counts in every
+//     total, and is ranked as "Deleted snippet" rather than vanishing.
+//   - Time saved is an estimate at SECONDS_PER_USE per insert, the figure the
+//     dashboard has always used, and every surface says it is an estimate.
+//   - A streak that reaches back to the start of the loaded window is reported
+//     as "at least", not as an exact number.
+(function (root) {
+  'use strict';
+
+  var PERIODS = [7, 30, 90, 365];
+  var DEFAULT_PERIOD = 30;
+  var SECONDS_PER_USE = 30;
+  // Two years: the previous period of "Last 12 months" is the year before it.
+  var LOAD_DAYS = 730;
+  var DORMANT_DAYS = 90;
+  var TOP_LIMIT = 10;
+  var MOVER_LIMIT = 5;
+  var LIST_LIMIT = 5;
+  var DELETED_KEY = '__deleted__';
+  var WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  var WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var LANG_NAMES = { EN: 'English', IT: 'Italian', ES: 'Spanish', FR: 'French', DE: 'German', PT: 'Portuguese', MULTI: 'Several languages' };
+
+  function pad(n) { return n < 10 ? '0' + n : String(n); }
+
+  function startOfDay(ms) {
+    var d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function addDays(date, n) {
+    var d = new Date(date.getTime());
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+
+  function dayKey(date) {
+    return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+  }
+
+  function normalizePeriod(p) {
+    var n = Number(p);
+    return PERIODS.indexOf(n) === -1 ? DEFAULT_PERIOD : n;
+  }
+
+  function periodLabel(p) {
+    var n = normalizePeriod(p);
+    return n === 365 ? 'Last 12 months' : 'Last ' + n + ' days';
+  }
+
+  /** The two windows a period compares, as Dates (start inclusive, end exclusive). */
+  function range(period, now) {
+    var p = normalizePeriod(period);
+    var today = startOfDay(now);
+    var end = addDays(today, 1);
+    var start = addDays(today, -(p - 1));
+    var prevStart = addDays(start, -p);
+    return { period: p, start: start, end: end, prevStart: prevStart, prevEnd: start, today: today };
+  }
+
+  /** Where the event read has to start for every figure to be complete. */
+  function loadFrom(now) {
+    return addDays(startOfDay(now), -(LOAD_DAYS - 1));
+  }
+
+  function shortDate(date) {
+    return MONTHS_SHORT[date.getMonth()] + ' ' + date.getDate();
+  }
+
+  function rangeLabel(start, endExclusive) {
+    var last = addDays(endExclusive, -1);
+    var a = shortDate(start);
+    var b = shortDate(last);
+    if (start.getFullYear() !== last.getFullYear()) {
+      a += ', ' + start.getFullYear();
+    }
+    return a + ' – ' + b + ', ' + last.getFullYear();
+  }
+
+  /**
+   * How one figure moved against the previous period. `pct` is null when the
+   * previous period had nothing, because no percentage of zero is honest.
+   */
+  function change(cur, prev) {
+    var c = Number(cur) || 0;
+    var p = Number(prev) || 0;
+    var diff = c - p;
+    var pct = p > 0 ? (diff / p) * 100 : null;
+    var dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+    var text;
+    if (p === 0 && c === 0) text = 'No change';
+    else if (p === 0) text = 'New';
+    else if (diff === 0) text = 'No change';
+    else {
+      var abs = Math.abs(pct);
+      var shown = abs < 10 ? Math.round(abs * 10) / 10 : Math.round(abs);
+      text = (diff > 0 ? '+' : '−') + shown + '%';
+    }
+    return { cur: c, prev: p, diff: diff, pct: pct, dir: dir, text: text };
+  }
+
+  function percentOf(part, whole) {
+    if (!whole) return 0;
+    return Math.round((part / whole) * 1000) / 10;
+  }
+
+  /** Whole numbers with thousands separators, the way both pages print counts. */
+  function formatCount(n) {
+    var s = String(Math.round(Number(n) || 0));
+    return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function formatDuration(seconds) {
+    var s = Math.max(0, Math.round(Number(seconds) || 0));
+    if (s < 60) return s + ' sec';
+    var m = Math.round(s / 60);
+    if (m < 60) return m + ' min';
+    var h = Math.floor(m / 60);
+    var rest = m % 60;
+    return rest ? h + ' h ' + rest + ' min' : h + ' h';
+  }
+
+  function hourLabel(h) {
+    return pad(h) + ':00–' + pad((h + 1) % 24) + ':00';
+  }
+
+  function eventTime(ev) {
+    var t = new Date(ev && ev.created_at).getTime();
+    return isNaN(t) ? null : t;
+  }
+
+  function langName(code) {
+    var c = String(code || '').toUpperCase();
+    if (!c) return 'Not set';
+    return LANG_NAMES[c] || c;
+  }
+
+  function sum(arr) {
+    var t = 0;
+    for (var i = 0; i < arr.length; i++) t += arr[i];
+    return t;
+  }
+
+  // Totals for one window: the figures the summary row prints.
+  // `known` says whether a snippet id is still in the library: a deleted one
+  // counts as an insert but not as one of the "different snippets used", so that
+  // figure and the library-health share always agree.
+  function windowTotals(list, days, startDate, known) {
+    var perDay = {};
+    var snippetsUsed = {};
+    var fields = 0;
+    var withFields = 0;
+    for (var i = 0; i < list.length; i++) {
+      var ev = list[i];
+      var k = dayKey(new Date(ev.t));
+      perDay[k] = (perDay[k] || 0) + 1;
+      if (ev.snippet_id && known(ev.snippet_id)) snippetsUsed[ev.snippet_id] = true;
+      var f = Math.max(0, Number(ev.fields_filled) || 0);
+      fields += f;
+      if (f > 0) withFields++;
+    }
+    var best = null;
+    var activeDays = 0;
+    for (var d = 0; d < days; d++) {
+      var day = addDays(startDate, d);
+      var key = dayKey(day);
+      var n = perDay[key] || 0;
+      if (n > 0) activeDays++;
+      // Ties go to the most recent day: it is the one a person remembers.
+      if (n > 0 && (!best || n >= best.count)) best = { date: key, label: shortDate(day), count: n };
+    }
+    var uses = list.length;
+    return {
+      uses: uses,
+      activeDays: activeDays,
+      avgPerDay: Math.round((uses / days) * 10) / 10,
+      avgPerActiveDay: activeDays ? Math.round((uses / activeDays) * 10) / 10 : 0,
+      bestDay: best,
+      snippetsUsed: Object.keys(snippetsUsed).length,
+      fieldsFilled: fields,
+      usesWithFields: withFields,
+      avgFieldsPerUse: uses ? Math.round((fields / uses) * 10) / 10 : 0,
+      secondsSaved: uses * SECONDS_PER_USE,
+      perDay: perDay
+    };
+  }
+
+  function rank(map, total, prevMap, describe) {
+    var keys = Object.keys(map);
+    var rows = keys.map(function (k) {
+      var d = describe(k);
+      return {
+        key: k,
+        title: d.title,
+        detail: d.detail || '',
+        uses: map[k],
+        share: percentOf(map[k], total),
+        change: change(map[k], prevMap ? prevMap[k] || 0 : 0)
+      };
+    });
+    rows.sort(function (a, b) {
+      if (b.uses !== a.uses) return b.uses - a.uses;
+      return a.title.localeCompare(b.title);
+    });
+    return rows;
+  }
+
+  function streaks(dayHasUse, today, windowStart, periodStart) {
+    // A streak is alive while today or yesterday has a use: nobody loses a
+    // streak at 9 in the morning for not having worked yet today.
+    var cursor = dayHasUse[dayKey(today)] ? today : addDays(today, -1);
+    var current = 0;
+    var atLeast = false;
+    while (dayHasUse[dayKey(cursor)]) {
+      current++;
+      if (dayKey(cursor) === dayKey(windowStart)) { atLeast = true; break; }
+      cursor = addDays(cursor, -1);
+    }
+    var longest = 0;
+    var run = 0;
+    for (var d = new Date(periodStart.getTime()); d <= today; d = addDays(d, 1)) {
+      if (dayHasUse[dayKey(d)]) { run++; if (run > longest) longest = run; } else run = 0;
+    }
+    return { current: current, currentAtLeast: atLeast, longestInPeriod: longest };
+  }
+
+  /**
+   * Every figure for one period. Pure: the same input always gives the same
+   * answer, and nothing here reads the clock or the network.
+   */
+  function compute(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var r = range(inp.period, now);
+    var p = r.period;
+    var snippets = Array.isArray(inp.snippets) ? inp.snippets : [];
+    var folders = Array.isArray(inp.folders) ? inp.folders : [];
+    var lastUsed = inp.lastUsed || {};
+    var loadStart = inp.loadedFrom ? startOfDay(new Date(inp.loadedFrom).getTime()) : loadFrom(now);
+
+    var snipById = {};
+    for (var s = 0; s < snippets.length; s++) if (snippets[s] && snippets[s].id) snipById[snippets[s].id] = snippets[s];
+    var folderName = {};
+    for (var f = 0; f < folders.length; f++) if (folders[f] && folders[f].id) folderName[folders[f].id] = folders[f].name || 'Untitled folder';
+
+    var startMs = r.start.getTime();
+    var endMs = r.end.getTime();
+    var prevMs = r.prevStart.getTime();
+
+    var cur = [];
+    var prev = [];
+    var dayHasUse = {};
+    var lastSeen = {};
+    var events = Array.isArray(inp.events) ? inp.events : [];
+    for (var i = 0; i < events.length; i++) {
+      var t = eventTime(events[i]);
+      // A row stamped after now (a device clock running fast) is not counted yet.
+      if (t === null || t >= endMs || t > now) continue;
+      var ev = { t: t, snippet_id: events[i].snippet_id || null, fields_filled: events[i].fields_filled, lang: events[i].lang || null };
+      if (t >= loadStart.getTime()) dayHasUse[dayKey(new Date(t))] = true;
+      if (ev.snippet_id && (!lastSeen[ev.snippet_id] || t > lastSeen[ev.snippet_id])) lastSeen[ev.snippet_id] = t;
+      if (t >= startMs) cur.push(ev);
+      else if (t >= prevMs) prev.push(ev);
+    }
+
+    function known(id) { return !!snipById[id]; }
+    var totals = windowTotals(cur, p, r.start, known);
+    var prevTotals = windowTotals(prev, p, r.prevStart, known);
+
+    // Daily series, with the previous period's same day beside it and a
+    // trailing 7-day average once a period is long enough for one to mean
+    // something.
+    var series = [];
+    var trail = [];
+    for (var d = 0; d < p; d++) {
+      var day = addDays(r.start, d);
+      var key = dayKey(day);
+      var pday = addDays(r.prevStart, d);
+      var count = totals.perDay[key] || 0;
+      trail.push(count);
+      if (trail.length > 7) trail.shift();
+      series.push({
+        date: key,
+        label: shortDate(day),
+        weekday: WEEKDAYS_SHORT[(day.getDay() + 6) % 7],
+        count: count,
+        prev: prevTotals.perDay[dayKey(pday)] || 0,
+        avg7: p >= 30 && d >= 6 ? Math.round((sum(trail) / 7) * 10) / 10 : null
+      });
+    }
+
+    // Ranking and movers.
+    function keyOf(ev) { return ev.snippet_id && snipById[ev.snippet_id] ? ev.snippet_id : DELETED_KEY; }
+    var curBy = {};
+    var prevBy = {};
+    for (var c1 = 0; c1 < cur.length; c1++) { var k1 = keyOf(cur[c1]); curBy[k1] = (curBy[k1] || 0) + 1; }
+    for (var c2 = 0; c2 < prev.length; c2++) { var k2 = keyOf(prev[c2]); prevBy[k2] = (prevBy[k2] || 0) + 1; }
+    function describeSnippet(k) {
+      if (k === DELETED_KEY) return { title: 'Deleted snippet', detail: 'No longer in the library' };
+      var sn = snipById[k];
+      var detail = [];
+      if (sn.shortcut) detail.push(sn.shortcut);
+      if (sn.folder_id && folderName[sn.folder_id]) detail.push(folderName[sn.folder_id]);
+      return { title: sn.title || sn.shortcut || 'Untitled snippet', detail: detail.join(' · ') };
+    }
+    var top = rank(curBy, totals.uses, prevBy, describeSnippet).slice(0, TOP_LIMIT);
+
+    var moverKeys = {};
+    Object.keys(curBy).concat(Object.keys(prevBy)).forEach(function (k) { if (k !== DELETED_KEY) moverKeys[k] = true; });
+    var movers = Object.keys(moverKeys).map(function (k) {
+      var d2 = describeSnippet(k);
+      return { key: k, title: d2.title, detail: d2.detail, uses: curBy[k] || 0, change: change(curBy[k] || 0, prevBy[k] || 0) };
+    });
+    var rising = movers.filter(function (m) { return m.change.diff > 0; })
+      .sort(function (a, b) { return b.change.diff - a.change.diff || b.uses - a.uses || a.title.localeCompare(b.title); })
+      .slice(0, MOVER_LIMIT);
+    var falling = movers.filter(function (m) { return m.change.diff < 0; })
+      .sort(function (a, b) { return a.change.diff - b.change.diff || a.title.localeCompare(b.title); })
+      .slice(0, MOVER_LIMIT);
+
+    // When: weekday by hour, Monday first, local time.
+    var grid = [];
+    for (var w = 0; w < 7; w++) { grid.push([]); for (var h = 0; h < 24; h++) grid[w].push(0); }
+    var weekdayTotals = [0, 0, 0, 0, 0, 0, 0];
+    var hourTotals = [];
+    for (var h2 = 0; h2 < 24; h2++) hourTotals.push(0);
+    var gridMax = 0;
+    for (var g = 0; g < cur.length; g++) {
+      var dt = new Date(cur[g].t);
+      var wd = (dt.getDay() + 6) % 7;
+      var hr = dt.getHours();
+      grid[wd][hr]++;
+      weekdayTotals[wd]++;
+      hourTotals[hr]++;
+      if (grid[wd][hr] > gridMax) gridMax = grid[wd][hr];
+    }
+    function peak(arr) {
+      var best = -1, at = -1;
+      for (var q = 0; q < arr.length; q++) if (arr[q] > best) { best = arr[q]; at = q; }
+      return best > 0 ? at : -1;
+    }
+    var pw = peak(weekdayTotals);
+    var ph = peak(hourTotals);
+    var patterns = {
+      grid: grid,
+      max: gridMax,
+      weekdays: WEEKDAYS_SHORT.map(function (name, idx) { return { name: name, uses: weekdayTotals[idx], share: percentOf(weekdayTotals[idx], totals.uses) }; }),
+      peakWeekday: pw === -1 ? null : { name: WEEKDAYS[pw], uses: weekdayTotals[pw], share: percentOf(weekdayTotals[pw], totals.uses) },
+      peakHour: ph === -1 ? null : { hour: ph, label: hourLabel(ph), uses: hourTotals[ph], share: percentOf(hourTotals[ph], totals.uses) },
+      workdayShare: percentOf(sum(weekdayTotals.slice(0, 5)), totals.uses),
+      streak: streaks(dayHasUse, r.today, loadStart, r.start)
+    };
+
+    // Where the use goes: folders and languages, current and previous.
+    function shareBy(list, keyFn) {
+      var m = {};
+      for (var z = 0; z < list.length; z++) { var kk = keyFn(list[z]); m[kk] = (m[kk] || 0) + 1; }
+      return m;
+    }
+    function folderKey(ev) {
+      var sn = ev.snippet_id && snipById[ev.snippet_id];
+      if (!sn) return DELETED_KEY;
+      return sn.folder_id && folderName[sn.folder_id] ? sn.folder_id : '__none__';
+    }
+    function langKey(ev) {
+      var sn = ev.snippet_id && snipById[ev.snippet_id];
+      return String((ev.lang || (sn && sn.lang) || '')).toUpperCase() || '__none__';
+    }
+    var byFolder = rank(shareBy(cur, folderKey), totals.uses, shareBy(prev, folderKey), function (k) {
+      if (k === DELETED_KEY) return { title: 'Deleted snippets' };
+      if (k === '__none__') return { title: 'No folder' };
+      return { title: folderName[k] };
+    });
+    var byLanguage = rank(shareBy(cur, langKey), totals.uses, shareBy(prev, langKey), function (k) {
+      return { title: k === '__none__' ? 'Not set' : langName(k), detail: k === '__none__' ? '' : k };
+    });
+
+    // Library health, against the whole history (lastUsed) and not only the
+    // loaded window, so "never used" means never.
+    var nowDay = r.today.getTime();
+    var dormantCut = addDays(r.today, -DORMANT_DAYS).getTime();
+    var never = [];
+    var dormant = [];
+    var usedInPeriod = 0;
+    for (var s2 = 0; s2 < snippets.length; s2++) {
+      var sn2 = snippets[s2];
+      if (!sn2 || !sn2.id) continue;
+      var fromServer = lastUsed[sn2.id] ? new Date(lastUsed[sn2.id]).getTime() : NaN;
+      var last = Math.max(isNaN(fromServer) ? 0 : fromServer, lastSeen[sn2.id] || 0);
+      if (curBy[sn2.id]) usedInPeriod++;
+      var created = new Date(sn2.created_at).getTime();
+      var row = { key: sn2.id, title: sn2.title || sn2.shortcut || 'Untitled snippet', detail: sn2.shortcut || '' };
+      if (!last) {
+        row.since = isNaN(created) ? null : created;
+        row.days = isNaN(created) ? null : Math.max(0, Math.round((nowDay - startOfDay(created).getTime()) / 86400000));
+        never.push(row);
+      } else if (last < dormantCut) {
+        row.since = last;
+        row.days = Math.max(0, Math.round((nowDay - startOfDay(last).getTime()) / 86400000));
+        dormant.push(row);
+      }
+    }
+    function oldestFirst(a, b) { return (b.days || 0) - (a.days || 0) || a.title.localeCompare(b.title); }
+    never.sort(oldestFirst);
+    dormant.sort(oldestFirst);
+    var library = snippets.length;
+    var health = {
+      library: library,
+      usedInPeriod: usedInPeriod,
+      usedShare: percentOf(usedInPeriod, library),
+      neverUsed: never.length,
+      neverUsedList: never.slice(0, LIST_LIMIT),
+      dormant: dormant.length,
+      dormantDays: DORMANT_DAYS,
+      dormantList: dormant.slice(0, LIST_LIMIT),
+      withShortcut: snippets.filter(function (x) { return x && String(x.shortcut || '').trim(); }).length,
+      inFolder: snippets.filter(function (x) { return x && x.folder_id; }).length
+    };
+
+    return {
+      period: p,
+      label: periodLabel(p),
+      rangeLabel: rangeLabel(r.start, r.end),
+      prevRangeLabel: rangeLabel(r.prevStart, r.prevEnd),
+      start: dayKey(r.start),
+      prevStart: dayKey(r.prevStart),
+      empty: totals.uses === 0 && prevTotals.uses === 0,
+      totals: {
+        uses: change(totals.uses, prevTotals.uses),
+        activeDays: change(totals.activeDays, prevTotals.activeDays),
+        snippetsUsed: change(totals.snippetsUsed, prevTotals.snippetsUsed),
+        avgPerDay: change(totals.avgPerDay, prevTotals.avgPerDay),
+        avgPerActiveDay: totals.avgPerActiveDay,
+        secondsSaved: change(totals.secondsSaved, prevTotals.secondsSaved),
+        fieldsFilled: change(totals.fieldsFilled, prevTotals.fieldsFilled),
+        avgFieldsPerUse: totals.avgFieldsPerUse,
+        usesWithFieldsShare: percentOf(totals.usesWithFields, totals.uses),
+        bestDay: totals.bestDay,
+        days: p
+      },
+      series: series,
+      top: top,
+      rising: rising,
+      falling: falling,
+      byFolder: byFolder,
+      byLanguage: byLanguage,
+      patterns: patterns,
+      health: health
+    };
+  }
+
+  /**
+   * The team table, from two reads of team_usage_by_member(): the period and
+   * the one before it. A member who used nothing this period but did before
+   * stays in the table at 0, because a drop is part of the picture.
+   */
+  function team(current, previous, myId) {
+    var curRows = Array.isArray(current) ? current : [];
+    var prevRows = Array.isArray(previous) ? previous : [];
+    var byId = {};
+    function add(rows, field) {
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row || !row.user_id) continue;
+        var m = byId[row.user_id] || (byId[row.user_id] = { id: row.user_id, name: '', uses: 0, prevUses: 0, snippets: 0 });
+        if (row.member_name && !m.name) m.name = String(row.member_name);
+        if (field === 'cur') { m.uses += Number(row.uses) || 0; m.snippets += Number(row.snippets) || 0; }
+        else m.prevUses += Number(row.uses) || 0;
+      }
+    }
+    add(curRows, 'cur');
+    add(prevRows, 'prev');
+    var list = Object.keys(byId).map(function (k) { return byId[k]; });
+    var total = sum(list.map(function (m) { return m.uses; }));
+    var prevTotal = sum(list.map(function (m) { return m.prevUses; }));
+    list.sort(function (a, b) { return b.uses - a.uses || b.prevUses - a.prevUses || a.name.localeCompare(b.name); });
+    return {
+      total: change(total, prevTotal),
+      members: list.map(function (m, idx) {
+        return {
+          id: m.id,
+          rank: idx + 1,
+          name: m.name || 'Team member',
+          isMe: !!myId && m.id === myId,
+          uses: m.uses,
+          snippets: m.snippets,
+          share: percentOf(m.uses, total),
+          change: change(m.uses, m.prevUses)
+        };
+      })
+    };
+  }
+
+  var API = {
+    PERIODS: PERIODS,
+    DEFAULT_PERIOD: DEFAULT_PERIOD,
+    SECONDS_PER_USE: SECONDS_PER_USE,
+    LOAD_DAYS: LOAD_DAYS,
+    DORMANT_DAYS: DORMANT_DAYS,
+    normalizePeriod: normalizePeriod,
+    periodLabel: periodLabel,
+    range: range,
+    loadFrom: loadFrom,
+    change: change,
+    formatCount: formatCount,
+    formatDuration: formatDuration,
+    hourLabel: hourLabel,
+    compute: compute,
+    team: team
+  };
+
+  // UMD: browser globals, CommonJS (the node gate), AMD.
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = API;
+  } else if (typeof define === 'function' && define.amd) {
+    define(function () { return API; });
+  } else {
+    root.SBUsageAnalytics = API;
+  }
+
+}(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
+</script>
+<!-- SB_USAGE_ANALYTICS:END -->
 <!-- SB_INTERACTIVE_STEPS:BEGIN (generated from extension/shared/interactive-steps.js by scripts/check-interactive-steps.js --write, do not edit) -->
 <script>
 // interactive-steps.js: the "Interactive Steps" prompt setting, decided once.
@@ -12258,193 +12782,359 @@ document.addEventListener('keydown',function(e){
 })();
 
 /* ── ANALYTICS ──────────────────────────────────── */
-var LANG_COLORS={EN:'#1B4FD8',IT:'#15803D',ES:'#C2410C',MULTI:'#7C3AED'};
-var LANG_LABELS={EN:'EN',IT:'IT',ES:'ES',MULTI:'Multi'};
+/* Every figure is decided by SBUsageAnalytics (extension/shared/usage-analytics.js,
+   inlined above by scripts/sync-usage-analytics.js), the module the dashboard's
+   Analytics page loads. This page only reads the inputs and draws the result:
+     - your own inserts (snippet_events is select-own) for the last two years,
+       read in pages because the server stops a read at 1,000 rows;
+     - snippet_last_used(), so "never used" and "not used for 90 days" read all
+       time and the whole team, not only the loaded window;
+     - team_usage_by_member() for the period and the one before it, only when
+       you belong to a team. When the server has no such function the Team
+       section is left out instead of showing an error. */
+var AN_PAGE=1000;
+var AN_PERIOD_KEY='sb_mob_an_period';
+var anPeriod=(function(){
+  try{var p=Number(localStorage.getItem(AN_PERIOD_KEY));return SBUsageAnalytics.PERIODS.indexOf(p)>-1?p:SBUsageAnalytics.DEFAULT_PERIOD;}
+  catch(e){return SBUsageAnalytics.DEFAULT_PERIOD;}
+})();
+var anUsage=null, anLoading=false, anError=null;
+var anTeam={}, anTeamLoading={}, anTeamError=null, anTeamAvailable=true, anInTeam=null;
 
-function relativeTime(iso){
-  if(!iso)return '';
-  var diff=Date.now()-new Date(iso).getTime();
-  if(diff<0)diff=0;
-  var m=Math.floor(diff/60000);
-  if(m<2)return 'just now';
-  if(m<60)return m+'m ago';
-  var h=Math.floor(diff/3600000);
-  if(h<24)return h+'h ago';
-  var d=Math.floor(diff/86400000);
-  if(d<30)return d+'d ago';
-  var mo=Math.floor(d/30);
-  if(mo<12)return mo+'mo ago';
-  return Math.floor(mo/12)+'y ago';
+function anFetchPages(url){
+  var rows=[];
+  function next(from){
+    return fetch(url,{headers:authHeaders({'Range-Unit':'items','Range':from+'-'+(from+AN_PAGE-1)})})
+      .then(function(r){
+        if(handle401(r))throw new Error('Your session has ended.');
+        if(!r.ok)throw new Error('The server answered '+r.status+'.');
+        return r.json();
+      })
+      .then(function(batch){
+        rows=rows.concat(Array.isArray(batch)?batch:[]);
+        return batch.length<AN_PAGE?rows:next(from+AN_PAGE);
+      });
+  }
+  return next(0);
+}
+
+function anRpc(name,body){
+  return fetch(SUPA+'/rest/v1/rpc/'+name,{
+    method:'POST',
+    headers:authHeaders({'Content-Type':'application/json'}),
+    body:JSON.stringify(body||{})
+  });
+}
+
+function loadAnalyticsUsage(){
+  if(anLoading)return;
+  anLoading=true;anError=null;
+  var now=Date.now();
+  var from=SBUsageAnalytics.loadFrom(now).toISOString();
+  var evUrl=SUPA+'/rest/v1/snippet_events?select=snippet_id,created_at,fields_filled,lang'
+    +'&user_id=eq.'+encodeURIComponent(USER_ID)
+    +'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc';
+  var luFetch=anRpc('snippet_last_used').then(function(r){
+    if(handle401(r))throw new Error('Your session has ended.');
+    if(!r.ok)throw new Error('The server answered '+r.status+'.');
+    return r.json();
+  });
+  var memberFetch=anInTeam!==null?Promise.resolve(anInTeam)
+    :fetch(SUPA+'/rest/v1/organization_members?select=organization_id&user_id=eq.'+encodeURIComponent(USER_ID)+'&limit=1',{headers:authHeaders()})
+      .then(function(r){return r.ok?r.json():[];})
+      .then(function(rows){return Array.isArray(rows)&&rows.length>0;})
+      .catch(function(){return false;});
+  Promise.all([anFetchPages(evUrl),luFetch,memberFetch]).then(function(res){
+    var lastUsed={};
+    (Array.isArray(res[1])?res[1]:[]).forEach(function(r){if(r&&r.snippet_id&&r.last_used_at)lastUsed[r.snippet_id]=r.last_used_at;});
+    anUsage={events:res[0],lastUsed:lastUsed,loadedFrom:from,at:now};
+    anInTeam=!!res[2];
+    anTeam={};anTeamError=null;
+    anLoading=false;
+    if(curView==='analytics')renderAnalytics();
+  }).catch(function(err){
+    console.error('Analytics: could not load usage',err);
+    anLoading=false;
+    anError=(err&&err.message)||'Check your connection.';
+    if(curView==='analytics')renderAnalytics();
+  });
+}
+
+function loadAnalyticsTeam(period){
+  if(!anUsage||anTeamLoading[period])return;
+  anTeamLoading[period]=true;
+  var r=SBUsageAnalytics.range(period,anUsage.at);
+  function read(a,b){
+    return anRpc('team_usage_by_member',{p_from:a.toISOString(),p_to:b.toISOString()}).then(function(res){
+      if(handle401(res))throw new Error('Your session has ended.');
+      // 404: this database has no team function; the section stays hidden.
+      if(res.status===404)return null;
+      if(!res.ok)throw new Error('The server answered '+res.status+'.');
+      return res.json();
+    });
+  }
+  Promise.all([read(r.start,r.end),read(r.prevStart,r.prevEnd)]).then(function(res){
+    anTeamLoading[period]=false;
+    if(res[0]===null||res[1]===null){anTeamAvailable=false;}
+    else{anTeam[period]=SBUsageAnalytics.team(res[0],res[1],USER_ID);}
+    if(curView==='analytics')renderAnalytics();
+  }).catch(function(err){
+    console.error('Analytics: could not load team usage',err);
+    anTeamLoading[period]=false;
+    anTeamError=(err&&err.message)||'Check your connection.';
+    if(curView==='analytics')renderAnalytics();
+  });
+}
+
+function anChange(c){
+  var cls=c.dir==='up'?' up':c.dir==='down'?' down':'';
+  var arrow=c.dir==='up'?'<span aria-hidden="true">↑</span>':c.dir==='down'?'<span aria-hidden="true">↓</span>':'';
+  return '<span class="an-chg'+cls+'">'+arrow+esc(c.text)+'</span>';
+}
+function anBar(share){
+  return '<div class="an-bar" aria-hidden="true"><span style="width:'+Math.min(100,Number(share)||0)+'%"></span></div>';
+}
+function anSection(title,sub,inner,pad){
+  return '<div class="an-sec"><div class="msec"><h2 class="msec-t">'+esc(title)+'</h2></div>'
+    +(sub?'<p class="an-sec-sub">'+esc(sub)+'</p>':'')
+    +'<div class="an-card'+(pad?' pad':'')+'">'+inner+'</div></div>';
+}
+function anKpi(label,value,change,prev,hint){
+  return '<div class="an-kpi">'
+    +'<div class="an-kpi-lbl">'+esc(label)+'</div>'
+    +'<div class="an-kpi-val">'+esc(value)+'</div>'
+    +'<div class="an-kpi-row">'+anChange(change)+'<span class="an-kpi-prev">before: '+esc(prev)+'</span></div>'
+    +'<div class="an-kpi-hint">'+esc(hint)+'</div>'
+  +'</div>';
+}
+function anRows(rows,opts){
+  var n=SBUsageAnalytics.formatCount;
+  return rows.map(function(r,i){
+    var tap=opts.tap&&r.key&&r.key.indexOf('__')!==0;
+    return '<div class="an-row"'+(tap?' role="button" tabindex="0" data-an-snip="'+esc(r.key)+'"':'')+'>'
+      +(opts.rank?'<span class="an-rank">'+(i+1)+'</span>':'')
+      +'<div class="an-main"><div class="an-title">'+esc(r.title)+'</div>'
+        +(r.detail?'<div class="an-detail">'+esc(r.detail)+'</div>':'')
+        +(opts.bar?anBar(r.share):'')
+      +'</div>'
+      +'<div class="an-side"><span class="an-num">'+n(r.uses)+(opts.bar?' <small>'+r.share+'%</small>':'')+'</span>'+anChange(r.change)+'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function anChart(report){
+  var pts=report.series, W=340, H=120, len=pts.length;
+  var max=1;
+  pts.forEach(function(p){max=Math.max(max,p.count,p.prev,p.avg7||0);});
+  var bw=W/len, y=function(v){return (H-(v/max)*(H-4)).toFixed(1);};
+  var bars=pts.map(function(p,i){
+    if(!p.count)return '';
+    var h=(p.count/max)*(H-4);
+    return '<rect x="'+(i*bw+bw*0.12).toFixed(2)+'" y="'+(H-h).toFixed(1)+'" width="'+Math.max(0.6,bw*0.76).toFixed(2)+'" height="'+h.toFixed(1)+'" rx="'+(bw>6?1.5:0)+'" fill="var(--primary)"/>';
+  }).join('');
+  var prev=pts.map(function(p,i){return (i*bw+bw/2).toFixed(1)+','+y(p.prev);}).join(' ');
+  var avg='', seg=[];
+  pts.forEach(function(p,i){
+    if(p.avg7===null){if(seg.length>1)avg+='<polyline points="'+seg.join(' ')+'" fill="none" stroke="var(--text)" stroke-width="1.6"/>';seg=[];return;}
+    seg.push((i*bw+bw/2).toFixed(1)+','+y(p.avg7));
+  });
+  if(seg.length>1)avg+='<polyline points="'+seg.join(' ')+'" fill="none" stroke="var(--text)" stroke-width="1.6"/>';
+  var mid=pts[Math.floor(len/2)];
+  var t=report.totals;
+  var summary=SBUsageAnalytics.formatCount(t.uses.cur)+' inserts from '+report.rangeLabel
+    +(t.bestDay?', busiest '+t.bestDay.label+' with '+t.bestDay.count:'');
+  return '<div class="an-chart">'
+    +'<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(summary)+'" preserveAspectRatio="none">'
+      +'<line x1="0" y1="'+H+'" x2="'+W+'" y2="'+H+'" stroke="var(--border)"/>'
+      +bars
+      +'<polyline points="'+prev+'" fill="none" stroke="var(--text3)" stroke-width="1.2" stroke-dasharray="3 3"/>'
+      +avg
+    +'</svg>'
+    +'<div class="an-chart-axis"><span>'+esc(pts[0].label)+'</span><span>'+esc(mid.label)+'</span><span>'+esc(pts[len-1].label)+'</span></div>'
+    +'<div class="an-legend"><span><i class="an-key bar"></i>Inserts</span><span><i class="an-key prev"></i>Previous period</span>'
+      +(pts.some(function(p){return p.avg7!==null;})?'<span><i class="an-key avg"></i>7-day average</span>':'')
+    +'</div>'
+  +'</div>';
+}
+
+function anPatterns(report){
+  var p=report.patterns, n=SBUsageAnalytics.formatCount;
+  function level(c){return c<=0||p.max<=0?0:Math.min(4,Math.max(1,Math.ceil(c/p.max*4)));}
+  var g='<span></span>';
+  for(var h=0;h<24;h++)g+='<span class="an-gh">'+(h%6===0?(h<10?'0':'')+h:'')+'</span>';
+  p.grid.forEach(function(row,w){
+    g+='<span class="an-gl">'+esc(p.weekdays[w].name)+'</span>';
+    row.forEach(function(c,hh){
+      g+='<i class="l'+level(c)+'" title="'+esc(p.weekdays[w].name+' '+SBUsageAnalytics.hourLabel(hh)+': '+n(c))+'"></i>';
+    });
+  });
+  var label='Inserts by weekday and hour'+(p.peakWeekday?'. Busiest: '+p.peakWeekday.name+(p.peakHour?', '+p.peakHour.label:''):'');
+  return '<div class="an-grid" role="img" aria-label="'+esc(label)+'">'+g+'</div>'
+    +'<dl class="an-facts" style="margin-top:14px">'
+      +'<div class="an-fact"><dt>Busiest weekday</dt><dd>'+(p.peakWeekday?esc(p.peakWeekday.name)+', '+p.peakWeekday.share+'%':'—')+'</dd></div>'
+      +'<div class="an-fact"><dt>Busiest hour</dt><dd>'+(p.peakHour?esc(p.peakHour.label)+', '+p.peakHour.share+'%':'—')+'</dd></div>'
+      +'<div class="an-fact"><dt>Monday to Friday</dt><dd>'+p.workdayShare+'% of inserts</dd></div>'
+    +'</dl>';
+}
+
+function anTeamHtml(){
+  var team=anTeam[anPeriod], n=SBUsageAnalytics.formatCount;
+  var sub='Inserts of shared snippets in this period, by person. Only team folders you can open are counted.';
+  if(anTeamError){
+    return anSection('Team',sub,'<div class="an-msg">The team figures could not load. '+esc(anTeamError)
+      +'<br><button type="button" class="an-retry" data-an-action="team-retry">Try again</button></div>');
+  }
+  if(!team)return anSection('Team',sub,'<div class="an-msg">Loading…</div>');
+  if(!team.members.length)return anSection('Team',sub,'<div class="an-msg">Nobody has used a shared snippet in this period.</div>');
+  var rows=team.members.map(function(m){
+    return '<div class="an-row"><span class="an-rank">'+m.rank+'</span>'
+      +'<div class="an-main"><div class="an-title">'+esc(m.name)+(m.isMe?' <span class="an-me">(you)</span>':'')+'</div>'
+        +'<div class="an-detail">'+n(m.snippets)+' '+(m.snippets===1?'snippet':'snippets')+'</div>'+anBar(m.share)+'</div>'
+      +'<div class="an-side"><span class="an-num">'+n(m.uses)+' <small>'+m.share+'%</small></span>'+anChange(m.change)+'</div>'
+    +'</div>';
+  }).join('');
+  rows+='<div class="an-row"><span class="an-rank"></span><div class="an-main"><div class="an-title">Whole team</div></div>'
+    +'<div class="an-side"><span class="an-num">'+n(team.total.cur)+'</span>'+anChange(team.total)+'</div></div>';
+  return anSection('Team',sub,rows);
+}
+
+function anHealthList(title,total,rows,word,empty){
+  var html='<div class="an-sub-h">'+esc(title)+' <span class="an-kpi-prev">('+total+')</span></div>';
+  if(!rows.length)return html+'<div class="an-detail" style="padding:4px 0 12px;white-space:normal">'+esc(empty)+'</div>';
+  html+=rows.map(function(r){
+    return '<div class="an-row" role="button" tabindex="0" data-an-snip="'+esc(r.key)+'">'
+      +'<div class="an-main"><div class="an-title">'+esc(r.title)+'</div></div>'
+      +'<span class="an-detail">'+(r.days===null?'':esc(word+' '+r.days+' '+(r.days===1?'day':'days')))+'</span></div>';
+  }).join('');
+  if(total>rows.length)html+='<div class="an-more">and '+(total-rows.length)+' more</div>';
+  return html;
 }
 
 function renderAnalytics(){
-  var total=allSnips.length;
-  var folderCnt=allFolders.length;
-
-  if(!total&&!folderCnt){
-    document.getElementById('an-hdr-sub').textContent='No snippets yet';
-    document.getElementById('an-total').textContent='0';
-    document.getElementById('an-folders-cnt').textContent='0';
-    document.getElementById('an-interactive').textContent='0';
-    document.getElementById('an-noshortcut').textContent='0';
-    document.getElementById('an-interactive-pct').style.display='none';
-    document.getElementById('an-noshortcut-tag').style.display='none';
-    document.getElementById('an-lang-list').innerHTML='<div class="an-empty-sec">No data yet</div>';
-    document.getElementById('an-folder-list').innerHTML='<div class="an-empty-sec">No folders yet</div>';
-    document.getElementById('an-health-list').innerHTML='<div class="an-empty-sec">No data yet</div>';
-    document.getElementById('an-recent-list').innerHTML='<div class="an-empty-sec">No snippets yet</div>';
+  var body=document.getElementById('an-body');
+  var sub=document.getElementById('an-hdr-sub');
+  document.querySelectorAll('[data-an-period]').forEach(function(b){
+    b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-an-period'))===anPeriod));
+  });
+  if(!anUsage){
+    if(anError){
+      sub.textContent='Your figures could not load.';
+      body.innerHTML='<div class="an-sec" style="margin-top:16px"><div class="an-card"><div class="an-msg">'+esc(anError)
+        +' Check your connection and try again.<br><button type="button" class="an-retry" data-an-action="retry">Try again</button></div></div></div>';
+      return;
+    }
+    sub.textContent='Loading…';
+    body.innerHTML='<div class="an-sec" style="margin-top:16px"><div class="an-card"><div class="an-msg">Loading your figures…</div></div></div>';
+    loadAnalyticsUsage();
     return;
   }
 
-  /* ── header subtitle ── */
-  var oneWeekMs=7*86400000;
-  var now=Date.now();
-  var updatedThisWeek=allSnips.filter(function(s){
-    return s.updated_at&&(now-new Date(s.updated_at).getTime())<oneWeekMs;
-  }).length;
-  var sub=total+' snippet'+(total!==1?'s':'');
-  if(updatedThisWeek>0)sub+=' · '+updatedThisWeek+' updated this week';
-  document.getElementById('an-hdr-sub').textContent=sub;
+  var UA=SBUsageAnalytics, n=UA.formatCount;
+  var report=UA.compute({
+    now:anUsage.at, period:anPeriod, events:anUsage.events, lastUsed:anUsage.lastUsed, loadedFrom:anUsage.loadedFrom,
+    folders:allFolders.map(function(f){return {id:f.id,name:f.name};}),
+    snippets:allSnips.map(function(s){return {id:s.id,title:s.title,shortcut:s.shortcut,folder_id:s.folder_id,lang:s.lang,created_at:s.created_at};})
+  });
+  var t=report.totals, h=report.health, p=report.patterns;
+  sub.textContent=report.label+': '+report.rangeLabel+', compared with '+report.prevRangeLabel+'.';
 
-  /* ── KPI cards ── */
-  var withFields=allSnips.filter(function(s){return extractFields(s.body||'').length>0;}).length;
-  var withShortcut=allSnips.filter(function(s){return !!(s.shortcut||'').trim();}).length;
-  var withFolder=allSnips.filter(function(s){return !!s.folder_id;}).length;
-  var noShortcut=total-withShortcut;
+  var html='<div class="an-kpi-grid">'
+    +anKpi('Inserted',n(t.uses.cur),t.uses,n(t.uses.prev),t.avgPerDay.cur+' a day on average')
+    +anKpi('Time saved',UA.formatDuration(t.secondsSaved.cur),t.secondsSaved,UA.formatDuration(t.secondsSaved.prev),'At '+UA.SECONDS_PER_USE+' seconds per insert')
+    +anKpi('Active days',n(t.activeDays.cur)+' of '+n(t.days),t.activeDays,n(t.activeDays.prev),t.activeDays.cur?t.avgPerActiveDay+' inserts on a day you used Fibonax':'No inserts in this period')
+    +anKpi('Snippets used',n(t.snippetsUsed.cur),t.snippetsUsed,n(t.snippetsUsed.prev),h.usedShare+'% of the '+n(h.library)+' you can use')
+  +'</div>';
 
-  document.getElementById('an-total').textContent=total;
-  document.getElementById('an-folders-cnt').textContent=folderCnt;
-  document.getElementById('an-interactive').textContent=withFields;
+  html+='<div class="an-sec" style="margin-top:12px"><div class="an-card pad"><dl class="an-facts">'
+    +'<div class="an-fact"><dt>Busiest day</dt><dd>'+(t.bestDay?esc(t.bestDay.label):'—')+'</dd><dd class="an-fact-hint">'+(t.bestDay?n(t.bestDay.count)+' inserts':'No inserts yet')+'</dd></div>'
+    +'<div class="an-fact"><dt>Daily streak</dt><dd>'+(p.streak.currentAtLeast?'At least ':'')+n(p.streak.current)+' '+(p.streak.current===1?'day':'days')+'</dd><dd class="an-fact-hint">Longest in this period: '+n(p.streak.longestInPeriod)+'</dd></div>'
+    +'<div class="an-fact"><dt>Fields filled per insert</dt><dd>'+t.avgFieldsPerUse+'</dd><dd class="an-fact-hint">'+t.usesWithFieldsShare+'% of inserts had a form</dd></div>'
+    +'<div class="an-fact"><dt>Weekdays</dt><dd>'+p.workdayShare+'%</dd><dd class="an-fact-hint">of inserts from Monday to Friday</dd></div>'
+  +'</dl></div></div>';
 
-  var iPct=document.getElementById('an-interactive-pct');
-  if(total>0){
-    iPct.textContent=Math.round(withFields/total*100)+'% of library';
-    iPct.style.display='';
-  }else{
-    iPct.style.display='none';
+  html+=anSection('Inserts per day',report.rangeLabel+', with '+report.prevRangeLabel+' dashed for comparison.',anChart(report),true);
+
+  html+=anSection('Top snippets','Your ten most-inserted snippets, each with its share of all your inserts.',
+    report.top.length?anRows(report.top,{rank:true,bar:true,tap:true})
+      :'<div class="an-msg">No inserts in this period yet. Type a shortcut anywhere and it shows up here.</div>');
+
+  var up='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>';
+  var down='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg>';
+  function movers(list){
+    return list.map(function(m){
+      return '<div class="an-row" role="button" tabindex="0" data-an-snip="'+esc(m.key)+'"><div class="an-main"><div class="an-title">'+esc(m.title)+'</div>'
+        +'<div class="an-detail">'+n(m.change.prev)+' → '+n(m.change.cur)+' inserts</div></div>'
+        +'<div class="an-side">'+anChange(m.change)+'</div></div>';
+    }).join('');
+  }
+  html+=anSection('Movers','Against the period before.',
+    '<div class="an-sub-h">'+up+'Rising fastest</div>'
+      +(report.rising.length?movers(report.rising):'<div class="an-detail" style="padding:4px 0 10px">Nothing is used more than in the period before.</div>')
+    +'<div class="an-sub-h">'+down+'Falling fastest</div>'
+      +(report.falling.length?movers(report.falling):'<div class="an-detail" style="padding:4px 0 12px">Nothing is used less than in the period before.</div>'));
+
+  html+=anSection('When you use snippets','Inserts by weekday and hour, in your local time.',anPatterns(report),true);
+
+  html+=anSection('Where your use goes','Your inserts in this period by folder and by language.',
+    '<div class="an-sub-h">By folder</div>'+(report.byFolder.length?anRows(report.byFolder,{bar:true}):'<div class="an-detail" style="padding:4px 0 10px">No inserts in this period.</div>')
+    +'<div class="an-sub-h">By language</div>'+(report.byLanguage.length?anRows(report.byLanguage,{bar:true}):'<div class="an-detail" style="padding:4px 0 12px">No inserts in this period.</div>'));
+
+  if(anInTeam&&anTeamAvailable){
+    html+=anTeamHtml();
+    if(!anTeam[anPeriod]&&!anTeamError)loadAnalyticsTeam(anPeriod);
   }
 
-  document.getElementById('an-noshortcut').textContent=noShortcut;
-  var nsTag=document.getElementById('an-noshortcut-tag');
-  nsTag.style.display=noShortcut>0?'':'none';
+  function gauge(label,v){
+    var pct=h.library?Math.round(v/h.library*1000)/10:0;
+    return '<div class="an-row"><div class="an-main"><div class="an-title">'+esc(label)+'</div>'+anBar(pct)+'</div>'
+      +'<div class="an-side"><span class="an-num">'+n(v)+' <small>of '+n(h.library)+' · '+pct+'%</small></span></div></div>';
+  }
+  html+=anSection('Library health','The '+n(h.library)+' snippets you can use, yours and shared with you.',
+    gauge('Used in this period',h.usedInPeriod)+gauge('Have a shortcut',h.withShortcut)+gauge('In a folder',h.inFolder)
+    +anHealthList('Never used',h.neverUsed,h.neverUsedList,'created','Every snippet has been used at least once.')
+    +anHealthList('Not used for '+h.dormantDays+' days',h.dormant,h.dormantList,'last used','Everything was used in the last '+h.dormantDays+' days.'));
 
-  /* ── language breakdown ── */
-  var langCounts={EN:0,IT:0,ES:0,MULTI:0};
-  allSnips.forEach(function(s){
-    var l=s.lang||'EN';
-    if(Object.prototype.hasOwnProperty.call(langCounts,l))langCounts[l]++;
-    else langCounts['MULTI']++;
-  });
-  var maxLang=Math.max(langCounts.EN,langCounts.IT,langCounts.ES,langCounts.MULTI,1);
-  document.getElementById('an-lang-list').innerHTML=
-    ['EN','IT','ES','MULTI'].map(function(l){
-      var cnt=langCounts[l];
-      var barW=Math.round(cnt/maxLang*100);
-      var pct=total>0?Math.round(cnt/total*100):0;
-      return '<div class="an-lang-row">'
-        +'<span class="lbadge l'+l+' an-lang-pill">'+esc(LANG_LABELS[l])+'</span>'
-        +'<div class="an-lang-bar-wrap">'
-          +'<div class="an-lang-bar" style="width:'+barW+'%;background:'+LANG_COLORS[l]+'"></div>'
-        +'</div>'
-        +'<span class="an-lang-count">'+cnt+'</span>'
-        +'<span class="an-lang-pct">'+pct+'%</span>'
-      +'</div>';
-    }).join('');
-
-  /* ── top folders ── */
-  var fSnipCnt={};
-  allSnips.forEach(function(s){
-    if(s.folder_id)fSnipCnt[s.folder_id]=(fSnipCnt[s.folder_id]||0)+1;
-  });
-  var topFolders=allFolders
-    .map(function(f){return{f:f,cnt:fSnipCnt[f.id]||0};})
-    .filter(function(x){return x.cnt>0;})
-    .sort(function(a,b){return b.cnt-a.cnt;})
-    .slice(0,5);
-  var maxFCnt=topFolders.length?topFolders[0].cnt:1;
-  document.getElementById('an-folder-list').innerHTML=topFolders.length
-    ?topFolders.map(function(x,i){
-        var barW=Math.round(x.cnt/maxFCnt*100);
-        return '<div class="an-folder-row">'
-          +'<span class="an-folder-rank">#'+(i+1)+'</span>'
-          +'<span class="an-folder-ico">'+folderIcon(x.f)+'</span>'
-          +'<div class="an-folder-info">'
-            +'<div class="an-folder-name">'+esc(x.f.name||'Folder')+'</div>'
-            +'<div class="an-folder-bar-wrap">'
-              +'<div class="an-folder-bar" style="width:'+barW+'%"></div>'
-            +'</div>'
-          +'</div>'
-          +'<span class="an-folder-cnt">'+x.cnt+'</span>'
-        +'</div>';
-      }).join('')
-    :'<div class="an-empty-sec">Assign snippets to folders to see rankings</div>';
-
-  /* ── library health ── */
-  var healthRows=[
-    {label:'Have a shortcut',val:withShortcut},
-    {label:'Assigned to a folder',val:withFolder},
-    {label:'Interactive (have fields)',val:withFields}
-  ];
-  document.getElementById('an-health-list').innerHTML=healthRows.map(function(h){
-    var pct=total>0?Math.round(h.val/total*100):0;
-    var cls=pct>=80?'h-ok':pct>=50?'':'h-warn';
-    return '<div class="an-health-row">'
-      +'<div class="an-health-top">'
-        +'<span class="an-health-lbl">'+esc(h.label)+'</span>'
-        +'<span class="an-health-pct '+cls+'">'+pct+'%</span>'
-      +'</div>'
-      +'<div class="an-health-bar-wrap">'
-        +'<div class="an-health-bar '+cls+'" style="width:'+pct+'%"></div>'
-      +'</div>'
-    +'</div>';
-  }).join('');
-
-  /* ── recently modified ── */
-  var recent=allSnips.slice().sort(function(a,b){
-    var ta=a.updated_at?new Date(a.updated_at).getTime():0;
-    var tb=b.updated_at?new Date(b.updated_at).getTime():0;
-    return tb-ta;
-  }).slice(0,6);
-  var recentEl=document.getElementById('an-recent-list');
-  recentEl.innerHTML=recent.length
-    ?recent.map(function(s){
-        var rel=relativeTime(s.updated_at);
-        var langBadge='<span class="lbadge l'+esc(s.lang||'EN')+'" style="font-size:9px;padding:1px 5px">'+esc(s.lang||'EN')+'</span>';
-        return '<div class="an-recent-item" data-snip-id="'+esc(s.id)+'" role="button" tabindex="0" aria-label="'+esc(s.title||s.id)+'">'
-          +'<div class="an-recent-ico">'+(getFolderById(s.folder_id)?folderIcon(getFolderById(s.folder_id)):SNIPPET_SVG)+'</div>'
-          +'<div class="an-recent-info">'
-            +'<div class="an-recent-title">'+esc(s.title||s.id)+'</div>'
-            +'<div class="an-recent-meta">'
-              +(rel?'<span class="an-recent-date">'+esc(rel)+'</span>':'')
-              +langBadge
-            +'</div>'
-          +'</div>'
-        +'</div>';
-      }).join('')
-    :'<div class="an-empty-sec">No snippets yet</div>';
-
-  recentEl.querySelectorAll('.an-recent-item').forEach(function(el){
-    function activate(){
-      var id=this.getAttribute('data-snip-id');
-      var s=allSnips.find(function(x){return x.id===id;});
-      if(!s)return;
-      var grp=groupForRow(s);
-      openDetail(pickActiveVariant(grp,curLang),grp.variants);
-    }
-    el.addEventListener('click',activate);
-    el.addEventListener('keydown',function(e){
-      if(e.key==='Enter'||e.key===' '){e.preventDefault();activate.call(this);}
-    });
-  });
+  body.innerHTML=html;
 }
+
+/* One listener for the whole page: period, retries, and a tap on a snippet
+   row opens that snippet, like a tap on a card in the list. */
+document.getElementById('view-analytics').addEventListener('click',function(e){
+  var pb=e.target.closest('[data-an-period]');
+  if(pb){
+    anPeriod=Number(pb.getAttribute('data-an-period'));
+    try{localStorage.setItem(AN_PERIOD_KEY,String(anPeriod));}catch(err){}
+    renderAnalytics();
+    return;
+  }
+  var act=e.target.closest('[data-an-action]');
+  if(act){
+    if(act.getAttribute('data-an-action')==='team-retry'){anTeamError=null;}
+    else{anError=null;}
+    renderAnalytics();
+    return;
+  }
+  var row=e.target.closest('[data-an-snip]');
+  if(row){
+    var id=row.getAttribute('data-an-snip');
+    var s=allSnips.find(function(x){return x.id===id;});
+    if(!s)return;
+    var grp=groupForRow(s);
+    openDetail(pickActiveVariant(grp,curLang),grp.variants);
+  }
+});
+document.getElementById('view-analytics').addEventListener('keydown',function(e){
+  if((e.key==='Enter'||e.key===' ')&&e.target.closest('[data-an-snip]')){e.preventDefault();e.target.click();}
+});
 
 document.getElementById('an-refresh-btn').addEventListener('click',function(){
   var btn=this;
   btn.classList.add('spinning');
   btn.disabled=true;
+  anUsage=null;anError=null;anTeam={};anTeamError=null;
   loadSnips();
-  // Stop spinning once the network response lands (give it at least 600ms so
-  // the animation is visible even when cache resolves immediately)
+  renderAnalytics();
+  // At least 600ms of spin so the press is visible even when the cache answers at once.
   setTimeout(function(){btn.classList.remove('spinning');btn.disabled=false;},600);
 });
 

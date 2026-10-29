@@ -104,6 +104,9 @@ jobs:
       - name: Usage analytics figures
         run: node scripts/check-usage-analytics.js
 
+      - name: Phone Analytics reads the shared figures
+        run: node scripts/sync-usage-analytics.js --check
+
       - name: Industry-neutral wording check
         run: node scripts/check-industry-neutral.js
 

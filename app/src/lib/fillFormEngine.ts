@@ -15,6 +15,7 @@
  */
 
 import type { LinkRule } from '@/lib/linkRule';
+import { loadScript } from '@/lib/loadScript';
 
 /** A field's kind, as decided by `fill-form.js` (token declaration, then name). */
 export type SbFieldType = 'text' | 'date' | 'time' | 'datetime' | 'number' | 'dd';
@@ -363,46 +364,6 @@ const ENGINE_SCRIPTS = [
   '/extension/formula-engine.js',
   '/extension/shared/fill-form.js',
 ] as const;
-
-function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      `script[data-sb-engine="${src}"]`,
-    );
-    if (existing) {
-      if (existing.dataset.sbLoaded === 'true') {
-        resolve();
-        return;
-      }
-      existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener(
-        'error',
-        () => reject(new Error(`Could not load ${src}`)),
-        { once: true },
-      );
-      return;
-    }
-
-    const el = document.createElement('script');
-    el.src = src;
-    el.async = false;
-    el.dataset.sbEngine = src;
-    el.addEventListener(
-      'load',
-      () => {
-        el.dataset.sbLoaded = 'true';
-        resolve();
-      },
-      { once: true },
-    );
-    el.addEventListener(
-      'error',
-      () => reject(new Error(`Could not load ${src}`)),
-      { once: true },
-    );
-    document.head.appendChild(el);
-  });
-}
 
 /** One in-flight load shared by every caller; retried only after a failure. */
 let pending: Promise<SbFillFormApi> | null = null;
