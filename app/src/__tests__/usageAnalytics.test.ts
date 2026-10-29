@@ -56,6 +56,8 @@ describe('shared usage analytics, as the dashboard types it', () => {
     );
     expect(Object.keys(r.totals.uses).sort()).toEqual(['cur', 'diff', 'dir', 'pct', 'prev', 'text'].sort());
     expect(Object.keys(r.series[0] ?? {}).sort()).toEqual(['avg7', 'count', 'date', 'label', 'prev', 'weekday'].sort());
+    expect(Object.keys(r.top[0] ?? {}).sort()).toEqual(['change', 'detail', 'key', 'share', 'title', 'trend', 'uses'].sort());
+    expect(r.top[0]?.trend).toHaveLength(7);
     expect(r.patterns.grid).toHaveLength(7);
     expect(r.patterns.grid[0]).toHaveLength(24);
     expect(Object.keys(r.patterns.streak).sort()).toEqual(['current', 'currentAtLeast', 'longestInPeriod']);

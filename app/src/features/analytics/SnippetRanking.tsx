@@ -1,5 +1,6 @@
 import { TrendingDown, TrendingUp } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { Sparkline } from '@/components/shared/Sparkline';
 import type { UsageAnalyticsApi, UsageMover, UsageReport } from '@/lib/usageAnalytics';
 import { ChangeBadge } from './ChangeBadge';
 
@@ -7,6 +8,9 @@ interface SnippetRankingProps {
   report: UsageReport;
   engine: UsageAnalyticsApi;
 }
+
+/** Rank · snippet · trend · inserts · share · change. One grid for the header and every row. */
+const ROW_GRID = 'grid grid-cols-[1.25rem_minmax(0,1fr)_5rem_3.5rem_8rem_6rem] items-center gap-3';
 
 function ShareBar({ share }: { share: number }) {
   return (
@@ -56,60 +60,61 @@ function MoverList({
   );
 }
 
-/** Your most-inserted snippets with their share of all inserts, and the biggest movers against the previous period. */
+/**
+ * Your most-inserted snippets, ranked, each with its trend across the period,
+ * its share of all inserts and its change, then the biggest movers against
+ * the previous period.
+ */
 export function SnippetRanking({ report, engine }: SnippetRankingProps) {
   const n = engine.formatCount;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Top snippets</CardTitle>
-        <CardDescription>
-          Your ten most-inserted snippets in this period, each with its share of all your inserts.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="px-0 pb-0">
-        {report.top.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-                  <th scope="col" className="border-b border-line bg-bg-alt px-6 py-2.5 w-10">#</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5">Snippet</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 text-right">Inserts</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 w-[22%]">Share</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-6 py-2.5 text-right">vs before</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.top.map((row, i) => (
-                  <tr key={row.key} className={i === report.top.length - 1 ? '' : 'border-b border-line'}>
-                    <td className="px-6 py-3 tabular-nums text-ink-subtle">{i + 1}</td>
-                    <td className="max-w-0 px-3 py-3">
-                      <div className="truncate font-medium text-ink">{row.title}</div>
-                      {row.detail ? <div className="truncate text-xs text-ink-subtle">{row.detail}</div> : null}
-                    </td>
-                    <td className="px-3 py-3 text-right font-mono text-xs tabular-nums text-ink">{n(row.uses)}</td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2">
-                        <ShareBar share={row.share} />
-                        <span className="w-12 shrink-0 text-right text-xs tabular-nums text-ink-muted">{row.share}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      <ChangeBadge change={row.change} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <Card className="p-5">
+      <h3 className="text-base font-semibold tracking-tight text-ink">Top snippets</h3>
+      <p className="mt-0.5 text-sm text-ink-muted">
+        Your ten most-inserted snippets in this period, each with its share of all your inserts.
+      </p>
+
+      {report.top.length ? (
+        <div className="mt-4">
+          <div className={`${ROW_GRID} border-b border-line pb-2 text-xs text-ink-subtle`} aria-hidden="true">
+            <span />
+            <span>Snippet</span>
+            <span>Trend</span>
+            <span className="text-right">Inserts</span>
+            <span>Share</span>
+            <span className="text-right">vs before</span>
           </div>
-        ) : (
-          <p className="px-6 pb-6 text-sm text-ink-muted">
-            No inserts in this period yet. Type a shortcut anywhere and it shows up here.
-          </p>
-        )}
-      </CardContent>
-      <div className="grid grid-cols-1 gap-6 border-t border-line px-6 py-5 md:grid-cols-2">
+          <ol className="divide-y divide-line">
+            {report.top.map((row, i) => (
+              <li key={row.key} className={`${ROW_GRID} py-2.5`}>
+                <span className="text-xs tabular-nums text-ink-subtle">{i + 1}</span>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-ink">{row.title}</div>
+                  {row.detail ? <div className="truncate text-xs text-ink-subtle">{row.detail}</div> : null}
+                </div>
+                <Sparkline values={row.trend} className="text-primary" />
+                <span className="text-right text-sm font-semibold tabular-nums text-ink">
+                  {n(row.uses)}
+                  <span className="sr-only"> inserts</span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <ShareBar share={row.share} />
+                  <span className="w-12 shrink-0 text-right text-xs tabular-nums text-ink-muted">{row.share}%</span>
+                </div>
+                <div className="flex justify-end">
+                  <ChangeBadge change={row.change} />
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-ink-muted">
+          No inserts in this period yet. Type a shortcut anywhere and it shows up here.
+        </p>
+      )}
+
+      <div className="mt-5 grid grid-cols-1 gap-6 border-t border-line pt-5 md:grid-cols-2">
         <MoverList
           title="Rising fastest"
           icon={TrendingUp}

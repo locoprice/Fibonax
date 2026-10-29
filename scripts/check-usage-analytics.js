@@ -77,6 +77,8 @@ check('top ranking', r.top.map((t) => [t.title, t.uses, t.share, t.change.text])
   ['Deleted snippet', 1, 14.3, 'New'],
   ['Follow-up', 1, 14.3, 'No change'],
 ]);
+check('top trend is one count per day of the period', [r.top[0].trend, r.top[2].trend],
+  [[0, 0, 0, 0, 0, 1, 2], [0, 0, 1, 0, 0, 0, 0]]);
 check('rising', r.rising.map((m) => [m.title, m.change.diff]), [['Welcome reply', 2]]);
 check('falling', r.falling.map((m) => [m.title, m.change.diff]), []);
 check('by folder', r.byFolder.map((f) => [f.title, f.uses, f.share]), [

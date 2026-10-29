@@ -46,6 +46,11 @@ export interface UsageRankRow {
   change: UsageChange;
 }
 
+/** A top snippet: a ranked row plus its inserts per day across the period. */
+export interface UsageTopRow extends UsageRankRow {
+  trend: number[];
+}
+
 export interface UsageMover {
   key: string;
   title: string;
@@ -108,7 +113,7 @@ export interface UsageReport {
     days: number;
   };
   series: UsageSeriesPoint[];
-  top: UsageRankRow[];
+  top: UsageTopRow[];
   rising: UsageMover[];
   falling: UsageMover[];
   byFolder: UsageRankRow[];

@@ -15,7 +15,7 @@ interface ContributionSettingsProps {
 }
 
 /**
- * GitHub-style "Contribution settings" dropdown. Layout, sizing, and the
+ * GitHub-style contribution settings dropdown, labelled "Display". Layout, sizing, and the
  * checkbox-row interaction mirror GitHub; the palette is Fibonax azure.
  */
 export function ContributionSettings({ items }: ContributionSettingsProps) {
@@ -53,7 +53,7 @@ export function ContributionSettings({ items }: ContributionSettingsProps) {
           open && 'bg-bg-alt text-ink',
         )}
       >
-        Contribution settings
+        Display
         <ChevronDown
           className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')}
         />

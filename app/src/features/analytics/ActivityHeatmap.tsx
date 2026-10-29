@@ -10,7 +10,7 @@ interface ActivityHeatmapProps {
   showOverview: boolean;
   onChangePrivate: (next: boolean) => void;
   onChangeOverview: (next: boolean) => void;
-  /** The breakdown under the grid; hidden with the "Activity overview" switch. */
+  /** The breakdown under the grid; hidden with the "Show breakdown" switch. */
   children?: ReactNode;
 }
 
@@ -89,9 +89,9 @@ export function ActivityHeatmap({
       day: 'numeric',
       year: 'numeric',
     });
-    if (!showPrivate) return `Activity hidden · ${label}`;
-    if (day.count === 0) return `No snippet expansions on ${label}`;
-    return `${day.count} snippet expansion${day.count === 1 ? '' : 's'} on ${label}`;
+    if (!showPrivate) return `Counts hidden · ${label}`;
+    if (day.count === 0) return `No inserts on ${label}`;
+    return `${day.count} insert${day.count === 1 ? '' : 's'} on ${label}`;
   }
 
   function onCellEnter(e: React.MouseEvent<HTMLDivElement>, day: ActivityDay) {
@@ -104,8 +104,8 @@ export function ActivityHeatmap({
   }
 
   const heading = showPrivate
-    ? `${data.total.toLocaleString()} snippet expansion${data.total === 1 ? '' : 's'} in the last year`
-    : 'Snippet activity in the last year';
+    ? `${data.total.toLocaleString()} insert${data.total === 1 ? '' : 's'} in the last year`
+    : 'Inserts in the last year';
 
   const labelColWidth = 30;
 
@@ -113,22 +113,22 @@ export function ActivityHeatmap({
     <Card className="p-5">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-semibold tracking-tight text-ink">Activity Overview</h3>
+          <h3 className="text-base font-semibold tracking-tight text-ink">Daily activity</h3>
           <p className="mt-0.5 text-sm text-ink-muted">{heading}</p>
         </div>
         <ContributionSettings
           items={[
             {
               id: 'private',
-              label: 'Private contributions',
-              description: 'Show exact expansion counts in the heading and tooltips.',
+              label: 'Show counts',
+              description: 'Show exact insert counts in the heading and when you point at a square.',
               checked: showPrivate,
               onChange: onChangePrivate,
             },
             {
               id: 'overview',
-              label: 'Activity overview',
-              description: 'Show the breakdown and recent activity below the graph.',
+              label: 'Show breakdown',
+              description: 'Show the figures and the month by month view under the graph.',
               checked: showOverview,
               onChange: onChangeOverview,
             },
@@ -200,7 +200,7 @@ export function ActivityHeatmap({
 
       {/* Legend */}
       <div className="mt-3 flex items-center justify-between">
-        <p className="text-xs text-ink-subtle">Each square is one day of snippet expansions.</p>
+        <p className="text-xs text-ink-subtle">Each square is one day. Darker means more inserts.</p>
         <div className="flex items-center gap-1.5 text-[11px] text-ink-muted">
           <span>Less</span>
           <div className="flex items-center" style={{ gap: GAP }}>

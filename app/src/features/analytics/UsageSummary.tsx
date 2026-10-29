@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { CalendarCheck, Clock, Layers, MousePointerClick } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Sparkline } from '@/components/shared/Sparkline';
 import type { UsageAnalyticsApi, UsageChange, UsageReport } from '@/lib/usageAnalytics';
 import { ChangeBadge } from './ChangeBadge';
 
@@ -16,25 +17,32 @@ interface FigureProps {
   change: UsageChange;
   previous: string;
   hint: string;
+  /** A small line of the period's daily counts beside the number. */
+  trend?: number[];
 }
 
-function Figure({ label, value, icon: Icon, change, previous, hint }: FigureProps) {
+/**
+ * One headline figure: a quiet label and icon, the number, the change badge
+ * with the figure before, and one line saying what it covers.
+ */
+function Figure({ label, value, icon: Icon, change, previous, hint, trend }: FigureProps) {
   return (
     <Card className="p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs font-medium uppercase tracking-wider text-ink-subtle">{label}</div>
-          <div className="mt-2 text-3xl font-bold tracking-tight tabular-nums text-ink">{value}</div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13px] font-medium text-ink-muted">{label}</span>
+        <Icon className="h-4 w-4 shrink-0 text-ink-subtle" aria-hidden="true" />
+      </div>
+      <div className="mt-3 flex items-end justify-between gap-4">
+        <div className="min-w-0 truncate text-[30px] font-semibold leading-none tracking-tight text-ink" title={value}>
+          {value}
         </div>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-primary-light text-primary">
-          <Icon className="h-4 w-4" aria-hidden="true" />
-        </div>
+        {trend ? <Sparkline values={trend} className="mb-0.5 h-7 w-20 shrink-0 text-primary" /> : null}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <ChangeBadge change={change} />
         <span className="text-ink-muted">{previous}</span>
       </div>
-      <p className="mt-2 text-xs text-ink-subtle">{hint}</p>
+      <p className="mt-2 truncate text-xs text-ink-subtle" title={hint}>{hint}</p>
     </Card>
   );
 }
@@ -65,6 +73,7 @@ export function UsageSummary({ report, engine }: UsageSummaryProps) {
           change={t.uses}
           previous={`${before}${n(t.uses.prev)}`}
           hint={`${t.avgPerDay.cur} a day on average`}
+          trend={report.series.map((p) => p.count)}
         />
         <Figure
           label="Time saved"

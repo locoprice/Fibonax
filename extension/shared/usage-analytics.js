@@ -333,6 +333,19 @@
     }
     var top = rank(curBy, totals.uses, prevBy, describeSnippet).slice(0, TOP_LIMIT);
 
+    // Each top snippet's inserts per day across the period: its trend line.
+    var perSnippetDay = {};
+    for (var c3 = 0; c3 < cur.length; c3++) {
+      var k3 = keyOf(cur[c3]);
+      var dk3 = dayKey(new Date(cur[c3].t));
+      if (!perSnippetDay[k3]) perSnippetDay[k3] = {};
+      perSnippetDay[k3][dk3] = (perSnippetDay[k3][dk3] || 0) + 1;
+    }
+    for (var t1 = 0; t1 < top.length; t1++) {
+      var byDay = perSnippetDay[top[t1].key] || {};
+      top[t1].trend = series.map(function (pt) { return byDay[pt.date] || 0; });
+    }
+
     var moverKeys = {};
     Object.keys(curBy).concat(Object.keys(prevBy)).forEach(function (k) { if (k !== DELETED_KEY) moverKeys[k] = true; });
     var movers = Object.keys(moverKeys).map(function (k) {

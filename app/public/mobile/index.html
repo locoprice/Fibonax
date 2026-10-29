@@ -1374,6 +1374,8 @@ svg.brain-type-icon{stroke-width:1.8}
 .an-title{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .an-me{font-weight:500;color:var(--text2)}
 .an-detail{font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.an-spark{width:52px;height:20px;flex-shrink:0}
+.an-kpi-spark svg{display:block;width:72px;height:22px;margin-top:4px}
 .an-bar{height:5px;background:var(--bg-alt);border-radius:3px;overflow:hidden;margin-top:6px}
 .an-bar span{display:block;height:100%;background:var(--primary);border-radius:3px}
 .an-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
@@ -6068,6 +6070,19 @@ svg.brain-type-icon{stroke-width:1.8}
       return { title: sn.title || sn.shortcut || 'Untitled snippet', detail: detail.join(' · ') };
     }
     var top = rank(curBy, totals.uses, prevBy, describeSnippet).slice(0, TOP_LIMIT);
+
+    // Each top snippet's inserts per day across the period: its trend line.
+    var perSnippetDay = {};
+    for (var c3 = 0; c3 < cur.length; c3++) {
+      var k3 = keyOf(cur[c3]);
+      var dk3 = dayKey(new Date(cur[c3].t));
+      if (!perSnippetDay[k3]) perSnippetDay[k3] = {};
+      perSnippetDay[k3][dk3] = (perSnippetDay[k3][dk3] || 0) + 1;
+    }
+    for (var t1 = 0; t1 < top.length; t1++) {
+      var byDay = perSnippetDay[top[t1].key] || {};
+      top[t1].trend = series.map(function (pt) { return byDay[pt.date] || 0; });
+    }
 
     var moverKeys = {};
     Object.keys(curBy).concat(Object.keys(prevBy)).forEach(function (k) { if (k !== DELETED_KEY) moverKeys[k] = true; });
@@ -13324,6 +13339,16 @@ function anChange(c){
   var arrow=c.dir==='up'?'<span aria-hidden="true">↑</span>':c.dir==='down'?'<span aria-hidden="true">↓</span>':'';
   return '<span class="an-chg'+cls+'">'+arrow+esc(c.text)+'</span>';
 }
+/* A small trend line in the brand colour: one point per day of the period. The number beside it carries the value. */
+function anSpark(raw){
+  if(!raw||!raw.length)return '';
+  // Past 30 points the line is folded into 30 buckets, each the sum of its days, so a year reads as a line, not noise.
+  var values=raw;
+  if(raw.length>30){var size=Math.ceil(raw.length/30);values=[];for(var b=0;b<raw.length;b+=size){var acc=0;for(var j=b;j<Math.min(raw.length,b+size);j++)acc+=raw[j];values.push(acc);}}
+  var max=Math.max.apply(null,values), min=Math.min.apply(null,values), range=(max-min)||1, step=80/Math.max(values.length-1,1);
+  var pts=values.map(function(v,i){return (i*step).toFixed(2)+','+(24-((v-min)/range)*20-2).toFixed(2);}).join(' ');
+  return '<svg class="an-spark" viewBox="0 0 80 24" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+}
 function anBar(share){
   return '<div class="an-bar" aria-hidden="true"><span style="width:'+Math.min(100,Number(share)||0)+'%"></span></div>';
 }
@@ -13332,10 +13357,11 @@ function anSection(title,sub,inner,pad){
     +(sub?'<p class="an-sec-sub">'+esc(sub)+'</p>':'')
     +'<div class="an-card'+(pad?' pad':'')+'">'+inner+'</div></div>';
 }
-function anKpi(label,value,change,prev,hint){
+function anKpi(label,value,change,prev,hint,trend){
   return '<div class="an-kpi">'
     +'<div class="an-kpi-lbl">'+esc(label)+'</div>'
     +'<div class="an-kpi-val">'+esc(value)+'</div>'
+    +(trend?'<div class="an-kpi-spark">'+anSpark(trend)+'</div>':'')
     +'<div class="an-kpi-row">'+anChange(change)+'<span class="an-kpi-prev">before: '+esc(prev)+'</span></div>'
     +'<div class="an-kpi-hint">'+esc(hint)+'</div>'
   +'</div>';
@@ -13350,6 +13376,7 @@ function anRows(rows,opts){
         +(r.detail?'<div class="an-detail">'+esc(r.detail)+'</div>':'')
         +(opts.bar?anBar(r.share):'')
       +'</div>'
+      +(opts.trend&&r.trend?anSpark(r.trend):'')
       +'<div class="an-side"><span class="an-num">'+n(r.uses)+(opts.bar?' <small>'+r.share+'%</small>':'')+'</span>'+anChange(r.change)+'</div>'
     +'</div>';
   }).join('');
@@ -13472,7 +13499,7 @@ function renderAnalytics(){
   sub.textContent=report.label+': '+report.rangeLabel+', compared with '+report.prevRangeLabel+'.';
 
   var html='<div class="an-kpi-grid">'
-    +anKpi('Inserted',n(t.uses.cur),t.uses,n(t.uses.prev),t.avgPerDay.cur+' a day on average')
+    +anKpi('Inserted',n(t.uses.cur),t.uses,n(t.uses.prev),t.avgPerDay.cur+' a day on average',report.series.map(function(pt){return pt.count;}))
     +anKpi('Time saved',UA.formatDuration(t.secondsSaved.cur),t.secondsSaved,UA.formatDuration(t.secondsSaved.prev),'At '+UA.SECONDS_PER_USE+' seconds per insert')
     +anKpi('Active days',n(t.activeDays.cur)+' of '+n(t.days),t.activeDays,n(t.activeDays.prev),t.activeDays.cur?t.avgPerActiveDay+' inserts on a day you used Fibonax':'No inserts in this period')
     +anKpi('Snippets used',n(t.snippetsUsed.cur),t.snippetsUsed,n(t.snippetsUsed.prev),h.usedShare+'% of the '+n(h.library)+' you can use')
@@ -13488,7 +13515,7 @@ function renderAnalytics(){
   html+=anSection('Inserts per day',report.rangeLabel+', with '+report.prevRangeLabel+' dashed for comparison.',anChart(report),true);
 
   html+=anSection('Top snippets','Your ten most-inserted snippets, each with its share of all your inserts.',
-    report.top.length?anRows(report.top,{rank:true,bar:true,tap:true})
+    report.top.length?anRows(report.top,{rank:true,bar:true,tap:true,trend:true})
       :'<div class="an-msg">No inserts in this period yet. Type a shortcut anywhere and it shows up here.</div>');
 
   var up='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>';
