@@ -241,7 +241,7 @@ function bootBackground(fetchAll) {
   };
   vm.createContext(sandbox);
   vm.runInContext(fnSource(BACKGROUND_SRC, 'function promptTexts(') + '\n' + fnSource(BACKGROUND_SRC, 'function withPromptBrains('), sandbox);
-  const promptText = (t) => sandbox.promptTexts([t]).then((out) => out[0]);
+  const promptText = (t) => sandbox.promptTexts([t]).then((out) => out[0].text);
   return { calls, promptText, promptTexts: sandbox.promptTexts, withPromptBrains: sandbox.withPromptBrains };
 }
 
@@ -258,7 +258,8 @@ async function backgroundChecks() {
   ]);
   const many = bootBackground((table) => Promise.resolve(rows[table]));
   const two = await many.promptTexts([PROMPT, OTHER_PROMPT, 'Plain.']);
-  check('worker: several prompts are finished from one read', [two, many.calls.length], [[FINISHED, finish(OTHER_PROMPT), 'Plain.'], 2]);
+  check('worker: several prompts are finished from one read', [two.map((d) => d.text), many.calls.length], [[FINISHED, finish(OTHER_PROMPT), 'Plain.'], 2]);
+  check('worker: with no note when every Brain went in', two.map((d) => d.note), ['', '', '']);
   const panel = await bg.withPromptBrains([{ kind: 'prompt', id: 'p', body: PROMPT }, { kind: 'memory', id: 'm', body: TOKEN }]);
   const plainText = pack.resolvePromptBrains(PROMPT, { [ID]: { name: 'Marketing', items: ITEMS } }, 'missing', true);
   check('worker: the Context panel gets the Brain without a block inside its block', panel[0].body, plainText);
@@ -267,76 +268,124 @@ async function backgroundChecks() {
 
   const none = bootBackground(() => Promise.resolve([]));
   check('worker: a Brain the reader cannot see becomes one visible line', await none.promptText(PROMPT), MISSING);
+  check('worker: and comes with the sentence that says so', (await none.promptTexts([PROMPT]))[0].note, 'The Brain "Marketing" is not available here.');
   const down = bootBackground(() => Promise.reject(new Error('offline')));
   check('worker: a read that fails says so in the same place', await down.promptText(PROMPT), FAILED);
+  check('worker: and in its sentence', (await down.promptTexts([PROMPT]))[0].note, 'The Brain "Marketing" could not be loaded.');
   const quiet = bootBackground(() => { throw new Error('must not be asked'); });
   check('worker: a prompt without a Brain asks nothing', await quiet.promptText('## Objective\nPlain.'), '## Objective\nPlain.');
 }
 
 check('worker: loads the module', BACKGROUND_SRC.indexOf("importScripts('../shared/memory-pack.js');") !== -1, true);
-check('worker: answers the menu', /msg\.type === 'prompt_texts'[\s\S]{0,200}promptTexts\(texts\)/.test(BACKGROUND_SRC), true);
+check('worker: answers the menu and the popup', /msg\.type === 'prompt_texts'[\s\S]{0,200}promptTexts\(texts\)/.test(BACKGROUND_SRC), true);
 check('panel: budgets on the finished prompt\'s size', /tokens: \(row && typeof row\.tokens === 'number'\) \? row\.tokens : c\.tokens/.test(read('extension', 'content', 'memory-picker.js')), true);
 check('worker: finishes what the Context panel inserts', /memoryBodies\(msg\.items\)\.then\(withPromptBrains\)/.test(BACKGROUND_SRC), true);
 
 // ── 3. the popup and the phone ────────────────────────────────────────
-{
+// The popup copies through the worker, the reader the """ menu uses.
+function popupCopy(answer) {
+  const asked = [];
   const sandbox = {
     SBMemoryPack: pack,
-    brains: [{ id: ID, name: 'Marketing' }],
-    brainsLoaded: true,
-    brainsFailed: false,
-    brainItemsOf: (id) => (id === ID ? ITEMS : []),
-    ensureBrains: (cb) => cb(),
+    chrome: { runtime: { lastError: null, sendMessage(msg, cb) { asked.push(msg); answer(msg, cb); } } },
   };
   vm.createContext(sandbox);
   vm.runInContext(fnSource(POPUP_SRC, 'function promptBrainText('), sandbox);
-  const out = (p) => { let got = null; sandbox.promptBrainText(p, (t) => { got = t; }); return got; };
-  check('popup: copies the finished prompt', out({ content: PROMPT }), FINISHED);
-  sandbox.brainsFailed = true;
-  check('popup: a refresh that failed keeps the Brains in hand', out({ content: PROMPT }), FINISHED);
-  sandbox.brains = [];
-  sandbox.brainsFailed = false;
-  check('popup: a Brain it does not hold becomes one visible line', out({ content: PROMPT }), MISSING);
-  sandbox.brainsLoaded = false;
-  sandbox.brainsFailed = true;
-  check('popup: a load that never succeeded says so', out({ content: PROMPT }), FAILED);
-  check('popup: a prompt without a Brain is handed over as it is', out({ content: 'Plain.' }), 'Plain.');
+  return (content) => { let got = null; sandbox.promptBrainText({ content }, (t, note) => { got = [t, note]; }); return { got, asked }; };
 }
-check('popup: Copy goes through the Brain', fnSource(POPUP_SRC, 'function copyPrompt(').indexOf('promptBrainText(p,') !== -1, true);
-
 {
+  const copy = popupCopy((msg, cb) => cb({ ok: true, texts: msg.texts.map(finish), notes: msg.texts.map(() => '') }));
+  const r = copy(PROMPT);
+  check('popup: copies the prompt the worker finished', r.got, [FINISHED, '']);
+  check('popup: asks the worker, as the menu does', r.asked, [{ type: 'prompt_texts', texts: [PROMPT] }]);
+  const plain = copy('Plain.');
+  check('popup: a prompt without a Brain is handed over at once, asking nothing', [plain.got, plain.asked.length], [['Plain.', ''], 1]);
+  const gone = popupCopy((msg, cb) => cb({ ok: true, texts: [MISSING], notes: ['The Brain "Marketing" is not available here.'] }))(PROMPT);
+  check('popup: says when a Brain was left out', gone.got, [MISSING, 'The Brain "Marketing" is not available here.']);
+  const down = popupCopy((msg, cb) => cb(undefined))(PROMPT);
+  check('popup: a worker that does not answer leaves a visible line, and says so', down.got, [FAILED, 'The Brain "Marketing" could not be loaded.']);
+}
+check('popup: Copy goes through the Brain and its note', /promptBrainText\(p, function\(content, note\)/.test(fnSource(POPUP_SRC, 'function copyPrompt(')), true);
+check('popup: the Brains tab keeps its own order', /order=pinned\.desc,updated_at\.desc,id\.asc/.test(POPUP_SRC), true);
+
+// The phone reads only the Brains its prompts name, into its own lookup. It
+// runs on its own generated copy of the module, so a copy left behind fails here.
+const PHONE_PACK_SRC = (function () {
+  const begin = MOBILE_SRC.indexOf('<!-- SB_MEMORY_PACK:BEGIN');
+  const end = MOBILE_SRC.indexOf('<!-- SB_MEMORY_PACK:END -->');
+  if (begin === -1 || end === -1) return '';
+  return MOBILE_SRC.slice(MOBILE_SRC.indexOf('<script>', begin) + '<script>'.length, MOBILE_SRC.lastIndexOf('</script>', end));
+}());
+check('phone: carries its copy of the module', PHONE_PACK_SRC.indexOf('function resolvePromptBrains(') !== -1, true);
+function bootPhone(fetchAll) {
+  const calls = [];
   const sandbox = {
-    SBMemoryPack: pack,
-    allBrains: [{ id: ID, name: 'Marketing' }],
-    memLoaded: true,
-    memFailed: false,
-    memItemsOf: (id) => (id === ID ? ITEMS : []),
+    console: { error() {} },
+    allPrompts: [{ content: PROMPT }, { content: 'Plain.' }],
+    memFetchAll(table, select, order, filter) { calls.push([table, select, order, filter]); return fetchAll(table); },
+    toasts: [], showToast(t) { sandbox.toasts.push(t); },
+    MEM_LONG_TOKENS: 4000,
   };
   vm.createContext(sandbox);
-  vm.runInContext(fnSource(MOBILE_SRC, 'function promptBrainText('), sandbox);
-  check('phone: copies the finished prompt', sandbox.promptBrainText({ content: PROMPT }), FINISHED);
-  sandbox.memFailed = true;
-  check('phone: a refresh that failed keeps the Brains in hand', sandbox.promptBrainText({ content: PROMPT }), FINISHED);
-  sandbox.allBrains = [];
-  sandbox.memFailed = false;
-  check('phone: a Brain it does not hold becomes one visible line', sandbox.promptBrainText({ content: PROMPT }), MISSING);
-  sandbox.memLoaded = false;
-  sandbox.memFailed = true;
-  check('phone: a load that never succeeded says so', sandbox.promptBrainText({ content: PROMPT }), FAILED);
+  vm.runInContext(PHONE_PACK_SRC, sandbox);
+  vm.runInContext('var promptBrainLookup=null, promptBrainLoading=false, promptBrainFailed=false, promptBrainQueued=false;\n' +
+    ['function promptBrainIds(', 'function loadPromptBrains(', 'function promptBrainText(', 'function promptBrainNote(',
+      'function promptBrainsReady(', 'function promptCopyNote('].map((d) => fnSource(MOBILE_SRC, d)).join('\n'), sandbox);
+  return { sandbox, calls, settle: () => new Promise((r) => setTimeout(r, 0)) };
+}
+async function phoneChecks() {
+  const rows = { memory_spaces: [{ id: ID, name: 'Marketing' }], memory_shards: [{ space_id: ID, name: 'Tone', body: 'Friendly.' }, { space_id: ID, name: 'Hours', body: '9 to 5' }] };
+  const phone = bootPhone((t) => Promise.resolve(rows[t]));
+  const p = { content: PROMPT };
+  check('phone: a tap before the first read asks for another tap', phone.sandbox.promptBrainsReady(p), false);
+  check('phone: and says why', phone.sandbox.toasts, ['Your Brains are still loading. Tap again in a moment']);
+  await phone.settle(); await phone.settle();
+  check('phone: reads only the Brains its prompts name, items in the extension\'s order', phone.calls, [
+    ['memory_spaces', 'id,name', 'name.asc,id.asc', '&id=in.(' + ID + ')'],
+    ['memory_shards', 'id,space_id,name,body', 'pinned.desc,updated_at.desc,id.asc', '&review_status=neq.archived&space_id=in.(' + ID + ')'],
+  ]);
+  check('phone: then the tap is ready', phone.sandbox.promptBrainsReady(p), true);
+  check('phone: copies the finished prompt', phone.sandbox.promptBrainText(p), FINISHED);
+  check('phone: with no note', phone.sandbox.promptBrainNote(p), '');
+  check('phone: a prompt without a Brain is returned as it is', phone.sandbox.promptBrainText({ content: 'Plain.' }), 'Plain.');
+
+  const theirs = bootPhone((t) => Promise.resolve(t === 'memory_spaces' ? [] : rows[t]));
+  theirs.sandbox.loadPromptBrains(); await theirs.settle(); await theirs.settle();
+  check('phone: none of the Brains is this person\'s: no item read at all', theirs.calls.length, 1);
+  check('phone: a Brain it cannot see becomes one visible line', theirs.sandbox.promptBrainText(p), MISSING);
+  check('phone: and the copy says so', theirs.sandbox.promptCopyNote(p, MISSING), ' The Brain "Marketing" is not available here.');
+
+  const down = bootPhone(() => Promise.reject(new Error('offline')));
+  down.sandbox.loadPromptBrains(); await down.settle(); await down.settle();
+  check('phone: after a failed first read the tap goes ahead', down.sandbox.promptBrainsReady(p), true);
+  check('phone: with a visible line for the Brain', down.sandbox.promptBrainText(p), FAILED);
+  check('phone: and asks again for the next tap', down.calls.length, 2);
+
+  let fail = false;
+  const refresh = bootPhone((t) => (fail ? Promise.reject(new Error('offline')) : Promise.resolve(rows[t])));
+  refresh.sandbox.loadPromptBrains(); await refresh.settle(); await refresh.settle();
+  fail = true;
+  refresh.sandbox.loadPromptBrains(); await refresh.settle(); await refresh.settle();
+  check('phone: a refresh that failed keeps the Brains in hand', refresh.sandbox.promptBrainText(p), FINISHED);
 }
 ['function promptCopy(', 'function sharePrompt('].forEach((decl) => {
   const src = fnSource(MOBILE_SRC, decl);
   check('phone: ' + decl.slice(9, -1) + ' waits for the Brains, then goes through them',
     src.indexOf('promptBrainsReady(p)') !== -1 && src.indexOf('promptBrainText(p)') !== -1, true);
 });
-check('phone: the Brains load as soon as a prompt needs them',
-  /promptBrainRefs\(p\.content\|\|''\)\.length>0;\}\)\)loadMemory\(\);/.test(MOBILE_SRC), true);
+check('phone: the prompts\' Brains are read when the prompts arrive', fnSource(MOBILE_SRC, 'function loadPrompts(').indexOf('loadPromptBrains();') !== -1, true);
+check('phone: and again when the prompts or the page come back into view',
+  fnSource(MOBILE_SRC, 'function showPrompts(').indexOf('loadPromptBrains();') !== -1 && /visibilityState==='visible'\)\{[^}]*loadPromptBrains\(\)/.test(MOBILE_SRC), true);
+check('phone: the Brains page orders tied items by id, as the extension does',
+  MOBILE_SRC.indexOf("'pinned.desc,updated_at.desc,id.asc')") !== -1 && fnSource(MOBILE_SRC, 'function memByItemOrder(').indexOf("localeCompare(String(b.id||''))") !== -1, true);
 
 // ── 4. the dashboard's Use window ─────────────────────────────────────
+check('dashboard: reads a prompt\'s Brains in the extension\'s order and filter, every page',
+  /listPromptBrainItems[\s\S]{0,900}\.neq\('review_status', 'archived'\)[\s\S]{0,200}\.order\('pinned', \{ ascending: false \}\)[\s\S]{0,80}\.order\('updated_at', \{ ascending: false \}\)[\s\S]{0,80}\.order\('id', \{ ascending: true \}\)/.test(read('app', 'src', 'lib', 'api', 'memoryApi.ts')), true);
 check('dashboard: the Use window reads the Brain before it copies',
   MODAL_SRC.indexOf('resolvePromptBrains(built)') !== -1 && MODAL_SRC.indexOf('if (!canCopy) return;') !== -1, true);
 
-backgroundChecks().then(() => {
+backgroundChecks().then(phoneChecks).then(() => {
   if (failed) {
     console.error('\nX Brain inside a prompt: ' + failed + ' check(s) failed');
     process.exit(1);

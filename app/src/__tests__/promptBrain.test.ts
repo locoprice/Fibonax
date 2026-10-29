@@ -13,7 +13,7 @@ import { resolve } from 'node:path';
 vi.mock('@/lib/api/memoryApi', () => ({
   memoryApi: {
     listSpaces: vi.fn(),
-    listItems: vi.fn(),
+    listPromptBrainItems: vi.fn(),
   },
 }));
 
@@ -28,7 +28,7 @@ import {
 } from '@/lib/promptBrain';
 import { assembleBlocks } from '@/lib/promptUtils';
 import { evaluatePrompt } from '@/lib/usePromptEvaluator';
-import type { MemoryItem, MemorySpace, PromptBlock } from '@/types/database';
+import type { MemorySpace, PromptBlock } from '@/types/database';
 
 function read(...parts: string[]): string {
   return readFileSync(resolve(process.cwd(), '..', ...parts), 'utf8');
@@ -165,6 +165,22 @@ describe('the module finishes a prompt', () => {
   it('leaves text without a token untouched', () => {
     expect(pack.resolvePromptBrains('plain', {})).toBe('plain');
   });
+
+  it('lists the Brains it left out, by the same rule, and words them once', () => {
+    const two = `${TOKEN} {brain: id=${OTHER}; name=Legal}`;
+    expect(pack.promptBrainGaps(TOKEN, { [ID]: { name: 'Marketing', items } })).toEqual([]);
+    expect(pack.promptBrainGaps(TOKEN, {})).toEqual([{ id: ID, name: 'Marketing', reason: 'missing' }]);
+    expect(pack.promptBrainGaps(TOKEN, {}, 'failed')).toEqual([{ id: ID, name: 'Marketing', reason: 'failed' }]);
+    expect(pack.promptBrainGaps(two, { [ID]: { name: 'Marketing', items: [] } })).toEqual([
+      { id: ID, name: 'Marketing', reason: 'empty' },
+      { id: OTHER, name: 'Legal', reason: 'missing' },
+    ]);
+    expect(pack.brainGapNote([])).toBe('');
+    expect(pack.brainGapNote(pack.promptBrainGaps(TOKEN, {}))).toBe('The Brain "Marketing" is not available here.');
+    expect(pack.brainGapNote(pack.promptBrainGaps(TOKEN, {}, 'failed'))).toBe('The Brain "Marketing" could not be loaded.');
+    expect(pack.brainGapNote(pack.promptBrainGaps(TOKEN, { [ID]: { name: 'Marketing', items: [] } }))).toBe('The Brain "Marketing" is empty.');
+    expect(pack.brainGapNote(pack.promptBrainGaps(two, {}))).toBe('Some of its Brains were not added.');
+  });
 });
 
 describe('assembleBlocks', () => {
@@ -232,47 +248,39 @@ describe('the dashboard reads the Brain', () => {
     id, user_id: 'u1', name, description: '', ico: 'brain', is_default: false,
     created_at: '2026-10-29T00:00:00Z', updated_at: '2026-10-29T00:00:00Z', deleted_at: null,
   });
-  const item = (name: string, body: string, extra: Partial<MemoryItem> = {}): MemoryItem => ({
-    id: `item-${name}`, user_id: 'u1', space_id: ID, name, summary: '', body, kind: 'note', metadata: {},
-    token_estimate: 1, pinned: false, priority: 0, content_hash: '', source_id: null,
-    created_at: '2026-10-29T00:00:00Z', updated_at: '2026-10-29T00:00:00Z', deleted_at: null,
-    review_status: 'approved', reviewed_by: null, reviewed_at: null, ...extra,
-  });
 
   beforeEach(() => {
     (globalThis as { SBMemoryPack?: SbMemoryPackApi }).SBMemoryPack = pack;
     vi.mocked(memoryApi.listSpaces).mockReset();
-    vi.mocked(memoryApi.listItems).mockReset();
+    vi.mocked(memoryApi.listPromptBrainItems).mockReset();
   });
 
-  it('hands out live items only, archived and trashed ones left out', async () => {
+  it('puts the Brain\'s items in, in the order the read returns them, under its live name', async () => {
     vi.mocked(memoryApi.listSpaces).mockResolvedValue([space(ID, 'Marketing')]);
-    vi.mocked(memoryApi.listItems).mockResolvedValue([
-      item('Tone', 'Friendly.'),
-      item('Old', 'Gone.', { review_status: 'archived' }),
-      item('Binned', 'Gone too.', { deleted_at: '2026-10-29T00:00:00Z' }),
+    vi.mocked(memoryApi.listPromptBrainItems).mockResolvedValue([
+      { space_id: ID, name: 'Tone', body: 'Friendly.' },
+      { space_id: ID, name: 'Hours', body: '9 to 5' },
     ]);
     const resolved = await resolvePromptBrains(`## Context\n${TOKEN}`);
-    expect(resolved.text).toContain('## Tone\nFriendly.');
-    expect(resolved.text).not.toContain('Old');
-    expect(resolved.text).not.toContain('Binned');
-    expect(resolved.text).toContain('⟦ Fibonax context · 1 item ⟧');
     expect(resolved.text).toMatch(/^## Context\nSource material from "Marketing"\./);
+    expect(resolved.text).toContain('⟦ Fibonax context · 2 items ⟧');
+    expect(resolved.text.indexOf('## Tone')).toBeLessThan(resolved.text.indexOf('## Hours'));
     expect(resolved.unavailable).toEqual([]);
-    expect(memoryApi.listItems).toHaveBeenCalledWith(ID);
+    expect(memoryApi.listPromptBrainItems).toHaveBeenCalledWith([ID]);
   });
 
-  it("names a Brain it cannot see as not available, without asking for its items", async () => {
+  it("names a Brain it cannot see as not available, and reads no items for it", async () => {
     vi.mocked(memoryApi.listSpaces).mockResolvedValue([space(OTHER, 'Mine')]);
+    vi.mocked(memoryApi.listPromptBrainItems).mockResolvedValue([]);
     const resolved = await resolvePromptBrains(TOKEN);
     expect(resolved.text).toBe('[The Brain "Marketing" is not available here]');
     expect(resolved.unavailable).toEqual([{ id: ID, name: 'Marketing', reason: 'missing' }]);
-    expect(memoryApi.listItems).not.toHaveBeenCalled();
+    expect(memoryApi.listPromptBrainItems).toHaveBeenCalledWith([]);
   });
 
   it('says a Brain is empty when it is', async () => {
     vi.mocked(memoryApi.listSpaces).mockResolvedValue([space(ID, 'Marketing')]);
-    vi.mocked(memoryApi.listItems).mockResolvedValue([]);
+    vi.mocked(memoryApi.listPromptBrainItems).mockResolvedValue([]);
     const resolved = await resolvePromptBrains(TOKEN);
     expect(resolved.text).toBe('[The Brain "Marketing" is empty]');
     expect(resolved.unavailable[0]?.reason).toBe('empty');

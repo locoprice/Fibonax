@@ -4683,12 +4683,45 @@ svg.brain-type-icon{stroke-width:1.8}
     return String(text == null ? '' : text).replace(BRAIN_TOKEN_RE, function (token, id, name) {
       var entry = lookup && lookup[id.toLowerCase()];
       var label = (entry && entry.name) ? brainTokenName(entry.name) : brainTokenName(name);
-      if (!entry) return brainUnavailableLine(label, fallbackReason || 'missing');
-      if (entry.reason) return brainUnavailableLine(label, entry.reason);
-      var items = Array.isArray(entry.items) ? entry.items : [];
-      if (!items.length) return brainUnavailableLine(label, 'empty');
-      return brainLeadLine(label) + '\n\n' + formatBrainBlock(items, plain).replace(/\n$/, '');
+      var reason = brainGapReason(entry, fallbackReason);
+      if (reason) return brainUnavailableLine(label, reason);
+      return brainLeadLine(label) + '\n\n' + formatBrainBlock(entry.items, plain).replace(/\n$/, '');
     });
+  }
+
+  // Why a Brain is not handed out, or '' when it is: no entry (the fallback,
+  // 'missing' unless the read failed), a reason on the entry, or no items.
+  function brainGapReason(entry, fallbackReason) {
+    if (!entry) return fallbackReason || 'missing';
+    if (entry.reason) return entry.reason;
+    return Array.isArray(entry.items) && entry.items.length ? '' : 'empty';
+  }
+
+  /**
+   * The Brains a prompt names that resolvePromptBrains, with the same lookup,
+   * leaves out, once each: [{ id, name, reason }]. A surface tells the person
+   * so when it hands the prompt out, rather than letting them believe the
+   * Brain went in.
+   */
+  function promptBrainGaps(text, lookup, fallbackReason) {
+    var gaps = [];
+    var refs = promptBrainRefs(text);
+    for (var i = 0; i < refs.length; i++) {
+      var entry = lookup && lookup[refs[i].id];
+      var reason = brainGapReason(entry, fallbackReason);
+      if (reason) gaps.push({ id: refs[i].id, name: (entry && entry.name) ? brainTokenName(entry.name) : refs[i].name, reason: reason });
+    }
+    return gaps;
+  }
+
+  /** One plain sentence for those gaps, for a toast; '' when there are none. */
+  function brainGapNote(gaps) {
+    if (!gaps || !gaps.length) return '';
+    if (gaps.length > 1) return 'Some of its Brains were not added.';
+    var label = gaps[0].name ? 'The Brain "' + gaps[0].name + '"' : 'Its Brain';
+    if (gaps[0].reason === 'empty') return label + ' is empty.';
+    if (gaps[0].reason === 'failed') return label + ' could not be loaded.';
+    return label + ' is not available here.';
   }
 
   /** The prompt as a list or a card previews it: each token as 'Brain: <name>'. */
@@ -5075,6 +5108,8 @@ svg.brain-type-icon{stroke-width:1.8}
     brainLeadLine: brainLeadLine,
     brainUnavailableLine: brainUnavailableLine,
     resolvePromptBrains: resolvePromptBrains,
+    promptBrainGaps: promptBrainGaps,
+    brainGapNote: brainGapNote,
     labelBrainTokens: labelBrainTokens,
     candidateFromSearchRow: candidateFromSearchRow,
     shardFromRow: shardFromRow,
@@ -8080,9 +8115,9 @@ function loadPrompts(){
       promptsFailed=false;
       renderPromptList();
       renderHome();
-      // A prompt that carries a Brain needs the Brains in hand before it can be
-      // copied inside a tap, so they load now rather than on the Brains page.
-      if(!memLoaded&&!memLoading&&allPrompts.some(function(p){return SBMemoryPack.promptBrainRefs(p.content||'').length>0;}))loadMemory();
+      // A prompt that carries a Brain needs its Brain in hand before it can be
+      // copied inside a tap, so the Brains the prompts name are read now.
+      loadPromptBrains();
       // Assignments arrive separately and fail open: losing them costs the
       // facet its counts, never the prompt list.
       fetch(SUPA+'/rest/v1/prompt_labels?select=prompt_id,label_id',{headers:authHeaders()})
@@ -8284,47 +8319,86 @@ function syncPromptClear(){
 }
 /* A prompt that carries a Brain (its Context block holds a `{brain: …}` token,
    extension/shared/memory-pack.js, here as the generated SBMemoryPack) gets the
-   Brain's items where the token sits, as Copy whole Brain hands them out, from
-   the Brains the page has loaded. A Brain that is not there (a teammate's
-   behind a shared prompt, one in the trash) becomes one visible line in the
-   prompt, and so does a load that never succeeded; a refresh that failed keeps
-   the Brains already in hand, as the Brains page does. Every other prompt is
-   returned as it is. */
+   Brain's items where the token sits, as Copy whole Brain hands them out. The
+   page reads only the Brains its prompts name (loadPromptBrains), when the
+   prompts arrive and again each time the prompts or the page come back into
+   view, so a Brain changed on another device is current here too. A Brain
+   that is not there (a teammate's behind a shared prompt, one in the trash)
+   becomes one visible line in the prompt, and so does a read that never
+   succeeded; a refresh that failed keeps the Brains already in hand. */
+var promptBrainLookup=null;   /* Brain id -> {name, items}; null until a read succeeds */
+var promptBrainLoading=false, promptBrainFailed=false, promptBrainQueued=false;
+function promptBrainIds(){
+  var seen={},ids=[];
+  allPrompts.forEach(function(p){
+    SBMemoryPack.promptBrainRefs(p.content||'').forEach(function(r){if(!seen[r.id]){seen[r.id]=true;ids.push(r.id);}});
+  });
+  return ids;
+}
+function loadPromptBrains(){
+  var ids=promptBrainIds();
+  if(!ids.length)return;
+  if(promptBrainLoading){promptBrainQueued=true;return;}
+  promptBrainLoading=true;
+  /* Ids come from the token's own pattern (hex and dashes), safe in a filter. */
+  var inIds='in.('+ids.join(',')+')';
+  memFetchAll('memory_spaces','id,name','name.asc,id.asc','&id='+inIds).then(function(spaces){
+    /* None of them is this person's (a teammate's prompt): no item read at all. */
+    if(!spaces.length)return [spaces,[]];
+    return memFetchAll('memory_shards','id,space_id,name,body','pinned.desc,updated_at.desc,id.asc',
+      '&review_status=neq.archived&space_id='+inIds).then(function(items){return [spaces,items];});
+  }).then(function(res){
+    var lookup={};
+    res[0].forEach(function(b){lookup[b.id]={name:b.name,items:[]};});
+    res[1].forEach(function(it){if(lookup[it.space_id])lookup[it.space_id].items.push({name:it.name,body:it.body||''});});
+    promptBrainLookup=lookup;
+    promptBrainFailed=false;
+  }).catch(function(e){
+    promptBrainFailed=true;
+    console.error('[Fibonax] Could not read the Brains your prompts use:',e);
+  }).then(function(){
+    promptBrainLoading=false;
+    if(promptBrainQueued){promptBrainQueued=false;loadPromptBrains();}
+  });
+}
 function promptBrainText(p){
   var content=p.content||'';
   if(!SBMemoryPack.promptBrainRefs(content).length)return content;
-  var lookup={};
-  if(memLoaded){allBrains.forEach(function(b){lookup[b.id]={name:b.name,items:memItemsOf(b.id)};});}
-  return SBMemoryPack.resolvePromptBrains(content,lookup,memLoaded?'missing':'failed');
+  return SBMemoryPack.resolvePromptBrains(content,promptBrainLookup||{},promptBrainLookup?'missing':'failed');
 }
-/* True when the prompt can be handed out now. The Brains load as soon as the
-   prompts show one is needed (loadPrompts); the copy itself has to run inside
-   the tap, so while they are still on their way the tap says so and waits for
-   the next one rather than copying a prompt with a hole in it. */
+/* The sentence a copy or share adds when a Brain was left out, '' when none was. */
+function promptBrainNote(p){
+  var content=p.content||'';
+  if(!SBMemoryPack.promptBrainRefs(content).length)return '';
+  return SBMemoryPack.brainGapNote(SBMemoryPack.promptBrainGaps(content,promptBrainLookup||{},promptBrainLookup?'missing':'failed'));
+}
+/* True when the prompt can be handed out now. The copy has to run inside the
+   tap, so while the first read of its Brains is still on its way the tap says
+   so and waits for the next one, rather than copying a prompt with a hole in
+   it. After a read that failed, the copy goes ahead with the Brain marked as
+   not loaded, and the Brains are asked for again, so the next tap has them. */
 function promptBrainsReady(p){
   if(!SBMemoryPack.promptBrainRefs(p.content||'').length)return true;
-  if(memLoaded)return true;
-  if(memFailed&&!memLoading){
-    /* The copy goes ahead with the Brain marked as not loaded, and the Brains
-       are asked for again, so the next tap has them. */
-    loadMemory();
-    return true;
-  }
-  if(!memLoading)loadMemory();
+  if(promptBrainLookup)return true;
+  if(promptBrainFailed&&!promptBrainLoading){loadPromptBrains();return true;}
+  if(!promptBrainLoading)loadPromptBrains();
   showToast('Your Brains are still loading. Tap again in a moment');
   return false;
 }
-/* The tokens of every Brain a prompt carries, for the long-Brain note. */
-function promptBrainTokens(p){
-  return SBMemoryPack.promptBrainRefs(p.content||'').reduce(function(t,ref){return t+memTokensOf(memItemsOf(ref.id));},0);
+/* The copy's message: what the Brain added, against the long-Brain note Copy
+   whole Brain shows, or the sentence for a Brain that was left out. */
+function promptCopyNote(p,content){
+  var note=promptBrainNote(p);
+  if(note)return ' '+note;
+  var added=SBMemoryPack.estimateTokens(content)-SBMemoryPack.estimateTokens(p.content||'');
+  return added>MEM_LONG_TOKENS?' Long Brain: check the paste':'';
 }
 function promptCopy(p){
   if(!promptBrainsReady(p))return;
   var content=promptBrainText(p);
   var text=SBInteractiveSteps.apply(content,promptStepsOn);
   copyText(text,function(){
-    var msg=text!==content?'Prompt copied with Interactive Steps ✓':'Prompt copied ✓';
-    if(promptBrainTokens(p)>MEM_LONG_TOKENS)msg+=' Long Brain: check the paste';
+    var msg=(text!==content?'Prompt copied with Interactive Steps ✓':'Prompt copied ✓')+promptCopyNote(p,content);
     showToast(p.review_status==='deprecated'?msg+' · Deprecated: check it is still right':msg);
   });
   promptMarkUsed(p);
@@ -8394,8 +8468,9 @@ function closePromptSheet(){
 function sharePrompt(p){
   if(!promptBrainsReady(p))return;
   var text=SBInteractiveSteps.apply(promptBrainText(p),promptStepsOn);
+  var note=promptBrainNote(p);
   closePromptSheet();
-  shareOut(p.name||'Prompt',text,function(){promptMarkUsed(p);});
+  shareOut(p.name||'Prompt',text,function(){promptMarkUsed(p);if(note)showToast(note);});
 }
 /* Read-only prompt detail, the prompt half of the shared info sheet. */
 function openPromptInfo(p){
@@ -8406,7 +8481,7 @@ function openPromptInfo(p){
     ['Folder', f?(folderPathLabel(f.id)||f.name||'Folder'):'None'],
     ['Strategy', p.strategy_type||'None'],
     ['Model', p.preferred_model||'—'],
-    ['Characters', String((p.content||'').length)],
+    ['Characters', String(promptBrainText(p).length)],
     ['Updated', p.updated_at?timeAgo(p.updated_at):'—'],
     ['Last used', p.last_used_at?timeAgo(p.last_used_at):'Never'],
     ['ID', p.id]
@@ -8437,7 +8512,7 @@ function showPrompts(){
   setActivePrimaryTab('prompts');
   syncFilterHeader();
   if(!promptsLoaded&&!promptsLoading)loadPrompts();
-  else renderPromptList();
+  else{renderPromptList();loadPromptBrains();}
 }
 function hidePrompts(){
   closePromptSheet();
@@ -8534,7 +8609,10 @@ function memBySpaceOrder(a,b){
 /* Always attached first, then most recently touched. Matches the server order. */
 function memByItemOrder(a,b){
   if(!!a.pinned!==!!b.pinned)return a.pinned?-1:1;
-  return String(b.updated_at||'').localeCompare(String(a.updated_at||''));
+  var byTime=String(b.updated_at||'').localeCompare(String(a.updated_at||''));
+  /* Items saved together (an upload's pieces) tie on time: the id decides, as
+     it does in the popup and the extension, so every surface lists them alike. */
+  return byTime||String(a.id||'').localeCompare(String(b.id||''));
 }
 function memBrainById(id){
   for(var i=0;i<allBrains.length;i++){if(allBrains[i].id===id)return allBrains[i];}
@@ -8573,10 +8651,10 @@ function memMatchesBrain(b,q){
 /* Every live row of a memory table, a page at a time: an uploaded file alone
    can become hundreds of items, and a read that stopped at the server's row
    cap would drop the rest without a word. */
-function memFetchAll(table,select,order){
+function memFetchAll(table,select,order,filter){
   var rows=[];
   function page(offset){
-    return fetch(SUPA+'/rest/v1/'+table+'?select='+select+'&deleted_at=is.null&order='+order
+    return fetch(SUPA+'/rest/v1/'+table+'?select='+select+'&deleted_at=is.null'+(filter||'')+'&order='+order
         +'&limit='+MEM_PAGE+'&offset='+offset,{headers:authHeaders()})
       .then(function(r){
         if(handle401(r))throw new Error('signed out');
@@ -8598,7 +8676,7 @@ function loadMemory(){
   if(capOpen())capFillBrains();
   Promise.all([
     memFetchAll('memory_spaces',MEM_SPACE_SELECT,'is_default.desc,name.asc'),
-    memFetchAll('memory_shards',MEM_ITEM_SELECT,'pinned.desc,updated_at.desc')
+    memFetchAll('memory_shards',MEM_ITEM_SELECT,'pinned.desc,updated_at.desc,id.asc')
   ]).then(function(res){
     allBrains=res[0].slice().sort(memBySpaceOrder);
     var live={};
@@ -12745,7 +12823,7 @@ if(requireAuth()){
   applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();refreshAccountDetails();
   captureResume();
   document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible'){sbCheckAlive();refreshAccountDetails();}
+    if(document.visibilityState==='visible'){sbCheckAlive();refreshAccountDetails();if(promptsLoaded)loadPromptBrains();}
   });
 }
 </script>

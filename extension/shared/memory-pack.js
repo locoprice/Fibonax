@@ -302,12 +302,45 @@
     return String(text == null ? '' : text).replace(BRAIN_TOKEN_RE, function (token, id, name) {
       var entry = lookup && lookup[id.toLowerCase()];
       var label = (entry && entry.name) ? brainTokenName(entry.name) : brainTokenName(name);
-      if (!entry) return brainUnavailableLine(label, fallbackReason || 'missing');
-      if (entry.reason) return brainUnavailableLine(label, entry.reason);
-      var items = Array.isArray(entry.items) ? entry.items : [];
-      if (!items.length) return brainUnavailableLine(label, 'empty');
-      return brainLeadLine(label) + '\n\n' + formatBrainBlock(items, plain).replace(/\n$/, '');
+      var reason = brainGapReason(entry, fallbackReason);
+      if (reason) return brainUnavailableLine(label, reason);
+      return brainLeadLine(label) + '\n\n' + formatBrainBlock(entry.items, plain).replace(/\n$/, '');
     });
+  }
+
+  // Why a Brain is not handed out, or '' when it is: no entry (the fallback,
+  // 'missing' unless the read failed), a reason on the entry, or no items.
+  function brainGapReason(entry, fallbackReason) {
+    if (!entry) return fallbackReason || 'missing';
+    if (entry.reason) return entry.reason;
+    return Array.isArray(entry.items) && entry.items.length ? '' : 'empty';
+  }
+
+  /**
+   * The Brains a prompt names that resolvePromptBrains, with the same lookup,
+   * leaves out, once each: [{ id, name, reason }]. A surface tells the person
+   * so when it hands the prompt out, rather than letting them believe the
+   * Brain went in.
+   */
+  function promptBrainGaps(text, lookup, fallbackReason) {
+    var gaps = [];
+    var refs = promptBrainRefs(text);
+    for (var i = 0; i < refs.length; i++) {
+      var entry = lookup && lookup[refs[i].id];
+      var reason = brainGapReason(entry, fallbackReason);
+      if (reason) gaps.push({ id: refs[i].id, name: (entry && entry.name) ? brainTokenName(entry.name) : refs[i].name, reason: reason });
+    }
+    return gaps;
+  }
+
+  /** One plain sentence for those gaps, for a toast; '' when there are none. */
+  function brainGapNote(gaps) {
+    if (!gaps || !gaps.length) return '';
+    if (gaps.length > 1) return 'Some of its Brains were not added.';
+    var label = gaps[0].name ? 'The Brain "' + gaps[0].name + '"' : 'Its Brain';
+    if (gaps[0].reason === 'empty') return label + ' is empty.';
+    if (gaps[0].reason === 'failed') return label + ' could not be loaded.';
+    return label + ' is not available here.';
   }
 
   /** The prompt as a list or a card previews it: each token as 'Brain: <name>'. */
@@ -694,6 +727,8 @@
     brainLeadLine: brainLeadLine,
     brainUnavailableLine: brainUnavailableLine,
     resolvePromptBrains: resolvePromptBrains,
+    promptBrainGaps: promptBrainGaps,
+    brainGapNote: brainGapNote,
     labelBrainTokens: labelBrainTokens,
     candidateFromSearchRow: candidateFromSearchRow,
     shardFromRow: shardFromRow,

@@ -19,7 +19,6 @@
  */
 import { memoryApi } from '@/lib/api/memoryApi';
 import { loadScript } from '@/lib/loadScript';
-import { isArchived } from '@/lib/reviewStatus';
 import type { PromptBrainRef } from '@/types/database';
 
 /** One item as the module formats it: the name as a heading, the body under it. */
@@ -37,6 +36,11 @@ export interface SbBrainLookupEntry {
   reason?: SbBrainReason;
 }
 
+/** A Brain a prompt names that is not handed out, and why. */
+export interface SbBrainGap extends PromptBrainRef {
+  reason: SbBrainReason;
+}
+
 export interface SbMemoryPackApi {
   brainToken(brain: PromptBrainRef): string;
   promptBrainRefs(text: string): PromptBrainRef[];
@@ -51,6 +55,12 @@ export interface SbMemoryPackApi {
     plain?: boolean,
   ): string;
   labelBrainTokens(text: string): string;
+  promptBrainGaps(
+    text: string,
+    lookup: Record<string, SbBrainLookupEntry>,
+    fallbackReason?: SbBrainReason,
+  ): SbBrainGap[];
+  brainGapNote(gaps: SbBrainGap[]): string;
 }
 
 // Must equal BRAIN_TOKEN_RE and BRAIN_NAME_MAX in extension/shared/memory-pack.js.
@@ -110,12 +120,13 @@ export async function loadMemoryPack(): Promise<SbMemoryPackApi> {
 }
 
 /**
- * Reads the Brains a prompt names, as the popup and the phone read them: live
- * Brains only, live items only, archived items left out (they are kept to be
- * restored, never handed to an AI), pinned first and newest next. A Brain the
- * reader cannot see is left out of the lookup, which the module reads as
- * "not available here": a teammate's Brain behind a shared prompt, or one in
- * the trash. A read that fails marks every Brain as such, never as missing.
+ * Reads the Brains a prompt names, as the extension and the phone read them:
+ * live Brains only, live items only, archived items left out (they are kept to
+ * be restored, never handed to an AI), pinned first, newest next, the id
+ * breaking a tie. A Brain the reader cannot see is left out of the lookup,
+ * which the module reads as "not available here": a teammate's Brain behind a
+ * shared prompt, or one in the trash. A read that fails marks every Brain as
+ * such, never as missing.
  */
 export async function brainLookup(refs: PromptBrainRef[]): Promise<Record<string, SbBrainLookupEntry>> {
   const lookup: Record<string, SbBrainLookupEntry> = {};
@@ -123,16 +134,12 @@ export async function brainLookup(refs: PromptBrainRef[]): Promise<Record<string
   try {
     const spaces = await memoryApi.listSpaces();
     const wanted = refs.filter((ref) => spaces.some((space) => space.id === ref.id));
-    const itemLists = await Promise.all(wanted.map((ref) => memoryApi.listItems(ref.id)));
-    wanted.forEach((ref, index) => {
+    for (const ref of wanted) {
       const space = spaces.find((candidate) => candidate.id === ref.id);
-      lookup[ref.id] = {
-        name: space?.name ?? ref.name,
-        items: (itemLists[index] ?? [])
-          .filter((item) => item.deleted_at === null && !isArchived(item.review_status))
-          .map((item) => ({ name: item.name, body: item.body })),
-      };
-    });
+      lookup[ref.id] = { name: space?.name ?? ref.name, items: [] };
+    }
+    const items = await memoryApi.listPromptBrainItems(wanted.map((ref) => ref.id));
+    for (const item of items) lookup[item.space_id]?.items?.push({ name: item.name, body: item.body });
   } catch (error) {
     console.error('[Fibonax] Could not read the Brain a prompt carries:', error);
     for (const ref of refs) lookup[ref.id] = { name: ref.name, reason: 'failed' };
@@ -143,7 +150,7 @@ export async function brainLookup(refs: PromptBrainRef[]): Promise<Record<string
 export interface ResolvedPrompt {
   text: string;
   /** The Brains that were not handed out, with the reason, for the surface to say so. */
-  unavailable: Array<PromptBrainRef & { reason: SbBrainReason }>;
+  unavailable: SbBrainGap[];
 }
 
 /**
@@ -155,17 +162,5 @@ export async function resolvePromptBrains(text: string): Promise<ResolvedPrompt>
   const refs = promptBrainRefs(text);
   if (!refs.length) return { text, unavailable: [] };
   const [pack, lookup] = await Promise.all([loadMemoryPack(), brainLookup(refs)]);
-  const unavailable: ResolvedPrompt['unavailable'] = [];
-  for (const ref of refs) {
-    const entry = lookup[ref.id];
-    const reason: SbBrainReason | null = !entry
-      ? 'missing'
-      : entry.reason
-        ? entry.reason
-        : entry.items && entry.items.length
-          ? null
-          : 'empty';
-    if (reason) unavailable.push({ id: ref.id, name: entry?.name || ref.name, reason });
-  }
-  return { text: pack.resolvePromptBrains(text, lookup), unavailable };
+  return { text: pack.resolvePromptBrains(text, lookup), unavailable: pack.promptBrainGaps(text, lookup) };
 }

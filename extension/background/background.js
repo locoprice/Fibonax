@@ -323,7 +323,17 @@ function promptTexts(texts, plain) {
       if (!seen[r.id]) { seen[r.id] = true; ids.push(r.id); }
     });
   });
-  if (!ids.length) return Promise.resolve(list);
+  // Each prompt comes back with the sentence a surface shows when a Brain was
+  // left out (SBMemoryPack.brainGapNote), '' when none was.
+  function finish(lookup, fallbackReason) {
+    return list.map(function(t) {
+      return {
+        text: SBMemoryPack.resolvePromptBrains(t, lookup, fallbackReason, plain),
+        note: SBMemoryPack.brainGapNote(SBMemoryPack.promptBrainGaps(t, lookup, fallbackReason))
+      };
+    });
+  }
+  if (!ids.length) return Promise.resolve(finish({}, 'missing'));
   // Ids come from the token's own pattern (36 hex characters and dashes), so
   // they are safe in the filter as they are.
   ids = ids.join(',');
@@ -338,10 +348,10 @@ function promptTexts(texts, plain) {
     (res[1] || []).forEach(function(it) {
       if (lookup[it.space_id]) lookup[it.space_id].items.push({ name: it.name, body: it.body || '' });
     });
-    return list.map(function(t) { return SBMemoryPack.resolvePromptBrains(t, lookup, 'missing', plain); });
+    return finish(lookup, 'missing');
   }, function(err) {
     console.error('[Fibonax] Could not read the Brain a prompt carries:', err && err.message);
-    return list.map(function(t) { return SBMemoryPack.resolvePromptBrains(t, {}, 'failed', plain); });
+    return finish({}, 'failed');
   });
 }
 
@@ -356,10 +366,10 @@ function withPromptBrains(rows) {
   var list = rows || [];
   var prompts = list.filter(function(row) { return row.kind === 'prompt'; });
   if (!prompts.length) return Promise.resolve(list);
-  return promptTexts(prompts.map(function(row) { return row.body; }), true).then(function(texts) {
+  return promptTexts(prompts.map(function(row) { return row.body; }), true).then(function(done) {
     prompts.forEach(function(row, i) {
-      row.body = texts[i];
-      row.tokens = SBMemoryPack.estimateTokens(texts[i]);
+      row.body = done[i].text;
+      row.tokens = SBMemoryPack.estimateTokens(done[i].text);
     });
     return list;
   });
@@ -413,13 +423,19 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
     return true;
   }
 
-  // The """ menu's prompts, finished before they go into a field: the content
-  // script holds the prompts as the popup cached them, tokens and all, and asks
-  // here, once per menu, for the Brains' items.
+  // Prompts finished before they go out: the """ menu asks once per menu for
+  // the prompts the popup cached, tokens and all; the popup asks when a prompt
+  // is copied. One reader for both, so they hand out the same text.
   if (msg.type === 'prompt_texts') {
     var texts = Array.isArray(msg.texts) ? msg.texts.slice(0, 100) : [];
-    promptTexts(texts).then(function(out) {
-      try { sendResponse({ ok: true, texts: out }); } catch(e) {}
+    promptTexts(texts).then(function(done) {
+      try {
+        sendResponse({
+          ok: true,
+          texts: done.map(function(d) { return d.text; }),
+          notes: done.map(function(d) { return d.note; })
+        });
+      } catch(e) {}
     }, function() {
       try { sendResponse({ ok: false }); } catch(e) {}
     });

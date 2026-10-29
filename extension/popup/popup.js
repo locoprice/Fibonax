@@ -356,9 +356,6 @@ function syncPrompts(){
     chrome.storage.local.set({sb_prompts:mapped}, function(){
       if(chrome.runtime.lastError) console.error('syncPrompts local:', chrome.runtime.lastError.message);
     });
-    // A prompt that carries a Brain needs the Brains in hand to be copied, so
-    // they load now rather than the first time the Brains tab opens.
-    if (!brainsLoaded && !brainsLoading && (prompts||[]).some(function(p){ return SBMemoryPack.promptBrainRefs(p.content || '').length > 0; })) loadBrains();
   }catch(e){ console.error('syncPrompts:',e); }
 }
 
@@ -2340,35 +2337,36 @@ function renderPrompts(q) {
 var interactiveStepsOn = false;
 
 // A prompt that carries a Brain (its Context block holds a `{brain: …}` token,
-// shared/memory-pack.js) is handed to `cb` with the Brain's items where the
-// token sits, as Copy whole Brain hands them out, read from the Brains tab's
-// own load. The Brains load as soon as the prompts show one is needed
-// (syncPrompts), or here if they have not. A Brain that is not there (a
-// teammate's behind a shared prompt, one in the trash) becomes one visible
-// line in the prompt, and so does a load that never succeeded; a refresh that
-// failed keeps the Brains already in hand, as the Brains tab does.
+// shared/memory-pack.js) is handed to `cb` finished by the service worker, the
+// reader the """ menu uses, so the two hand out the same text: the Brain as it
+// is now, read when the prompt is copied. `note` says when a Brain was left
+// out (not this person's, in the trash, empty, or not reachable), '' when
+// none was. A worker that does not answer leaves a visible line per Brain.
+// Every other prompt is handed over at once.
 function promptBrainText(p, cb){
   var content = p.content || '';
-  if (!SBMemoryPack.promptBrainRefs(content).length) { cb(content); return; }
-  ensureBrains(function(){
-    var lookup = {};
-    if (brainsLoaded) brains.forEach(function(b){ lookup[b.id] = { name: b.name, items: brainItemsOf(b.id) }; });
-    cb(SBMemoryPack.resolvePromptBrains(content, lookup, brainsLoaded ? 'missing' : 'failed'));
-  });
-}
-
-// The tokens of every Brain a prompt carries, for the long-Brain note, the
-// one Copy whole Brain shows past BRAIN_LONG_TOKENS.
-function promptBrainTokens(p){
-  return SBMemoryPack.promptBrainRefs(p.content || '').reduce(function(t, ref){ return t + brainTokens(brainItemsOf(ref.id)); }, 0);
+  if (!SBMemoryPack.promptBrainRefs(content).length) { cb(content, ''); return; }
+  function unread(){
+    cb(SBMemoryPack.resolvePromptBrains(content, {}, 'failed'),
+       SBMemoryPack.brainGapNote(SBMemoryPack.promptBrainGaps(content, {}, 'failed')));
+  }
+  try {
+    chrome.runtime.sendMessage({ type: 'prompt_texts', texts: [content] }, function(res){
+      var ok = !chrome.runtime.lastError && res && res.ok && Array.isArray(res.texts) && typeof res.texts[0] === 'string';
+      if (!ok) { unread(); return; }
+      cb(res.texts[0], (Array.isArray(res.notes) && res.notes[0]) || '');
+    });
+  } catch(e) { unread(); }
 }
 
 function copyPrompt(pid){
   var p = findPrompt(pid); if (!p) return;
-  promptBrainText(p, function(content){
+  promptBrainText(p, function(content, note){
     var text = SBInteractiveSteps.apply(content, interactiveStepsOn);
     var msg = text !== content ? 'Prompt copied with Interactive Steps' : 'Prompt copied';
-    if (promptBrainTokens(p) > BRAIN_LONG_TOKENS) msg += '. Long Brain: check the paste';
+    if (note) msg += '. ' + note;
+    // What the Brain added, against the note Copy whole Brain shows past BRAIN_LONG_TOKENS.
+    else if (SBMemoryPack.estimateTokens(content) - SBMemoryPack.estimateTokens(p.content || '') > BRAIN_LONG_TOKENS) msg += '. Long Brain: check the paste';
     function copied(){
       var nm = gi('pname-'+pid);
       var orig = nm ? nm.textContent : '';
@@ -2376,8 +2374,8 @@ function copyPrompt(pid){
       setTimeout(function() { if (nm) nm.textContent = orig; }, 1500);
       showToast(msg);
     }
-    // The copy can run a moment after the click when the Brains had to load
-    // first; a refused clipboard is said, never shown as a copy.
+    // The copy can run a moment after the click while the worker reads the
+    // Brain; a refused clipboard is said, never shown as a copy.
     var write;
     try { write = navigator.clipboard.writeText(text); } catch(_) { write = Promise.reject(new Error('clipboard')); }
     write.then(copied, function(){ showToast('Could not copy. Try again'); });
@@ -2431,20 +2429,10 @@ function brainBlock(items){
   return SBMemoryPack.formatBrainBlock(items);
 }
 
-// The load in flight, so a prompt that needs the Brains can wait on it.
-var brainsPending = null;
-
-// Runs `cb` once the Brains are in hand, loading them first if they are not.
-// `cb` runs after a failed load too: the caller reads brainsFailed and says so.
-function ensureBrains(cb){
-  if (brainsLoaded && !brainsLoading) { cb(); return; }
-  (brainsPending || loadBrains()).then(cb, cb);
-}
-
 function loadBrains(){
-  if (brainsLoading) return brainsPending;
+  if (brainsLoading) return;
   brainsLoading = true; brainsFailed = false;
-  brainsPending = Promise.all([DB.loadBrainSpaces(), DB.loadBrainItems()]).then(function(res){
+  Promise.all([DB.loadBrainSpaces(), DB.loadBrainItems()]).then(function(res){
     brains = res[0];
     var live = {};
     brains.forEach(function(b){ live[b.id] = true; });
@@ -2459,10 +2447,8 @@ function loadBrains(){
     if (brainsLoaded) showToast('Could not refresh your Brains');
   }).then(function(){
     brainsLoading = false;
-    brainsPending = null;
     refreshUI();
   });
-  return brainsPending;
 }
 
 function brainRowHtml(b){
