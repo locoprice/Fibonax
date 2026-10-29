@@ -43,10 +43,18 @@ export const snippetSchema = z.object({
   updated_at: z.string(),
 });
 
+const promptBrainRefSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+});
+
 const promptBlockSchema = z.object({
   type: z.enum(['role', 'objective', 'context', 'examples', 'constraints']),
   content: z.string(),
   enabled: z.boolean(),
+  // The Brain the Context block carries (lib/promptBrain.ts). Optional and
+  // nullable: a block saved before v3.103.0 has no key at all.
+  brain: promptBrainRefSchema.nullable().optional(),
 });
 
 export const promptSchema = z.object({
@@ -141,15 +149,7 @@ export const promptFormSchema = z.object({
   complexity_level: z.enum(['simple', 'medium', 'complex']).nullable(),
   intent_category: z.enum(['Writing', 'Coding', 'Support', 'SEO', 'Analysis', 'Planning', 'Research', 'Teaching']).nullable(),
   output_type: z.enum(['JSON', 'Markdown', 'SOP', 'Plain']).nullable(),
-  blocks: z
-    .array(
-      z.object({
-        type: z.enum(['role', 'objective', 'context', 'examples', 'constraints']),
-        content: z.string(),
-        enabled: z.boolean(),
-      }),
-    )
-    .nullable(),
+  blocks: z.array(promptBlockSchema).nullable(),
   // "Ask User Questions": when true, content already ends with the instruction;
   // the flag is what the editor reads back to show the toggle.
   ask_user_questions: z.boolean(),

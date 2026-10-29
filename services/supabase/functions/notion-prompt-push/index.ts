@@ -39,8 +39,22 @@ type PromptRow = {
   notion_page_id: string | null;
 };
 
+// A Brain a prompt carries is a reference, `{brain: id=…; name=…}` where the
+// Brain goes (extension/shared/memory-pack.js, labelBrainTokens). Notion gets
+// the prompt as a card previews it, the token as the Brain's name: the Brain's
+// items are read at use time, never copied into a page. Same pattern as the
+// module's, held to it by app/src/__tests__/promptBrain.test.ts.
+const BRAIN_TOKEN_RE = /\{brain:\s*id=([0-9a-fA-F-]{36})\s*(?:;\s*name=([^}]*))?\}/g;
+
+function labelBrainTokens(text: string): string {
+  return text.replace(BRAIN_TOKEN_RE, (_token, _id, name: string | undefined) => {
+    const label = (name ?? '').replace(/\s+/g, ' ').trim();
+    return label ? `Brain: ${label}` : 'Brain';
+  });
+}
+
 function buildNotionProps(prompt: PromptRow): Record<string, unknown> {
-  const contentText = (prompt.content ?? '').slice(0, 2000);
+  const contentText = labelBrainTokens(prompt.content ?? '').slice(0, 2000);
 
   const props: Record<string, unknown> = {
     'Nome Prompt': {

@@ -1,5 +1,7 @@
 // ── FIBONAX BACKGROUND v2.32.0 — Fix: Notion sync no longer overwrites manually-edited snippets ──
 importScripts('../auth/auth.js');
+// The shared memory pack, for a prompt that carries a Brain (promptText below).
+importScripts('../shared/memory-pack.js');
 
 var SUPA_URL = SB_SUPA_URL;
 
@@ -302,6 +304,53 @@ function setCheckUnfinished(id, on) {
 }
 
 /**
+ * A prompt that carries a Brain, finished: the Brain's items where its token
+ * sits, as "Copy whole Brain" hands them out (SBMemoryPack.resolvePromptBrains,
+ * shared/memory-pack.js). Read here, as every memory read is, because a content
+ * script runs in the page's world. Live Brains and live items only, archived
+ * items left out, pinned first and newest next, the order the popup and the
+ * phone use. A Brain the reader cannot see (a teammate's behind a shared
+ * prompt, one in the trash) becomes one visible line in the prompt; a read
+ * that fails says so in the same place, never silently.
+ */
+function promptText(text, plain) {
+  var refs = SBMemoryPack.promptBrainRefs(text);
+  if (!refs.length) return Promise.resolve(text);
+  // Ids come from the token's own pattern (36 hex characters and dashes), so
+  // they are safe in the filter as they are.
+  var ids = refs.map(function(r) { return r.id; }).join(',');
+  return Promise.all([
+    supaFetchAll('memory_spaces', 'select=id,name&deleted_at=is.null&id=in.(' + ids + ')'),
+    supaFetchAll('memory_shards',
+      'select=space_id,name,body&deleted_at=is.null&review_status=neq.archived&space_id=in.(' + ids + ')' +
+      '&order=pinned.desc,updated_at.desc,id.asc')
+  ]).then(function(res) {
+    var lookup = {};
+    (res[0] || []).forEach(function(b) { lookup[b.id] = { name: b.name, items: [] }; });
+    (res[1] || []).forEach(function(it) {
+      if (lookup[it.space_id]) lookup[it.space_id].items.push({ name: it.name, body: it.body || '' });
+    });
+    return SBMemoryPack.resolvePromptBrains(text, lookup, 'missing', plain);
+  }, function(err) {
+    console.error('[Fibonax] Could not read the Brain a prompt carries:', err && err.message);
+    return SBMemoryPack.resolvePromptBrains(text, {}, 'failed', plain);
+  });
+}
+
+/**
+ * memory_bodies rows, each prompt among them finished by promptText, so the
+ * Context panel inserts a Brain's items and never the token. The items go in
+ * plain, without the block's own markers: the panel wraps what it inserts in
+ * that block already, and a block inside a block would break its Remove.
+ */
+function withPromptBrains(rows) {
+  return Promise.all((rows || []).map(function(row) {
+    if (row.kind !== 'prompt') return row;
+    return promptText(row.body, true).then(function(text) { row.body = text; return row; });
+  }));
+}
+
+/**
  * Rank candidates for a draft. Summaries and scores, never bodies: the panel
  * lists what it found before anything is fetched to insert.
  *
@@ -341,8 +390,20 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   }
 
   if (msg.type === 'memory_bodies') {
-    memoryBodies(msg.items).then(function(rows) {
+    memoryBodies(msg.items).then(withPromptBrains).then(function(rows) {
       try { sendResponse({ ok: true, rows: rows }); } catch(e) {}
+    }, function() {
+      try { sendResponse({ ok: false }); } catch(e) {}
+    });
+    return true;
+  }
+
+  // The """ picker's prompt, finished before it goes into the field: the content
+  // script holds the prompt as the popup cached it, token and all, and asks
+  // here for the Brain's items.
+  if (msg.type === 'prompt_text') {
+    promptText(String(msg.text || '')).then(function(text) {
+      try { sendResponse({ ok: true, text: text }); } catch(e) {}
     }, function() {
       try { sendResponse({ ok: false }); } catch(e) {}
     });

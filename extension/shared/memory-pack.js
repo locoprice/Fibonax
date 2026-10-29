@@ -177,6 +177,133 @@
     return s.slice(0, start) + s.slice(after);
   }
 
+  // ── A BRAIN INSIDE A PROMPT (v3.103.0) ────────────────────────────────────
+  //
+  // A prompt's Context block can carry a Brain. The prompt keeps a reference,
+  // never the Brain's text: one token on its own line where the Brain goes,
+  //
+  //   {brain: id=<uuid>; name=<name>}
+  //
+  // written by the dashboard editor and read here. At use time every surface
+  // (the """ picker and the Context panel through the extension's background,
+  // the popup's copy, the phone's Use now, the dashboard's Use) swaps the token
+  // for the Brain's items, as "Copy whole Brain" hands them out, so the prompt
+  // always carries the Brain as it is today. The name in the token is only a
+  // label for a surface that cannot read the Brain: a teammate's prompt from a
+  // shared folder (Brains are personal), a Brain in the trash, no connection.
+  // The live name wins whenever the Brain can be read.
+  //
+  // Presentation again, so no twin in engine.ts. The dashboard writes and reads
+  // the token with the same two lines in app/src/lib/promptBrain.ts, and
+  // app/src/__tests__/promptBrain.test.ts holds them to these.
+  var BRAIN_TOKEN_RE = /\{brain:\s*id=([0-9a-fA-F-]{36})\s*(?:;\s*name=([^}]*))?\}/g;
+  var BRAIN_NAME_MAX = 64;
+
+  /** A Brain's name as the token carries it: one line, no braces, at most 64. */
+  function brainTokenName(name) {
+    return String(name == null ? '' : name).replace(/[{}\r\n]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, BRAIN_NAME_MAX);
+  }
+
+  /** The token the editor writes into the Context block for `brain` ({id, name}). */
+  function brainToken(brain) {
+    var name = brainTokenName(brain && brain.name);
+    return '{brain: id=' + String(brain && brain.id || '') + (name ? '; name=' + name : '') + '}';
+  }
+
+  /** Every Brain a prompt carries, as [{id, name}], once each, in order. */
+  function promptBrainRefs(text) {
+    var out = [];
+    var seen = {};
+    var m;
+    BRAIN_TOKEN_RE.lastIndex = 0;
+    while ((m = BRAIN_TOKEN_RE.exec(String(text == null ? '' : text))) !== null) {
+      var id = m[1].toLowerCase();
+      if (seen[id]) continue;
+      seen[id] = true;
+      out.push({ id: id, name: brainTokenName(m[2]) });
+    }
+    return out;
+  }
+
+  /**
+   * A whole Brain as an AI chat receives it: the injected block over every
+   * item, name and body. "Copy whole Brain" on the popup and the phone, and a
+   * Brain inside a prompt, all build their text here. `plain` leaves the
+   * block's own markers off, for text that will itself be wrapped in a block
+   * (a prompt the Context panel inserts): a block inside a block would break
+   * the panel's Remove, which strips the first marker to the first close.
+   */
+  function formatBrainBlock(items, plain) {
+    var list = Array.isArray(items) ? items : [];
+    var pack = { items: list.map(function (it) {
+      return { name: it.name, text: it.body || '' };
+    }) };
+    if (!plain) return formatInjectedBlock(pack);
+    var lines = [];
+    for (var i = 0; i < pack.items.length; i++) {
+      lines.push('## ' + pack.items[i].name);
+      lines.push(pack.items[i].text);
+      lines.push('');
+    }
+    return lines.join('\n');
+  }
+
+  /**
+   * What stands in for a Brain that cannot be handed out: one visible line in
+   * the prompt, so it is never sent with a hole nobody noticed.
+   *   'missing'  not this person's Brain, or in the trash
+   *   'empty'    the Brain has no items
+   *   'failed'   it could not be loaded (no connection, a server error)
+   */
+  function brainUnavailableLine(name, reason) {
+    var label = name ? 'The Brain "' + name + '"' : 'A Brain';
+    if (reason === 'empty') return '[' + label + ' is empty]';
+    if (reason === 'failed') return '[' + label + ' could not be loaded]';
+    return '[' + label + ' is not available here]';
+  }
+
+  /**
+   * The line that opens a Brain inside a prompt. A prompt's answer is only as
+   * accurate as the AI's grip on its material, so the AI is told what the
+   * material is (the Brain's name says what it is about) and that it is the
+   * source to work from, not a suggestion. Copy whole Brain has no such line:
+   * pasted on its own, the person's own message says what to do with it.
+   */
+  function brainLeadLine(name) {
+    var label = brainTokenName(name);
+    return 'Source material' + (label ? ' from "' + label + '"' : '') +
+      '. Base your answer on it, and say so if something you need is not covered.';
+  }
+
+  /**
+   * The prompt with every Brain token replaced. `lookup` maps a Brain id to
+   * { name, items: [{name, body}] } when the Brain was read, or to
+   * { name, reason } when it was not. An id the lookup does not know gets
+   * `fallbackReason`: 'missing' unless the caller says the read itself failed.
+   * `plain` is formatBrainBlock's: items without the block's markers. The
+   * block keeps no trailing blank line: the editor already leaves one between
+   * the token and any text typed under it.
+   */
+  function resolvePromptBrains(text, lookup, fallbackReason, plain) {
+    return String(text == null ? '' : text).replace(BRAIN_TOKEN_RE, function (token, id, name) {
+      var entry = lookup && lookup[id.toLowerCase()];
+      var label = (entry && entry.name) ? brainTokenName(entry.name) : brainTokenName(name);
+      if (!entry) return brainUnavailableLine(label, fallbackReason || 'missing');
+      if (entry.reason) return brainUnavailableLine(label, entry.reason);
+      var items = Array.isArray(entry.items) ? entry.items : [];
+      if (!items.length) return brainUnavailableLine(label, 'empty');
+      return brainLeadLine(label) + '\n\n' + formatBrainBlock(items, plain).replace(/\n$/, '');
+    });
+  }
+
+  /** The prompt as a list or a card previews it: each token as 'Brain: <name>'. */
+  function labelBrainTokens(text) {
+    return String(text == null ? '' : text).replace(BRAIN_TOKEN_RE, function (token, id, name) {
+      var label = brainTokenName(name);
+      return label ? 'Brain: ' + label : 'Brain';
+    });
+  }
+
   /**
    * A knowledge_search row folded into a ContextCandidate.
    *
@@ -547,6 +674,13 @@
     formatInjectedBlock: formatInjectedBlock,
     hasInjectedBlock: hasInjectedBlock,
     stripInjectedBlock: stripInjectedBlock,
+    brainToken: brainToken,
+    promptBrainRefs: promptBrainRefs,
+    formatBrainBlock: formatBrainBlock,
+    brainLeadLine: brainLeadLine,
+    brainUnavailableLine: brainUnavailableLine,
+    resolvePromptBrains: resolvePromptBrains,
+    labelBrainTokens: labelBrainTokens,
     candidateFromSearchRow: candidateFromSearchRow,
     shardFromRow: shardFromRow,
     stepFromRow: stepFromRow

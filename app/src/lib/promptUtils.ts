@@ -1,4 +1,5 @@
-import type { PromptBlock } from '@/types/database';
+import { brainToken } from '@/lib/promptBrain';
+import type { PromptBlock, PromptBrainRef } from '@/types/database';
 
 /**
  * Closing section for a prompt with "Ask User Questions" on. It comes last so
@@ -12,19 +13,41 @@ export interface AssembleOptions {
   askUserQuestions?: boolean;
 }
 
+/** A block as the assembler reads it: a stored or edited block, Brain included. */
+export interface AssemblableBlock {
+  type: string;
+  content: string;
+  enabled: boolean;
+  brain?: PromptBrainRef | null;
+}
+
+/**
+ * The text of one block. A Context block that carries a Brain starts with the
+ * Brain's token on its own line, then a blank line, then whatever was typed:
+ * at use time the token becomes the Brain's items (lib/promptBrain.ts), and
+ * the typed text follows them.
+ */
+function blockText(block: AssemblableBlock): string {
+  const text = block.content.trim();
+  // Only the Context block carries a Brain; a stray key on any other block is ignored.
+  if (block.type !== 'context' || !block.brain) return text;
+  const token = brainToken(block.brain);
+  return text ? `${token}\n\n${text}` : token;
+}
+
 /**
  * Assembles enabled prompt blocks into a plain-text prompt string.
  * Block headers follow the ## Markdown convention used by Claude.
  */
 export function assembleBlocks(
-  blocks: Array<{ type: string; content: string; enabled: boolean }>,
+  blocks: AssemblableBlock[],
   options: AssembleOptions = {},
 ): string {
   const assembled = blocks
-    .filter((b) => b.enabled && b.content.trim())
+    .filter((b) => b.enabled && (b.content.trim() || (b.type === 'context' && b.brain)))
     .map(
       (b) =>
-        `## ${b.type.charAt(0).toUpperCase()}${b.type.slice(1)}\n${b.content.trim()}`,
+        `## ${b.type.charAt(0).toUpperCase()}${b.type.slice(1)}\n${blockText(b)}`,
     )
     .join('\n\n');
   // An empty prompt stays empty: with no task written there is nothing to ask
@@ -38,6 +61,8 @@ export interface StoredPromptBlock {
   type: string;
   content: string;
   enabled: boolean;
+  /** The Brain a Context block carries (lib/promptBrain.ts), kept through the fold. */
+  brain?: PromptBrainRef | null;
 }
 
 /**

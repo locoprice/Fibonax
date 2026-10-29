@@ -4558,6 +4558,133 @@ svg.brain-type-icon{stroke-width:1.8}
     return s.slice(0, start) + s.slice(after);
   }
 
+  // ── A BRAIN INSIDE A PROMPT (v3.103.0) ────────────────────────────────────
+  //
+  // A prompt's Context block can carry a Brain. The prompt keeps a reference,
+  // never the Brain's text: one token on its own line where the Brain goes,
+  //
+  //   {brain: id=<uuid>; name=<name>}
+  //
+  // written by the dashboard editor and read here. At use time every surface
+  // (the """ picker and the Context panel through the extension's background,
+  // the popup's copy, the phone's Use now, the dashboard's Use) swaps the token
+  // for the Brain's items, as "Copy whole Brain" hands them out, so the prompt
+  // always carries the Brain as it is today. The name in the token is only a
+  // label for a surface that cannot read the Brain: a teammate's prompt from a
+  // shared folder (Brains are personal), a Brain in the trash, no connection.
+  // The live name wins whenever the Brain can be read.
+  //
+  // Presentation again, so no twin in engine.ts. The dashboard writes and reads
+  // the token with the same two lines in app/src/lib/promptBrain.ts, and
+  // app/src/__tests__/promptBrain.test.ts holds them to these.
+  var BRAIN_TOKEN_RE = /\{brain:\s*id=([0-9a-fA-F-]{36})\s*(?:;\s*name=([^}]*))?\}/g;
+  var BRAIN_NAME_MAX = 64;
+
+  /** A Brain's name as the token carries it: one line, no braces, at most 64. */
+  function brainTokenName(name) {
+    return String(name == null ? '' : name).replace(/[{}\r\n]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, BRAIN_NAME_MAX);
+  }
+
+  /** The token the editor writes into the Context block for `brain` ({id, name}). */
+  function brainToken(brain) {
+    var name = brainTokenName(brain && brain.name);
+    return '{brain: id=' + String(brain && brain.id || '') + (name ? '; name=' + name : '') + '}';
+  }
+
+  /** Every Brain a prompt carries, as [{id, name}], once each, in order. */
+  function promptBrainRefs(text) {
+    var out = [];
+    var seen = {};
+    var m;
+    BRAIN_TOKEN_RE.lastIndex = 0;
+    while ((m = BRAIN_TOKEN_RE.exec(String(text == null ? '' : text))) !== null) {
+      var id = m[1].toLowerCase();
+      if (seen[id]) continue;
+      seen[id] = true;
+      out.push({ id: id, name: brainTokenName(m[2]) });
+    }
+    return out;
+  }
+
+  /**
+   * A whole Brain as an AI chat receives it: the injected block over every
+   * item, name and body. "Copy whole Brain" on the popup and the phone, and a
+   * Brain inside a prompt, all build their text here. `plain` leaves the
+   * block's own markers off, for text that will itself be wrapped in a block
+   * (a prompt the Context panel inserts): a block inside a block would break
+   * the panel's Remove, which strips the first marker to the first close.
+   */
+  function formatBrainBlock(items, plain) {
+    var list = Array.isArray(items) ? items : [];
+    var pack = { items: list.map(function (it) {
+      return { name: it.name, text: it.body || '' };
+    }) };
+    if (!plain) return formatInjectedBlock(pack);
+    var lines = [];
+    for (var i = 0; i < pack.items.length; i++) {
+      lines.push('## ' + pack.items[i].name);
+      lines.push(pack.items[i].text);
+      lines.push('');
+    }
+    return lines.join('\n');
+  }
+
+  /**
+   * What stands in for a Brain that cannot be handed out: one visible line in
+   * the prompt, so it is never sent with a hole nobody noticed.
+   *   'missing'  not this person's Brain, or in the trash
+   *   'empty'    the Brain has no items
+   *   'failed'   it could not be loaded (no connection, a server error)
+   */
+  function brainUnavailableLine(name, reason) {
+    var label = name ? 'The Brain "' + name + '"' : 'A Brain';
+    if (reason === 'empty') return '[' + label + ' is empty]';
+    if (reason === 'failed') return '[' + label + ' could not be loaded]';
+    return '[' + label + ' is not available here]';
+  }
+
+  /**
+   * The line that opens a Brain inside a prompt. A prompt's answer is only as
+   * accurate as the AI's grip on its material, so the AI is told what the
+   * material is (the Brain's name says what it is about) and that it is the
+   * source to work from, not a suggestion. Copy whole Brain has no such line:
+   * pasted on its own, the person's own message says what to do with it.
+   */
+  function brainLeadLine(name) {
+    var label = brainTokenName(name);
+    return 'Source material' + (label ? ' from "' + label + '"' : '') +
+      '. Base your answer on it, and say so if something you need is not covered.';
+  }
+
+  /**
+   * The prompt with every Brain token replaced. `lookup` maps a Brain id to
+   * { name, items: [{name, body}] } when the Brain was read, or to
+   * { name, reason } when it was not. An id the lookup does not know gets
+   * `fallbackReason`: 'missing' unless the caller says the read itself failed.
+   * `plain` is formatBrainBlock's: items without the block's markers. The
+   * block keeps no trailing blank line: the editor already leaves one between
+   * the token and any text typed under it.
+   */
+  function resolvePromptBrains(text, lookup, fallbackReason, plain) {
+    return String(text == null ? '' : text).replace(BRAIN_TOKEN_RE, function (token, id, name) {
+      var entry = lookup && lookup[id.toLowerCase()];
+      var label = (entry && entry.name) ? brainTokenName(entry.name) : brainTokenName(name);
+      if (!entry) return brainUnavailableLine(label, fallbackReason || 'missing');
+      if (entry.reason) return brainUnavailableLine(label, entry.reason);
+      var items = Array.isArray(entry.items) ? entry.items : [];
+      if (!items.length) return brainUnavailableLine(label, 'empty');
+      return brainLeadLine(label) + '\n\n' + formatBrainBlock(items, plain).replace(/\n$/, '');
+    });
+  }
+
+  /** The prompt as a list or a card previews it: each token as 'Brain: <name>'. */
+  function labelBrainTokens(text) {
+    return String(text == null ? '' : text).replace(BRAIN_TOKEN_RE, function (token, id, name) {
+      var label = brainTokenName(name);
+      return label ? 'Brain: ' + label : 'Brain';
+    });
+  }
+
   /**
    * A knowledge_search row folded into a ContextCandidate.
    *
@@ -4928,6 +5055,13 @@ svg.brain-type-icon{stroke-width:1.8}
     formatInjectedBlock: formatInjectedBlock,
     hasInjectedBlock: hasInjectedBlock,
     stripInjectedBlock: stripInjectedBlock,
+    brainToken: brainToken,
+    promptBrainRefs: promptBrainRefs,
+    formatBrainBlock: formatBrainBlock,
+    brainLeadLine: brainLeadLine,
+    brainUnavailableLine: brainUnavailableLine,
+    resolvePromptBrains: resolvePromptBrains,
+    labelBrainTokens: labelBrainTokens,
     candidateFromSearchRow: candidateFromSearchRow,
     shardFromRow: shardFromRow,
     stepFromRow: stepFromRow
@@ -7623,7 +7757,7 @@ function esc(s){
 function homePinnedPreview(kind,item){
   var raw=kind==='snippet'
     ?String(item.body||'').replace(/\{[^{}]*\}/g,'…')
-    :String(item.content||'').replace(/^##\s+\w+\n/gm,'');
+    :SBMemoryPack.labelBrainTokens(String(item.content||'').replace(/^##\s+\w+\n/gm,''));
   var text=raw.replace(/\s+/g,' ').trim();
   return text.length>160?text.slice(0,160)+'…':text;
 }
@@ -7932,6 +8066,9 @@ function loadPrompts(){
       promptsFailed=false;
       renderPromptList();
       renderHome();
+      // A prompt that carries a Brain needs the Brains in hand before it can be
+      // copied inside a tap, so they load now rather than on the Brains page.
+      if(!memLoaded&&!memLoading&&allPrompts.some(function(p){return SBMemoryPack.promptBrainRefs(p.content||'').length>0;}))loadMemory();
       // Assignments arrive separately and fail open: losing them costs the
       // facet its counts, never the prompt list.
       fetch(SUPA+'/rest/v1/prompt_labels?select=prompt_id,label_id',{headers:authHeaders()})
@@ -8069,7 +8206,8 @@ function renderPromptList(){
     var outBadge=p.output_type
       ?'<span class="prompt-out">'+esc(p.output_type)+'</span>':'';
     var share=promptShareBadge(p);
-    var cleaned=(p.content||'').replace(/^##\s+\w+\n/gm,'').trim();
+    // Headings out, and a Brain the prompt carries reads as its name.
+    var cleaned=SBMemoryPack.labelBrainTokens((p.content||'').replace(/^##\s+\w+\n/gm,'')).trim();
     var preview=cleaned.slice(0,120);
     if(cleaned.length>120)preview+='…';
     var when=p.last_used_at?('Used '+timeAgo(p.last_used_at)):'Never used';
@@ -8130,10 +8268,41 @@ function syncPromptClear(){
   if(wrap&&input)wrap.classList.toggle('has-text',!!input.value);
   syncAskRow('prompt-srch');
 }
+/* A prompt that carries a Brain (its Context block holds a `{brain: …}` token,
+   extension/shared/memory-pack.js, here as the generated SBMemoryPack) gets the
+   Brain's items where the token sits, as Copy whole Brain hands them out, from
+   the Brains the page has loaded. A Brain that is not there (a teammate's
+   behind a shared prompt, one in the trash) or a load that failed becomes one
+   visible line in the prompt. Every other prompt is returned as it is. */
+function promptBrainText(p){
+  var content=p.content||'';
+  if(!SBMemoryPack.promptBrainRefs(content).length)return content;
+  var lookup={};
+  if(!memFailed){allBrains.forEach(function(b){lookup[b.id]={name:b.name,items:memItemsOf(b.id)};});}
+  return SBMemoryPack.resolvePromptBrains(content,lookup,memFailed?'failed':'missing');
+}
+/* True when the prompt can be handed out now. The Brains load as soon as the
+   prompts show one is needed (loadPrompts); the copy itself has to run inside
+   the tap, so while they are still on their way the tap says so and waits for
+   the next one rather than copying a prompt with a hole in it. */
+function promptBrainsReady(p){
+  if(!SBMemoryPack.promptBrainRefs(p.content||'').length)return true;
+  if(memLoaded||memFailed)return true;
+  if(!memLoading)loadMemory();
+  showToast('Your Brains are still loading. Tap again in a moment');
+  return false;
+}
+/* The tokens of every Brain a prompt carries, for the long-Brain note. */
+function promptBrainTokens(p){
+  return SBMemoryPack.promptBrainRefs(p.content||'').reduce(function(t,ref){return t+memTokensOf(memItemsOf(ref.id));},0);
+}
 function promptCopy(p){
-  var text=SBInteractiveSteps.apply(p.content||'',promptStepsOn);
+  if(!promptBrainsReady(p))return;
+  var content=promptBrainText(p);
+  var text=SBInteractiveSteps.apply(content,promptStepsOn);
   copyText(text,function(){
-    var msg=text!==(p.content||'')?'Prompt copied with Interactive Steps ✓':'Prompt copied ✓';
+    var msg=text!==content?'Prompt copied with Interactive Steps ✓':'Prompt copied ✓';
+    if(promptBrainTokens(p)>MEM_LONG_TOKENS)msg+=' Long Brain: check the paste';
     showToast(p.review_status==='deprecated'?msg+' · Deprecated: check it is still right':msg);
   });
   promptMarkUsed(p);
@@ -8201,7 +8370,8 @@ function closePromptSheet(){
 /* Share mirrors the snippet sheet: hand the text to the OS share sheet where
    there is one, fall back to the clipboard where there is not. */
 function sharePrompt(p){
-  var text=SBInteractiveSteps.apply(p.content||'',promptStepsOn);
+  if(!promptBrainsReady(p))return;
+  var text=SBInteractiveSteps.apply(promptBrainText(p),promptStepsOn);
   closePromptSheet();
   shareOut(p.name||'Prompt',text,function(){promptMarkUsed(p);});
 }
@@ -8209,7 +8379,8 @@ function sharePrompt(p){
 function openPromptInfo(p){
   var f=getFolderById(p.folder_id);
   var labels=assetLabelNames(p.id,promptLabelMap,true);
-  showInfoSheet(p.name||'Prompt',(labels.length?[['Labels',labels.join('\n')]]:[]).concat([
+  var brainNames=SBMemoryPack.promptBrainRefs(p.content||'').map(function(r){return r.name||'Brain';});
+  showInfoSheet(p.name||'Prompt',(labels.length?[['Labels',labels.join('\n')]]:[]).concat(brainNames.length?[['Brain',brainNames.join('\n')]]:[]).concat([
     ['Folder', f?(folderPathLabel(f.id)||f.name||'Folder'):'None'],
     ['Strategy', p.strategy_type||'None'],
     ['Model', p.preferred_model||'—'],
@@ -8637,11 +8808,10 @@ function closeMemItem(){
 
 /* ── Memory: copy and share ── */
 /* What an AI chat receives: the block the extension's Context button inserts,
-   built by the same module (extension/shared/memory-pack.js). */
+   built by the same module (extension/shared/memory-pack.js), as the popup's
+   Copy whole Brain and a Brain inside a prompt build it. */
 function memBrainBlock(b){
-  return SBMemoryPack.formatInjectedBlock({items:memItemsOf(b.id).map(function(it){
-    return {name:it.name,text:it.body||''};
-  })});
+  return SBMemoryPack.formatBrainBlock(memItemsOf(b.id));
 }
 function memItemBlock(it){
   return SBMemoryPack.formatInjectedBlock({items:[{name:it.name,text:it.body||''}]});

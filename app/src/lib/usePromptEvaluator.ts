@@ -137,6 +137,13 @@ function gradeBlock(blocks: PromptBlock[], spec: BlockSpec): EvalCriterion {
     weight: spec.weight,
   };
 
+  // A Context block that carries a Brain hands the AI everything in that Brain
+  // at use time, whatever else is typed: full credit, as the richest context
+  // the editor can give.
+  if (enabled && spec.type === 'context' && block?.brain) {
+    return { ...base, status: 'pass', value: 1, rationale: 'A Brain provides the context.' };
+  }
+
   // Not contributing at all — empty or switched off.
   if (!enabled || !content) {
     return {

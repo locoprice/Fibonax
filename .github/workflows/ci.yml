@@ -77,6 +77,9 @@ jobs:
       - name: Interactive Steps parity check
         run: node scripts/check-interactive-steps.js
 
+      - name: Brain inside a prompt check
+        run: node scripts/check-prompt-brain.js
+
       - name: Santo del Giorno + Christmas countdown parity check
         run: node scripts/check-saint-of-day.js
 

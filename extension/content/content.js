@@ -153,6 +153,69 @@ function _promptInsertText(item) {
   return SBInteractiveSteps.apply(body, interactiveStepsOn);
 }
 
+// ── A BRAIN INSIDE A PROMPT ───────────────────────────────────────
+// A prompt whose Context block holds a `{brain: …}` token (shared/memory-pack.js)
+// is finished by the service worker, which reads the Brain and puts its items
+// where the token sits, so the prompt always carries the Brain as it is today.
+// The worker is asked the moment the prompt menu opens, for every such prompt,
+// and the answers are kept until the menu opens again: the pick that follows
+// then inserts at once, like every other prompt, while the field's selection
+// is still live. A pick that comes before the answer waits for it. When the
+// worker cannot answer (no session, no connection), the prompt still goes in,
+// with one visible line in place of each Brain rather than a hole nobody
+// noticed.
+var _promptBrainReady = {};   // prompt id -> the finished text
+var _promptBrainAsked = {};   // prompt id -> callbacks waiting for it
+
+function _promptHasBrain(item) {
+  return typeof SBMemoryPack !== 'undefined' && SBMemoryPack.promptBrainRefs(item.body || '').length > 0;
+}
+
+// The finished text of `item`, handed to `cb`: at once when it is in hand,
+// otherwise when the worker answers.
+function _askPromptText(item, cb) {
+  var id = item.id;
+  var body = item.body || '';
+  if (Object.prototype.hasOwnProperty.call(_promptBrainReady, id)) { cb(_promptBrainReady[id]); return; }
+  if (_promptBrainAsked[id]) { _promptBrainAsked[id].push(cb); return; }
+  _promptBrainAsked[id] = [cb];
+  function settle(text) {
+    var waiting = _promptBrainAsked[id] || [];
+    delete _promptBrainAsked[id];
+    _promptBrainReady[id] = text;
+    for (var i = 0; i < waiting.length; i++) waiting[i](text);
+  }
+  function withoutBrains() { settle(SBMemoryPack.resolvePromptBrains(body, {}, 'failed')); }
+  try {
+    chrome.runtime.sendMessage({ type: 'prompt_text', text: body }, function(res) {
+      if (chrome.runtime.lastError || !res || !res.ok || typeof res.text !== 'string') { withoutBrains(); return; }
+      settle(res.text);
+    });
+  } catch(e) {
+    withoutBrains();
+  }
+}
+
+// Asked when the prompt menu opens: every prompt that carries a Brain is read
+// afresh, so the pick inserts the Brain as it is now.
+function _prefetchPromptBrains() {
+  _promptBrainReady = {};
+  var list = promptTemplates();
+  for (var i = 0; i < list.length; i++) {
+    if (_promptHasBrain(list[i])) _askPromptText(list[i], function() {});
+  }
+}
+
+// The text to insert, handed to `cb`: a prompt without a Brain at once, as
+// before; one with a Brain as the worker finished it, then the Interactive
+// Steps block in front when the switch is on.
+function _promptText(item, cb) {
+  if (!_promptHasBrain(item)) { cb(_promptInsertText(item)); return; }
+  _askPromptText(item, function(text) {
+    cb(SBInteractiveSteps.apply(text, interactiveStepsOn));
+  });
+}
+
 // ── DEFAULT LANGUAGE PREFERENCE ────────────────────────────────────
 var defaultLang = 'EN';
 
@@ -3478,6 +3541,7 @@ function _renderPickerItems(query) {
 function showTriggerPicker(el, mode, seqLen, filterStr) {
   if (processing) return;
   closeTriggerPicker();
+  if (mode === 'prompt') _prefetchPromptBrains();
   triggerPickerTarget = el;
   triggerPickerMode   = mode;
   triggerPickerIdx    = 0;
@@ -3650,8 +3714,10 @@ function selectTriggerItem(idx) {
         showOverlay(el, item, dLen, function() { processing = false; });
       }
     } else {
-      insertText(el, _promptInsertText(item));
-      logEvent(item, 0);
+      _promptText(item, function(text) {
+        insertText(el, text);
+        logEvent(item, 0);
+      });
     }
   }
 
