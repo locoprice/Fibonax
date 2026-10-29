@@ -55,7 +55,7 @@ import { FormDateRangeDialog } from '@/features/snippets/FormDateRangeDialog';
 import { FormMenuDialog } from '@/features/snippets/FormMenuDialog';
 import { FormNumberDialog } from '@/features/snippets/FormNumberDialog';
 import { FormPictureDialog } from '@/features/snippets/FormPictureDialog';
-import { FormattedBodyBox, type BodyBoxHandle } from '@/features/snippets/FormattedBodyBox';
+import { FormattedBodyBox, type BodyBoxHandle, type MakeFieldRequest } from '@/features/snippets/FormattedBodyBox';
 import { FormTextDialog } from '@/features/snippets/FormTextDialog';
 import { FormTimeDialog } from '@/features/snippets/FormTimeDialog';
 import { SnippetPreview } from '@/features/snippets/SnippetPreview';
@@ -79,7 +79,8 @@ import {
   summarizeRule,
   type RuleInBody,
 } from '@/lib/conditionRule';
-import { buildFormNumberToken, DEFAULT_CURRENCY, nextNumberName } from '@/lib/formNumberToken';
+import { buildFormNumberToken, DEFAULT_CURRENCY, nextNumberName, type CurrencyCode } from '@/lib/formNumberToken';
+import { numberFromSample } from '@/lib/emailLayout';
 import {
   buildFormDateToken,
   dateFormatOptions,
@@ -638,6 +639,9 @@ export function NewSnippetDialog() {
   // to its window.
   const [menuLink, setMenuLink] = useState('');
   const [menuName, setMenuName] = useState('');
+  // The name, default and currency a Text or Number field made of a value in
+  // an email layout starts with, handed to its window and cleared as it closes.
+  const [fieldSeed, setFieldSeed] = useState<{ name: string; default: string; currency: CurrencyCode | null } | null>(null);
   // Text-field builder — writes a {formtext:} token at the cursor.
   const [textFieldOpen, setTextFieldOpen] = useState(false);
   // Number-field builder — writes a number token at the cursor. Its own type in
@@ -982,6 +986,38 @@ export function NewSnippetDialog() {
             }),
     );
     setPageWords('');
+  }
+
+  /**
+   * A value selected in an email layout becomes a field in its place, named
+   * after the words beside it (CUSTOMER from "Customer:"). Text and Number
+   * open their window with the value as the default, an amount's currency
+   * read off its sign; a Date goes straight in, as the Date button's does; a
+   * Choice opens its window, since a menu is nothing without its options. The
+   * box keeps the selection, so the window's Insert lands where the value was.
+   */
+  function makeField({ kind, sample, label }: MakeFieldRequest) {
+    const body = form.content;
+    setItemEdit(null);
+    if (kind === 'date') {
+      insertAtCursor(
+        buildFormDateToken({ name: fieldNameFromWords(label, body, nextDateName(body, 'date')), kind: 'date', format: dateFormat }),
+      );
+      return;
+    }
+    if (kind === 'menu') {
+      setMenuName(fieldNameFromWords(label, body, ''));
+      setMenuFieldOpen(true);
+      return;
+    }
+    if (kind === 'number') {
+      const amount = numberFromSample(sample);
+      setFieldSeed({ name: fieldNameFromWords(label, body, nextNumberName(body)), default: amount.value, currency: amount.currency });
+      setNumberFieldOpen(true);
+      return;
+    }
+    setFieldSeed({ name: fieldNameFromWords(label, body, nextTextName(body)), default: sample, currency: null });
+    setTextFieldOpen(true);
   }
 
   /** Opens the window that changes `item`, from the Fill from a pasted link list. */
@@ -2539,6 +2575,7 @@ export function NewSnippetDialog() {
                 slot={`${bodyLoads}:${form.language}`}
                 onChange={updateBody}
                 onLayoutChange={updateLayout}
+                onMakeField={makeField}
                 // Caret position decides whether the menu chip inserts or edits.
                 onCaret={setCaret}
                 disabled={saving}
@@ -2641,9 +2678,14 @@ export function NewSnippetDialog() {
 
             <FormTextDialog
               open={textFieldOpen}
-              onOpenChange={windowOpenChange(setTextFieldOpen)}
+              onOpenChange={(next) => {
+                windowOpenChange(setTextFieldOpen)(next);
+                if (!next) setFieldSeed(null);
+              }}
               suggestedName={nextTextName(form.content)}
               initial={itemEdit?.kind === 'text' ? itemEdit.cfg : null}
+              newName={fieldSeed?.name ?? ''}
+              newDefault={fieldSeed?.default ?? ''}
               list={itemList(TEXT_KINDS, TEXT_NOUN)}
               readers={editReaders}
               onNew={() => setItemEdit(null)}
@@ -2652,9 +2694,15 @@ export function NewSnippetDialog() {
 
             <FormNumberDialog
               open={numberFieldOpen}
-              onOpenChange={windowOpenChange(setNumberFieldOpen)}
+              onOpenChange={(next) => {
+                windowOpenChange(setNumberFieldOpen)(next);
+                if (!next) setFieldSeed(null);
+              }}
               suggestedName={nextNumberName(form.content)}
               initial={itemEdit?.kind === 'number' ? itemEdit.cfg : null}
+              newName={fieldSeed?.name ?? ''}
+              newDefault={fieldSeed?.default ?? ''}
+              newCurrency={fieldSeed?.currency ?? null}
               list={itemList(NUMBER_KINDS, NUMBER_NOUN)}
               readers={editReaders}
               onNew={() => setItemEdit(null)}

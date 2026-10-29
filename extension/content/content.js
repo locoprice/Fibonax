@@ -1478,6 +1478,9 @@ function _cePasteLand(el, host, dt, text) {
   // means "the snippet is in the field", not "the field grew". Spaces are
   // compared loosely: formatted text lands with runs of spaces joined or kept
   // as non-breaking ones, and a strict compare would insert the body twice.
+  // The field is read as it shows (innerText), not as its nodes run together:
+  // an email layout's cells and rows land side by side with nothing between
+  // them in textContent, and the plain line would never be found in it.
   var probe = '';
   var lines = text.split('\n');
   for (var i = 0; i < lines.length; i++) {
@@ -1486,7 +1489,9 @@ function _cePasteLand(el, host, dt, text) {
   if (probe) {
     var loose = function(s) { return String(s).replace(/[\s\u00a0]+/g, ' '); };
     setTimeout(function() {
-      if (loose(_ceHost(el).textContent).indexOf(loose(probe)) === -1) _ceLineInsert(text);
+      var landed = _ceHost(el);
+      var shown = landed && typeof landed.innerText === 'string' ? landed.innerText : (landed ? landed.textContent : '');
+      if (loose(shown).indexOf(loose(probe)) === -1) _ceLineInsert(text);
     }, 120);
   }
   return true;

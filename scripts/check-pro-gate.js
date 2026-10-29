@@ -3,9 +3,11 @@
 // Five features call the AI service and cost real money per use: Ask
 // Fibonax, Draft with AI, Translate from EN, Suggest labels and Read a
 // picture. Until the Pro plan exists each is shown locked ("Available to Pro
-// users soon") and cannot start a request. Their switches live in
-// app/src/lib/proFeatures.ts; the phone carries its own copy of the label and
-// of the Ask and Picture switches. This pins what must agree:
+// users soon") and cannot start a request. Add a picture (storage) is locked
+// the same way; Use an email layout costs nothing to run and is on for
+// everyone. Their switches live in app/src/lib/proFeatures.ts; the phone
+// carries its own copy of the label and of the Ask and Picture switches. This
+// pins what must agree:
 //
 //   1. One label, on the dashboard and on the phone.
 //   2. The phone's Ask and Picture switches follow the dashboard's.
@@ -43,10 +45,10 @@ const MOBILE = read('app/public/mobile/index.html');
 const DOCS_JSON = read('user-docs/docs.json');
 
 // ── The switches ───────────────────────────────────────────────────────────
-const FEATURES = ['ask', 'draft', 'translate', 'labels', 'picture', 'snippetPictures'];
+const FEATURES = ['ask', 'draft', 'translate', 'labels', 'picture', 'snippetPictures', 'emailLayout'];
 const on = {};
-for (const m of LIB.matchAll(/^\s*(ask|draft|translate|labels|picture|snippetPictures):\s*(true|false),/gm)) on[m[1]] = m[2] === 'true';
-check('proFeatures.ts declares a switch for each of the six features', FEATURES.every((f) => f in on), JSON.stringify(on));
+for (const m of LIB.matchAll(/^\s*(ask|draft|translate|labels|picture|snippetPictures|emailLayout):\s*(true|false),/gm)) on[m[1]] = m[2] === 'true';
+check('proFeatures.ts declares a switch for each of the seven features', FEATURES.every((f) => f in on), JSON.stringify(on));
 
 // ── 1. One label ───────────────────────────────────────────────────────────
 const label = (LIB.match(/export const PRO_SOON_LABEL = '([^']+)'/) || [])[1];
@@ -89,6 +91,7 @@ const ENTRY_POINTS = [
   ['translate', 'app/src/features/snippets/NewSnippetDialog.tsx'],
   ['labels', 'app/src/features/labels/LabelSuggestions.tsx'],
   ['snippetPictures', 'app/src/features/snippets/NewSnippetDialog.tsx'],
+  ['emailLayout', 'app/src/features/snippets/FormattedBodyBox.tsx'],
 ];
 for (const [feature, file] of ENTRY_POINTS) {
   const source = read(file);
@@ -198,6 +201,18 @@ if (on.snippetPictures) {
 } else {
   check('snippetPictures is locked, so the dynamic fields page leaves pictures out', !picturesDocumented);
   check('snippetPictures is locked, so its manual section is kept in docs/pro-features', exists('docs/pro-features/snippet-pictures.mdx'));
+}
+
+// Use an email layout has a page of its own in the snippets section once on,
+// kept in docs/pro-features while locked.
+{
+  const published = exists('user-docs/text-snippets/email-layouts.mdx') && DOCS_JSON.includes('"text-snippets/email-layouts"');
+  const keptHere = exists('docs/pro-features/email-layouts.mdx');
+  if (on.emailLayout) {
+    check('emailLayout is on, so its manual page is published', published && !keptHere);
+  } else {
+    check('emailLayout is locked, so its manual page is kept in docs/pro-features', !published && keptHere);
+  }
 }
 
 if (failed > 0) {

@@ -10,9 +10,24 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
-import { Bold, Italic, List, ListOrdered, Underline, type LucideIcon } from 'lucide-react';
+import { Bold, Italic, List, ListOrdered, Mail, Underline, type LucideIcon } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
+import { ProSoon, ProSoonLock, PRO_SOON_CONTROL } from '@/components/shared/ProSoon';
+import { EmailLayoutDialog } from '@/features/snippets/EmailLayoutDialog';
 import { TextColorButton } from '@/features/snippets/TextColorButton';
+import { changedSpan } from '@/lib/bodyItems';
+import {
+  chipTokens,
+  cleanLayout,
+  fragmentFromPlain,
+  isEmailLayout,
+  labelBefore,
+  plainOffsetAt,
+  plainSegments,
+  pointAt as layoutPointAt,
+  serializeLayout,
+  type PlainSpan,
+} from '@/lib/emailLayout';
 import {
   blockText,
   chipLabel,
@@ -30,19 +45,22 @@ import {
   type FormattedDoc,
   type Run,
 } from '@/lib/formattedBody';
+import { isProFeatureAvailable } from '@/lib/proFeatures';
 import { TEXT_COLORS, type TextColor } from '@/lib/textColors';
 import { cn } from '@/lib/utils';
 
 /**
  * The snippet body box: text shown as it will look, with Bold, Italic,
- * Underline, a text colour and the two lists, and every field as a chip.
+ * Underline, a text colour and the two lists, and every field as a chip. With an email
+ * layout in it, the email itself, as it will look, with its fields as chips.
  *
  * It keeps the contract of the plain text box it replaced, so every window in
  * the side panel works unchanged: `value`, `selectionStart` / `selectionEnd`
  * and `setSelectionRange` in plain-body characters, and `focus`. The plain
- * body stays the source; the layout beside it is reported with
- * `onLayoutChange`, or null while nothing is formatted
- * (lib/formattedBody.ts).
+ * body stays the source for the bar's own layouts; an email layout is the
+ * source itself and the plain body is read off it (lib/formattedBody.ts,
+ * lib/emailLayout.ts). Either way the layout is reported with
+ * `onLayoutChange`, or null while nothing is formatted.
  */
 export interface BodyBoxHandle {
   readonly value: string;
@@ -50,6 +68,17 @@ export interface BodyBoxHandle {
   readonly selectionEnd: number;
   focus(options?: FocusOptions): void;
   setSelectionRange(start: number, end: number): void;
+}
+
+export type MakeFieldKind = 'text' | 'number' | 'date' | 'menu';
+
+/** A value selected in an email layout, to become a field in its place. */
+export interface MakeFieldRequest {
+  kind: MakeFieldKind;
+  /** The selected text, as the field's default. */
+  sample: string;
+  /** The words before it in its cell or line, for the field's name. */
+  label: string;
 }
 
 interface FormattedBodyBoxProps {
@@ -69,6 +98,8 @@ interface FormattedBodyBoxProps {
   onLayoutChange: (html: string | null) => void;
   /** Where the caret stands, in plain-body characters. */
   onCaret: (offset: number) => void;
+  /** A value selected in an email layout is to become a field. The selection is kept for the window's Insert. */
+  onMakeField?: (request: MakeFieldRequest) => void;
 }
 
 type Command = 'bold' | 'italic' | 'underline' | 'insertUnorderedList' | 'insertOrderedList';
@@ -81,8 +112,29 @@ const TOOLS: readonly { command: Command; label: string; keys: string; Icon: Luc
   { command: 'insertOrderedList', label: 'Numbered list', keys: '', Icon: ListOrdered },
 ];
 
+const FIELD_KINDS: readonly { kind: MakeFieldKind; label: string }[] = [
+  { kind: 'text', label: 'Text' },
+  { kind: 'number', label: 'Number' },
+  { kind: 'date', label: 'Date' },
+  { kind: 'menu', label: 'Choice' },
+];
+
 const CHIP =
   'mx-px inline-block rounded-[6px] bg-primary-light px-1.5 align-baseline font-mono text-[11px] leading-5 text-primary';
+
+/** The part of a layout a selection sits in: a cell, a list item or a line. */
+const PART_SELECTOR = 'td,th,li,p,div,h1,h2,h3,h4,h5,h6,blockquote';
+
+/** One field as a chip: one piece, with its code as the tooltip. */
+function chipElement(raw: string): HTMLElement {
+  const chip = document.createElement('span');
+  chip.contentEditable = 'false';
+  chip.dataset.token = raw;
+  chip.title = raw;
+  chip.className = CHIP;
+  chip.textContent = chipLabel(raw);
+  return chip;
+}
 
 /** The document from a saved layout, read in an inert document so nothing in it runs. */
 function docFromLayout(html: string | null, plain: string): FormattedDoc {
@@ -126,13 +178,7 @@ function fillLine(line: HTMLElement, block: Block) {
   let pos = 0;
   for (const seg of segmentTokens(text)) {
     if (seg.kind === 'token') {
-      const chip = document.createElement('span');
-      chip.contentEditable = 'false';
-      chip.dataset.token = seg.raw;
-      chip.title = seg.raw;
-      chip.className = CHIP;
-      chip.textContent = chipLabel(seg.raw);
-      line.appendChild(wrapLook(chip, lookAtChar(block, pos)));
+      line.appendChild(wrapLook(chipElement(seg.raw), lookAtChar(block, pos)));
       pos += seg.raw.length;
       continue;
     }
@@ -170,6 +216,13 @@ function renderDoc(root: HTMLElement, doc: FormattedDoc) {
     }
     root.appendChild(list);
   }
+}
+
+/** Draws an email layout into the box, its codes as chips. */
+function renderLayout(root: HTMLElement, html: string) {
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  root.replaceChildren(...Array.from(parsed.body.childNodes));
+  chipTokens(root, chipElement);
 }
 
 /** The elements that hold one line each, in order, as `renderDoc` draws them. */
@@ -240,13 +293,33 @@ function layoutOf(doc: FormattedDoc): string | null {
   return hasFormatting(doc) ? docToHtml(doc) : null;
 }
 
+function partOf(node: Node): Element | null {
+  const el = node.nodeType === 1 ? (node as Element) : node.parentElement;
+  return el ? el.closest(PART_SELECTOR) : null;
+}
+
+/** Where the Make it a field bar sits, and what it offers. */
+interface FieldBar {
+  top: number;
+  left: number;
+  sample: string;
+  label: string;
+}
+
 export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>(function FormattedBodyBox(
-  { id, value, html, slot, placeholder, disabled, invalid, onChange, onLayoutChange, onCaret },
+  { id, value, html, slot, placeholder, disabled, invalid, onChange, onLayoutChange, onCaret, onMakeField },
   ref,
 ) {
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  // Filled from the slot's layout as the box mounts (the slot effect below).
+  // Which kind of body is in the box: the bar's lines, or an email layout.
+  const modeRef = useRef<'lines' | 'email'>('lines');
+  const [mode, setMode] = useState<'lines' | 'email'>('lines');
+  // Lines mode: the document. Filled from the slot's layout as the box mounts.
   const docRef = useRef<FormattedDoc>(EMPTY_DOC);
+  // Email mode: the plain body read off the box, and where each character is.
+  const plainRef = useRef('');
+  const spansRef = useRef<PlainSpan[]>([]);
   // The layout and text of the slot on screen, read when the slot changes: in
   // between, the box itself is the source, and its own changes come back here.
   const loadRef = useRef({ html, value });
@@ -257,6 +330,16 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
   const [active, setActive] = useState<Partial<Record<Command, boolean>>>({});
   const [color, setColor] = useState<TextColor | null>(null);
   const [empty, setEmpty] = useState(value === '');
+  const [layoutOpen, setLayoutOpen] = useState(false);
+  // The layout taken out by Remove layout, until Undo or the next change.
+  const [removed, setRemoved] = useState<string | null>(null);
+  const [fieldBar, setFieldBar] = useState<FieldBar | null>(null);
+  const layoutAvailable = isProFeatureAvailable('emailLayout');
+
+  const setModeBoth = useCallback((next: 'lines' | 'email') => {
+    modeRef.current = next;
+    setMode(next);
+  }, []);
 
   const draw = useCallback(() => {
     const root = rootRef.current;
@@ -265,22 +348,81 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
     setEmpty(docToPlain(docRef.current) === '');
   }, []);
 
+  /** Reads the plain body off an email layout in the box. */
+  const readLayout = useCallback(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const read = plainSegments(root);
+    plainRef.current = read.text;
+    spansRef.current = read.spans;
+    setEmpty(read.text === '');
+  }, []);
+
+  /** Brings an email layout in the box in line with a plain body changed elsewhere. */
+  const syncLayout = useCallback(
+    (next: string) => {
+      const root = rootRef.current;
+      if (!root) return;
+      const span = changedSpan(plainRef.current, next);
+      if (span.start === span.end && span.text === '') return;
+      const a = layoutPointAt(spansRef.current, root, span.start);
+      const b = layoutPointAt(spansRef.current, root, span.end);
+      const range = document.createRange();
+      range.setStart(a.node, a.offset);
+      range.setEnd(b.node, b.offset);
+      range.deleteContents();
+      if (span.text !== '') range.insertNode(fragmentFromPlain(document, span.text, chipElement));
+      readLayout();
+    },
+    [readLayout],
+  );
+
+  /** Puts an email layout in the box. With `plain`, the text it is saved beside, which it follows. */
+  const enterLayout = useCallback(
+    (layout: string, plain: string | null) => {
+      const root = rootRef.current;
+      if (!root) return;
+      setModeBoth('email');
+      renderLayout(root, layout);
+      readLayout();
+      if (plain !== null && plain !== plainRef.current) syncLayout(plain);
+    },
+    [readLayout, setModeBoth, syncLayout],
+  );
+
   // A new body on screen (another snippet, another language) starts from its layout.
   useLayoutEffect(() => {
     const load = loadRef.current;
-    docRef.current = docFromLayout(load.html, load.value);
+    setRemoved(null);
+    setFieldBar(null);
+    if (isEmailLayout(load.html)) {
+      enterLayout(cleanLayout(load.html as string), load.value);
+    } else {
+      setModeBoth('lines');
+      docRef.current = docFromLayout(load.html, load.value);
+      draw();
+    }
     selRef.current = { start: load.value.length, end: load.value.length };
-    draw();
-  }, [slot, draw]);
+  }, [slot, draw, enterLayout, setModeBoth]);
 
   // A change made outside the box (a window's Insert or Save, Remove, Undo,
   // Clear, a translation) is brought in, keeping the formatting around it.
   useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (modeRef.current === 'email') {
+      if (!root || value === plainRef.current) return;
+      syncLayout(value);
+      onLayoutChange(serializeLayout(root));
+      // What the layout now reads is the body: a change that fell across a
+      // cell or a row may not have landed as typed.
+      if (plainRef.current !== value) onChange(plainRef.current);
+      return;
+    }
     if (value === docToPlain(docRef.current)) return;
     docRef.current = syncDoc(docRef.current, value);
     draw();
     onLayoutChange(layoutOf(docRef.current));
-  }, [value, draw, onLayoutChange]);
+  }, [value, draw, onChange, onLayoutChange, syncLayout]);
 
   const readSelection = useCallback((): { start: number; end: number } | null => {
     const root = rootRef.current;
@@ -290,6 +432,11 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
     if (!root || !sel || sel.rangeCount === 0 || document.activeElement !== root) return null;
     const range = sel.getRangeAt(0);
     if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
+    if (modeRef.current === 'email') {
+      const start = plainOffsetAt(spansRef.current, range.startContainer, range.startOffset);
+      const end = range.collapsed ? start : plainOffsetAt(spansRef.current, range.endContainer, range.endOffset);
+      return { start, end };
+    }
     const start = offsetAt(root, range.startContainer, range.startOffset);
     const end = range.collapsed ? start : offsetAt(root, range.endContainer, range.endOffset);
     return { start, end };
@@ -299,8 +446,10 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
     const root = rootRef.current;
     const sel = window.getSelection();
     if (!root || !sel) return;
-    const a = pointAt(root, docRef.current, start);
-    const b = end === start ? a : pointAt(root, docRef.current, end);
+    const at = (offset: number) =>
+      modeRef.current === 'email' ? layoutPointAt(spansRef.current, root, offset) : pointAt(root, docRef.current, offset);
+    const a = at(start);
+    const b = end === start ? a : at(end);
     const range = document.createRange();
     range.setStart(a.node, a.offset);
     range.setEnd(b.node, b.offset);
@@ -313,7 +462,7 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
     ref,
     () => ({
       get value() {
-        return docToPlain(docRef.current);
+        return modeRef.current === 'email' ? plainRef.current : docToPlain(docRef.current);
       },
       get selectionStart() {
         return (readSelection() ?? selRef.current).start;
@@ -331,11 +480,36 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
     [readSelection, setSelection],
   );
 
+  /** The Make it a field bar for the selection, or nothing when it is not one value. */
+  const fieldBarFor = useCallback(
+    (now: { start: number; end: number }): FieldBar | null => {
+      const root = rootRef.current;
+      const wrap = wrapRef.current;
+      const sel = window.getSelection();
+      if (!root || !wrap || !onMakeField || now.start === now.end || !sel || sel.rangeCount === 0) return null;
+      const range = sel.getRangeAt(0);
+      if (partOf(range.startContainer) !== partOf(range.endContainer)) return null;
+      if (range.cloneContents().querySelector('[data-token]')) return null;
+      const sample = range.toString().replace(/\s+/g, ' ').trim();
+      if (sample === '' || sample.length > 120) return null;
+      const rect = range.getBoundingClientRect();
+      const box = wrap.getBoundingClientRect();
+      let top = rect.top - box.top - 38;
+      if (top < 40) top = rect.bottom - box.top + 6;
+      const left = Math.max(8, Math.min(rect.left - box.left, box.width - 296));
+      return { top, left, sample, label: labelBefore(range, root) };
+    },
+    [onMakeField],
+  );
+
   // The caret and the pressed buttons follow the selection while it is in the box.
   useEffect(() => {
     const onSelectionChange = () => {
       const now = readSelection();
-      if (!now) return;
+      if (!now) {
+        if (document.activeElement !== rootRef.current) setFieldBar(null);
+        return;
+      }
       selRef.current = now;
       onCaret(now.start);
       setActive({
@@ -345,15 +519,24 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
         insertUnorderedList: document.queryCommandState('insertUnorderedList'),
         insertOrderedList: document.queryCommandState('insertOrderedList'),
       });
-      setColor(colorAt(docRef.current, now.start, now.end));
+      setColor(modeRef.current === 'email' ? null : colorAt(docRef.current, now.start, now.end));
+      setFieldBar(modeRef.current === 'email' ? fieldBarFor(now) : null);
     };
     document.addEventListener('selectionchange', onSelectionChange);
     return () => document.removeEventListener('selectionchange', onSelectionChange);
-  }, [readSelection, onCaret]);
+  }, [readSelection, onCaret, fieldBarFor]);
 
   function handleInput(composing = false) {
     const root = rootRef.current;
     if (!root) return;
+    setRemoved(null);
+    setFieldBar(null);
+    if (modeRef.current === 'email') {
+      readLayout();
+      onChange(plainRef.current);
+      onLayoutChange(serializeLayout(root));
+      return;
+    }
     docRef.current = docFromNode(root);
     // Text typed after a colour was picked with nothing selected arrives in
     // the browser's own <font>: drawn again the way the box draws a colour,
@@ -382,15 +565,18 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
 
   // Selected text takes the colour at once. With nothing selected, what is
   // typed next does, as with Bold; Default goes back to the box's own colour.
+  // In an email layout the colour goes into the layout itself, as the
+  // browser writes it, and comes back out as a <font> the email keeps.
   function applyColor(next: TextColor | null) {
     const root = rootRef.current;
     if (!root || disabled) return;
     const { start, end } = readSelection() ?? selRef.current;
     root.focus();
-    if (start === end) {
+    if (start === end || modeRef.current === 'email') {
       setSelection(start, end);
       document.execCommand('foreColor', false, next ? TEXT_COLORS[next].hex : getComputedStyle(root).color);
       setColor(next);
+      if (modeRef.current === 'email') handleInput();
       return;
     }
     docRef.current = colorRange(docRef.current, start, end, next);
@@ -398,6 +584,39 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
     setSelection(start, end);
     setColor(next);
     onLayoutChange(layoutOf(docRef.current));
+  }
+
+  /** The window's layout goes in, in place of what the box held. */
+  function useLayout(layout: string) {
+    const root = rootRef.current;
+    if (!root) return;
+    setRemoved(null);
+    enterLayout(layout, null);
+    onChange(plainRef.current);
+    onLayoutChange(serializeLayout(root));
+    requestAnimationFrame(() => root.focus({ preventScroll: true }));
+  }
+
+  /** The email layout goes, the words stay. Undo puts it back. */
+  function removeLayout() {
+    const root = rootRef.current;
+    if (!root) return;
+    setRemoved(serializeLayout(root));
+    setFieldBar(null);
+    setModeBoth('lines');
+    docRef.current = docFromPlain(plainRef.current);
+    draw();
+    onLayoutChange(null);
+  }
+
+  function undoRemove() {
+    const root = rootRef.current;
+    if (!root || removed === null) return;
+    const layout = removed;
+    setRemoved(null);
+    enterLayout(layout, docToPlain(docRef.current));
+    onLayoutChange(serializeLayout(root));
+    if (plainRef.current !== docToPlain(docRef.current)) onChange(plainRef.current);
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -410,7 +629,7 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
   }
 
   // Pasted text goes in as text, a line at a time. Formatting copied from
-  // elsewhere is the Pro layout feature, not this box.
+  // elsewhere comes in through Use an email layout, not this box.
   function handlePaste(e: ClipboardEvent<HTMLDivElement>) {
     e.preventDefault();
     const lines = e.clipboardData.getData('text/plain').replace(/\r\n?/g, '\n').split('\n');
@@ -437,15 +656,32 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
   function handleBlur() {
     const root = rootRef.current;
     if (!root) return;
+    if (modeRef.current === 'email') {
+      const before = root.innerHTML;
+      chipTokens(root, chipElement);
+      if (root.innerHTML !== before) {
+        readLayout();
+        onLayoutChange(serializeLayout(root));
+      }
+      return;
+    }
     const drawn = document.createElement('div');
     renderDoc(drawn, docRef.current);
     if (drawn.innerHTML !== root.innerHTML) draw();
   }
 
+  function makeField(kind: MakeFieldKind) {
+    if (!fieldBar || !onMakeField) return;
+    const request = { kind, sample: fieldBar.sample, label: fieldBar.label };
+    setFieldBar(null);
+    onMakeField(request);
+  }
+
   return (
     <div
+      ref={wrapRef}
       className={cn(
-        'flex min-h-[160px] w-full flex-1 flex-col overflow-hidden rounded-[10px] border border-line bg-card focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
+        'relative flex min-h-[160px] w-full flex-1 flex-col overflow-hidden rounded-[10px] border border-line bg-card focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
         invalid && 'border-danger focus-within:border-danger focus-within:ring-danger/20',
         disabled && 'opacity-50',
       )}
@@ -478,6 +714,60 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
             </Tooltip>
           </span>
         ))}
+        <span className="flex-1" />
+        {mode === 'email' ? (
+          <>
+            <span className="inline-flex items-center gap-1 px-1 text-[11px] font-medium text-primary">
+              <Mail className="h-3 w-3" aria-hidden />
+              Email layout
+            </span>
+            <button
+              type="button"
+              disabled={disabled}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={removeLayout}
+              className="rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium text-ink-muted hover:bg-bg-alt hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              Remove layout
+            </button>
+          </>
+        ) : (
+          <>
+            {removed !== null && (
+              <span className="px-1 text-[11px] text-ink-subtle">
+                Layout removed.{' '}
+                <button type="button" onClick={undoRemove} className="font-medium text-primary hover:underline">
+                  Undo
+                </button>
+              </span>
+            )}
+            {layoutAvailable ? (
+              <button
+                type="button"
+                disabled={disabled}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setLayoutOpen(true)}
+                className="inline-flex items-center gap-1 rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium text-primary hover:bg-primary-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <Mail className="h-3 w-3" aria-hidden />
+                Use an email layout
+              </button>
+            ) : (
+              <ProSoon>
+                <button
+                  type="button"
+                  aria-disabled="true"
+                  onClick={(e) => e.preventDefault()}
+                  className={cn('inline-flex items-center gap-1 rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium text-ink-subtle', PRO_SOON_CONTROL)}
+                >
+                  <Mail className="h-3 w-3" aria-hidden />
+                  Use an email layout
+                  <ProSoonLock className="h-2.5 w-2.5" />
+                </button>
+              </ProSoon>
+            )}
+          </>
+        )}
       </div>
       <div
         id={id}
@@ -497,8 +787,10 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
         onDrop={(e) => e.preventDefault()}
         onClick={handleClick}
         onBlur={handleBlur}
+        onScroll={() => setFieldBar(null)}
         className={cn(
-          'min-h-0 flex-1 overflow-y-auto px-3.5 py-3 text-sm leading-relaxed text-ink focus:outline-none',
+          'min-h-0 flex-1 px-3.5 py-3 text-sm leading-relaxed text-ink focus:outline-none',
+          mode === 'email' ? 'overflow-auto whitespace-normal' : 'overflow-y-auto',
           '[&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6',
           // A field in coloured text shows that colour: its value prints in it.
           '[&_[data-color]_[data-token]]:[color:inherit]',
@@ -506,6 +798,28 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
             'relative before:pointer-events-none before:absolute before:left-3.5 before:top-3 before:whitespace-pre-line before:text-ink-subtle before:content-[attr(data-placeholder)]',
         )}
       />
+      {fieldBar && (
+        <div
+          role="toolbar"
+          aria-label="Make it a field"
+          style={{ top: fieldBar.top, left: fieldBar.left }}
+          className="absolute z-20 flex items-center gap-0.5 rounded-[8px] border border-line bg-card px-1.5 py-1 text-[11px] shadow-md"
+        >
+          <span className="px-1 text-ink-subtle">Make it a field:</span>
+          {FIELD_KINDS.map(({ kind, label }) => (
+            <button
+              key={kind}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => makeField(kind)}
+              className="rounded-[6px] px-1.5 py-0.5 font-medium text-primary hover:bg-primary-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      <EmailLayoutDialog open={layoutOpen} onOpenChange={setLayoutOpen} replaces={!empty} onUse={useLayout} />
     </div>
   );
 });
