@@ -18,7 +18,7 @@ import {
   linkUrl,
   loadFillFormEngine,
   otherPlaceholder,
-  pictureCount,
+  formattedNote,
   pictureText,
   readFromPage,
   runFormButton,
@@ -707,10 +707,8 @@ export function SnippetPreview({
                 )
               : view?.preview || 'The finished message appears here as you type.'}
           </div>
-          {view && pictureCount(view) > 0 && (
-            <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
-              {pictureText('copy', pictureCount(view))}
-            </p>
+          {view && formattedNote(view, 'copy') && (
+            <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">{formattedNote(view, 'copy')}</p>
           )}
         </div>
 

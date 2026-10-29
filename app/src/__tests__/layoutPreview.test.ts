@@ -14,6 +14,7 @@ interface LayoutApi {
   layoutDocument: (html: string) => string;
   layoutFragment: (html: string) => DocumentFragment | null;
   LAYOUT_BAR_TAGS: string[];
+  formattedNote: (vm: { formatted: string | null; parts: unknown[] | null } | null, key: string) => string;
 }
 interface PreviewUi {
   showPreview: (box: HTMLElement, vm: { formatted: string | null; parts: unknown[] | null; preview: string }) => void;
@@ -115,6 +116,64 @@ describe('showPreview', () => {
     expect(el.classList.contains('ff-layout')).toBe(true);
     expect(el.textContent).toBe('Customer Mario Rossi Total €326.00 ');
   });
+
+  it('shows plain text as before', () => {
+    const el = box();
+    ui.showPreview(el, { formatted: null, parts: null, preview: 'Hello' });
+    expect(el.textContent).toBe('Hello');
+    expect(el.classList.contains('ff-framed')).toBe(false);
+  });
+});
+
+describe('formattedNote', () => {
+  const pictures = '<div>Hi <img src="https://x/a.png" alt=""> and <img src="https://x/b.png" alt=""></div>';
+
+  it('names the email layout, pictures or not', () => {
+    expect(api.formattedNote({ formatted: CARD, parts: null }, 'share')).toBe(
+      'Share sends the text only. Use Copy to paste the layout into an email.',
+    );
+    expect(api.formattedNote({ formatted: CARD, parts: null }, 'copy')).toBe(
+      'Paste into an email and the layout goes in too. Chats get the text only.',
+    );
+    expect(api.formattedNote({ formatted: CARD, parts: null }, 'left-out')).toBe(
+      'This box takes text only, so the email layout is left out.',
+    );
+    expect(api.formattedNote({ formatted: CARD, parts: null }, 'left-out-done')).toBe(
+      'This box takes text only, so the email layout was left out.',
+    );
+  });
+
+  it("keeps the pictures' words for the bar's lines", () => {
+    expect(api.formattedNote({ formatted: pictures, parts: null }, 'share')).toBe(
+      'Share sends the text only. Use Copy to paste the pictures into an email.',
+    );
+  });
+
+  it('says nothing for bar lines without pictures, or plain text', () => {
+    expect(api.formattedNote({ formatted: LINES, parts: null }, 'copy')).toBe('');
+    expect(api.formattedNote({ formatted: null, parts: null }, 'copy')).toBe('');
+    expect(api.formattedNote(null, 'copy')).toBe('');
+  });
+
+  it('shows the line under a phone preview for a card with no pictures', () => {
+    const el = document.createElement('p');
+    el.hidden = true;
+    (window as unknown as { SBFillFormUI: { pictureNote: (e: HTMLElement, vm: unknown, key: string) => void } }).SBFillFormUI.pictureNote(
+      el,
+      { formatted: CARD, parts: null },
+      'share',
+    );
+    expect(el.hidden).toBe(false);
+    expect(el.textContent).toBe('Share sends the text only. Use Copy to paste the layout into an email.');
+  });
+});
+
+describe('showPreview, plain text', () => {
+  function box(): HTMLElement {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    return el;
+  }
 
   it('shows plain text as before', () => {
     const el = box();

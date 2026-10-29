@@ -921,6 +921,31 @@
     return pair[count > 1 ? 1 : 0];
   }
 
+  // Where an email layout goes, in the same words everywhere. It is said
+  // whether or not the layout holds pictures: a card with none is still left
+  // out of a chat or a Share.
+  var LAYOUT_TEXT = {
+    'left-out': 'This box takes text only, so the email layout is left out.',
+    'left-out-done': 'This box takes text only, so the email layout was left out.',
+    'copy': 'Paste into an email and the layout goes in too. Chats get the text only.',
+    'share': 'Share sends the text only. Use Copy to paste the layout into an email.'
+  };
+
+  /**
+   * The line under a preview, or in the Undo card, that says where a
+   * formatted text's extras go ('left-out', 'left-out-done', 'copy',
+   * 'share'): its email layout, else its pictures. '' when it has neither,
+   * so the line stays hidden.
+   */
+  function formattedNote(vm, key) {
+    if (!vm) return '';
+    if (vm.formatted && !vm.parts && isEmailLayout(vm.formatted)) {
+      return Object.prototype.hasOwnProperty.call(LAYOUT_TEXT, key) ? LAYOUT_TEXT[key] : '';
+    }
+    var n = pictureCount(vm);
+    return n ? pictureText(key, n) : '';
+  }
+
   /** How many pictures a view model's text shows, in its parts or its layout. */
   function pictureCount(vm) {
     if (!vm) return 0;
@@ -1536,6 +1561,7 @@
     linkText: linkText,
     pictureText: pictureText,
     pictureCount: pictureCount,
+    formattedNote: formattedNote,
     layoutFragment: layoutFragment,
     isEmailLayout: isEmailLayout,
     layoutDocument: layoutDocument,

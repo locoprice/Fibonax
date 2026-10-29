@@ -56,6 +56,19 @@ describe('cleanLayout', () => {
     expect(html).toBe('<div>Hi</div><a>link</a>');
   });
 
+  it('turns an emoji Gmail kept as a picture into the emoji, and keeps every other picture', () => {
+    const html = cleanLayout(
+      '<table><tr><td><img alt="👥" aria-label="👥" src="https://fonts.gstatic.com/s/e/notoemoji/17.0/1f465/72.png"> Adultos: <b>2</b></td>' +
+        '<td><img alt="LEIBTOUR LOGO" src="https://x/logo.png"><img alt=":smile:" src="https://x/s.png"></td></tr></table>',
+    );
+    expect(html).toBe(
+      '<table><tbody><tr><td>👥 Adultos: <b>2</b></td>' +
+        '<td><img alt="LEIBTOUR LOGO" src="https://x/logo.png"><img alt=":smile:" src="https://x/s.png"></td></tr></tbody></table>',
+    );
+    expect(layoutToPlain(html)).toBe('👥 Adultos: 2');
+    expect(layoutSummary(html)).toEqual({ tables: 1, pictures: 2 });
+  });
+
   it('collapses the markup\'s own spacing but keeps the spaces inside text', () => {
     const html = cleanLayout('<table>\n  <tr>\n    <td> Customer </td>\n    <td>Mario <b>Rossi</b> here</td>\n  </tr>\n</table>');
     expect(html).toBe('<table><tbody><tr><td>Customer</td><td>Mario <b>Rossi</b> here</td></tr></tbody></table>');
@@ -99,6 +112,7 @@ describe('layoutToPlain', () => {
       'Bring:\n• a hat\n• water\n1. first\n2. second',
     );
   });
+
 
   it('reads a chip as its code', () => {
     const root = tree('<div>Hi <span data-token="{formtext: name=WHO}">WHO</span>!</div>');

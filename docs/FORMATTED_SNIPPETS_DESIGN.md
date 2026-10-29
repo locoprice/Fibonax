@@ -123,14 +123,20 @@ Valentina's answers on 2026-10-27 (every recommended option): the entry is a **U
 - The overlay's "did it land" check (`_cePasteLand`) now ignores case as well as spacing: a card's first line shows in capitals (`text-transform`), `innerText` reads it so, and the plain text was inserted a second time.
 - Undo after a card lands (`_ceRemoveFormatted` in `content.js`): the Undo card still deletes the measured text, then takes out every block the insert added once it holds nothing, tables, rows and cells included (`_CE_BLOCKS`), the card's pictures, and the line break an email copied from Gmail ends with. When the editor dropped the line break that followed the trigger (Chrome does, pasting a block), the layout's break stands in for it and stays. A card pasted into the middle of a line splits the line in two; with the card gone, the rest is put back on its line. Proven against Chrome's own paste (`insertHTML`) in five shapes (a line, between breaks, an empty field, mid-line, line start) and in jsdom (`app/src/__tests__/layoutUndo.test.ts`). Gmail itself and Outlook web are still to be tried with the develop extension.
 
+### 2.11 The phone: Copy and Share (v3.106.0, step 4)
+
+- Copy on the phone already wrote both formats (`copyWithPictures` in `app/public/mobile/index.html`: `text/plain` and the filled layout as `text/html`), and Share already sent `vm.preview` alone. Checked at 375px with the real card: Copy hands over the card with the typed values in it, Share the plain lines.
+- The line under a preview that says where a formatted text's extras go is decided once, in `formattedNote` (`extension/shared/fill-form.js`): an email layout gets its own words ("Paste into an email and the layout goes in too", "Share sends the text only. Use Copy to paste the layout into an email", "This box takes text only, so the email layout is left out") whether or not it holds pictures; a text with pictures keeps the pictures' words. Before, a card without pictures showed no line, so Share on the phone gave no sign that the card stayed behind. Every surface reads it: the phone's two lines and the popup's through `pictureNote` in `fill-form-ui.js`, the overlay's Undo card through `_pictureNote` in `content.js`, the editor preview through `formattedNote` in `fillFormEngine.ts`.
+- Gmail keeps every emoji as a small picture sized by its own stylesheet, which a copied email does not carry: in a frame, and in the inbox of anyone the email went to, 👥 showed at full size, and the plain text lost it. `cleanLayout` now turns a picture whose description is an emoji into the emoji itself (`emojiOf`, the rule the extension already counts positions by), so it shows at text size everywhere, needs no outside picture and reads in the plain text. A layout saved before this keeps its emoji pictures until it is pasted again.
+
 ## 3. Order of work
 
 One feature, built in five steps. Each step passes the gates and bumps the version. The editor's **Use a formatted layout** entry stays hidden until step 4 is done, so develop never offers a layout that a fill surface cannot insert (⚡ Authoring and Expansion Parity). Nothing is promoted to `main` before step 5.
 
 1. **Database and engine.** Migration, revision RPC, review guard, `html` resolving, `formatted` in the fill form, phone parser port, gate cases. Nothing visible.
 2. **Editor.** Built (2.9): the cleaner, the plain body, paste and open an `.html` file, chips, Make it a field, Remove layout and Undo, the preview frame, the switch on, and the manual page `user-docs/text-snippets/email-layouts.mdx`. Save, history, duplicate and export came with the bar (2.8).
-3. **Extension.** Built (2.10): Undo takes a card out whole, and the overlay, popup and phone previews draw it in a frame. Gmail itself and Outlook web are still to be tried with the develop extension.
-4. **Mobile.** Preview in a frame at 375px; Copy checked on the phone; Share plain.
+3. **Extension.** Built (2.10): Undo takes a card out whole, and the overlay, popup and phone previews draw it in a frame. Proven in Gmail (v3.105.1); Outlook web still to be tried.
+4. **Mobile.** Built (2.11): the preview frame came with step 3; Copy hands over the card and its plain text, Share the plain text, and the line under the preview says so for every card. Emoji pictures become emoji.
 5. **Release.** Store listing check, and the promotion to `main`.
 
 `_progress.md` tracks the steps across sessions.

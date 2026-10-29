@@ -459,13 +459,14 @@
     });
   }
 
-  // The line that says where the pictures go ('left-out', 'copy', 'share').
-  // Hidden while the text has none.
+  // The line that says where an email layout or the pictures go ('left-out',
+  // 'copy', 'share'), decided in formattedNote. Hidden while the text has
+  // neither.
   function pictureNote(el, vm, key) {
     if (!el) return;
-    var n = root.SBFillForm.pictureCount(vm);
-    el.hidden = n === 0;
-    el.textContent = n ? root.SBFillForm.pictureText(key, n) : '';
+    var text = root.SBFillForm.formattedNote(vm, key);
+    el.hidden = !text;
+    el.textContent = text;
   }
 
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,

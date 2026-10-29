@@ -1649,11 +1649,11 @@ function _formattedPictures(vm) {
   });
 }
 
-// The Undo card's note, with a line added when a plain box left pictures out.
+// The Undo card's note, with a line added when a plain box left an email
+// layout or pictures out.
 function _pictureNote(note, vm, html) {
-  var n = vm && vm.formatted && !html && _SBFF ? _SBFF.pictureCount(vm) : 0;
-  if (!n) return note;
-  var line = _SBFF.pictureText('left-out-done', n);
+  var line = vm && vm.formatted && !html && _SBFF ? _SBFF.formattedNote(vm, 'left-out-done') : '';
+  if (!line) return note;
   return note ? note + ' ' + line : line;
 }
 

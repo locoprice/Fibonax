@@ -57,10 +57,22 @@ function isBlock(node: Node | null): boolean {
 // ── Cleaning ────────────────────────────────────────────────────────────────
 
 /**
+ * The emoji a picture stands for, or '' for any other picture: Gmail keeps
+ * every emoji in a message as a small picture whose description is the emoji.
+ * A description with letters or digits (a logo, ":smile:") is not one. The
+ * extension counts positions in a field by the same rule
+ * (`_ceEmojiPictureText` in extension/content/content.js).
+ */
+function emojiOf(img: Element): string {
+  const alt = img.getAttribute('alt') ?? '';
+  return /\p{Extended_Pictographic}/u.test(alt) && !/[A-Za-z0-9]/.test(alt) ? alt : '';
+}
+
+/**
  * A layout as the editor keeps it: only the allowed elements and attributes,
- * no comments, pictures over https only, and the markup's own spacing
- * collapsed so the plain body reads cleanly and every text node maps to it
- * one character to one.
+ * no comments, pictures over https only and emoji pictures as the emoji, and
+ * the markup's own spacing collapsed so the plain body reads cleanly and every
+ * text node maps to it one character to one.
  */
 export function cleanLayout(html: string): string {
   const safe = DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR, ALLOW_DATA_ATTR: false });
@@ -68,11 +80,18 @@ export function cleanLayout(html: string): string {
   const walker = body.ownerDocument.createTreeWalker(body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT);
   const drop: Node[] = [];
   const texts: Text[] = [];
+  const emojis: Element[] = [];
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     if (n.nodeType === 8) drop.push(n);
     else if (n.nodeType === 3) texts.push(n as Text);
+    else if ((n as Element).tagName === 'IMG' && emojiOf(n as Element)) emojis.push(n as Element);
     else if ((n as Element).tagName === 'IMG' && !/^https:\/\//i.test((n as Element).getAttribute('src') ?? '')) drop.push(n);
   }
+  // Gmail keeps every emoji as a small picture sized by its own stylesheet,
+  // which does not come along: on any other screen it showed at full size.
+  // As the emoji itself it shows at text size everywhere, needs no outside
+  // picture, and reads in the plain text.
+  emojis.forEach((img) => img.replaceWith(img.ownerDocument.createTextNode(emojiOf(img))));
   for (const t of texts) {
     let data = t.data.replace(/\s+/g, ' ');
     const parent = t.parentElement;

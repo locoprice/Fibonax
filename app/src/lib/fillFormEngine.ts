@@ -311,6 +311,8 @@ interface SbFillFormApi {
   linkNote(result: SbLinkResult | null | undefined): string;
   pictureText(key: SbPictureTextKey, count: number): string;
   pictureCount(vm: SbFillFormViewModel): number;
+  /** Where a formatted text's email layout, else its pictures, go; '' when it has neither. */
+  formattedNote(vm: SbFillFormViewModel, key: Exclude<SbPictureTextKey, 'missing'>): string;
   /** A formatted text rebuilt for the screen: lines, lists, marks, https pictures, nothing else. */
   layoutFragment(html: string): DocumentFragment | null;
   /** Whether a layout is an email's, rather than the bar's lines, lists and marks. */
@@ -581,6 +583,15 @@ export function pictureText(key: SbPictureTextKey, count: number): string {
 /** How many pictures a view model's text shows. */
 export function pictureCount(vm: SbFillFormViewModel): number {
   return window.SBFillForm?.pictureCount(vm) ?? 0;
+}
+
+/**
+ * The line under a preview that says where a formatted text's email layout,
+ * else its pictures, go, in the words every surface uses; '' when it has
+ * neither, or before the engine has loaded.
+ */
+export function formattedNote(vm: SbFillFormViewModel, key: Exclude<SbPictureTextKey, 'missing'>): string {
+  return window.SBFillForm?.formattedNote(vm, key) ?? '';
 }
 
 /** A formatted text rebuilt for the screen, or null before the engine has loaded. */
