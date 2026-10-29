@@ -7,9 +7,11 @@
 // extension/shared/memory-pack.js. This gate runs the real code of each
 // surface that hands a prompt out and pins that it goes through that rule:
 //
-//   1. the in-page """ menu (content.js): the Brain is read when the menu
-//      opens, the pick inserts the finished text at once, a failed read still
-//      inserts the prompt with a visible line, Interactive Steps comes first
+//   1. the in-page """ menu (content.js): the Brains are read in one message
+//      when the menu opens and kept a minute, a pick inserts the finished text
+//      at once or waits with the menu open, a failed read still inserts the
+//      prompt with a visible line, Interactive Steps comes first; the Context
+//      panel's Insert and Remove never touch a Brain inside a prompt
 //   2. the service worker (background.js): reads the Brain the way the popup
 //      and the phone do, answers the menu, and finishes a prompt the Context
 //      panel inserts without a block inside its block
@@ -75,6 +77,15 @@ check('the finished prompt holds the Brain under a line naming it',
 check('the token is gone from the finished prompt', FINISHED.indexOf('{brain:') === -1, true);
 check('a read that failed leaves one visible line', FAILED.indexOf('[The Brain "Marketing" could not be loaded]') !== -1, true);
 
+// The Context panel's Insert and Remove act on its own block, at the top of the
+// draft, and never on a Brain inside a prompt further down.
+const PANEL_BLOCK = pack.formatInjectedBlock({ items: [{ name: 'Note', text: 'Panel text.' }] });
+check('panel: a finished prompt is not taken for the panel\'s block', pack.hasInjectedBlock(FINISHED), false);
+check('panel: Remove leaves a finished prompt exactly as it is', pack.stripInjectedBlock(FINISHED), FINISHED);
+check('panel: its own block on top is still found', pack.hasInjectedBlock(PANEL_BLOCK + FINISHED), true);
+check('panel: and removed, leaving the prompt and its Brain whole', pack.stripInjectedBlock(PANEL_BLOCK + FINISHED), FINISHED);
+check('panel: a block after blank lines at the top still counts', pack.stripInjectedBlock('\n\n' + PANEL_BLOCK + 'Draft'), '\n\nDraft');
+
 // ── 1. the in-page menu, on the real content.js ───────────────────────
 function bootContent(answer, stepsOn) {
   const noop = function () {};
@@ -107,7 +118,7 @@ function bootContent(answer, stepsOn) {
       runtime: {
         id: 'extension', lastError: null, onMessage: { addListener: noop },
         sendMessage(msg, cb) {
-          if (msg && msg.type === 'prompt_text') { asked.push(msg.text); answer(msg, cb); }
+          if (msg && msg.type === 'prompt_texts') { asked.push(msg.texts.slice()); answer(msg, cb); }
         },
       },
     },
@@ -123,52 +134,94 @@ function bootContent(answer, stepsOn) {
   sandbox.insertText = function (el, text) { inserted.push(text); };
   sandbox.logEvent = noop;
   const field = { isContentEditable: false, getAttribute: () => null, value: '', selectionStart: 0, selectionEnd: 0 };
+  const hints = [];
+  const menu = { remove() {}, querySelector: (sel) => (sel === '.sb-tp-hint' ? { set textContent(t) { hints.push(t); } } : null) };
   return {
     asked,
+    hints,
+    inserted,
     set prompts(list) { sandbox.userPrompts = list; },
     open() { sandbox._prefetchPromptBrains(); },
+    // A pick with the menu open on `item`, as Tab / Enter or an exact shortcut makes it.
     pick(item) {
       inserted.length = 0;
+      sandbox.triggerPickerEl = menu;
       sandbox.triggerPickerMode = 'prompt';
       sandbox.triggerPickerFiltered = [item];
       sandbox.triggerPickerTarget = field;
+      sandbox.triggerPickerQuery = '';
       sandbox.triggerPickerDeleteLen = 0;
       sandbox.selectTriggerItem(0);
       return inserted.slice();
     },
+    typeInMenu(ch) { sandbox.triggerPickerQuery += ch; },
+    closeMenu() { sandbox.closeTriggerPicker(); },
+    // Ages every kept answer past the minute it is kept for.
+    age() { Object.keys(sandbox._promptBrainCache).forEach((t) => { sandbox._promptBrainCache[t].at -= 61000; }); },
   };
 }
 
 const SAVED = { id: '5b1c2f10-0000-4000-8000-000000000001', title: 'Note', body: PROMPT, shortcut: 'note', _group: 'list' };
+const OTHER_PROMPT = PROMPT.replace('Write a short note.', 'Write a reply.');
+const SAVED2 = { id: '5b1c2f10-0000-4000-8000-000000000003', title: 'Reply', body: OTHER_PROMPT, _group: 'list' };
 const PLAIN = { id: '5b1c2f10-0000-4000-8000-000000000002', title: 'Plain', body: '## Objective\nPlain.', _group: 'list' };
+const finish = (t) => pack.resolvePromptBrains(t, { [ID]: { name: 'Marketing', items: ITEMS } });
+const answerAll = (msg, cb) => cb({ ok: true, texts: msg.texts.map(finish) });
 {
-  const page = bootContent((msg, cb) => cb({ ok: true, text: FINISHED }));
-  page.prompts = [SAVED, PLAIN];
+  const page = bootContent(answerAll);
+  page.prompts = [SAVED, PLAIN, SAVED2];
   page.open();
-  check('menu: opening it asks once, for the prompt that carries a Brain', page.asked, [PROMPT]);
+  check('menu: opening it asks once, in one message, for every prompt that carries a Brain', page.asked, [[PROMPT, OTHER_PROMPT]]);
   check('menu: the pick inserts the finished prompt at once', page.pick(SAVED), [FINISHED]);
   check('menu: the pick asks nothing more', page.asked.length, 1);
   check('menu: a prompt without a Brain goes in as written, asking nothing', page.pick(PLAIN), ['## Objective\nPlain.']);
   page.open();
-  check('menu: opening it again reads the Brain afresh', page.asked.length, 2);
+  check('menu: opening it again within the minute asks nothing', page.asked.length, 1);
+  page.age();
+  page.open();
+  check('menu: after the minute it reads the Brains afresh', page.asked.length, 2);
 }
 {
   let pending = null;
-  const page = bootContent((msg, cb) => { pending = cb; });
+  const page = bootContent((msg, cb) => { pending = () => answerAll(msg, cb); });
   page.prompts = [SAVED];
   page.open();
-  check('menu: a pick before the answer waits for it', page.pick(SAVED), []);
-  pending({ ok: true, text: FINISHED });
-  check('menu: and asks no second time', page.asked.length, 1);
+  check('menu: a pick before the answer inserts nothing yet', page.pick(SAVED), []);
+  check('menu: and the menu says the Brain is on its way', page.hints[page.hints.length - 1], 'Adding your Brain\u2026');
+  pending();
+  check('menu: the answer then inserts the pick', page.inserted.slice(), [FINISHED]);
+  check('menu: having asked once', page.asked.length, 1);
+}
+{
+  let pending = null;
+  const page = bootContent((msg, cb) => { pending = () => answerAll(msg, cb); });
+  page.prompts = [SAVED];
+  page.open();
+  page.pick(SAVED);
+  page.typeInMenu('x');
+  pending();
+  check('menu: typing during the wait drops the held pick, so nothing lands after the new words', page.inserted.slice(), []);
+}
+{
+  let pending = null;
+  const page = bootContent((msg, cb) => { pending = () => answerAll(msg, cb); });
+  page.prompts = [SAVED];
+  page.open();
+  page.pick(SAVED);
+  page.closeMenu();
+  pending();
+  check('menu: closing it during the wait drops the held pick', page.inserted.slice(), []);
 }
 {
   const page = bootContent((msg, cb) => cb({ ok: false }));
   page.prompts = [SAVED];
   page.open();
   check('menu: no answer still inserts the prompt, with a visible line for the Brain', page.pick(SAVED), [FAILED]);
+  page.open();
+  check('menu: a failed answer is not kept, so the next menu asks again', page.asked.length, 2);
 }
 {
-  const page = bootContent((msg, cb) => cb({ ok: true, text: FINISHED }), true);
+  const page = bootContent(answerAll, true);
   page.prompts = [SAVED];
   page.open();
   const got = page.pick(SAVED);
@@ -187,8 +240,9 @@ function bootBackground(fetchAll) {
     supaFetchAll(table, qs) { calls.push(table + '?' + qs); return fetchAll(table, qs); },
   };
   vm.createContext(sandbox);
-  vm.runInContext(fnSource(BACKGROUND_SRC, 'function promptText(') + '\n' + fnSource(BACKGROUND_SRC, 'function withPromptBrains('), sandbox);
-  return { calls, promptText: sandbox.promptText, withPromptBrains: sandbox.withPromptBrains };
+  vm.runInContext(fnSource(BACKGROUND_SRC, 'function promptTexts(') + '\n' + fnSource(BACKGROUND_SRC, 'function withPromptBrains('), sandbox);
+  const promptText = (t) => sandbox.promptTexts([t]).then((out) => out[0]);
+  return { calls, promptText, promptTexts: sandbox.promptTexts, withPromptBrains: sandbox.withPromptBrains };
 }
 
 async function backgroundChecks() {
@@ -202,10 +256,14 @@ async function backgroundChecks() {
     'memory_spaces?select=id,name&deleted_at=is.null&id=in.(' + ID + ')',
     'memory_shards?select=space_id,name,body&deleted_at=is.null&review_status=neq.archived&space_id=in.(' + ID + ')&order=pinned.desc,updated_at.desc,id.asc',
   ]);
+  const many = bootBackground((table) => Promise.resolve(rows[table]));
+  const two = await many.promptTexts([PROMPT, OTHER_PROMPT, 'Plain.']);
+  check('worker: several prompts are finished from one read', [two, many.calls.length], [[FINISHED, finish(OTHER_PROMPT), 'Plain.'], 2]);
   const panel = await bg.withPromptBrains([{ kind: 'prompt', id: 'p', body: PROMPT }, { kind: 'memory', id: 'm', body: TOKEN }]);
-  check('worker: the Context panel gets the Brain without a block inside its block',
-    panel[0].body, pack.resolvePromptBrains(PROMPT, { [ID]: { name: 'Marketing', items: ITEMS } }, 'missing', true));
-  check('worker: only prompt rows are finished', panel[1].body, TOKEN);
+  const plainText = pack.resolvePromptBrains(PROMPT, { [ID]: { name: 'Marketing', items: ITEMS } }, 'missing', true);
+  check('worker: the Context panel gets the Brain without a block inside its block', panel[0].body, plainText);
+  check('worker: and counts the finished prompt, not the reference', panel[0].tokens, pack.estimateTokens(plainText));
+  check('worker: only prompt rows are finished', [panel[1].body, panel[1].tokens], [TOKEN, undefined]);
 
   const none = bootBackground(() => Promise.resolve([]));
   check('worker: a Brain the reader cannot see becomes one visible line', await none.promptText(PROMPT), MISSING);
@@ -216,7 +274,8 @@ async function backgroundChecks() {
 }
 
 check('worker: loads the module', BACKGROUND_SRC.indexOf("importScripts('../shared/memory-pack.js');") !== -1, true);
-check('worker: answers the menu', /msg\.type === 'prompt_text'[\s\S]{0,80}promptText\(/.test(BACKGROUND_SRC), true);
+check('worker: answers the menu', /msg\.type === 'prompt_texts'[\s\S]{0,200}promptTexts\(texts\)/.test(BACKGROUND_SRC), true);
+check('panel: budgets on the finished prompt\'s size', /tokens: \(row && typeof row\.tokens === 'number'\) \? row\.tokens : c\.tokens/.test(read('extension', 'content', 'memory-picker.js')), true);
 check('worker: finishes what the Context panel inserts', /memoryBodies\(msg\.items\)\.then\(withPromptBrains\)/.test(BACKGROUND_SRC), true);
 
 // ── 3. the popup and the phone ────────────────────────────────────────
@@ -224,6 +283,7 @@ check('worker: finishes what the Context panel inserts', /memoryBodies\(msg\.ite
   const sandbox = {
     SBMemoryPack: pack,
     brains: [{ id: ID, name: 'Marketing' }],
+    brainsLoaded: true,
     brainsFailed: false,
     brainItemsOf: (id) => (id === ID ? ITEMS : []),
     ensureBrains: (cb) => cb(),
@@ -232,10 +292,14 @@ check('worker: finishes what the Context panel inserts', /memoryBodies\(msg\.ite
   vm.runInContext(fnSource(POPUP_SRC, 'function promptBrainText('), sandbox);
   const out = (p) => { let got = null; sandbox.promptBrainText(p, (t) => { got = t; }); return got; };
   check('popup: copies the finished prompt', out({ content: PROMPT }), FINISHED);
-  sandbox.brains = [];
-  check('popup: a Brain it does not hold becomes one visible line', out({ content: PROMPT }), MISSING);
   sandbox.brainsFailed = true;
-  check('popup: a load that failed says so', out({ content: PROMPT }), FAILED);
+  check('popup: a refresh that failed keeps the Brains in hand', out({ content: PROMPT }), FINISHED);
+  sandbox.brains = [];
+  sandbox.brainsFailed = false;
+  check('popup: a Brain it does not hold becomes one visible line', out({ content: PROMPT }), MISSING);
+  sandbox.brainsLoaded = false;
+  sandbox.brainsFailed = true;
+  check('popup: a load that never succeeded says so', out({ content: PROMPT }), FAILED);
   check('popup: a prompt without a Brain is handed over as it is', out({ content: 'Plain.' }), 'Plain.');
 }
 check('popup: Copy goes through the Brain', fnSource(POPUP_SRC, 'function copyPrompt(').indexOf('promptBrainText(p,') !== -1, true);
@@ -244,16 +308,21 @@ check('popup: Copy goes through the Brain', fnSource(POPUP_SRC, 'function copyPr
   const sandbox = {
     SBMemoryPack: pack,
     allBrains: [{ id: ID, name: 'Marketing' }],
+    memLoaded: true,
     memFailed: false,
     memItemsOf: (id) => (id === ID ? ITEMS : []),
   };
   vm.createContext(sandbox);
   vm.runInContext(fnSource(MOBILE_SRC, 'function promptBrainText('), sandbox);
   check('phone: copies the finished prompt', sandbox.promptBrainText({ content: PROMPT }), FINISHED);
-  sandbox.allBrains = [];
-  check('phone: a Brain it does not hold becomes one visible line', sandbox.promptBrainText({ content: PROMPT }), MISSING);
   sandbox.memFailed = true;
-  check('phone: a load that failed says so', sandbox.promptBrainText({ content: PROMPT }), FAILED);
+  check('phone: a refresh that failed keeps the Brains in hand', sandbox.promptBrainText({ content: PROMPT }), FINISHED);
+  sandbox.allBrains = [];
+  sandbox.memFailed = false;
+  check('phone: a Brain it does not hold becomes one visible line', sandbox.promptBrainText({ content: PROMPT }), MISSING);
+  sandbox.memLoaded = false;
+  sandbox.memFailed = true;
+  check('phone: a load that never succeeded says so', sandbox.promptBrainText({ content: PROMPT }), FAILED);
 }
 ['function promptCopy(', 'function sharePrompt('].forEach((decl) => {
   const src = fnSource(MOBILE_SRC, decl);

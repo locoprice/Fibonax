@@ -151,21 +151,35 @@
     return lines.join('\n');
   }
 
-  /** True when this text already carries an injected block. */
+  // Where the Context panel's own block starts: at the top of the draft, the
+  // only place the panel ever puts one ('block + draft'), after any blank
+  // lines; -1 when the draft does not open with one. A block further down is
+  // somebody else's: a Brain inside a prompt (resolvePromptBrains), or a Copy
+  // whole Brain pasted mid-message. The panel must never take that for its own,
+  // or its Insert and Remove would cut a prompt's Brain out.
+  function injectedBlockStart(s) {
+    var at = 0;
+    while (at < s.length && /\s/.test(s.charAt(at))) at++;
+    return s.indexOf(BLOCK_OPEN, at) === at ? at : -1;
+  }
+
+  /** True when this text opens with the panel's injected block. */
   function hasInjectedBlock(text) {
-    return String(text == null ? '' : text).indexOf(BLOCK_OPEN) !== -1;
+    return injectedBlockStart(String(text == null ? '' : text)) !== -1;
   }
 
   /**
-   * Remove the injected block, leaving everything else byte-identical.
+   * Remove the injected block at the top of the text, leaving everything else
+   * byte-identical.
    *
-   * Returns the original string untouched when there is no block, or when the
-   * markers are malformed: half-deleting someone's message because a marker got
-   * edited is far worse than leaving the block in place for them to select.
+   * Returns the original string untouched when the text does not open with a
+   * block, or when the markers are malformed: half-deleting someone's message
+   * because a marker got edited is far worse than leaving the block in place
+   * for them to select.
    */
   function stripInjectedBlock(text) {
     var s = String(text == null ? '' : text);
-    var start = s.indexOf(BLOCK_OPEN);
+    var start = injectedBlockStart(s);
     if (start === -1) return s;
     var end = s.indexOf(BLOCK_CLOSE, start);
     if (end === -1) return s;

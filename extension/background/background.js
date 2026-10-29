@@ -1,6 +1,6 @@
 // ── FIBONAX BACKGROUND v2.32.0 — Fix: Notion sync no longer overwrites manually-edited snippets ──
 importScripts('../auth/auth.js');
-// The shared memory pack, for a prompt that carries a Brain (promptText below).
+// The shared memory pack, for a prompt that carries a Brain (promptTexts below).
 importScripts('../shared/memory-pack.js');
 
 var SUPA_URL = SB_SUPA_URL;
@@ -304,21 +304,29 @@ function setCheckUnfinished(id, on) {
 }
 
 /**
- * A prompt that carries a Brain, finished: the Brain's items where its token
+ * Prompts that carry a Brain, finished: each Brain's items where its token
  * sits, as "Copy whole Brain" hands them out (SBMemoryPack.resolvePromptBrains,
- * shared/memory-pack.js). Read here, as every memory read is, because a content
+ * shared/memory-pack.js). One read for every Brain the prompts name, however
+ * many prompts ask. Read here, as every memory read is, because a content
  * script runs in the page's world. Live Brains and live items only, archived
  * items left out, pinned first and newest next, the order the popup and the
  * phone use. A Brain the reader cannot see (a teammate's behind a shared
  * prompt, one in the trash) becomes one visible line in the prompt; a read
  * that fails says so in the same place, never silently.
  */
-function promptText(text, plain) {
-  var refs = SBMemoryPack.promptBrainRefs(text);
-  if (!refs.length) return Promise.resolve(text);
+function promptTexts(texts, plain) {
+  var list = (texts || []).map(function(t) { return String(t == null ? '' : t); });
+  var seen = {};
+  var ids = [];
+  list.forEach(function(t) {
+    SBMemoryPack.promptBrainRefs(t).forEach(function(r) {
+      if (!seen[r.id]) { seen[r.id] = true; ids.push(r.id); }
+    });
+  });
+  if (!ids.length) return Promise.resolve(list);
   // Ids come from the token's own pattern (36 hex characters and dashes), so
   // they are safe in the filter as they are.
-  var ids = refs.map(function(r) { return r.id; }).join(',');
+  ids = ids.join(',');
   return Promise.all([
     supaFetchAll('memory_spaces', 'select=id,name&deleted_at=is.null&id=in.(' + ids + ')'),
     supaFetchAll('memory_shards',
@@ -330,24 +338,31 @@ function promptText(text, plain) {
     (res[1] || []).forEach(function(it) {
       if (lookup[it.space_id]) lookup[it.space_id].items.push({ name: it.name, body: it.body || '' });
     });
-    return SBMemoryPack.resolvePromptBrains(text, lookup, 'missing', plain);
+    return list.map(function(t) { return SBMemoryPack.resolvePromptBrains(t, lookup, 'missing', plain); });
   }, function(err) {
     console.error('[Fibonax] Could not read the Brain a prompt carries:', err && err.message);
-    return SBMemoryPack.resolvePromptBrains(text, {}, 'failed', plain);
+    return list.map(function(t) { return SBMemoryPack.resolvePromptBrains(t, {}, 'failed', plain); });
   });
 }
 
 /**
- * memory_bodies rows, each prompt among them finished by promptText, so the
+ * memory_bodies rows, the prompts among them finished by promptTexts, so the
  * Context panel inserts a Brain's items and never the token. The items go in
  * plain, without the block's own markers: the panel wraps what it inserts in
- * that block already, and a block inside a block would break its Remove.
+ * that block already. A finished prompt is counted again: the search counted
+ * the token, not the Brain, and the panel budgets on this number.
  */
 function withPromptBrains(rows) {
-  return Promise.all((rows || []).map(function(row) {
-    if (row.kind !== 'prompt') return row;
-    return promptText(row.body, true).then(function(text) { row.body = text; return row; });
-  }));
+  var list = rows || [];
+  var prompts = list.filter(function(row) { return row.kind === 'prompt'; });
+  if (!prompts.length) return Promise.resolve(list);
+  return promptTexts(prompts.map(function(row) { return row.body; }), true).then(function(texts) {
+    prompts.forEach(function(row, i) {
+      row.body = texts[i];
+      row.tokens = SBMemoryPack.estimateTokens(texts[i]);
+    });
+    return list;
+  });
 }
 
 /**
@@ -398,12 +413,13 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
     return true;
   }
 
-  // The """ picker's prompt, finished before it goes into the field: the content
-  // script holds the prompt as the popup cached it, token and all, and asks
-  // here for the Brain's items.
-  if (msg.type === 'prompt_text') {
-    promptText(String(msg.text || '')).then(function(text) {
-      try { sendResponse({ ok: true, text: text }); } catch(e) {}
+  // The """ menu's prompts, finished before they go into a field: the content
+  // script holds the prompts as the popup cached them, tokens and all, and asks
+  // here, once per menu, for the Brains' items.
+  if (msg.type === 'prompt_texts') {
+    var texts = Array.isArray(msg.texts) ? msg.texts.slice(0, 100) : [];
+    promptTexts(texts).then(function(out) {
+      try { sendResponse({ ok: true, texts: out }); } catch(e) {}
     }, function() {
       try { sendResponse({ ok: false }); } catch(e) {}
     });

@@ -2342,17 +2342,18 @@ var interactiveStepsOn = false;
 // A prompt that carries a Brain (its Context block holds a `{brain: …}` token,
 // shared/memory-pack.js) is handed to `cb` with the Brain's items where the
 // token sits, as Copy whole Brain hands them out, read from the Brains tab's
-// own load. The Brains load the first time such a prompt is copied, as they
-// do the first time the tab opens. A Brain that is not there (a teammate's
-// behind a shared prompt, one in the trash) or a load that failed becomes one
-// visible line in the prompt. Every other prompt is handed over at once.
+// own load. The Brains load as soon as the prompts show one is needed
+// (syncPrompts), or here if they have not. A Brain that is not there (a
+// teammate's behind a shared prompt, one in the trash) becomes one visible
+// line in the prompt, and so does a load that never succeeded; a refresh that
+// failed keeps the Brains already in hand, as the Brains tab does.
 function promptBrainText(p, cb){
   var content = p.content || '';
   if (!SBMemoryPack.promptBrainRefs(content).length) { cb(content); return; }
   ensureBrains(function(){
     var lookup = {};
-    if (!brainsFailed) brains.forEach(function(b){ lookup[b.id] = { name: b.name, items: brainItemsOf(b.id) }; });
-    cb(SBMemoryPack.resolvePromptBrains(content, lookup, brainsFailed ? 'failed' : 'missing'));
+    if (brainsLoaded) brains.forEach(function(b){ lookup[b.id] = { name: b.name, items: brainItemsOf(b.id) }; });
+    cb(SBMemoryPack.resolvePromptBrains(content, lookup, brainsLoaded ? 'missing' : 'failed'));
   });
 }
 

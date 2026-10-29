@@ -156,54 +156,89 @@ function _promptInsertText(item) {
 // ── A BRAIN INSIDE A PROMPT ───────────────────────────────────────
 // A prompt whose Context block holds a `{brain: …}` token (shared/memory-pack.js)
 // is finished by the service worker, which reads the Brain and puts its items
-// where the token sits, so the prompt always carries the Brain as it is today.
-// The worker is asked the moment the prompt menu opens, for every such prompt,
-// and the answers are kept until the menu opens again: the pick that follows
-// then inserts at once, like every other prompt, while the field's selection
-// is still live. A pick that comes before the answer waits for it. When the
+// where the token sits, so the prompt carries the Brain as it is now. All the
+// prompts that carry one are asked for in one message the moment the prompt
+// menu opens, and the answers are kept for a minute, so typing """ again and
+// again (a code docstring) reads the Brains once. A pick made before its
+// answer waits with the menu open (selectTriggerItem, _holdPromptPick) and
+// inserts once it arrives, while the field's selection is still live. When the
 // worker cannot answer (no session, no connection), the prompt still goes in,
 // with one visible line in place of each Brain rather than a hole nobody
-// noticed.
-var _promptBrainReady = {};   // prompt id -> the finished text
-var _promptBrainAsked = {};   // prompt id -> callbacks waiting for it
+// noticed; a failed answer is kept only until the menu opens again, which asks
+// afresh.
+var PROMPT_BRAIN_FRESH_MS = 60000;
+var _promptBrainCache = {};    // prompt text -> { text: finished text, at: time, failed: bool }
+var _promptBrainWaiting = {};  // prompt text -> callbacks waiting for it
+var _promptBrainInFlight = {}; // prompt text -> true while asked
 
 function _promptHasBrain(item) {
   return typeof SBMemoryPack !== 'undefined' && SBMemoryPack.promptBrainRefs(item.body || '').length > 0;
 }
 
-// The finished text of `item`, handed to `cb`: at once when it is in hand,
-// otherwise when the worker answers.
-function _askPromptText(item, cb) {
-  var id = item.id;
-  var body = item.body || '';
-  if (Object.prototype.hasOwnProperty.call(_promptBrainReady, id)) { cb(_promptBrainReady[id]); return; }
-  if (_promptBrainAsked[id]) { _promptBrainAsked[id].push(cb); return; }
-  _promptBrainAsked[id] = [cb];
-  function settle(text) {
-    var waiting = _promptBrainAsked[id] || [];
-    delete _promptBrainAsked[id];
-    _promptBrainReady[id] = text;
-    for (var i = 0; i < waiting.length; i++) waiting[i](text);
+function _promptBrainCached(text) {
+  return Object.prototype.hasOwnProperty.call(_promptBrainCache, text);
+}
+
+// Asks the worker, in one message, for every text not kept and not already asked.
+function _askPromptBrains(texts) {
+  var todo = [];
+  for (var i = 0; i < texts.length; i++) {
+    var t = texts[i];
+    if (!_promptBrainCached(t) && !_promptBrainInFlight[t] && todo.indexOf(t) === -1) todo.push(t);
   }
-  function withoutBrains() { settle(SBMemoryPack.resolvePromptBrains(body, {}, 'failed')); }
+  if (!todo.length) return;
+  todo.forEach(function(t) { _promptBrainInFlight[t] = true; });
+  var done = false;
+  function settle(results, failed) {
+    if (done) return;
+    done = true;
+    var now = Date.now();
+    todo.forEach(function(t, j) {
+      delete _promptBrainInFlight[t];
+      _promptBrainCache[t] = { text: results[j], at: now, failed: failed };
+      var waiting = _promptBrainWaiting[t] || [];
+      delete _promptBrainWaiting[t];
+      for (var k = 0; k < waiting.length; k++) waiting[k](results[j]);
+    });
+  }
+  function withoutBrains() {
+    settle(todo.map(function(t) { return SBMemoryPack.resolvePromptBrains(t, {}, 'failed'); }), true);
+  }
   try {
-    chrome.runtime.sendMessage({ type: 'prompt_text', text: body }, function(res) {
-      if (chrome.runtime.lastError || !res || !res.ok || typeof res.text !== 'string') { withoutBrains(); return; }
-      settle(res.text);
+    chrome.runtime.sendMessage({ type: 'prompt_texts', texts: todo }, function(res) {
+      var ok = !chrome.runtime.lastError && res && res.ok && Array.isArray(res.texts) && res.texts.length === todo.length;
+      if (!ok) { withoutBrains(); return; }
+      settle(res.texts, false);
     });
   } catch(e) {
     withoutBrains();
   }
 }
 
-// Asked when the prompt menu opens: every prompt that carries a Brain is read
-// afresh, so the pick inserts the Brain as it is now.
+// The finished text of `item`, handed to `cb`: at once when it is kept,
+// otherwise when the worker answers.
+function _whenPromptBrains(item, cb) {
+  var t = item.body || '';
+  if (_promptBrainCached(t)) { cb(_promptBrainCache[t].text); return; }
+  (_promptBrainWaiting[t] = _promptBrainWaiting[t] || []).push(cb);
+  _askPromptBrains([t]);
+}
+
+// Asked when the prompt menu opens. Answers older than a minute, and failed
+// ones, are dropped, so a Brain changed since, or unreachable last time, is
+// read again.
 function _prefetchPromptBrains() {
-  _promptBrainReady = {};
+  var now = Date.now();
+  Object.keys(_promptBrainCache).forEach(function(t) {
+    var kept = _promptBrainCache[t];
+    if (kept.failed || now - kept.at > PROMPT_BRAIN_FRESH_MS) delete _promptBrainCache[t];
+  });
+  var texts = [];
   var list = promptTemplates();
   for (var i = 0; i < list.length; i++) {
-    if (_promptHasBrain(list[i])) _askPromptText(list[i], function() {});
+    if (_promptHasBrain(list[i])) texts.push(list[i].body || '');
   }
+  _askPromptBrains(texts);
 }
 
 // The text to insert, handed to `cb`: a prompt without a Brain at once, as
@@ -211,8 +246,28 @@ function _prefetchPromptBrains() {
 // Steps block in front when the switch is on.
 function _promptText(item, cb) {
   if (!_promptHasBrain(item)) { cb(_promptInsertText(item)); return; }
-  _askPromptText(item, function(text) {
+  _whenPromptBrains(item, function(text) {
     cb(SBInteractiveSteps.apply(text, interactiveStepsOn));
+  });
+}
+
+// A pick of a prompt whose Brain has not arrived yet. The menu stays open and
+// says so; the pick goes through once the answer is in, if the person has not
+// typed, moved on or closed the menu meanwhile. Nothing is deleted or inserted
+// until then, so the prompt can never land after words typed in the gap.
+var _heldPromptPick = null;
+
+function _holdPromptPick(item) {
+  var held = { id: item.id, query: triggerPickerQuery, target: triggerPickerTarget };
+  _heldPromptPick = held;
+  _setPickerHint('Adding your Brain\u2026');
+  _whenPromptBrains(item, function() {
+    if (_heldPromptPick !== held) return;
+    _heldPromptPick = null;
+    if (!triggerPickerEl || triggerPickerTarget !== held.target || triggerPickerQuery !== held.query) return;
+    for (var i = 0; i < triggerPickerFiltered.length; i++) {
+      if (triggerPickerFiltered[i].id === held.id) { selectTriggerItem(i); return; }
+    }
   });
 }
 
@@ -3632,6 +3687,11 @@ function _pickerHasOnePrefixMatch() {
 function selectTriggerItem(idx) {
   if (idx < 0 || idx >= triggerPickerFiltered.length) return;
   var item  = triggerPickerFiltered[idx];
+  // A prompt whose Brain is still on its way waits, menu open (_holdPromptPick).
+  if (triggerPickerMode === 'prompt' && _promptHasBrain(item) && !_promptBrainCached(item.body || '')) {
+    _holdPromptPick(item);
+    return;
+  }
   var el    = triggerPickerTarget;
   var mode  = triggerPickerMode;
   // Full delete span: the trigger sequence (::) + everything typed since.
@@ -3733,6 +3793,7 @@ function selectTriggerItem(idx) {
 
 function closeTriggerPicker() {
   if (triggerPickerEl) { triggerPickerEl.remove(); triggerPickerEl = null; }
+  _heldPromptPick = null;
   triggerPickerMode      = null;
   triggerPickerTarget    = null;
   triggerPickerIdx       = 0;
