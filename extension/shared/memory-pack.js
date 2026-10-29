@@ -191,7 +191,7 @@
     return s.slice(0, start) + s.slice(after);
   }
 
-  // ── A BRAIN INSIDE A PROMPT (v3.103.0) ────────────────────────────────────
+  // ── A BRAIN INSIDE A PROMPT (v3.104.0) ────────────────────────────────────
   //
   // A prompt's Context block can carry a Brain. The prompt keeps a reference,
   // never the Brain's text: one token on its own line where the Brain goes,

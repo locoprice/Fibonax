@@ -207,7 +207,7 @@ export type OutputType = 'JSON' | 'Markdown' | 'SOP' | 'Plain';
 export type PromptBlockType = 'role' | 'objective' | 'context' | 'examples' | 'constraints';
 
 /**
- * A Brain a prompt carries (v3.103.0). The id is what every surface reads the
+ * A Brain a prompt carries (v3.104.0). The id is what every surface reads the
  * Brain by; the name is kept for the one case the Brain cannot be read (a
  * teammate's prompt, a Brain in the trash) so the prompt can still say which
  * Brain it meant. See lib/promptBrain.ts.

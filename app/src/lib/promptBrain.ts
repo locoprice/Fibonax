@@ -1,5 +1,5 @@
 /**
- * A Brain inside a prompt (v3.103.0).
+ * A Brain inside a prompt (v3.104.0).
  *
  * A prompt's Context block can carry a Brain. The prompt keeps a reference,
  * never the Brain's text: `{brain: id=<uuid>; name=<name>}` on its own line

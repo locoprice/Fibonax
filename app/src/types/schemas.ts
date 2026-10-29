@@ -53,7 +53,7 @@ const promptBlockSchema = z.object({
   content: z.string(),
   enabled: z.boolean(),
   // The Brain the Context block carries (lib/promptBrain.ts). Optional and
-  // nullable: a block saved before v3.103.0 has no key at all.
+  // nullable: a block saved before v3.104.0 has no key at all.
   brain: promptBrainRefSchema.nullable().optional(),
 });
 

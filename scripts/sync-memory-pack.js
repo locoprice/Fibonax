@@ -15,7 +15,7 @@
 //   formatBrainBlock     the text "Copy whole Brain" hands out, the same block
 //                        the extension's Context button puts into an AI chat.
 //   resolvePromptBrains  a prompt that carries a Brain, finished with the
-//                        Brain's items where its token sits (v3.103.0).
+//                        Brain's items where its token sits (v3.104.0).
 //
 // --check also fails if the phone stops reaching them through the module, or
 // if the popup, which loads the module itself, builds its "Copy whole Brain"

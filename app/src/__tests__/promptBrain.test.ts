@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// A Brain inside a prompt (v3.103.0). The rule lives in
+// A Brain inside a prompt (v3.104.0). The rule lives in
 // extension/shared/memory-pack.js and is read by the extension, its popup
 // and the phone; the dashboard writes the token and labels it with the three
 // small twins in lib/promptBrain.ts, and loads the module for the rest. This

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A BRAIN INSIDE A PROMPT gate (v3.103.0).
+// A BRAIN INSIDE A PROMPT gate (v3.104.0).
 //
 // A prompt's Context block can carry a Brain: the prompt keeps a token,
 // `{brain: id=<uuid>; name=<name>}`, and every surface swaps it for the
