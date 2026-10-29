@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Fibonax | Advanced prompt engineering | Native AI Snippets | Memory Layer",
   "short_name": "Fibonax",
-  "version": "3.107.0",
+  "version": "3.107.1",
   "description": "AI prompt library and text expander. Free team sharing and dynamic snippets with live formulas.",
   "permissions": [
     "storage",
