@@ -67,7 +67,7 @@
       "count": 1
     },
     {
-      "find": "        A drop-in replacement for <b>TextBlaze</b>, <b>TextExpander</b>, and <b>Magical</b>, with\n        live formulas and a reusable prompt library on top.",
+      "find": "        A drop-in replacement for <b>TextBlaze</b>, <b>TextExpander</b>&nbsp;and <b>Magical</b>, with\n        live formulas and a reusable prompt library on top.",
       "replace": "        Un sustituto directo de <b>TextBlaze</b>, <b>TextExpander</b> y <b>Magical</b>, con\n        fórmulas en vivo y una biblioteca de prompts reutilizables además.",
       "count": 1
     },
@@ -297,8 +297,8 @@
       "count": 1
     },
     {
-      "find": "<p>Fibonax ships as a Chrome extension, a web dashboard, and a mobile website. Sign in once. Your snippets and formulas are everywhere, instantly.</p>",
-      "replace": "<p>Fibonax llega como extensión de Chrome, dashboard web y sitio móvil. Inicia sesión una vez. Tus snippets y fórmulas están en todas partes, al instante.</p>",
+      "find": "<p>Fibonax ships as a Chrome extension, a web dashboard and a mobile website. Sign in once. Your tools are everywhere, instantly.</p>",
+      "replace": "<p>Fibonax llega como extensión de Chrome, dashboard web y sitio móvil. Inicia sesión una vez. Tus herramientas están en todas partes, al instante.</p>",
       "count": 1
     },
     {
@@ -647,11 +647,6 @@
       "count": 1
     },
     {
-      "find": ">Try Fibonax Free →<",
-      "replace": ">Prueba Fibonax gratis →<",
-      "count": 1
-    },
-    {
       "find": ">One system. Three powerful layers.<",
       "replace": ">Un sistema. Tres capas de posibilidades.<",
       "count": 1
@@ -787,13 +782,8 @@
       "count": 1
     },
     {
-      "find": ">Give your AI the context it needs.<",
-      "replace": ">Dale a tu IA el contexto que necesita.<",
-      "count": 1
-    },
-    {
-      "find": ">Your AI can change. Your context shouldn’t.<",
-      "replace": ">Tu IA puede cambiar. Tu contexto no debería.<",
+      "find": ">Your AI can change. Your context no!<",
+      "replace": ">Tu IA puede cambiar. ¡Tu contexto no!<",
       "count": 1
     },
     {

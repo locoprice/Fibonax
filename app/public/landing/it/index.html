@@ -197,7 +197,6 @@ img,svg{display:block;max-width:100%}
 
 /* AI context narrative */
 .foot-statement.context-finale h2{font-size:clamp(32px,4.5vw,48px)}
-.foot-statement.context-finale .context-finale-title{font-size:clamp(20px,3vw,32px);font-weight:600}
 .context-finale h3{color:var(--card);font-size:clamp(20px,3vw,32px);font-weight:600;margin-top:24px}
 .context-finale p{font-size:18px;color:var(--border);margin-top:24px}
 
@@ -1390,7 +1389,7 @@ body.cm-locked{overflow:hidden}
 
     <div class="context-portable" id="portable-context">
       <div class="context-portable-copy">
-        <h3>La tua AI può cambiare. Il tuo contesto no.</h3>
+        <h3>La tua AI può cambiare. Il tuo contesto no!</h3>
         <p>Fibonax è pensato come uno spazio comune ai diversi strumenti AI, per aiutarti a mantenere il tuo contesto organizzato e portabile.</p>
         <p class="context-portable-promise">Scegli l’AI che vuoi. Conserva il contesto che ti serve.</p>
       </div>
@@ -1734,7 +1733,7 @@ body.cm-locked{overflow:hidden}
   <div class="sb-inner">
     <header class="sb-header">
       <h2 id="sb-platforms-heading">Un solo account. <span>Tre tecnologie diverse.</span></h2>
-      <p>Fibonax arriva come estensione Chrome, dashboard web e sito mobile. Accedi una volta sola. I tuoi snippet e le tue formule sono ovunque, all'istante.</p>
+      <p>Fibonax arriva come estensione Chrome, dashboard web e sito mobile. Accedi una volta sola. I tuoi strumenti sono ovunque, all'istante.</p>
     </header>
     <div class="sb-tabs" role="tablist" aria-label="Esplora Fibonax" hidden>
       <button type="button" class="sb-tab" role="tab" id="sb-tab-chrome-extension" aria-controls="sb-platform-panel" aria-selected="true" tabindex="0" data-key="chrome-extension"><svg width="20" height="20" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"></path></svg><span>Estensione Chrome</span></button>
@@ -1996,8 +1995,6 @@ body.cm-locked{overflow:hidden}
 
 <section class="foot-statement context-finale">
   <div class="foot-statement-inner">
-    <h2 class="context-finale-title">Dai alla tua AI il contesto di cui ha bisogno.</h2>
-    <div class="sec-ctas"><a href="https://app.fibonax.com/signup" class="btn btn-primary">Prova Fibonax gratis →</a></div>
 
     <section id="prompt-access" aria-labelledby="pa-title">
       <div class="pa-card">
@@ -2555,7 +2552,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.107.1';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.107.2';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
