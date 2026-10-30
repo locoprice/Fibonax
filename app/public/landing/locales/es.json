@@ -1220,12 +1220,17 @@
     },
     {
       "find": "Beyond that, buy FiboTokens once and keep them forever, or go unlimited with a small monthly plan. Founding Members who join by December 31, 2026 keep their benefits for life.",
-      "replace": "Más allá, compras FiboTokens una vez y te los quedas para siempre, o pasas a ilimitado con un pequeño plan mensual. Los Founding Members que se registren antes del 31 de diciembre de 2026 conservan sus ventajas de por vida.",
+      "replace": "Además, compras FiboTokens una vez y te los quedas para siempre, o pasas a ilimitado con un pequeño plan mensual. Los Founding Members que se registren antes del 31 de diciembre de 2026 conservan sus ventajas de por vida.",
+      "count": 1
+    },
+    {
+      "find": "Every day you get 15 snippets, 10 prompts and 5 Brains for free.",
+      "replace": "Cada día tienes 15 snippets, 10 prompts y 5 Brains gratis.",
       "count": 1
     },
     {
       "find": "Beyond that, buy FiboTokens once and keep them forever. No subscription needed.",
-      "replace": "Más allá, compras FiboTokens una vez y te los quedas para siempre. Sin necesidad de suscripción.",
+      "replace": "Además, compras FiboTokens una vez y te los quedas para siempre. Sin necesidad de suscripción.",
       "count": 1
     },
     {
@@ -1339,11 +1344,6 @@
       "count": 1
     },
     {
-      "find": "Unlimited, every day",
-      "replace": "Ilimitado, cada día",
-      "count": 1
-    },
-    {
       "find": ">per month<",
       "replace": ">al mes<",
       "count": 1
@@ -1351,11 +1351,6 @@
     {
       "find": "Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.",
       "replace": "Snippets, prompts y Brains ilimitados por un pequeño precio mensual. Sin FiboTokens que contar.",
-      "count": 1
-    },
-    {
-      "find": "Opens on January 1, 2027. Renewal and cancellation terms are shown before you subscribe. Price includes VAT.",
-      "replace": "Abre el 1 de enero de 2027. La renovación y la cancelación se muestran antes de suscribirte. Precio con IVA incluido.",
       "count": 1
     },
     {
