@@ -368,6 +368,28 @@ footer{padding:28px 20px}
 .plan-list li::before{content:"✓" / "";color:var(--primary);font-weight:700;flex:none}
 .plan-list li>span{min-width:0}
 .plan-list strong{font-weight:700;color:var(--text)}
+/* Fibonacci rectangle on wide screens: Pay as you go is the large square, Free the next square,
+   Monthly the golden remainder, and one faint spiral runs through all three. */
+@media(min-width:1200px){
+.plan-grid{grid-template-columns:1.618fr 1fr;grid-template-rows:1.618fr 1fr;aspect-ratio:1.618/1}
+.plan-grid>.plan:first-child{grid-column:2;grid-row:1;justify-content:center}
+.plan-grid>.plan:first-child>.plan-list,.plan-grid>.plan:last-child>.plan-list{display:none}
+.plan-grid>.plan:last-child{grid-column:2;grid-row:2;display:grid;grid-template-columns:1fr 1fr;column-gap:var(--space-6);row-gap:var(--space-2);align-content:center;padding:var(--space-4) var(--space-8)}
+.plan-grid>.plan:last-child>.plan-price{flex-wrap:nowrap}
+.plan-grid>.plan:last-child>.plan-kind,.plan-grid>.plan:last-child>.plan-name,.plan-grid>.plan:last-child>.plan-price{grid-column:1}
+.plan-grid>.plan:last-child>.plan-tagline{grid-column:2;grid-row:1/4}
+.plan-grid>.plan:last-child>.plan-cta{grid-column:1/-1;grid-row:4;margin-top:var(--space-2)}
+.plan-featured{grid-column:1;grid-row:1/3;display:grid;grid-template-columns:1fr 1fr;column-gap:var(--space-8);align-content:center}
+.plan-featured>.plan-kind,.plan-featured>.plan-name,.plan-featured>.plan-price,.plan-featured>.plan-tagline{grid-column:1/-1}
+.plan-featured>.packs{grid-column:1;grid-row:5}
+.plan-featured>.plan-cta{grid-column:1;grid-row:6}
+.plan-featured>.plan-note{grid-column:1;grid-row:7}
+.plan-featured>.plan-list{grid-column:2;grid-row:5/8;align-content:start;padding:0 0 0 var(--space-8);border-top:0;border-left:1px solid var(--border)}
+.plan-grid>.plan{background-repeat:no-repeat;background-size:100% 100%}
+.plan-featured{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 100A100 100 0 0 1 100 0' fill='none' stroke='%231B4FD8' stroke-opacity='.16' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.plan-grid>.plan:first-child{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 0A100 100 0 0 1 100 100' fill='none' stroke='%231B4FD8' stroke-opacity='.16' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.plan-grid>.plan:last-child{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 618 382' preserveAspectRatio='none'%3E%3Cpath d='M236 0V382M0 146H236M146 0V146M146 90H236M180 90V146' fill='none' stroke='%231B4FD8' stroke-opacity='.07' stroke-width='1' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M618 0A382 382 0 0 1 236 382A236 236 0 0 1 0 146A146 146 0 0 1 146 0A90 90 0 0 1 236 90A56 56 0 0 1 180 146' fill='none' stroke='%231B4FD8' stroke-opacity='.16' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+}
 /* Comparison: hidden behind Compare plans, columns on desktop, one card per row on a phone. */
 .compare-toggle-row{text-align:center;margin-top:var(--space-6)}
 .compare-body[hidden]{display:none}
@@ -611,11 +633,10 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       </article>
       <article class="plan" aria-labelledby="plan-monthly">
         <p class="plan-kind">Monthly subscription</p>
-        <h3 class="plan-name" id="plan-monthly">Unlimited, every day</h3>
+        <h3 class="plan-name" id="plan-monthly">PRO</h3>
         <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€4.90</span><span class="plan-per">per month</span></p>
         <p class="plan-tagline">Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.</p>
         <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Compare plans</a>
-        <p class="plan-note">Opens on January 1, 2027. Renewal and cancellation terms are shown before you subscribe. Price includes VAT.</p>
         <ul class="plan-list">
           <li><span>Unlimited snippet, prompt and Brain uses</span></li>
           <li><span>No FiboTokens needed</span></li>

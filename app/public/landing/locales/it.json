@@ -1235,12 +1235,17 @@
     },
     {
       "find": "Beyond that, buy FiboTokens once and keep them forever, or go unlimited with a small monthly plan. Founding Members who join by December 31, 2026 keep their benefits for life.",
-      "replace": "Oltre, compri FiboToken una volta e li tieni per sempre, oppure passi all’illimitato con un piccolo piano mensile. I Founding Member iscritti entro il 31 dicembre 2026 tengono i vantaggi a vita.",
+      "replace": "Oltre a questo, compri FiboToken una volta e li tieni per sempre, oppure passi all’illimitato con un piccolo piano mensile. I Founding Member iscritti entro il 31 dicembre 2026 tengono i vantaggi a vita.",
+      "count": 1
+    },
+    {
+      "find": "Every day you get 15 snippets, 10 prompts and 5 Brains for free.",
+      "replace": "Ogni giorno hai 15 snippet, 10 prompt e 5 Brain gratis.",
       "count": 1
     },
     {
       "find": "Beyond that, buy FiboTokens once and keep them forever. No subscription needed.",
-      "replace": "Oltre, compri FiboToken una volta e li tieni per sempre. Nessun abbonamento necessario.",
+      "replace": "Oltre a questo, compri FiboToken una volta e li tieni per sempre. Nessun abbonamento necessario.",
       "count": 1
     },
     {
@@ -1354,11 +1359,6 @@
       "count": 1
     },
     {
-      "find": "Unlimited, every day",
-      "replace": "Illimitato, ogni giorno",
-      "count": 1
-    },
-    {
       "find": ">per month<",
       "replace": ">al mese<",
       "count": 1
@@ -1366,11 +1366,6 @@
     {
       "find": "Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.",
       "replace": "Snippet, prompt e Brain illimitati a un piccolo prezzo mensile. Nessun FiboToken da contare.",
-      "count": 1
-    },
-    {
-      "find": "Opens on January 1, 2027. Renewal and cancellation terms are shown before you subscribe. Price includes VAT.",
-      "replace": "Apre il 1º gennaio 2027. Rinnovo e disdetta sono mostrati prima di abbonarti. Prezzo IVA inclusa.",
       "count": 1
     },
     {
