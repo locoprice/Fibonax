@@ -492,6 +492,11 @@
       "count": 1
     },
     {
+      "find": "Meet us at Wave<svg",
+      "replace": "Incontraci a Wave<svg",
+      "count": 1
+    },
+    {
       "find": "<span class=\"foot-support-label\">Supported by</span>",
       "replace": "<span class=\"foot-support-label\">Con il supporto di</span>",
       "count": 1
@@ -1089,7 +1094,7 @@
     {
       "find": "<span class=\"sr-only\"> (opens in a new tab)</span>",
       "replace": "<span class=\"sr-only\"> (si apre in una nuova scheda)</span>",
-      "count": 1
+      "count": 2
     },
     {
       "find": "content=\"Fibonax: Your context. Every AI. One direction.\"",

@@ -405,6 +405,8 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 .foot-logo-aws{height:26px}
 .foot-logo-nvidia{height:40px}
 .foot-logo-google{height:42px}
+.foot-meet{font-size:13.5px;color:#C7C7CC;transition:color .15s}
+.foot-meet:hover{color:#fff}
 .foot-inner{max-width:var(--max);margin:0 auto;display:flex;
   flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px}
 .foot-brand{display:flex;align-items:center;gap:10px;font-size:14px;color:#AEAEB2}
@@ -2037,6 +2039,7 @@ body.cm-locked{overflow:hidden}
       <img class="foot-logo-nvidia" src="../supported-nvidia-inception.png" width="366" height="120" alt="NVIDIA Inception Program" loading="lazy" decoding="async" draggable="false">
       <img class="foot-logo-google" src="../supported-google-for-startups.png" width="249" height="126" alt="Google for Startups" loading="lazy" decoding="async" draggable="false">
     </div>
+    <a class="foot-meet foot-ext" href="https://wavebyvento.com/" target="_blank" rel="noopener" title="Opens in a new tab">Incontraci a Wave<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg><span class="sr-only"> (si apre in una nuova scheda)</span></a>
   </div>
   <nav class="foot-lang" aria-label="Lingua">
     <a href="/" hreflang="en">English</a>
@@ -2552,7 +2555,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.108.1';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.108.2';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
