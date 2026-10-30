@@ -1269,16 +1269,6 @@
       "count": 3
     },
     {
-      "find": "Start free. When you need more, buy FiboTokens once and keep them forever, or go unlimited for <span",
-      "replace": "Parti gratis. Quando ti serve di più, compri FiboToken una volta e li tieni per sempre, oppure passi all’illimitato a <span",
-      "count": 1
-    },
-    {
-      "find": "</span> a month.</p>",
-      "replace": "</span> al mese.</p>",
-      "count": 1
-    },
-    {
       "find": "Buy once. Yours forever.",
       "replace": "Compri una volta. Tuoi per sempre.",
       "count": 1
@@ -1326,7 +1316,7 @@
     {
       "find": ">€4.90<",
       "replace": ">€4,90<",
-      "count": 3
+      "count": 2
     },
     {
       "find": "Packs open on January 1, 2027. Founding Members get <span",
@@ -1589,23 +1579,43 @@
       "count": 1
     },
     {
-      "find": "No subscription required. A monthly plan is there only if you want one. No pathetic marketing.",
-      "replace": "Nessun abbonamento obbligatorio. Il piano mensile c’è solo se lo vuoi. Nessun marketing patetico.",
+      "find": ">No subscription required</h3>",
+      "replace": ">Nessun abbonamento obbligatorio</h3>",
       "count": 1
     },
     {
-      "find": "Only genuine pay per use.",
-      "replace": "Solo autentico pagamento a consumo.",
+      "find": "A monthly plan is there only if you want one. No pathetic marketing.",
+      "replace": "Il piano mensile c’è solo se lo vuoi. Nessun marketing patetico.",
       "count": 1
     },
     {
-      "find": "Lifetime credit.",
-      "replace": "Credito senza scadenza.",
+      "find": ">Only genuine pay per use</h3>",
+      "replace": ">Solo autentico pagamento a consumo</h3>",
       "count": 1
     },
     {
-      "find": "Revenue invested in top Developers and Ai coding model",
-      "replace": "Ricavi investiti nei migliori sviluppatori e modelli AI per il coding",
+      "find": "One FiboToken, one use. The free allowance is always spent first.",
+      "replace": "Un FiboToken, un uso. La quota gratuita si consuma sempre per prima.",
+      "count": 1
+    },
+    {
+      "find": ">Lifetime credit</h3>",
+      "replace": ">Credito senza scadenza</h3>",
+      "count": 1
+    },
+    {
+      "find": "Your FiboTokens never expire. They stay in your account until you use them.",
+      "replace": "I tuoi FiboToken non scadono mai. Restano nel tuo account finché non li usi.",
+      "count": 1
+    },
+    {
+      "find": ">Revenue reinvested</h3>",
+      "replace": ">Ricavi reinvestiti</h3>",
+      "count": 1
+    },
+    {
+      "find": "Revenue goes into top developers and AI coding models, so the product keeps improving.",
+      "replace": "I ricavi vanno ai migliori sviluppatori e ai modelli AI per il coding, così il prodotto continua a migliorare.",
       "count": 1
     },
     {

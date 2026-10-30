@@ -1254,16 +1254,6 @@
       "count": 3
     },
     {
-      "find": "Start free. When you need more, buy FiboTokens once and keep them forever, or go unlimited for <span",
-      "replace": "Empieza gratis. Cuando necesites más, compras FiboTokens una vez y te los quedas para siempre, o pasas a ilimitado por <span",
-      "count": 1
-    },
-    {
-      "find": "</span> a month.</p>",
-      "replace": "</span> al mes.</p>",
-      "count": 1
-    },
-    {
       "find": "Buy once. Yours forever.",
       "replace": "Compras una vez. Tuyos para siempre.",
       "count": 1
@@ -1311,7 +1301,7 @@
     {
       "find": ">€4.90<",
       "replace": ">€4,90<",
-      "count": 3
+      "count": 2
     },
     {
       "find": "Packs open on January 1, 2027. Founding Members get <span",
@@ -1569,23 +1559,43 @@
       "count": 1
     },
     {
-      "find": "No subscription required. A monthly plan is there only if you want one. No pathetic marketing.",
-      "replace": "Sin suscripción obligatoria. El plan mensual está ahí solo si lo quieres. Sin marketing patético.",
+      "find": ">No subscription required</h3>",
+      "replace": ">Sin suscripción obligatoria</h3>",
       "count": 1
     },
     {
-      "find": "Only genuine pay per use.",
-      "replace": "Solo auténtico pago por uso.",
+      "find": "A monthly plan is there only if you want one. No pathetic marketing.",
+      "replace": "El plan mensual está ahí solo si lo quieres. Sin marketing patético.",
       "count": 1
     },
     {
-      "find": "Lifetime credit.",
-      "replace": "Crédito sin caducidad.",
+      "find": ">Only genuine pay per use</h3>",
+      "replace": ">Solo auténtico pago por uso</h3>",
       "count": 1
     },
     {
-      "find": "Revenue invested in top Developers and Ai coding model",
-      "replace": "Ingresos invertidos en los mejores desarrolladores y modelos de IA para programar",
+      "find": "One FiboToken, one use. The free allowance is always spent first.",
+      "replace": "Un FiboToken, un uso. La cuota gratuita se gasta siempre primero.",
+      "count": 1
+    },
+    {
+      "find": ">Lifetime credit</h3>",
+      "replace": ">Crédito sin caducidad</h3>",
+      "count": 1
+    },
+    {
+      "find": "Your FiboTokens never expire. They stay in your account until you use them.",
+      "replace": "Tus FiboTokens no caducan nunca. Se quedan en tu cuenta hasta que los uses.",
+      "count": 1
+    },
+    {
+      "find": ">Revenue reinvested</h3>",
+      "replace": ">Ingresos reinvertidos</h3>",
+      "count": 1
+    },
+    {
+      "find": "Revenue goes into top developers and AI coding models, so the product keeps improving.",
+      "replace": "Los ingresos van a los mejores desarrolladores y modelos de IA para programar, así el producto sigue mejorando.",
       "count": 1
     },
     {

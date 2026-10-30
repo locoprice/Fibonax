@@ -304,14 +304,18 @@ footer{padding:28px 20px}
 .rate-sub{margin-top:var(--space-3);font-size:15px;color:var(--text2)}
 .rate-sub strong{font-family:var(--sb-mono);font-weight:700;color:var(--text)}
 .rate-note{max-width:520px;margin:var(--space-4) auto 0;padding-top:var(--space-4);border-top:1px solid var(--border);font-size:14px;line-height:1.6;color:var(--text2)}
-.pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
+.pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.618fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
 .pricing-artwork{margin:0;min-width:0;aspect-ratio:1}
 .pricing-artwork canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .6s ease}
 .pricing-artwork.is-ready canvas{opacity:1}
 .pricing-content:not(:has(.pricing-artwork)){grid-template-columns:minmax(0,1fr)}
-.pricing-page .pricing-table{width:100%;margin:0;border-collapse:collapse;text-align:left}
-.pricing-table td{padding:var(--space-6) 0;border-top:1px solid var(--border);font-size:clamp(17px,2vw,20px);line-height:1.6;font-weight:500}
-.pricing-table tr:last-child td{border-bottom:1px solid var(--border)}
+.pricing-content .rate-board{max-width:none;margin:0}
+/* Pricing principles: four cards above the plan grid, two by two on wide screens. */
+.principles{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-6);margin:var(--space-8) 0 0;padding:0}
+.principles li{display:flex;gap:var(--space-4);padding:var(--space-6);background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.principle-num{flex:none;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--sb-mono);font-size:14px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-btn)}
+.principles h3{font-size:18px;font-weight:700;letter-spacing:0;line-height:1.3;color:var(--text);margin:0 0 var(--space-2)}
+.principles p{font-size:15px;line-height:1.6;color:var(--text2)}
 /* Sections below the hero share one rhythm. Tokens only. */
 .pr-section{margin-top:var(--space-16);text-align:left}
 .pr-section h2{font-size:clamp(28px,3.4vw,40px);font-weight:800;letter-spacing:-.025em;line-height:1.1;text-align:center;color:var(--text)}
@@ -453,7 +457,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 .skip-link:focus{top:var(--space-3)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:960px){.plan-grid,.steps{grid-template-columns:1fr;max-width:560px;margin-left:auto;margin-right:auto}.founding{grid-template-columns:1fr}.founding-benefits{grid-template-columns:1fr}}
-@media(max-width:800px){.rate-board{padding:var(--space-6) var(--space-4)}.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.pricing-table td{padding:var(--space-6) 0}.pr-section{margin-top:var(--space-12)}.founding{padding:var(--space-6)}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.step{padding:var(--space-6)}
+@media(max-width:800px){.rate-board{padding:var(--space-6) var(--space-4)}.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.principles{grid-template-columns:1fr;gap:var(--space-4)}.principles li{padding:var(--space-4)}.pr-section{margin-top:var(--space-12)}.founding{padding:var(--space-6)}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.step{padding:var(--space-6)}
   .compare thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
   .compare,.compare tbody,.compare tr,.compare th,.compare td{display:block;width:auto}
   .compare tr{padding:var(--space-4);border-top:1px solid var(--border)}
@@ -546,25 +550,16 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   <nav class="hero-eyebrow crumbs" aria-label="Percorso di navigazione"><ol><li><a href="../">Home</a></li><li aria-current="page">Prezzo</li></ol></nav>
   <h1>Gratis ogni giorno. <span>FiboToken</span> quando ti serve di più.</h1>
   <p class="pricing-lead">Ogni giorno hai 15 snippet, 10 prompt e 5 Brain gratis. Oltre a questo, compri FiboToken una volta e li tieni per sempre. Nessun abbonamento necessario.</p>
+  <div class="pricing-content">
+  <figure class="pricing-artwork" aria-hidden="true">
+    <canvas></canvas>
+  </figure>
   <section class="rate-board" aria-labelledby="rate-title">
     <div class="rate-head"><h2 class="rate-label" id="rate-title">Tasso di cambio attuale</h2><span class="rate-chip"><span aria-hidden="true">↕</span> Tasso variabile</span></div>
     <p class="rate-main"><span class="rate-unit">1 FiboToken</span><span class="rate-eq" aria-hidden="true">=</span><span class="sr-only">vale</span><span class="rate-value" data-pricing="euroPerFiboToken">€0,01</span></p>
     <p class="rate-sub"><strong data-pricing="topUpEuros">€25</strong> = <strong data-pricing="fiboTokensPerTopUp">2.500</strong> FiboToken · Tasso fissato il <span data-pricing="rateSetOn">28 ottobre 2026</span></p>
     <p class="rate-note">Come una valuta, il tasso del FiboToken è variabile: può cambiare nel tempo e oscillare con il mercato. Un nuovo tasso vale solo per i nuovi pacchetti. I FiboToken che hai già mantengono il loro valore: un FiboToken, un uso.</p>
   </section>
-  <div class="pricing-content">
-  <figure class="pricing-artwork" aria-hidden="true">
-    <canvas></canvas>
-  </figure>
-  <table class="pricing-table">
-    <caption class="sr-only">I principi del nostro prezzo</caption>
-    <tbody>
-      <tr><td>Nessun abbonamento obbligatorio. Il piano mensile c’è solo se lo vuoi. Nessun marketing patetico.</td></tr>
-      <tr><td>Solo autentico pagamento a consumo.</td></tr>
-      <tr><td>Credito senza scadenza.</td></tr>
-      <tr><td>Ricavi investiti nei migliori sviluppatori e modelli AI per il coding</td></tr>
-    </tbody>
-  </table>
   </div>
 
   <section class="founding" id="founding" aria-labelledby="founding-title" data-countdown>
@@ -594,7 +589,12 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 
   <section class="pr-section" id="plans" aria-labelledby="plans-title">
     <h2 id="plans-title">Scegli come pagare</h2>
-    <p class="pr-intro">Parti gratis. Quando ti serve di più, compri FiboToken una volta e li tieni per sempre, oppure passi all’illimitato a <span data-pricing="monthlyEuros">€4,90</span> al mese.</p>
+    <ul class="principles" aria-label="I principi del nostro prezzo">
+      <li><span class="principle-num" aria-hidden="true">01</span><div><h3>Nessun abbonamento obbligatorio</h3><p>Il piano mensile c’è solo se lo vuoi. Nessun marketing patetico.</p></div></li>
+      <li><span class="principle-num" aria-hidden="true">02</span><div><h3>Solo autentico pagamento a consumo</h3><p>Un FiboToken, un uso. La quota gratuita si consuma sempre per prima.</p></div></li>
+      <li><span class="principle-num" aria-hidden="true">03</span><div><h3>Credito senza scadenza</h3><p>I tuoi FiboToken non scadono mai. Restano nel tuo account finché non li usi.</p></div></li>
+      <li><span class="principle-num" aria-hidden="true">04</span><div><h3>Ricavi reinvestiti</h3><p>I ricavi vanno ai migliori sviluppatori e ai modelli AI per il coding, così il prodotto continua a migliorare.</p></div></li>
+    </ul>
     <div class="plan-grid">
       <article class="plan" aria-labelledby="plan-free">
         <p class="plan-kind">Gratis</p>
@@ -973,7 +973,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.108.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.108.1';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
