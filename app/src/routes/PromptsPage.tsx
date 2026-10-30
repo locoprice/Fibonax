@@ -6,6 +6,7 @@ import { LoadingBlock } from '@/components/layout/LoadingBlock';
 import { PageBanner } from '@/components/layout/PageBanner';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { InactiveAssetBanner } from '@/components/shared/InactiveAssetBanner';
+import { useTeamLastUseRefresh } from '@/components/shared/TeamLastUseLine';
 import { Button } from '@/components/ui/button';
 import { LabelManagerDialog } from '@/features/labels/LabelManagerDialog';
 import { PromptCard } from '@/features/prompts/PromptCard';
@@ -77,6 +78,8 @@ export function PromptsPage() {
       void load();
     }
   }, [load, prompts.length]);
+
+  useTeamLastUseRefresh(prompts.some((p) => p.organization_id && p.folder_id));
 
   // Labels load on their own: a failure here costs badges, never the list.
   useEffect(() => {

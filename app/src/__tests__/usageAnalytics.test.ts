@@ -97,11 +97,17 @@ describe('shared usage analytics, as the dashboard types it', () => {
 
   it('builds the team table the TeamUsage card draws', () => {
     const t = UA.team(
-      [{ user_id: 'u1', member_name: 'Ana', uses: 3, snippets: 2 }],
-      [{ user_id: 'u1', member_name: 'Ana', uses: 1, snippets: 1 }],
+      [{ user_id: 'u1', member_name: 'Ana', uses: 3, snippets: 2, prompts: 1 }],
+      [{ user_id: 'u1', member_name: 'Ana', uses: 1, snippets: 1, prompts: 0 }],
       'u1',
     );
-    expect(t.members[0]).toMatchObject({ rank: 1, name: 'Ana', isMe: true, uses: 3, snippets: 2, share: 100 });
+    expect(t.members[0]).toMatchObject({ rank: 1, name: 'Ana', isMe: true, mostActive: true, uses: 3, snippets: 2, prompts: 1, share: 100 });
     expect(t.total.text).toBe('+200%');
+  });
+
+  it('words the last-use line under team snippets and prompts', () => {
+    const at = new Date(2026, 9, 30, 14, 5).toISOString();
+    expect(UA.lastUseLine({ used_at: at, used_by_name: 'Ana' })).toBe('Last used by Ana on 30/10/2026 at 14:05');
+    expect(UA.lastUseLine(null)).toBe('Never used');
   });
 });

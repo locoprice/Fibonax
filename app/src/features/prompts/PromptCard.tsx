@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { SearchDetails } from '@/components/shared/SearchDetails';
 import { useSearchStore } from '@/stores/searchStore';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { TeamLastUseLine } from '@/components/shared/TeamLastUseLine';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
 import { cn } from '@/lib/utils';
 import type { Prompt } from '@/types/database';
@@ -257,15 +258,19 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
           )}
         </p>
 
-        {/* Footer */}
-        <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
-          <span
-            className="text-xs text-ink-subtle"
-            title={attributionTitle(resolveUserName, prompt.user_id, prompt.updated_by, prompt.updated_at)}
-          >
-            {lastUsed}
-          </span>
-          <div className="flex items-center gap-1.5">
+        {/* Footer: a prompt in a team folder says who used it last. */}
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
+          {prompt.organization_id && prompt.folder_id ? (
+            <TeamLastUseLine kind="prompt" ids={[prompt.id]} />
+          ) : (
+            <span
+              className="text-xs text-ink-subtle"
+              title={attributionTitle(resolveUserName, prompt.user_id, prompt.updated_by, prompt.updated_at)}
+            >
+              {lastUsed}
+            </span>
+          )}
+          <div className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
               onClick={handlePin}

@@ -129,16 +129,26 @@ check('12 months', [yr.label, yr.totals.uses.cur, yr.totals.uses.prev, yr.series
 
 // Team table.
 const t = UA.team(
-  [{ user_id: 'u1', member_name: 'Ana', uses: 10, snippets: 4 }, { user_id: 'u2', member_name: 'Ben', uses: 30, snippets: 6 }],
+  [{ user_id: 'u1', member_name: 'Ana', uses: 10, snippets: 4, prompts: 1 }, { user_id: 'u2', member_name: 'Ben', uses: 30, snippets: 6 }],
   [{ user_id: 'u1', member_name: 'Ana', uses: 20 }, { user_id: 'u3', member_name: 'Cy', uses: 5 }],
   'u1',
 );
-check('team ranking', t.members.map((m) => [m.rank, m.name, m.uses, m.share, m.change.text, m.isMe]), [
-  [1, 'Ben', 30, 75, 'New', false],
-  [2, 'Ana', 10, 25, '−50%', true],
-  [3, 'Cy', 0, 0, '−100%', false],
+check('team ranking', t.members.map((m) => [m.rank, m.name, m.uses, m.snippets, m.prompts, m.share, m.change.text, m.isMe, m.mostActive]), [
+  [1, 'Ben', 30, 6, 0, 75, 'New', false, true],
+  [2, 'Ana', 10, 4, 1, 25, '−50%', true, false],
+  [3, 'Cy', 0, 0, 0, 0, '−100%', false, false],
 ]);
 check('team total', [t.total.cur, t.total.prev, t.total.text], [40, 25, '+60%']);
+check('a tie at the top has no most active',
+  UA.team([{ user_id: 'u1', member_name: 'Ana', uses: 5 }, { user_id: 'u2', member_name: 'Ben', uses: 5 }], [], null).members.map((m) => m.mostActive),
+  [false, false]);
+check('nobody is most active with no use',
+  UA.team([], [{ user_id: 'u1', member_name: 'Ana', uses: 5 }], null).members.map((m) => m.mostActive), [false]);
+
+// The line under a team snippet or prompt.
+check('last use line', UA.lastUseLine({ used_at: at(2026, 10, 25, 2, 30), used_by_name: 'Ana' }), 'Last used by Ana on 25/10/2026 at 02:30');
+check('last use line without a name', UA.lastUseLine({ used_at: at(2026, 1, 5, 9, 7) }), 'Last used by a team member on 05/01/2026 at 09:07');
+check('never used', [UA.lastUseLine(null), UA.lastUseLine({ used_at: 'not a date', used_by_name: 'Ana' })], ['Never used', 'Never used']);
 
 // 80/20. Ten uses in the 7-day window: a×6 (2 phone, 3 computer, 1 untagged),
 // b×2, c×1, plus a deleted snippet and one before the window, neither ranked.

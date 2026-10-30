@@ -33,6 +33,7 @@ import { PromptEfficiencyWidget } from '@/features/prompts/PromptEfficiencyWidge
 import { LabelPicker } from '@/features/labels/LabelPicker';
 import { AssetAboutButton } from '@/components/shared/AssetAboutButton';
 import { BrainIcon } from '@/components/shared/BrainIcon';
+import { TeamLastUseLine } from '@/components/shared/TeamLastUseLine';
 import { ReviewStatusMenu } from '@/components/shared/ReviewStatusMenu';
 import {
   DraftFromTextButton,
@@ -1225,6 +1226,9 @@ export function PromptBlockEditor() {
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             {submitError}
           </div>
+        )}
+        {mode === 'edit' && editingPrompt?.organization_id && editingPrompt.folder_id && (
+          <TeamLastUseLine kind="prompt" ids={[editingPrompt.id]} tone="dark" />
         )}
         {/* Every button keeps its words on one line (shrink-0, nowrap). On the
             420px panel History is an icon, so the four buttons fit with room to

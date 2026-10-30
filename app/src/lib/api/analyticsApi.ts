@@ -9,6 +9,7 @@ import type {
 } from '@/types/database';
 import type {
   PromptEventRow,
+  TeamLastUse,
   TeamUsageRow,
   UsageEventRow,
   UsageInput,
@@ -25,6 +26,8 @@ import type {
 //                  themselves are decided by extension/shared/usage-analytics.js
 //                  (lib/usageAnalytics.ts), the same file the phone runs.
 //   getActivity()  the year grid and the month-by-month overview.
+//   getTeamLastUses()  who last used each snippet and prompt in a team folder
+//                  you can open, for the "Last used by" line.
 //
 // Events are read in pages (fetchAllPages): one read stopped at the server's
 // 1,000-row cap, and an account with more uses than that saw totals that were
@@ -34,6 +37,17 @@ export interface AnalyticsApi {
   getUsage(loadFrom: Date): Promise<UsageInput>;
   getTeamUsage(from: Date, to: Date): Promise<TeamUsageRow[] | null>;
   getActivity(): Promise<ActivityData>;
+  getTeamLastUses(): Promise<{ snippets: Map<string, TeamLastUse>; prompts: Map<string, TeamLastUse> }>;
+}
+
+type LastUseRow = { used_at: string; used_by_name: string | null };
+
+function lastUseMap<K extends string>(rows: Array<LastUseRow & Record<K, string>> | null, key: K): Map<string, TeamLastUse> {
+  const map = new Map<string, TeamLastUse>();
+  for (const row of rows ?? []) {
+    if (row[key] && row.used_at) map.set(row[key], { used_at: row.used_at, used_by_name: row.used_by_name });
+  }
+  return map;
 }
 
 // 53 columns = 52 full weeks + the current (partial) week — matches the
@@ -257,14 +271,34 @@ export const analyticsApi: AnalyticsApi = {
       if ((error as { code?: string }).code === 'PGRST202') return null;
       throw toApiError(error);
     }
-    return ((data ?? []) as Array<{ user_id: string; member_name: string | null; uses: number | string; snippets: number | string }>).map(
-      (row) => ({
-        user_id: row.user_id,
-        member_name: row.member_name,
-        uses: Number(row.uses) || 0,
-        snippets: Number(row.snippets) || 0,
-      }),
-    );
+    return (
+      (data ?? []) as Array<{
+        user_id: string;
+        member_name: string | null;
+        uses: number | string;
+        snippets: number | string;
+        prompts?: number | string;
+      }>
+    ).map((row) => ({
+      user_id: row.user_id,
+      member_name: row.member_name,
+      uses: Number(row.uses) || 0,
+      snippets: Number(row.snippets) || 0,
+      prompts: Number(row.prompts) || 0,
+    }));
+  },
+
+  async getTeamLastUses() {
+    const [snippetsRes, promptsRes] = await Promise.all([
+      supabase.rpc('shared_snippet_last_use'),
+      supabase.rpc('shared_prompt_last_use'),
+    ]);
+    if (snippetsRes.error) throw toApiError(snippetsRes.error);
+    if (promptsRes.error) throw toApiError(promptsRes.error);
+    return {
+      snippets: lastUseMap(snippetsRes.data as Array<LastUseRow & { snippet_id: string }> | null, 'snippet_id'),
+      prompts: lastUseMap(promptsRes.data as Array<LastUseRow & { prompt_id: string }> | null, 'prompt_id'),
+    };
   },
 
   async getActivity() {

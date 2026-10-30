@@ -126,6 +126,8 @@ var DB = {
             // plus teammates' rows from shared folders, and this is the only
             // field that tells them apart (library stats, snippet-stats.js).
             user_id: s.user_id || null,
+            // In a team folder: the detail says who used it last.
+            team: !!(s.organization_id && s.folder_id),
             body: s.body || '', lang: s.lang || 'EN',
             bodies: (s.bodies && typeof s.bodies === 'object') ? s.bodies : {},
             // The formatted layout (Bold, lists), active language and per language.
@@ -166,12 +168,32 @@ var DB = {
       snippet_id: snippetId, user_id: SB_CURRENT_USER_ID, uses: uses, fills: fills, last_used: lastUsed
     }).catch(function(e) { console.error('updateStats:', e); });
   },
+  // Who last used each snippet and prompt in a team folder you can open, for
+  // the "Last used by" line. Null when either read fails, so the line hides
+  // rather than saying "Never used" about something that may have been used.
+  loadTeamLastUse: function() {
+    function read(fn, key) {
+      return supaFetch('rpc/' + fn, 'GET', null, 'select=*').then(function(r) {
+        if (!r.ok) throw new Error(fn + ' answered ' + r.status);
+        return r.json();
+      }).then(function(rows) {
+        var map = {};
+        (Array.isArray(rows) ? rows : []).forEach(function(u) {
+          if (u && u[key]) map[u[key]] = { used_at: u.used_at, used_by_name: u.used_by_name || '' };
+        });
+        return map;
+      });
+    }
+    return Promise.all([read('shared_snippet_last_use', 'snippet_id'), read('shared_prompt_last_use', 'prompt_id')])
+      .then(function(res) { return { snippets: res[0], prompts: res[1] }; })
+      .catch(function(e) { console.error('[Fibonax] Could not load who last used your team items:', e); return null; });
+  },
   loadPrompts: function() {
     // No user_id filter — RLS handles both personal and org-shared prompts.
     // created_at joins the projection for INACTIVE-001: it is the anchor for a
     // prompt that has never been used, the same way snippets fall back to theirs.
     return supaFetch('prompts', 'GET', null,
-      'select=id,user_id,name,content,shortcut,strategy_type,intent_category,last_used_at,created_at,pinned,review_status' +
+      'select=id,user_id,name,content,shortcut,strategy_type,intent_category,last_used_at,created_at,pinned,review_status,folder_id,organization_id' +
       // Archived prompts are kept to be restored, not offered (AI-KNOWLEDGE P2).
       '&review_status=neq.archived&order=updated_at.desc'
     ).then(function(r) { return r.ok ? r.json() : []; })
@@ -252,6 +274,11 @@ var searchAllFolders= false;  // "search all folders" escape from a folder-scope
 // which is what keeps this surface and the dashboard agreeing on which assets
 // are stale and how the sentence reads.
 var lastUsedMap = {};
+// DB.loadTeamLastUse(): { snippets: {id: use}, prompts: {id: use} }, or null
+// until it has loaded (and when it failed).
+var teamLastUse = null;
+// The name a use from here shows under until the server's own answer arrives.
+var myLastUseName = '';
 var inaState    = null;   // null until storage resolves; the notice stays hidden
 var inaIndex    = 0;      // which stale asset the strip is showing
 
@@ -714,7 +741,7 @@ function applyPopupGreeting(session) {
                       : h >= 12 && h < 18 ? 'Good afternoon,'
                       : 'Good evening,';
 
-  function setName(n) { if (n) nameEl.textContent = n; }
+  function setName(n) { if (n) { nameEl.textContent = n; myLastUseName = n; } }
 
   // Instant: cached name from a previous session
   chrome.storage.local.get('sb_display_name', function(d) {
@@ -819,6 +846,7 @@ function boot() {
       inaPrune();
       refreshUI();
     });
+    loadTeamLastUse();
 
     // The Brains alone, for the count on their tab. What is in them loads when
     // the tab opens (loadBrains), so a popup opened for a snippet never reads
@@ -1394,6 +1422,7 @@ function copyFilled(id){
   var out=vm.preview;
   checkThenCopy(s, out, vm, form, function(){
     copyWithPictures(out, vm.formatted);
+    logSnippetCopy(s, vm.fields.length);
     showToast('Copied filled text');
   });
 }
@@ -1689,6 +1718,10 @@ function renderDetailHtml(s){
         +'<button class="d-btn pri" type="button" data-copyfinished="'+esc(s.id)+'">'+copyIco+'Copy body</button>'
         +scBtn+editBtn
       +'</div>';
+  }
+  if(s.team){
+    var lu=teamLastUseLineFor(s);
+    h+='<div class="d-lastuse" data-lu="'+esc(s.id)+'"'+(lu?'':' hidden')+'>'+esc(lu)+'</div>';
   }
   return h+'</div>';
 }
@@ -2263,7 +2296,60 @@ function copyBody(id){
   var lang=(detailLang && vars[detailLang]) ? detailLang : (s.lang||'EN');
   var body=detailBody(s, lang, vars);
   try{ navigator.clipboard.writeText(body||''); }catch(e){}
+  logSnippetCopy(s, 0);
   showToast('Copied '+lang+' body');
+}
+
+// ── TEAM LAST USE ───────────────────────────────────────────────────
+// "Last used by NAME on DD/MM/YYYY at HH:MM" under a snippet or prompt in a
+// team folder. The words come from shared/usage-analytics.js, the module the
+// dashboard and the phone print the same line from.
+function loadTeamLastUse(){
+  DB.loadTeamLastUse().then(function(res){
+    if(!res) return;
+    teamLastUse=res;
+    if(activeMode==='prompts') renderPrompts(gi('sq')?gi('sq').value:'');
+    else paintTeamLastUse();
+  });
+}
+// Writes the line into an open detail in place: a full re-render would drop
+// what is being typed into its fields.
+function paintTeamLastUse(){
+  document.querySelectorAll('.d-lastuse[data-lu]').forEach(function(el){
+    var line=teamLastUseLineFor(findSnip(el.dataset.lu));
+    el.textContent=line;
+    el.hidden=!line;
+  });
+}
+// The latest use across a snippet's language rows, as the phone reads it.
+function teamLastUseLineFor(s){
+  if(!s || !s.team || !teamLastUse) return '';
+  var g=SBSnippetStats.groupFor(snips, s), rows=g ? g.rows : [s], best=null;
+  rows.forEach(function(r){
+    var u=teamLastUse.snippets[r.id];
+    if(u && (!best || Date.parse(u.used_at)>Date.parse(best.used_at))) best=u;
+  });
+  return SBUsageAnalytics.lastUseLine(best);
+}
+function promptLastUseLineFor(p){
+  if(!p || !p.organization_id || !p.folder_id || !teamLastUse) return '';
+  return SBUsageAnalytics.lastUseLine(teamLastUse.prompts[p.id]);
+}
+function markTeamUse(kind, id){
+  if(!teamLastUse) return;
+  teamLastUse[kind][id]={ used_at:new Date().toISOString(), used_by_name:myLastUseName };
+}
+// Copying a snippet's text out of the popup is a use, logged the way an
+// expansion in a page is (background.js stamps who you are).
+function logSnippetCopy(s, fieldsFilled){
+  try{
+    chrome.runtime.sendMessage({ type:'log_event', payload:{
+      snippet_id:s.id, shortcut:s.shortcut||'', lang:s.lang||null,
+      fields_filled:fieldsFilled||0, device:'computer'
+    }});
+  }catch(e){ console.error('[Fibonax] snippet use not recorded:', e); }
+  inaTouch(s);
+  if(s.team){ markTeamUse('snippets', s.id); paintTeamLastUse(); }
 }
 // A body with nothing to resolve is already the finished text, so its Copy is
 // the message itself and is checked like Copy filled.
@@ -2274,6 +2360,7 @@ function copyFinishedBody(id){
   var body=detailBody(s, lang, vars);
   checkThenCopy(s, body, null, null, function(){
     try{ navigator.clipboard.writeText(body||''); }catch(e){}
+    logSnippetCopy(s, 0);
     showToast('Copied '+lang+' body');
   });
 }
@@ -2318,10 +2405,13 @@ function renderPrompts(q) {
     var scHtml = p.shortcut
       ? '<span class="p-sc"><span class="isc-pfx">'+esc(pt)+'</span>'+esc(shortWord(p.shortcut))+'</span>'
       : '';
+    // A prompt in a team folder says who used it last, under its badges.
+    var luLine = promptLastUseLineFor(p);
     h += '<div class="p-item" data-pid="'+esc(p.id)+'" tabindex="-1" role="button" aria-label="'+esc(p.name||'Untitled')+' — copy prompt">'
       + '<div class="p-body">'
       + '<div class="p-name" id="pname-'+esc(p.id)+'">'+esc(p.name||'Untitled')+reviewChipHtml(p.review_status)+'</div>'
       + '<div class="p-meta">'+stratHtml+scHtml+'</div>'
+      + (luLine ? '<div class="p-lastuse">'+esc(luLine)+'</div>' : '')
       + '</div>'
       + '<button class="p-copy" type="button" title="Copy prompt" aria-label="Copy prompt"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>'
       + '</div>';
@@ -2368,6 +2458,13 @@ function copyPrompt(pid){
     // What the Brain added, against the note Copy whole Brain shows past BRAIN_LONG_TOKENS.
     else if (SBMemoryPack.estimateTokens(content) - SBMemoryPack.estimateTokens(p.content || '') > BRAIN_LONG_TOKENS) msg += '. Long Brain: check the paste';
     function copied(){
+      // A copy is a use: the shared counter and the use log, as the """ menu does.
+      try { chrome.runtime.sendMessage({ type: 'log_prompt_use', prompt_id: p.id }); }
+      catch(e) { console.error('[Fibonax] prompt use not recorded:', e); }
+      if (p.organization_id && p.folder_id && teamLastUse) {
+        markTeamUse('prompts', p.id);
+        renderPrompts(gi('sq') ? gi('sq').value : '');
+      }
       var nm = gi('pname-'+pid);
       var orig = nm ? nm.textContent : '';
       if (nm) nm.textContent = '✓ Copied!';
@@ -2774,6 +2871,7 @@ on('brel','click', function(){
     syncPrompts();
     refreshUI();
   });
+  loadTeamLastUse();
 });
 on('sq','input', function(e){
   expandedId=null;

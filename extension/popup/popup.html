@@ -210,6 +210,9 @@ html,body{
 .d-body.plain{color:var(--sb-ink-subtle);font-style:italic}
 .d-note{font-size:var(--sb-fs-10);color:var(--sb-ink-subtle);line-height:1.4}
 .d-note b{font-family:var(--sb-mono);font-weight:600;color:var(--sb-ink-muted)}
+/* "Last used by NAME on DD/MM/YYYY at HH:MM" under a team snippet or prompt. */
+.d-lastuse{font-size:var(--sb-fs-10);color:var(--sb-ink-subtle);line-height:1.4;padding-top:8px;border-top:1px solid var(--sb-line)}
+.p-lastuse{font-size:var(--sb-fs-10);color:var(--sb-ink-subtle);line-height:1.4;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d-fields{display:flex;flex-direction:column;gap:8px;max-height:250px;overflow-y:auto;padding-right:2px}
 .d-frow{display:flex;flex-direction:column;gap:4px}
 /* Direct child only: a descendant selector also caught the <label> wrapping
@@ -799,6 +802,7 @@ html,body{
 <script src="../shared/interactive-steps.js"></script>
 <script src="../shared/saint-of-day.js"></script>
 <script src="../shared/review-prompt.js"></script>
+<script src="../shared/usage-analytics.js"></script>
 <script src="popup.js"></script>
 
 <!-- ═══ CHANGELOG MODAL ═══ -->

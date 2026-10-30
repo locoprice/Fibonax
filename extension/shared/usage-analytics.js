@@ -495,9 +495,25 @@
   }
 
   /**
+   * The line under a snippet or prompt in a team folder, from
+   * shared_snippet_last_use() / shared_prompt_last_use():
+   * "Last used by Anna on 30/10/2026 at 14:05", or "Never used" when nobody on
+   * the team has used it yet. Local time, day first, 24-hour clock.
+   */
+  function lastUseLine(lastUse) {
+    var d = lastUse && lastUse.used_at ? new Date(lastUse.used_at) : null;
+    if (!d || isNaN(d.getTime())) return 'Never used';
+    var name = lastUse.used_by_name ? String(lastUse.used_by_name) : 'a team member';
+    return 'Last used by ' + name + ' on ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() +
+      ' at ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  /**
    * The team table, from two reads of team_usage_by_member(): the period and
    * the one before it. A member who used nothing this period but did before
-   * stays in the table at 0, because a drop is part of the picture.
+   * stays in the table at 0, because a drop is part of the picture. Uses count
+   * shared snippets and shared prompts together; the person with the most this
+   * period is the most active, unless two share the top (then nobody is).
    */
   function team(current, previous, myId) {
     var curRows = Array.isArray(current) ? current : [];
@@ -507,10 +523,13 @@
       for (var i = 0; i < rows.length; i++) {
         var row = rows[i];
         if (!row || !row.user_id) continue;
-        var m = byId[row.user_id] || (byId[row.user_id] = { id: row.user_id, name: '', uses: 0, prevUses: 0, snippets: 0 });
+        var m = byId[row.user_id] || (byId[row.user_id] = { id: row.user_id, name: '', uses: 0, prevUses: 0, snippets: 0, prompts: 0 });
         if (row.member_name && !m.name) m.name = String(row.member_name);
-        if (field === 'cur') { m.uses += Number(row.uses) || 0; m.snippets += Number(row.snippets) || 0; }
-        else m.prevUses += Number(row.uses) || 0;
+        if (field === 'cur') {
+          m.uses += Number(row.uses) || 0;
+          m.snippets += Number(row.snippets) || 0;
+          m.prompts += Number(row.prompts) || 0;
+        } else m.prevUses += Number(row.uses) || 0;
       }
     }
     add(curRows, 'cur');
@@ -519,6 +538,7 @@
     var total = sum(list.map(function (m) { return m.uses; }));
     var prevTotal = sum(list.map(function (m) { return m.prevUses; }));
     list.sort(function (a, b) { return b.uses - a.uses || b.prevUses - a.prevUses || a.name.localeCompare(b.name); });
+    var topId = list.length && list[0].uses > 0 && !(list[1] && list[1].uses === list[0].uses) ? list[0].id : null;
     return {
       total: change(total, prevTotal),
       members: list.map(function (m, idx) {
@@ -527,8 +547,10 @@
           rank: idx + 1,
           name: m.name || 'Team member',
           isMe: !!myId && m.id === myId,
+          mostActive: m.id === topId,
           uses: m.uses,
           snippets: m.snippets,
+          prompts: m.prompts,
           share: percentOf(m.uses, total),
           change: change(m.uses, m.prevUses)
         };
@@ -723,7 +745,8 @@
     DEVICE_LABELS: DEVICE_LABELS,
     compute: compute,
     pareto: pareto,
-    team: team
+    team: team,
+    lastUseLine: lastUseLine
   };
 
   // UMD: browser globals, CommonJS (the node gate), AMD.

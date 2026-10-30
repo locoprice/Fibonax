@@ -127,8 +127,12 @@ export interface UsageTeamMember {
   rank: number;
   name: string;
   isMe: boolean;
+  /** Most uses this period, alone at the top. */
+  mostActive: boolean;
+  /** Shared snippets and shared prompts together. */
   uses: number;
   snippets: number;
+  prompts: number;
   share: number;
   change: UsageChange;
 }
@@ -248,6 +252,13 @@ export interface TeamUsageRow {
   member_name: string | null;
   uses: number;
   snippets: number;
+  prompts: number;
+}
+
+/** One row of shared_snippet_last_use() or shared_prompt_last_use(). */
+export interface TeamLastUse {
+  used_at: string;
+  used_by_name: string | null;
 }
 
 export interface UsageAnalyticsApi {
@@ -269,6 +280,8 @@ export interface UsageAnalyticsApi {
   compute(input: UsageInput & { period: UsagePeriod; now: number }): UsageReport;
   pareto(input: UsageInput & { period: UsagePeriod; now: number }): ParetoReport;
   team(current: TeamUsageRow[], previous: TeamUsageRow[], myId: string | null): UsageTeamReport;
+  /** "Last used by NAME on DD/MM/YYYY at HH:MM", or "Never used". */
+  lastUseLine(lastUse: TeamLastUse | null | undefined): string;
 }
 
 declare global {

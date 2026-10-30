@@ -31,6 +31,7 @@ import { Segmented } from '@/components/ui/segmented';
 import { Toggle, ToggleGroup } from '@/components/ui/toggle';
 import { AssetAboutButton } from '@/components/shared/AssetAboutButton';
 import { ReviewStatusMenu } from '@/components/shared/ReviewStatusMenu';
+import { TeamLastUseLine } from '@/components/shared/TeamLastUseLine';
 import { ProSoon, ProSoonLock, PRO_SOON_CONTROL } from '@/components/shared/ProSoon';
 import { isProFeatureAvailable } from '@/lib/proFeatures';
 import {
@@ -2886,6 +2887,9 @@ export function NewSnippetDialog() {
                   {confirmDelete ? 'Click again to confirm' : 'Delete'}
                 </button>
               </>
+            )}
+            {mode === 'edit' && editingSnippet?.organization_id && editingSnippet.folder_id && !submitError && syncText === null && (
+              <TeamLastUseLine kind="snippet" ids={[editingSnippet.id, ...siblings.map((s) => s.rowId)]} />
             )}
             {submitError && (
               <div className="flex items-center gap-1.5 text-xs text-danger min-w-0">
