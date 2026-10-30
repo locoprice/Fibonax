@@ -99,6 +99,16 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
     try { sendResponse({ ok: true }); } catch(e) {}
     return true;
   }
+  // One use of a saved prompt from the """ menu: bumps its shared counter and
+  // logs the use, tagged as a computer use, in one call (see the migration
+  // 20261030120000_usage_device_and_prompt_events.sql).
+  if (msg && msg.type === 'log_prompt_use' && typeof msg.prompt_id === 'string' && msg.prompt_id) {
+    supaRpc('increment_prompt_usage', { p_prompt_id: msg.prompt_id, p_device: 'computer' }).catch(function(e) {
+      if (!e || e.message !== 'not_authed') console.warn('[Fibonax] prompt use not recorded:', e);
+    });
+    try { sendResponse({ ok: true }); } catch(e) {}
+    return true;
+  }
 });
 
 // ── MEMORY-001: working-memory reads for the composer picker ──────

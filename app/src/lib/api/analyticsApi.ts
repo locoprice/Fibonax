@@ -7,13 +7,21 @@ import type {
   ActivityMonth,
   ActivityOverview,
 } from '@/types/database';
-import type { TeamUsageRow, UsageEventRow, UsageInput, UsageSnippetRow } from '@/lib/usageAnalytics';
+import type {
+  PromptEventRow,
+  TeamUsageRow,
+  UsageEventRow,
+  UsageInput,
+  UsagePromptRow,
+  UsageSnippetRow,
+} from '@/lib/usageAnalytics';
 
 // Live reads over public.snippet_events. The extension and the phone write one
 // row per real snippet insert (ANALYTICS-001). Two readers here:
 //
 //   getUsage()     the raw inputs of the Analytics figures (your own inserts for
-//                  the last two years, the library, last uses). The figures
+//                  the last two years, the library, last uses, and your own
+//                  prompt uses with the prompt library for the 80/20 view). The figures
 //                  themselves are decided by extension/shared/usage-analytics.js
 //                  (lib/usageAnalytics.ts), the same file the phone runs.
 //   getActivity()  the year grid and the month-by-month overview.
@@ -170,13 +178,13 @@ export const analyticsApi: AnalyticsApi = {
     const userId = await currentUserId();
     const fromIso = loadFrom.toISOString();
 
-    const [events, snippets, foldersRes, lastUsedRes] = await Promise.all([
+    const [events, snippets, foldersRes, lastUsedRes, promptEvents, prompts] = await Promise.all([
       // Your own inserts only: snippet_events RLS is select-own, and these are
       // figures about how YOU work. Team figures come from getTeamUsage().
       fetchAllPages<UsageEventRow>((from, to) =>
         supabase
           .from('snippet_events')
-          .select('snippet_id, created_at, fields_filled, lang')
+          .select('snippet_id, created_at, fields_filled, lang, device')
           .eq('user_id', userId)
           .gte('created_at', fromIso)
           .order('id', { ascending: true })
@@ -195,6 +203,25 @@ export const analyticsApi: AnalyticsApi = {
       ),
       supabase.from('folders').select('id, name'),
       supabase.rpc('snippet_last_used'),
+      // Your own prompt uses (prompt_events is select-own), for the 80/20 view.
+      fetchAllPages<PromptEventRow>((from, to) =>
+        supabase
+          .from('prompt_events')
+          .select('prompt_id, created_at, device')
+          .eq('user_id', userId)
+          .gte('created_at', fromIso)
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
+      // The prompts you can read, archived ones left out as snippets are.
+      fetchAllPages<UsagePromptRow>((from, to) =>
+        supabase
+          .from('prompts')
+          .select('id, name, shortcut')
+          .or('review_status.is.null,review_status.neq.archived')
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
     ]);
     if (foldersRes.error) throw toApiError(foldersRes.error);
     // Last uses decide "never used" and "not used for 90 days". Without them
@@ -213,6 +240,8 @@ export const analyticsApi: AnalyticsApi = {
       folders: (foldersRes.data ?? []) as Array<{ id: string; name: string }>,
       lastUsed,
       loadedFrom: fromIso,
+      promptEvents,
+      prompts,
     };
   },
 

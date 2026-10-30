@@ -7,7 +7,7 @@
 // scripts/sync-snippet-stats.js).
 //
 // It also pins that the phone's Analytics page reads its figures THROUGH the
-// module (SBUsageAnalytics.compute and .team), so the two pages cannot drift
+// module (SBUsageAnalytics.compute, .pareto and .team), so the two pages cannot drift
 // back to counting on their own.
 //
 // The block goes in just BEFORE the interactive-steps block, never at the first
@@ -25,7 +25,7 @@ const TARGET = path.join(ROOT, 'app', 'public', 'mobile', 'index.html');
 const BEGIN = '<!-- SB_USAGE_ANALYTICS:BEGIN (generated from extension/shared/usage-analytics.js by scripts/sync-usage-analytics.js, do not edit) -->';
 const END = '<!-- SB_USAGE_ANALYTICS:END -->';
 const ANCHOR = '<!-- SB_INTERACTIVE_STEPS:BEGIN';
-const MUST_USE = ['SBUsageAnalytics.compute(', 'SBUsageAnalytics.team(', 'SBUsageAnalytics.loadFrom('];
+const MUST_USE = ['SBUsageAnalytics.compute(', 'SBUsageAnalytics.pareto(', 'SBUsageAnalytics.team(', 'SBUsageAnalytics.loadFrom('];
 
 function rel(p) {
   return path.relative(ROOT, p).split(path.sep).join('/');

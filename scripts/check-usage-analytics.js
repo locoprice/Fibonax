@@ -140,6 +140,44 @@ check('team ranking', t.members.map((m) => [m.rank, m.name, m.uses, m.share, m.c
 ]);
 check('team total', [t.total.cur, t.total.prev, t.total.text], [40, 25, '+60%']);
 
+// 80/20. Ten uses in the 7-day window: a×6 (2 phone, 3 computer, 1 untagged),
+// b×2, c×1, plus a deleted snippet and one before the window, neither ranked.
+const pev = (id, iso, device) => ({ snippet_id: id, created_at: iso, fields_filled: 0, device });
+const pe = UA.pareto({
+  now: NOW,
+  period: 7,
+  snippets,
+  folders,
+  events: [
+    pev('a', at(2026, 10, 28, 9), 'phone'), pev('a', at(2026, 10, 27, 9), 'phone'),
+    pev('a', at(2026, 10, 26, 9), 'computer'), pev('a', at(2026, 10, 25, 9), 'computer'),
+    pev('a', at(2026, 10, 24, 9), 'computer'), pev('a', at(2026, 10, 23, 9)),
+    pev('b', at(2026, 10, 23, 10), 'computer'), pev('b', at(2026, 10, 22, 10), 'tablet'),
+    pev('c', at(2026, 10, 22, 11), 'phone'),
+    pev('gone', at(2026, 10, 24, 18), 'phone'),
+    pev('a', at(2026, 10, 21, 9), 'phone'),
+  ],
+  prompts: [{ id: 'p1', name: 'Summary', shortcut: 'sum' }, { id: 'p2', name: '', shortcut: 'tidy' }],
+  promptEvents: [
+    { prompt_id: 'p2', created_at: at(2026, 10, 28, 8), device: 'phone' },
+    { prompt_id: 'gone', created_at: at(2026, 10, 28, 8), device: 'phone' },
+  ],
+});
+const ps = pe.snippets;
+check('pareto ranks only the library, in the period', [ps.uses, ps.used, ps.library, ps.unused], [9, 3, 5, 2]);
+check('pareto key group is the shortest run reaching 80%', [ps.key.map((x) => x.key), ps.rest.map((x) => x.key)], [['a', 'b'], ['c']]);
+check('pareto cumulative shares', ps.key.concat(ps.rest).map((x) => [x.rank, x.share, x.cumShare]), [[1, 66.7, 66.7], [2, 22.2, 88.9], [3, 11.1, 100]]);
+check('pareto headline floors the share', [ps.headline, ps.summary], ['2 snippets did 88% of your work', 'That is 2 of the 5 snippets in your library (40%).']);
+check('pareto device per row, unknown device reads Before tracking', [ps.key[0].device, ps.key[1].device.unknown],
+  [{ computer: 3, phone: 2, unknown: 1, computerShare: 50, phoneShare: 33.3, unknownShare: 16.7 }, 1]);
+check('pareto groups', [ps.keyGroup.count, ps.keyGroup.uses, ps.keyGroup.share, ps.restGroup.uses, ps.device.phone], [2, 8, 88.9, 1, 3]);
+check('pareto prompts', [pe.prompts.headline, pe.prompts.key[0].title, pe.prompts.uses, pe.prompts.unused], ['1 prompt did all of your work', 'tidy', 1, 1]);
+check('pareto without prompts', UA.pareto({ now: NOW, period: 7, snippets, folders, events: [] }).prompts, null);
+const pEmpty = UA.pareto({ now: NOW, period: 30, snippets: [], folders: [], events: [], prompts: [], promptEvents: [] });
+check('pareto empty', [pEmpty.snippets.empty, pEmpty.snippets.headline, pEmpty.prompts.headline, pEmpty.snippets.key.length],
+  [true, 'No snippets used in this period', 'No prompts used in this period', 0]);
+check('device labels', UA.DEVICE_LABELS, { computer: 'Computer', phone: 'Phone', unknown: 'Before tracking' });
+
 if (failed) {
   console.error('\n' + failed + ' usage analytics check(s) failed');
   process.exit(1);

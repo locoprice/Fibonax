@@ -7,6 +7,7 @@ import { ActivityHeatmap } from '@/features/analytics/ActivityHeatmap';
 import { ActivityOverviewSection } from '@/features/analytics/ActivityOverviewSection';
 import { ContributionActivity } from '@/features/analytics/ContributionActivity';
 import { LibraryHealth } from '@/features/analytics/LibraryHealth';
+import { ParetoCard, type ParetoKind } from '@/features/analytics/ParetoCard';
 import { SnippetRanking } from '@/features/analytics/SnippetRanking';
 import { TeamUsage } from '@/features/analytics/TeamUsage';
 import { TimePatterns } from '@/features/analytics/TimePatterns';
@@ -20,6 +21,8 @@ import type { UsagePeriod } from '@/lib/usageAnalytics';
 const STORAGE_PRIVATE = 'sb.activity.private';
 const STORAGE_OVERVIEW = 'sb.activity.overview';
 const STORAGE_PERIOD = 'sb.analytics.period';
+const STORAGE_PARETO_KIND = 'sb.analytics.paretoKind';
+const STORAGE_PARETO_CHART = 'sb.analytics.paretoChart';
 
 const PERIOD_OPTIONS = [
   { value: '7', label: '7 days' },
@@ -44,6 +47,14 @@ function persist(key: string, value: string): void {
     localStorage.setItem(key, value);
   } catch {
     /* storage unavailable: the choice stays in memory only */
+  }
+}
+
+function readParetoKind(): ParetoKind {
+  try {
+    return localStorage.getItem(STORAGE_PARETO_KIND) === 'prompt' ? 'prompt' : 'snippet';
+  } catch {
+    return 'snippet';
   }
 }
 
@@ -80,6 +91,8 @@ export function AnalyticsPage() {
   const period = Number(periodKey) as UsagePeriod;
   const [showPrivate, setShowPrivate] = useState(() => readToggle(STORAGE_PRIVATE, true));
   const [showOverview, setShowOverview] = useState(() => readToggle(STORAGE_OVERVIEW, true));
+  const [paretoKind, setParetoKind] = useState<ParetoKind>(readParetoKind);
+  const [paretoChart, setParetoChart] = useState(() => readToggle(STORAGE_PARETO_CHART, false));
 
   function changePeriod(next: PeriodKey) {
     setPeriodKey(next);
@@ -92,6 +105,14 @@ export function AnalyticsPage() {
   function changeOverview(next: boolean) {
     setShowOverview(next);
     persist(STORAGE_OVERVIEW, next ? '1' : '0');
+  }
+  function changeParetoKind(next: ParetoKind) {
+    setParetoKind(next);
+    persist(STORAGE_PARETO_KIND, next);
+  }
+  function changeParetoChart(next: boolean) {
+    setParetoChart(next);
+    persist(STORAGE_PARETO_CHART, next ? '1' : '0');
   }
 
   useEffect(() => {
@@ -117,6 +138,10 @@ export function AnalyticsPage() {
     () => (engine && usage && usageAt !== null ? engine.compute({ ...usage, period, now: usageAt }) : null),
     [engine, usage, usageAt, period],
   );
+  const pareto = useMemo(
+    () => (engine && usage && usageAt !== null ? engine.pareto({ ...usage, period, now: usageAt }) : null),
+    [engine, usage, usageAt, period],
+  );
 
   const header = (
     <PageHeader
@@ -124,7 +149,7 @@ export function AnalyticsPage() {
       description={
         report
           ? `${report.label}: ${report.rangeLabel}, compared with ${report.prevRangeLabel}.`
-          : 'How you use your snippets, compared with the period before.'
+          : 'How you use your snippets and prompts, compared with the period before.'
       }
       action={
         <>
@@ -171,7 +196,7 @@ export function AnalyticsPage() {
     );
   }
 
-  if (!report || !engine) {
+  if (!report || !pareto || !engine) {
     return (
       <>
         {header}
@@ -193,6 +218,17 @@ export function AnalyticsPage() {
 
       <div className="mt-6">
         <UsageTrendChart report={report} />
+      </div>
+
+      <div className="mt-6">
+        <ParetoCard
+          report={pareto}
+          engine={engine}
+          kind={paretoKind}
+          onKindChange={changeParetoKind}
+          showChart={paretoChart}
+          onShowChartChange={changeParetoChart}
+        />
       </div>
 
       <div className="mt-6">

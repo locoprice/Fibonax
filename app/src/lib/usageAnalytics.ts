@@ -4,9 +4,9 @@
  *
  * `extension/shared/usage-analytics.js` decides every figure: the period and
  * the one before it, the daily series, rankings and movers, weekday-by-hour,
- * streaks, folder and language shares, library health and the team table. This
- * module loads that file and types what it returns; it does not re-implement
- * any of it. `scripts/check-usage-analytics.js` pins the arithmetic, and
+ * streaks, folder and language shares, library health, the 80/20 view and the
+ * team table. This module loads that file and types what it returns; it does
+ * not re-implement any of it. `scripts/check-usage-analytics.js` pins the arithmetic, and
  * `src/__tests__/usageAnalytics.test.ts` pins the shape typed here.
  */
 
@@ -138,12 +138,29 @@ export interface UsageTeamReport {
   members: UsageTeamMember[];
 }
 
+/** Where a use happened: the Chrome extension or the phone app. Null before devices were recorded. */
+export type UsageDevice = 'computer' | 'phone' | null;
+
 /** One row of public.snippet_events, as the page reads it. */
 export interface UsageEventRow {
   snippet_id: string | null;
   created_at: string;
   fields_filled: number;
   lang: string | null;
+  device?: UsageDevice;
+}
+
+/** One row of public.prompt_events. */
+export interface PromptEventRow {
+  prompt_id: string;
+  created_at: string;
+  device: UsageDevice;
+}
+
+export interface UsagePromptRow {
+  id: string;
+  name: string;
+  shortcut: string | null;
 }
 
 export interface UsageSnippetRow {
@@ -163,6 +180,66 @@ export interface UsageInput {
   lastUsed: Record<string, string>;
   /** Where the event read started, so a streak that reaches it reads "at least". */
   loadedFrom: string;
+  /** Prompt uses and the prompt library, for the 80/20 view. */
+  promptEvents: PromptEventRow[];
+  prompts: UsagePromptRow[];
+}
+
+/** Phone / computer / before-tracking counts and shares (percent, one decimal). */
+export interface UsageDeviceSplit {
+  computer: number;
+  phone: number;
+  unknown: number;
+  computerShare: number;
+  phoneShare: number;
+  unknownShare: number;
+}
+
+export interface ParetoRow {
+  key: string;
+  title: string;
+  detail: string;
+  uses: number;
+  share: number;
+  rank: number;
+  /** Share of all uses covered by this row and every row above it. */
+  cumShare: number;
+  device: UsageDeviceSplit;
+}
+
+export interface ParetoGroup {
+  count: number;
+  uses: number;
+  share: number;
+  device: UsageDeviceSplit;
+}
+
+/** One kind's 80/20: the few that did most of the work, and the rest. */
+export interface ParetoKindReport {
+  kind: 'snippet' | 'prompt';
+  target: number;
+  empty: boolean;
+  /** "5 snippets did 83% of your work", worded once for every surface. */
+  headline: string;
+  summary: string;
+  uses: number;
+  library: number;
+  used: number;
+  unused: number;
+  key: ParetoRow[];
+  rest: ParetoRow[];
+  keyGroup: ParetoGroup;
+  restGroup: ParetoGroup;
+  device: UsageDeviceSplit;
+}
+
+export interface ParetoReport {
+  period: UsagePeriod;
+  label: string;
+  rangeLabel: string;
+  snippets: ParetoKindReport;
+  /** Null when no prompt data was passed in. */
+  prompts: ParetoKindReport | null;
 }
 
 /** One row of team_usage_by_member(). */
@@ -179,6 +256,8 @@ export interface UsageAnalyticsApi {
   SECONDS_PER_USE: number;
   LOAD_DAYS: number;
   DORMANT_DAYS: number;
+  PARETO_TARGET: number;
+  DEVICE_LABELS: { computer: string; phone: string; unknown: string };
   normalizePeriod(p: number): UsagePeriod;
   periodLabel(p: number): string;
   range(period: number, now: number): { period: UsagePeriod; start: Date; end: Date; prevStart: Date; prevEnd: Date; today: Date };
@@ -188,6 +267,7 @@ export interface UsageAnalyticsApi {
   formatDuration(seconds: number): string;
   hourLabel(h: number): string;
   compute(input: UsageInput & { period: UsagePeriod; now: number }): UsageReport;
+  pareto(input: UsageInput & { period: UsagePeriod; now: number }): ParetoReport;
   team(current: TeamUsageRow[], previous: TeamUsageRow[], myId: string | null): UsageTeamReport;
 }
 

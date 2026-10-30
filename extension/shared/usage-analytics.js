@@ -18,6 +18,10 @@
 //   period     7, 30, 90 or 365 days, ending today
 //   now        a timestamp, passed in so the gate can pin the clock
 //
+// pareto() reads the same inputs, plus the prompt log (public.prompt_events)
+// and the prompt library, for the 80/20 view: the few snippets and prompts
+// that did most of the work, and how much of it happened on a phone.
+//
 // Rules that keep the numbers honest:
 //   - Days are LOCAL calendar days, stepped with setDate, so a day across a
 //     clock change is still one day. "Last 7 days" is today and the 6 before.
@@ -532,6 +536,175 @@
     };
   }
 
+  // ── 80/20 ──────────────────────────────────────────────────────────────
+  // Which few snippets (and, apart, which few prompts) did most of the work
+  // in the period. Items are ranked by uses; the key group is the shortest run
+  // from the top whose uses reach PARETO_TARGET percent of all uses, so it is
+  // never padded and never short. Only items still in the library are ranked:
+  // a deleted one cannot be acted on. Each row also says where its uses
+  // happened, phone or computer, from the device the event carries; a row
+  // logged before devices were recorded reads "Before tracking".
+  var PARETO_TARGET = 80;
+  var DEVICE_LABELS = { computer: 'Computer', phone: 'Phone', unknown: 'Before tracking' };
+  var PARETO_NOUNS = { snippet: ['snippet', 'snippets'], prompt: ['prompt', 'prompts'] };
+
+  function deviceOf(raw) {
+    var d = String(raw || '').toLowerCase();
+    return d === 'computer' || d === 'phone' ? d : 'unknown';
+  }
+
+  function deviceSplit(counts) {
+    var total = counts.computer + counts.phone + counts.unknown;
+    return {
+      computer: counts.computer,
+      phone: counts.phone,
+      unknown: counts.unknown,
+      computerShare: percentOf(counts.computer, total),
+      phoneShare: percentOf(counts.phone, total),
+      unknownShare: percentOf(counts.unknown, total)
+    };
+  }
+
+  function noun(kind, n) {
+    var pair = PARETO_NOUNS[kind] || PARETO_NOUNS.snippet;
+    return n === 1 ? pair[0] : pair[1];
+  }
+
+  // One kind's 80/20. `uses` are { id, t, device } already inside the period;
+  // `items` the library, `describe` turns an id into { title, detail }.
+  function paretoOf(kind, uses, items, describe) {
+    var byId = {};
+    for (var i = 0; i < uses.length; i++) {
+      var u = uses[i];
+      var row = byId[u.id] || (byId[u.id] = { computer: 0, phone: 0, unknown: 0, uses: 0 });
+      row[deviceOf(u.device)]++;
+      row.uses++;
+    }
+    var total = 0;
+    var ids = Object.keys(byId);
+    for (var j = 0; j < ids.length; j++) total += byId[ids[j]].uses;
+
+    var rows = ids.map(function (id) {
+      var d = describe(id);
+      var c = byId[id];
+      return { key: id, title: d.title, detail: d.detail || '', uses: c.uses, share: percentOf(c.uses, total), device: deviceSplit(c) };
+    });
+    rows.sort(function (a, b) { return b.uses - a.uses || a.title.localeCompare(b.title); });
+
+    var running = 0;
+    var keyCount = 0;
+    for (var r = 0; r < rows.length; r++) {
+      running += rows[r].uses;
+      rows[r].rank = r + 1;
+      rows[r].cumShare = percentOf(running, total);
+      if (!keyCount && running * 100 >= total * PARETO_TARGET) keyCount = r + 1;
+    }
+
+    var key = rows.slice(0, keyCount);
+    var rest = rows.slice(keyCount);
+    function group(list) {
+      var c = { computer: 0, phone: 0, unknown: 0 };
+      var n = 0;
+      for (var g = 0; g < list.length; g++) {
+        n += list[g].uses;
+        c.computer += list[g].device.computer;
+        c.phone += list[g].device.phone;
+        c.unknown += list[g].device.unknown;
+      }
+      return { count: list.length, uses: n, share: percentOf(n, total), device: deviceSplit(c) };
+    }
+    var keyGroup = group(key);
+    var restGroup = group(rest);
+    var all = group(rows);
+    var library = items.length;
+    // Floor, so the headline never claims more than the key group did.
+    var keyPct = total ? Math.floor((keyGroup.uses / total) * 100) : 0;
+    var headline = total
+      ? keyCount + ' ' + noun(kind, keyCount) + ' did ' + (keyPct === 100 ? 'all' : keyPct + '%') + ' of your work'
+      : 'No ' + noun(kind, 2) + ' used in this period';
+    var summary = total
+      ? (library
+        ? 'That is ' + keyCount + ' of the ' + formatCount(library) + ' ' + noun(kind, library) + ' in your library (' + percentOf(keyCount, library) + '%).'
+        : '')
+      : 'Use a few and the ones that matter most will show up here.';
+
+    return {
+      kind: kind,
+      target: PARETO_TARGET,
+      empty: total === 0,
+      headline: headline,
+      summary: summary,
+      uses: total,
+      library: library,
+      used: rows.length,
+      unused: Math.max(0, library - rows.length),
+      key: key,
+      rest: rest,
+      keyGroup: keyGroup,
+      restGroup: restGroup,
+      device: all.device
+    };
+  }
+
+  /**
+   * The 80/20 of one period, for snippets and for prompts. Pure, like compute():
+   *   events / snippets / folders   as compute() takes them; events may carry
+   *                                 `device`
+   *   promptEvents  { prompt_id, created_at, device } (public.prompt_events)
+   *   prompts       { id, name, shortcut }; leave both out and `prompts` is null
+   */
+  function pareto(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var r = range(inp.period, now);
+    var startMs = r.start.getTime();
+    var endMs = r.end.getTime();
+
+    function within(list, idField, known) {
+      var out = [];
+      for (var i = 0; i < list.length; i++) {
+        var t = eventTime(list[i]);
+        if (t === null || t < startMs || t >= endMs || t > now) continue;
+        var id = list[i][idField];
+        if (!id || !known[id]) continue;
+        out.push({ id: id, t: t, device: list[i].device });
+      }
+      return out;
+    }
+
+    var snippets = Array.isArray(inp.snippets) ? inp.snippets : [];
+    var folders = Array.isArray(inp.folders) ? inp.folders : [];
+    var snipById = {};
+    for (var s = 0; s < snippets.length; s++) if (snippets[s] && snippets[s].id) snipById[snippets[s].id] = snippets[s];
+    var folderName = {};
+    for (var f = 0; f < folders.length; f++) if (folders[f] && folders[f].id) folderName[folders[f].id] = folders[f].name || 'Untitled folder';
+    var snippetReport = paretoOf('snippet', within(Array.isArray(inp.events) ? inp.events : [], 'snippet_id', snipById), snippets, function (id) {
+      var sn = snipById[id];
+      var detail = [];
+      if (sn.shortcut) detail.push(sn.shortcut);
+      if (sn.folder_id && folderName[sn.folder_id]) detail.push(folderName[sn.folder_id]);
+      return { title: sn.title || sn.shortcut || 'Untitled snippet', detail: detail.join(' · ') };
+    });
+
+    var promptReport = null;
+    if (Array.isArray(inp.prompts) && Array.isArray(inp.promptEvents)) {
+      var promptById = {};
+      for (var p = 0; p < inp.prompts.length; p++) if (inp.prompts[p] && inp.prompts[p].id) promptById[inp.prompts[p].id] = inp.prompts[p];
+      promptReport = paretoOf('prompt', within(inp.promptEvents, 'prompt_id', promptById), inp.prompts, function (id) {
+        var pr = promptById[id];
+        return { title: pr.name || pr.shortcut || 'Untitled prompt', detail: pr.shortcut || '' };
+      });
+    }
+
+    return {
+      period: r.period,
+      label: periodLabel(r.period),
+      rangeLabel: rangeLabel(r.start, r.end),
+      snippets: snippetReport,
+      prompts: promptReport
+    };
+  }
+
   var API = {
     PERIODS: PERIODS,
     DEFAULT_PERIOD: DEFAULT_PERIOD,
@@ -546,7 +719,10 @@
     formatCount: formatCount,
     formatDuration: formatDuration,
     hourLabel: hourLabel,
+    PARETO_TARGET: PARETO_TARGET,
+    DEVICE_LABELS: DEVICE_LABELS,
     compute: compute,
+    pareto: pareto,
     team: team
   };
 

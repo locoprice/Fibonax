@@ -18,11 +18,26 @@ function logEvent(snip, fieldsFilled) {
         user_id: snip.user_id || null,
         shortcut: snip.shortcut || '',
         lang: snip.lang || null,
-        fields_filled: fieldsFilled || 0
+        fields_filled: fieldsFilled || 0,
+        device: 'computer'
       }
     });
   } catch(e) { /* extension context lost during reload, silent */ }
   touchLastUsed(snip);
+}
+
+// A picked saved prompt is logged as a PROMPT use (public.prompt_events through
+// increment_prompt_usage), never as a snippet use: it used to land in
+// snippet_events and read as "Deleted snippet" on the Analytics page. The
+// built-in Base Prompts live only here, so they have no row to count.
+function logPromptUse(item) {
+  if (!item || !item.id) return;
+  for (var i = 0; i < BASE_PROMPTS.length; i++) {
+    if (BASE_PROMPTS[i].id === item.id) return;
+  }
+  try {
+    chrome.runtime.sendMessage({ type: 'log_prompt_use', prompt_id: item.id });
+  } catch(e) { /* extension context lost during reload, silent */ }
 }
 
 // ── INACTIVE-001: local mirror of "when was this last used" ───────
@@ -3813,7 +3828,7 @@ function selectTriggerItem(idx) {
     } else {
       _promptText(item, function(text) {
         insertText(el, text);
-        logEvent(item, 0);
+        logPromptUse(item);
       });
     }
   }

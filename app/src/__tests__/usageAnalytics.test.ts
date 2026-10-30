@@ -23,8 +23,8 @@ const at = (d: number, h: number) => new Date(2026, 9, d, h).toISOString();
 
 const input: UsageInput = {
   events: [
-    { snippet_id: 'a', created_at: at(28, 10), fields_filled: 2, lang: 'EN' },
-    { snippet_id: 'a', created_at: at(27, 9), fields_filled: 0, lang: 'EN' },
+    { snippet_id: 'a', created_at: at(28, 10), fields_filled: 2, lang: 'EN', device: 'phone' },
+    { snippet_id: 'a', created_at: at(27, 9), fields_filled: 0, lang: 'EN', device: 'computer' },
     { snippet_id: 'b', created_at: at(20, 9), fields_filled: 0, lang: 'IT' },
   ],
   snippets: [
@@ -34,11 +34,13 @@ const input: UsageInput = {
   folders: [{ id: 'f1', name: 'Sales' }],
   lastUsed: {},
   loadedFrom: UA.loadFrom(NOW).toISOString(),
+  promptEvents: [{ prompt_id: 'p1', created_at: at(28, 8), device: null }],
+  prompts: [{ id: 'p1', name: 'Summary', shortcut: null }],
 };
 
 describe('shared usage analytics, as the dashboard types it', () => {
   it('exposes the interface lib/usageAnalytics.ts declares', () => {
-    for (const fn of ['normalizePeriod', 'periodLabel', 'range', 'loadFrom', 'change', 'formatCount', 'formatDuration', 'hourLabel', 'compute', 'team'] as const) {
+    for (const fn of ['normalizePeriod', 'periodLabel', 'range', 'loadFrom', 'change', 'formatCount', 'formatDuration', 'hourLabel', 'compute', 'pareto', 'team'] as const) {
       expect(typeof UA[fn]).toBe('function');
     }
     expect(UA.PERIODS).toEqual([7, 30, 90, 365]);
@@ -74,6 +76,23 @@ describe('shared usage analytics, as the dashboard types it', () => {
     expect(r.top[0]?.title).toBe('Welcome reply');
     expect(r.top[0]?.share).toBe(100);
     expect(r.falling.map((m) => m.title)).toEqual(['Price estimate']);
+  });
+
+  it('returns every field the 80/20 view reads', () => {
+    const p = UA.pareto({ ...input, period: 7, now: NOW });
+    expect(Object.keys(p).sort()).toEqual(['label', 'period', 'prompts', 'rangeLabel', 'snippets'].sort());
+    expect(Object.keys(p.snippets).sort()).toEqual(
+      ['device', 'empty', 'headline', 'key', 'keyGroup', 'kind', 'library', 'rest', 'restGroup', 'summary', 'target', 'unused', 'used', 'uses'].sort(),
+    );
+    expect(Object.keys(p.snippets.key[0] ?? {}).sort()).toEqual(
+      ['cumShare', 'detail', 'device', 'key', 'rank', 'share', 'title', 'uses'].sort(),
+    );
+    expect(Object.keys(p.snippets.keyGroup).sort()).toEqual(['count', 'device', 'share', 'uses']);
+    expect(p.snippets.headline).toBe('1 snippet did all of your work');
+    expect(p.snippets.key[0]?.device).toMatchObject({ phone: 1, computer: 1, unknown: 0, phoneShare: 50 });
+    expect(p.prompts?.key[0]).toMatchObject({ title: 'Summary', uses: 1, device: { unknown: 1 } });
+    expect(UA.DEVICE_LABELS.unknown).toBe('Before tracking');
+    expect(UA.PARETO_TARGET).toBe(80);
   });
 
   it('builds the team table the TeamUsage card draws', () => {

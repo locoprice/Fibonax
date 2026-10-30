@@ -538,3 +538,7 @@ When a save would edit one language and leave the others with the old text, the 
 | Notice | In the footer beside History and Delete: `warning-bg` fill, a 1 px `warning-deep` border at 30%, 12 px `ink` text, a `warning-deep` triangle. `ink` carries the sentence because `warning-deep` on `warning-bg` is too light for text. One line, cut with an ellipsis, the full sentence on hover |
 | Update link | `primary`, medium weight, for the first language that can be changed from this editor |
 | Save | The first click pauses and the button reads **Save anyway**; the notice border goes to 60% and the sentence ends "Save anyway to keep it." The second click saves. The pause resets when the languages left behind change |
+
+### What does most of your work (80/20, v3.108.0)
+
+The Analytics section that ranks snippets or prompts by uses and splits off the few that reach 80% of them. No new tokens: key bars use `--activity-4`, the rest `--activity-1`; the device split draws Computer in `primary`, Phone in `--activity-2` (on the phone `rgba(27,79,216,.40)`, the heatmap's second step) and Before tracking in `line`. Each part also carries an icon (monitor, phone, history) and its percentage, so colour never carries the meaning alone. The dashboard offers the chart behind **Show chart**; the phone shows the list only.

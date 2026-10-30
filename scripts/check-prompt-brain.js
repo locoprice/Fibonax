@@ -95,6 +95,7 @@ function bootContent(answer, stepsOn) {
     querySelector: () => null, querySelectorAll: () => [], getAttribute: () => null,
   };
   const asked = [];
+  const logged = [];
   const area = { sb_interactive_steps_enabled: !!stepsOn };
   const sandbox = {
     console, setTimeout, clearTimeout, setInterval, clearInterval,
@@ -119,6 +120,7 @@ function bootContent(answer, stepsOn) {
         id: 'extension', lastError: null, onMessage: { addListener: noop },
         sendMessage(msg, cb) {
           if (msg && msg.type === 'prompt_texts') { asked.push(msg.texts.slice()); answer(msg, cb); }
+          if (msg && msg.type === 'log_prompt_use') logged.push(msg.prompt_id);
         },
       },
     },
@@ -132,12 +134,14 @@ function bootContent(answer, stepsOn) {
   vm.runInContext(CONTENT_SRC, sandbox);
   const inserted = [];
   sandbox.insertText = function (el, text) { inserted.push(text); };
-  sandbox.logEvent = noop;
+  // A prompt pick is a prompt use: it must never be logged as a snippet use.
+  sandbox.logEvent = function () { logged.push('snippet use'); };
   const field = { isContentEditable: false, getAttribute: () => null, value: '', selectionStart: 0, selectionEnd: 0 };
   const hints = [];
   const menu = { remove() {}, querySelector: (sel) => (sel === '.sb-tp-hint' ? { set textContent(t) { hints.push(t); } } : null) };
   return {
     asked,
+    logged,
     hints,
     inserted,
     set prompts(list) { sandbox.userPrompts = list; },
@@ -175,6 +179,9 @@ const answerAll = (msg, cb) => cb({ ok: true, texts: msg.texts.map(finish) });
   check('menu: the pick inserts the finished prompt at once', page.pick(SAVED), [FINISHED]);
   check('menu: the pick asks nothing more', page.asked.length, 1);
   check('menu: a prompt without a Brain goes in as written, asking nothing', page.pick(PLAIN), ['## Objective\nPlain.']);
+  check('menu: each pick is logged as a use of that prompt, never as a snippet use', page.logged, [SAVED.id, PLAIN.id]);
+  page.pick({ id: 'formal', title: 'Formal tone', body: 'Please rewrite in a formal, professional tone:\n' });
+  check('menu: a built-in Base Prompt has no row to count, so nothing is logged', page.logged, [SAVED.id, PLAIN.id]);
   page.open();
   check('menu: opening it again within the minute asks nothing', page.asked.length, 1);
   page.age();

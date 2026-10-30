@@ -210,6 +210,7 @@ function bootContent(initialArea) {
   const inserted = [];
   sandbox.insertText = function (el, text) { inserted.push(text); };
   sandbox.logEvent = noop;
+  sandbox.logPromptUse = noop;
   const field = { isContentEditable: false, getAttribute: () => null, value: '', selectionStart: 0, selectionEnd: 0 };
 
   return {

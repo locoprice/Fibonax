@@ -1396,6 +1396,40 @@ svg.brain-type-icon{stroke-width:1.8}
 .an-retry{margin-top:10px;min-height:40px;padding:0 16px;border-radius:var(--r-btn);border:1px solid var(--border);
   background:var(--card);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .an-more{font-size:11.5px;color:var(--text3);padding:8px 0}
+/* What does most of your work (80/20): a Snippets / Prompts switch, the
+   headline, where the uses happened, then the key group and the rest. Phone
+   share in the azure the heatmap's second step uses; uses logged before
+   devices were recorded in the hairline grey. Every part also carries an
+   icon and its percentage, so colour is never the only signal. */
+.an-kind{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:14px 0 4px;
+  border-radius:12px;background:var(--bg-alt)}
+.an-kind button{min-height:40px;border:0;border-radius:9px;background:transparent;color:var(--text2);
+  font-family:inherit;font-size:13px;font-weight:650;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.an-kind button[aria-pressed="true"]{background:var(--card);color:var(--text);box-shadow:var(--shadow-sm)}
+.an-head{font-size:20px;font-weight:750;letter-spacing:-.4px;line-height:1.25;color:var(--text);margin-top:10px}
+.an-head-sub{font-size:12.5px;line-height:1.45;color:var(--text2);margin-top:4px}
+.an-dev-t{font-size:11.5px;font-weight:600;color:var(--text2);margin:14px 0 6px}
+.an-dev{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--bg-alt)}
+.an-dev span{display:block;height:100%}
+.an-dev .computer{background:var(--primary)}
+.an-dev .phone{background:rgba(27,79,216,.40)}
+.an-dev .unknown{background:var(--border)}
+.an-dev-key{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:11.5px;color:var(--text2)}
+.an-dev-key span{display:inline-flex;align-items:center;gap:5px}
+.an-dev-key b{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.an-dev-key i{width:8px;height:8px;border-radius:50%}
+.an-dev-key i.computer{background:var(--primary)}
+.an-dev-key i.phone{background:rgba(27,79,216,.40)}
+.an-dev-key i.unknown{background:var(--border)}
+.an-dev-ico{width:13px;height:13px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.an-where{display:flex;flex-wrap:wrap;gap:2px 9px;margin-top:5px;font-size:11px;color:var(--text2);font-variant-numeric:tabular-nums}
+.an-where span{display:inline-flex;align-items:center;gap:3px}
+.an-where .unknown{color:var(--text3)}
+.an-bar.rest span{background:var(--text3);opacity:.5}
+.an-sub-h .an-kpi-prev{margin-left:auto;font-weight:500}
+.an-more-btn{min-height:44px;padding:0 4px;border:0;background:none;color:var(--primary-copy);
+  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.an-unused{font-size:12.5px;line-height:1.45;color:var(--text2);padding:12px 0 14px;border-top:1px solid var(--bg-alt)}
 /* Detail view hides the global tab bar */
 .sb-detail-view .mtab,.sb-detail-view .mtab-indicator{display:none !important}
 </style>
@@ -5756,6 +5790,10 @@ svg.brain-type-icon{stroke-width:1.8}
 //   period     7, 30, 90 or 365 days, ending today
 //   now        a timestamp, passed in so the gate can pin the clock
 //
+// pareto() reads the same inputs, plus the prompt log (public.prompt_events)
+// and the prompt library, for the 80/20 view: the few snippets and prompts
+// that did most of the work, and how much of it happened on a phone.
+//
 // Rules that keep the numbers honest:
 //   - Days are LOCAL calendar days, stepped with setDate, so a day across a
 //     clock change is still one day. "Last 7 days" is today and the 6 before.
@@ -6270,6 +6308,175 @@ svg.brain-type-icon{stroke-width:1.8}
     };
   }
 
+  // ── 80/20 ──────────────────────────────────────────────────────────────
+  // Which few snippets (and, apart, which few prompts) did most of the work
+  // in the period. Items are ranked by uses; the key group is the shortest run
+  // from the top whose uses reach PARETO_TARGET percent of all uses, so it is
+  // never padded and never short. Only items still in the library are ranked:
+  // a deleted one cannot be acted on. Each row also says where its uses
+  // happened, phone or computer, from the device the event carries; a row
+  // logged before devices were recorded reads "Before tracking".
+  var PARETO_TARGET = 80;
+  var DEVICE_LABELS = { computer: 'Computer', phone: 'Phone', unknown: 'Before tracking' };
+  var PARETO_NOUNS = { snippet: ['snippet', 'snippets'], prompt: ['prompt', 'prompts'] };
+
+  function deviceOf(raw) {
+    var d = String(raw || '').toLowerCase();
+    return d === 'computer' || d === 'phone' ? d : 'unknown';
+  }
+
+  function deviceSplit(counts) {
+    var total = counts.computer + counts.phone + counts.unknown;
+    return {
+      computer: counts.computer,
+      phone: counts.phone,
+      unknown: counts.unknown,
+      computerShare: percentOf(counts.computer, total),
+      phoneShare: percentOf(counts.phone, total),
+      unknownShare: percentOf(counts.unknown, total)
+    };
+  }
+
+  function noun(kind, n) {
+    var pair = PARETO_NOUNS[kind] || PARETO_NOUNS.snippet;
+    return n === 1 ? pair[0] : pair[1];
+  }
+
+  // One kind's 80/20. `uses` are { id, t, device } already inside the period;
+  // `items` the library, `describe` turns an id into { title, detail }.
+  function paretoOf(kind, uses, items, describe) {
+    var byId = {};
+    for (var i = 0; i < uses.length; i++) {
+      var u = uses[i];
+      var row = byId[u.id] || (byId[u.id] = { computer: 0, phone: 0, unknown: 0, uses: 0 });
+      row[deviceOf(u.device)]++;
+      row.uses++;
+    }
+    var total = 0;
+    var ids = Object.keys(byId);
+    for (var j = 0; j < ids.length; j++) total += byId[ids[j]].uses;
+
+    var rows = ids.map(function (id) {
+      var d = describe(id);
+      var c = byId[id];
+      return { key: id, title: d.title, detail: d.detail || '', uses: c.uses, share: percentOf(c.uses, total), device: deviceSplit(c) };
+    });
+    rows.sort(function (a, b) { return b.uses - a.uses || a.title.localeCompare(b.title); });
+
+    var running = 0;
+    var keyCount = 0;
+    for (var r = 0; r < rows.length; r++) {
+      running += rows[r].uses;
+      rows[r].rank = r + 1;
+      rows[r].cumShare = percentOf(running, total);
+      if (!keyCount && running * 100 >= total * PARETO_TARGET) keyCount = r + 1;
+    }
+
+    var key = rows.slice(0, keyCount);
+    var rest = rows.slice(keyCount);
+    function group(list) {
+      var c = { computer: 0, phone: 0, unknown: 0 };
+      var n = 0;
+      for (var g = 0; g < list.length; g++) {
+        n += list[g].uses;
+        c.computer += list[g].device.computer;
+        c.phone += list[g].device.phone;
+        c.unknown += list[g].device.unknown;
+      }
+      return { count: list.length, uses: n, share: percentOf(n, total), device: deviceSplit(c) };
+    }
+    var keyGroup = group(key);
+    var restGroup = group(rest);
+    var all = group(rows);
+    var library = items.length;
+    // Floor, so the headline never claims more than the key group did.
+    var keyPct = total ? Math.floor((keyGroup.uses / total) * 100) : 0;
+    var headline = total
+      ? keyCount + ' ' + noun(kind, keyCount) + ' did ' + (keyPct === 100 ? 'all' : keyPct + '%') + ' of your work'
+      : 'No ' + noun(kind, 2) + ' used in this period';
+    var summary = total
+      ? (library
+        ? 'That is ' + keyCount + ' of the ' + formatCount(library) + ' ' + noun(kind, library) + ' in your library (' + percentOf(keyCount, library) + '%).'
+        : '')
+      : 'Use a few and the ones that matter most will show up here.';
+
+    return {
+      kind: kind,
+      target: PARETO_TARGET,
+      empty: total === 0,
+      headline: headline,
+      summary: summary,
+      uses: total,
+      library: library,
+      used: rows.length,
+      unused: Math.max(0, library - rows.length),
+      key: key,
+      rest: rest,
+      keyGroup: keyGroup,
+      restGroup: restGroup,
+      device: all.device
+    };
+  }
+
+  /**
+   * The 80/20 of one period, for snippets and for prompts. Pure, like compute():
+   *   events / snippets / folders   as compute() takes them; events may carry
+   *                                 `device`
+   *   promptEvents  { prompt_id, created_at, device } (public.prompt_events)
+   *   prompts       { id, name, shortcut }; leave both out and `prompts` is null
+   */
+  function pareto(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var r = range(inp.period, now);
+    var startMs = r.start.getTime();
+    var endMs = r.end.getTime();
+
+    function within(list, idField, known) {
+      var out = [];
+      for (var i = 0; i < list.length; i++) {
+        var t = eventTime(list[i]);
+        if (t === null || t < startMs || t >= endMs || t > now) continue;
+        var id = list[i][idField];
+        if (!id || !known[id]) continue;
+        out.push({ id: id, t: t, device: list[i].device });
+      }
+      return out;
+    }
+
+    var snippets = Array.isArray(inp.snippets) ? inp.snippets : [];
+    var folders = Array.isArray(inp.folders) ? inp.folders : [];
+    var snipById = {};
+    for (var s = 0; s < snippets.length; s++) if (snippets[s] && snippets[s].id) snipById[snippets[s].id] = snippets[s];
+    var folderName = {};
+    for (var f = 0; f < folders.length; f++) if (folders[f] && folders[f].id) folderName[folders[f].id] = folders[f].name || 'Untitled folder';
+    var snippetReport = paretoOf('snippet', within(Array.isArray(inp.events) ? inp.events : [], 'snippet_id', snipById), snippets, function (id) {
+      var sn = snipById[id];
+      var detail = [];
+      if (sn.shortcut) detail.push(sn.shortcut);
+      if (sn.folder_id && folderName[sn.folder_id]) detail.push(folderName[sn.folder_id]);
+      return { title: sn.title || sn.shortcut || 'Untitled snippet', detail: detail.join(' · ') };
+    });
+
+    var promptReport = null;
+    if (Array.isArray(inp.prompts) && Array.isArray(inp.promptEvents)) {
+      var promptById = {};
+      for (var p = 0; p < inp.prompts.length; p++) if (inp.prompts[p] && inp.prompts[p].id) promptById[inp.prompts[p].id] = inp.prompts[p];
+      promptReport = paretoOf('prompt', within(inp.promptEvents, 'prompt_id', promptById), inp.prompts, function (id) {
+        var pr = promptById[id];
+        return { title: pr.name || pr.shortcut || 'Untitled prompt', detail: pr.shortcut || '' };
+      });
+    }
+
+    return {
+      period: r.period,
+      label: periodLabel(r.period),
+      rangeLabel: rangeLabel(r.start, r.end),
+      snippets: snippetReport,
+      prompts: promptReport
+    };
+  }
+
   var API = {
     PERIODS: PERIODS,
     DEFAULT_PERIOD: DEFAULT_PERIOD,
@@ -6284,7 +6491,10 @@ svg.brain-type-icon{stroke-width:1.8}
     formatCount: formatCount,
     formatDuration: formatDuration,
     hourLabel: hourLabel,
+    PARETO_TARGET: PARETO_TARGET,
+    DEVICE_LABELS: DEVICE_LABELS,
     compute: compute,
+    pareto: pareto,
     team: team
   };
 
@@ -9092,7 +9302,8 @@ function promptCopy(p){
   });
   promptMarkUsed(p);
 }
-/* Mirrors desktop promptsApi.markUsed with the shared atomic usage counter. */
+/* Mirrors desktop promptsApi.markUsed with the shared atomic usage counter,
+   which also logs the use for Analytics, tagged as a phone use. */
 function promptMarkUsed(p){
   if(!p||!p.id)return;
   var now=new Date().toISOString();
@@ -9104,7 +9315,7 @@ function promptMarkUsed(p){
   fetch(SUPA+'/rest/v1/rpc/increment_prompt_usage',{
     method:'POST',
     headers:authHeaders({'Content-Type':'application/json'}),
-    body:JSON.stringify({p_prompt_id:p.id})
+    body:JSON.stringify({p_prompt_id:p.id,p_device:'phone'})
   }).then(function(r){
     if(handle401(r))throw new Error('401');
     if(!r.ok)throw new Error('Usage could not be recorded');
@@ -12095,7 +12306,7 @@ function logSnipUse(s,fieldsFilled){
     body:JSON.stringify({
       snippet_id:s.id, user_id:USER_ID,
       shortcut:s.shortcut||'', lang:s.lang||null,
-      fields_filled:fieldsFilled||0
+      fields_filled:fieldsFilled||0, device:'phone'
     })
   }).then(function(r){
     if(handle401(r)||!r.ok)return;
@@ -13239,7 +13450,9 @@ document.addEventListener('keydown',function(e){
        time and the whole team, not only the loaded window;
      - team_usage_by_member() for the period and the one before it, only when
        you belong to a team. When the server has no such function the Team
-       section is left out instead of showing an error. */
+       section is left out instead of showing an error;
+     - your own prompt uses (prompt_events is select-own) and the prompts you
+       can read, for the 80/20 section (SBUsageAnalytics.pareto). */
 var AN_PAGE=1000;
 var AN_PERIOD_KEY='sb_mob_an_period';
 var anPeriod=(function(){
@@ -13248,6 +13461,13 @@ var anPeriod=(function(){
 })();
 var anUsage=null, anLoading=false, anError=null;
 var anTeam={}, anTeamLoading={}, anTeamError=null, anTeamAvailable=true, anInTeam=null;
+var AN_PARETO_KEY='sb_mob_an_pareto';
+var anParetoKind=(function(){
+  try{return localStorage.getItem(AN_PARETO_KEY)==='prompt'?'prompt':'snippet';}
+  catch(e){return 'snippet';}
+})();
+var anParetoRestOpen=false;
+var AN_PARETO_REST=5;
 
 function anFetchPages(url){
   var rows=[];
@@ -13279,9 +13499,15 @@ function loadAnalyticsUsage(){
   anLoading=true;anError=null;
   var now=Date.now();
   var from=SBUsageAnalytics.loadFrom(now).toISOString();
-  var evUrl=SUPA+'/rest/v1/snippet_events?select=snippet_id,created_at,fields_filled,lang'
+  var evUrl=SUPA+'/rest/v1/snippet_events?select=snippet_id,created_at,fields_filled,lang,device'
     +'&user_id=eq.'+encodeURIComponent(USER_ID)
     +'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc';
+  var pevUrl=SUPA+'/rest/v1/prompt_events?select=prompt_id,created_at,device'
+    +'&user_id=eq.'+encodeURIComponent(USER_ID)
+    +'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc';
+  // The prompts you can read, archived ones left out as the dashboard leaves them out.
+  var prUrl=SUPA+'/rest/v1/prompts?select=id,name,shortcut'
+    +'&or=(review_status.is.null,review_status.neq.archived)&order=id.asc';
   var luFetch=anRpc('snippet_last_used').then(function(r){
     if(handle401(r))throw new Error('Your session has ended.');
     if(!r.ok)throw new Error('The server answered '+r.status+'.');
@@ -13292,10 +13518,10 @@ function loadAnalyticsUsage(){
       .then(function(r){return r.ok?r.json():[];})
       .then(function(rows){return Array.isArray(rows)&&rows.length>0;})
       .catch(function(){return false;});
-  Promise.all([anFetchPages(evUrl),luFetch,memberFetch]).then(function(res){
+  Promise.all([anFetchPages(evUrl),luFetch,memberFetch,anFetchPages(pevUrl),anFetchPages(prUrl)]).then(function(res){
     var lastUsed={};
     (Array.isArray(res[1])?res[1]:[]).forEach(function(r){if(r&&r.snippet_id&&r.last_used_at)lastUsed[r.snippet_id]=r.last_used_at;});
-    anUsage={events:res[0],lastUsed:lastUsed,loadedFrom:from,at:now};
+    anUsage={events:res[0],lastUsed:lastUsed,loadedFrom:from,at:now,promptEvents:res[3],prompts:res[4]};
     anInTeam=!!res[2];
     anTeam={};anTeamError=null;
     anLoading=false;
@@ -13470,6 +13696,89 @@ function anHealthList(title,total,rows,word,empty){
   return html;
 }
 
+var AN_DEV_ICONS={
+  computer:'<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  phone:'<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  unknown:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'
+};
+var AN_DEVICES=['computer','phone','unknown'];
+function anDevIcon(key){return '<svg class="an-dev-ico" viewBox="0 0 24 24" aria-hidden="true">'+AN_DEV_ICONS[key]+'</svg>';}
+/* The sentence a screen reader hears for a device split: "Computer 60%, Phone 40%". */
+function anDevSpoken(d){
+  return AN_DEVICES.filter(function(k){return d[k]>0;}).map(function(k){return SBUsageAnalytics.DEVICE_LABELS[k]+' '+d[k+'Share']+'%';}).join(', ');
+}
+function anDevBar(d){
+  var parts=AN_DEVICES.filter(function(k){return d[k]>0;});
+  return '<div class="an-dev" role="img" aria-label="'+esc(anDevSpoken(d))+'">'
+      +parts.map(function(k){return '<span class="'+k+'" style="width:'+d[k+'Share']+'%"></span>';}).join('')
+    +'</div>'
+    +'<div class="an-dev-key" aria-hidden="true">'
+      +parts.map(function(k){return '<span><i class="'+k+'"></i>'+anDevIcon(k)+esc(SBUsageAnalytics.DEVICE_LABELS[k])+' <b>'+d[k+'Share']+'%</b></span>';}).join('')
+    +'</div>';
+}
+/* One row's split as icons and percentages, adding up to its uses. */
+function anDevLine(d){
+  var total=d.computer+d.phone+d.unknown;
+  if(!total)return '';
+  var inner=d.unknown===total
+    ?'<span class="unknown">'+esc(SBUsageAnalytics.DEVICE_LABELS.unknown)+'</span>'
+    :AN_DEVICES.filter(function(k){return d[k]>0;}).map(function(k){
+      return '<span class="'+k+'">'+anDevIcon(k)+Math.round(d[k+'Share'])+'%</span>';
+    }).join('');
+  return '<div class="an-where" role="img" aria-label="'+esc(anDevSpoken(d))+'">'+inner+'</div>';
+}
+function anParetoRows(rows,rest,tap){
+  var n=SBUsageAnalytics.formatCount;
+  return rows.map(function(r){
+    return '<div class="an-row"'+(tap?' role="button" tabindex="0" data-an-snip="'+esc(r.key)+'"':'')+'>'
+      +'<span class="an-rank">'+r.rank+'</span>'
+      +'<div class="an-main"><div class="an-title">'+esc(r.title)+'</div>'
+        +(r.detail?'<div class="an-detail">'+esc(r.detail)+'</div>':'')
+        +'<div class="an-bar'+(rest?' rest':'')+'" aria-hidden="true"><span style="width:'+Math.min(100,Number(r.share)||0)+'%"></span></div>'
+        +anDevLine(r.device)
+      +'</div>'
+      +'<div class="an-side"><span class="an-num">'+n(r.uses)+' <small>'+r.share+'%</small></span></div>'
+    +'</div>';
+  }).join('');
+}
+/* What does most of your work: SBUsageAnalytics.pareto decides every figure
+   and every sentence, as on the dashboard. The phone shows the list only. */
+function anParetoHtml(pareto){
+  var n=SBUsageAnalytics.formatCount;
+  var kind=anParetoKind==='prompt'&&pareto.prompts?'prompt':'snippet';
+  var r=kind==='prompt'?pareto.prompts:pareto.snippets;
+  var one=kind==='prompt'?'prompt':'snippet', many=kind==='prompt'?'prompts':'snippets';
+  var html='';
+  if(pareto.prompts){
+    html+='<div class="an-kind" role="group" aria-label="Show">'
+      +'<button type="button" data-an-kind="snippet" aria-pressed="'+(kind==='snippet')+'">Snippets</button>'
+      +'<button type="button" data-an-kind="prompt" aria-pressed="'+(kind==='prompt')+'">Prompts</button>'
+    +'</div>';
+  }
+  if(r.empty){
+    return html+'<p class="an-head">'+esc(r.headline)+'.</p><p class="an-head-sub" style="padding-bottom:14px">'+esc(r.summary)+'</p>';
+  }
+  html+='<p class="an-head">'+esc(r.headline)+'</p>'
+    +(r.summary?'<p class="an-head-sub">'+esc(r.summary)+'</p>':'')
+    +'<p class="an-dev-t">Where your '+many+' were used</p>'+anDevBar(r.device);
+  function count(c){return n(c)+' '+(c===1?one:many)+' · ';}
+  html+='<div class="an-sub-h">Your key '+many+'<span class="an-kpi-prev">'+count(r.keyGroup.count)+r.keyGroup.share+'% of uses</span></div>'
+    +anParetoRows(r.key,false,kind==='snippet');
+  if(r.rest.length){
+    var shown=anParetoRestOpen?r.rest:r.rest.slice(0,AN_PARETO_REST);
+    html+='<div class="an-sub-h">The rest<span class="an-kpi-prev">'+count(r.restGroup.count)+r.restGroup.share+'% of uses</span></div>'
+      +anParetoRows(shown,true,kind==='snippet');
+    if(r.rest.length>AN_PARETO_REST){
+      html+='<button type="button" class="an-more-btn" data-an-action="pareto-rest" aria-expanded="'+anParetoRestOpen+'">'
+        +(anParetoRestOpen?'Show fewer':'Show all '+n(r.rest.length)+' ('+n(r.rest.length-shown.length)+' more)')+'</button>';
+    }
+  }
+  if(r.unused){
+    html+='<p class="an-unused">'+n(r.unused)+' '+(r.unused===1?one:many)+' in your library '+(r.unused===1?'was':'were')+' not used in this period.</p>';
+  }
+  return html;
+}
+
 function renderAnalytics(){
   var body=document.getElementById('an-body');
   var sub=document.getElementById('an-hdr-sub');
@@ -13513,6 +13822,16 @@ function renderAnalytics(){
   +'</dl></div></div>';
 
   html+=anSection('Inserts per day',report.rangeLabel+', with '+report.prevRangeLabel+' dashed for comparison.',anChart(report),true);
+
+  var pareto=SBUsageAnalytics.pareto({
+    now:anUsage.at, period:anPeriod, events:anUsage.events,
+    folders:allFolders.map(function(f){return {id:f.id,name:f.name};}),
+    snippets:allSnips.map(function(s){return {id:s.id,title:s.title,shortcut:s.shortcut,folder_id:s.folder_id};}),
+    promptEvents:anUsage.promptEvents, prompts:anUsage.prompts
+  });
+  var paretoTarget=(anParetoKind==='prompt'&&pareto.prompts?'prompts':'snippets');
+  html+=anSection('What does most of your work','Ranked by uses in this period. Your key '+paretoTarget
+    +' are the top ones that together reach '+UA.PARETO_TARGET+'% of them.',anParetoHtml(pareto));
 
   html+=anSection('Top snippets','Your ten most-inserted snippets, each with its share of all your inserts.',
     report.top.length?anRows(report.top,{rank:true,bar:true,tap:true,trend:true})
@@ -13567,7 +13886,20 @@ document.getElementById('view-analytics').addEventListener('click',function(e){
     renderAnalytics();
     return;
   }
+  var kb=e.target.closest('[data-an-kind]');
+  if(kb){
+    anParetoKind=kb.getAttribute('data-an-kind')==='prompt'?'prompt':'snippet';
+    anParetoRestOpen=false;
+    try{localStorage.setItem(AN_PARETO_KEY,anParetoKind);}catch(err){}
+    renderAnalytics();
+    return;
+  }
   var act=e.target.closest('[data-an-action]');
+  if(act&&act.getAttribute('data-an-action')==='pareto-rest'){
+    anParetoRestOpen=!anParetoRestOpen;
+    renderAnalytics();
+    return;
+  }
   if(act){
     if(act.getAttribute('data-an-action')==='team-retry'){anTeamError=null;}
     else{anError=null;}
