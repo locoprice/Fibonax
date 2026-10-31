@@ -13888,7 +13888,8 @@ function renderAnalytics(){
   });
   var paretoTarget=(anParetoKind==='prompt'&&pareto.prompts?'prompts':'snippets');
   html+=anSection('What does most of your work','Ranked by uses in this period. Your key '+paretoTarget
-    +' are the top ones that together reach '+UA.PARETO_TARGET+'% of them.',anParetoHtml(pareto));
+    +' are the top ones that together reach '+UA.PARETO_TARGET+'% of them. This is the Pareto principle,'
+    +' the 80/20 rule: a few things do most of the work.',anParetoHtml(pareto));
 
   html+=anSection('Top snippets','Your ten most-inserted snippets, each with its share of all your inserts.',
     report.top.length?anRows(report.top,{rank:true,bar:true,tap:true,trend:true})

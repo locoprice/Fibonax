@@ -190,7 +190,8 @@ export function ParetoCard({ report, engine, kind, onKindChange, showChart, onSh
           <h3 className="text-base font-semibold tracking-tight text-ink">What does most of your work</h3>
           <p className="mt-0.5 text-sm text-ink-muted">
             Ranked by uses in this period. Your key {current.kind === 'prompt' ? 'prompts' : 'snippets'} are the top
-            ones that together reach {current.target}% of them.
+            ones that together reach {current.target}% of them. This is the Pareto principle, the 80/20 rule: a few
+            things do most of the work.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
