@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ButtonHTMLAttributes } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Check, ChevronDown, Clock, Eye, Loader2, Sparkles, Trash2, X, Zap } from 'lucide-react';
 import { HistoryPanel, type HistoryEntry } from '@/features/history/HistoryPanel';
@@ -6,10 +15,12 @@ import { useUiStore } from '@/stores/uiStore';
 import { useLabelStore } from '@/stores/labelStore';
 import { usePromptStore } from '@/stores/promptStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useMemoryStore } from '@/stores/memoryStore';
 import { DEFAULT_TRIGGER_CONFIG, sanitizeTriggerInput } from '@/lib/triggerUtils';
 import { classifyPrompt } from '@/lib/intentEngine';
 import { placeMenu } from '@/lib/menuPlacement';
 import { assembleBlocks, foldReasoningIntoConstraints } from '@/lib/promptUtils';
+import { labelBrainTokens } from '@/lib/promptBrain';
 import { loadInteractiveSteps, saveInteractiveSteps } from '@/lib/interactiveSteps';
 import {
   usePromptEvaluator,
@@ -21,6 +32,8 @@ import {
 import { PromptEfficiencyWidget } from '@/features/prompts/PromptEfficiencyWidget';
 import { LabelPicker } from '@/features/labels/LabelPicker';
 import { AssetAboutButton } from '@/components/shared/AssetAboutButton';
+import { BrainIcon } from '@/components/shared/BrainIcon';
+import { TeamLastUseLine } from '@/components/shared/TeamLastUseLine';
 import { ReviewStatusMenu } from '@/components/shared/ReviewStatusMenu';
 import {
   DraftFromTextButton,
@@ -40,6 +53,7 @@ import { useReviewApprover } from '@/lib/useReviewApprover';
 import type {
   PromptBlock,
   PromptBlockType,
+  PromptBrainRef,
   StrategyType,
   ThinkingMode,
   PreferredModel,
@@ -115,6 +129,16 @@ const EXAMPLE_PROMPT: ExamplePrompt = {
   outputType: 'Markdown',
   intentCategory: 'Writing',
 };
+
+// A draft from the AI, or the example, writes the five blocks' text. The Brain
+// a switched-on Context block carries is a choice, not text, so it stays, and
+// the block stays on. A Brain on a switched-off block stays off.
+function withBrainKept(next: PromptBlock[], prev: PromptBlock[]): PromptBlock[] {
+  const context = prev.find((b) => b.type === 'context');
+  if (!context?.enabled || !context.brain) return next;
+  const brain = context.brain;
+  return next.map((b) => (b.type === 'context' ? { ...b, brain, enabled: true } : b));
+}
 
 // ── Dark select helper ─────────────────────────────────────────────────────────
 
@@ -302,9 +326,11 @@ interface BlockSectionProps {
   block: PromptBlock;
   onChange: (content: string) => void;
   onToggle: () => void;
+  /** Controls a block carries under its text, shown while it is on. */
+  children?: ReactNode;
 }
 
-function BlockSection({ block, onChange, onToggle }: BlockSectionProps) {
+function BlockSection({ block, onChange, onToggle, children }: BlockSectionProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -344,8 +370,101 @@ function BlockSection({ block, onChange, onToggle }: BlockSectionProps) {
             rows={3}
             className="w-full resize-none overflow-hidden rounded-[8px] border border-[#34343C] bg-[#1C1C22] px-3 py-2.5 font-mono text-[15px] leading-relaxed text-[#D6D6DE] placeholder:text-[#7A7A85] focus:border-[#3D6FE8] focus:outline-none focus:ring-1 focus:ring-[#3D6FE8]/25"
           />
+          {children}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Brain picker ───────────────────────────────────────────────────────────────
+
+interface BrainPickerProps {
+  value: PromptBrainRef | null;
+  onChange: (brain: PromptBrainRef | null) => void;
+}
+
+/** "Empty", "1 item", "12 items": the Brains page's own words for a Brain's size. */
+function describeItems(count: number): string {
+  return count === 0 ? 'Empty' : `${count} item${count === 1 ? '' : 's'}`;
+}
+
+// The Brain a Context block carries (lib/promptBrain.ts). One select in the
+// panel's own vocabulary, listing every live Brain with how much is in it. A
+// Brain the list does not hold (in the trash, or another person's behind a
+// shared prompt) stays on the select by name, so the choice is visible and can
+// be changed or cleared rather than vanishing.
+function BrainPicker({ value, onChange }: BrainPickerProps) {
+  const spaces = useMemoryStore((s) => s.spaces);
+  const totals = useMemoryStore((s) => s.totals);
+  const loaded = useMemoryStore((s) => s.loaded);
+  const loading = useMemoryStore((s) => s.loadingSpaces);
+  const storeError = useMemoryStore((s) => s.error);
+  const loadSpaces = useMemoryStore((s) => s.loadSpaces);
+  // The list never arrived. The store keeps one error for every Brain read, so
+  // it only counts here while the list is still missing.
+  const failed = !loaded && !loading && storeError !== null;
+
+  const known = value ? (spaces.find((space) => space.id === value.id) ?? null) : null;
+  const options = spaces.map((space) => ({
+    value: space.id,
+    label: `${space.name} · ${describeItems(totals.get(space.id)?.items ?? 0)}`,
+  }));
+  if (value && !known) {
+    // Named as missing only once the list is in: until then it is simply the saved choice.
+    options.unshift({ value: value.id, label: loaded ? `${value.name || 'Brain'} · not available` : value.name || 'Brain' });
+  }
+  const unavailable = value !== null && loaded && !known;
+
+  let hint: string;
+  if (failed) {
+    hint = 'Your Brains could not be loaded. Check your connection.';
+  } else if (!loaded) {
+    hint = 'Loading your Brains…';
+  } else if (unavailable) {
+    hint = "This Brain is not available: it may be in the trash, or it belongs to the prompt's author. Pick another, or choose None.";
+  } else if (value) {
+    hint = `Everything in “${known?.name ?? value.name}” goes into the prompt each time you use it, as it is that day.`;
+  } else if (loaded && spaces.length === 0) {
+    hint = 'No Brains yet. Create one on the Brains page, then pick it here.';
+  } else {
+    hint = 'Put a whole Brain here. Everything in it goes into the prompt each time you use it, always the latest version.';
+  }
+
+  return (
+    <div className="mt-3">
+      <label className="mb-1 flex items-center gap-1.5 text-[10px] text-[#9C9CA6]">
+        <BrainIcon className="h-3 w-3" />
+        Brain
+      </label>
+      <DarkSelect
+        value={value?.id ?? null}
+        onChange={(id) => {
+          if (id === null) {
+            onChange(null);
+            return;
+          }
+          const space = spaces.find((candidate) => candidate.id === id);
+          onChange(space ? { id: space.id, name: space.name } : value);
+        }}
+        options={options}
+        placeholder="None"
+      />
+      <span className="mt-1.5 block text-[11px] leading-relaxed text-[#7A7A85]" role={failed ? 'alert' : undefined}>
+        {hint}
+        {failed && (
+          <>
+            {' '}
+            <button
+              type="button"
+              onClick={() => void loadSpaces()}
+              className="font-medium text-[#6080C8] underline-offset-2 hover:text-[#1B4FD8] hover:underline focus:outline-none focus:ring-1 focus:ring-[#1B4FD8]/30"
+            >
+              Try again
+            </button>
+          </>
+        )}
+      </span>
     </div>
   );
 }
@@ -435,6 +554,9 @@ export function PromptBlockEditor() {
 
   useEffect(() => {
     if (!isOpen) return;
+    // The Context block offers the Brains; they are not loaded on this page
+    // otherwise. The store's own guard makes a repeat call harmless.
+    if (!useMemoryStore.getState().loaded) void useMemoryStore.getState().loadSpaces();
     const editingPrompt = editingPromptRef.current;
     setSubmitError(null);
     setNameError(null);
@@ -472,7 +594,7 @@ export function PromptBlockEditor() {
       const handed = useDraftStore.getState().take('prompt', editingPrompt.id);
       if (handed?.kind === 'prompt') {
         setName(handed.draft.name);
-        setBlocks(promptDraftBlocks(handed.draft));
+        setBlocks((prev) => withBrainKept(promptDraftBlocks(handed.draft), prev));
         setDraftNotice({ mode: 'update', changes: handed.changes, text: '', similar: [] });
       }
     } else {
@@ -555,7 +677,7 @@ export function PromptBlockEditor() {
     setShortcut(
       draft.shortcut ? uniqueToken(draft.shortcut, prompts.map((p) => p.shortcut ?? '')) : '',
     );
-    setBlocks(promptDraftBlocks(draft));
+    setBlocks((prev) => withBrainKept(promptDraftBlocks(draft), prev));
     setFolderId((prev) => idByName(draft.folder, folders) ?? prev);
     setLabelIds(idsByName(draft.labels, labels));
     setNameError(null);
@@ -584,6 +706,13 @@ export function PromptBlockEditor() {
   function updateBlock(type: PromptBlockType, content: string) {
     setBlocks((prev) =>
       prev.map((b) => (b.type === type ? { ...b, content } : b)),
+    );
+  }
+
+  // The Brain the Context block carries: a choice, kept beside the text.
+  function setBlockBrain(brain: PromptBrainRef | null) {
+    setBlocks((prev) =>
+      prev.map((b) => (b.type === 'context' ? { ...b, brain } : b)),
     );
   }
 
@@ -661,7 +790,7 @@ export function PromptBlockEditor() {
 
   function loadExample() {
     setName(EXAMPLE_PROMPT.name);
-    setBlocks(EXAMPLE_PROMPT.blocks.map((b) => ({ ...b })));
+    setBlocks((prev) => withBrainKept(EXAMPLE_PROMPT.blocks.map((b) => ({ ...b })), prev));
     setStrategyType(EXAMPLE_PROMPT.strategyType);
     setPreferredModel(EXAMPLE_PROMPT.preferredModel);
     setOutputType(EXAMPLE_PROMPT.outputType);
@@ -740,7 +869,7 @@ export function PromptBlockEditor() {
         createdAt: version.created_at,
         // The assembled text is what a reader compares: the blocks are how it
         // was built, and a diff of their JSON reads as machinery, not writing.
-        body: version.content,
+        body: labelBrainTokens(version.content),
         note: version.edit_note,
       })),
     [versions],
@@ -959,7 +1088,13 @@ export function PromptBlockEditor() {
                 block={block}
                 onChange={(content) => updateBlock(type, content)}
                 onToggle={() => toggleBlock(type)}
-              />
+              >
+                {/* Mounted only while the panel is open: its menu is portalled
+                    to <body>, and the panel slides out without unmounting. */}
+                {type === 'context' && isOpen && (
+                  <BrainPicker value={block.brain ?? null} onChange={setBlockBrain} />
+                )}
+              </BlockSection>
             );
           })}
         </div>
@@ -1091,6 +1226,9 @@ export function PromptBlockEditor() {
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             {submitError}
           </div>
+        )}
+        {mode === 'edit' && editingPrompt?.organization_id && editingPrompt.folder_id && (
+          <TeamLastUseLine kind="prompt" ids={[editingPrompt.id]} tone="dark" />
         )}
         {/* Every button keeps its words on one line (shrink-0, nowrap). On the
             420px panel History is an icon, so the four buttons fit with room to

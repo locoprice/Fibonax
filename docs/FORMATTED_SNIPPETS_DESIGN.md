@@ -1,6 +1,6 @@
 # Formatted snippets: build plan
 
-**Status**: step 1 (database and engine) built; steps 2 to 5 to come.
+**Status**: step 1 (database and engine, v3.93.0) and step 2 (the editor, v3.102.0) built; steps 3 to 5 to come.
 **Goal**: a snippet can carry a formatted layout (colours, tables, bold, lists, an image), filled by the same fill form and Fill from link as today, and land in Gmail looking exactly like the layout. The first real case is the LeibTour booking confirmation card, sent many times a day.
 **Scope decision (Valentina, 2026-10-27)**: snippets only. Prompts and Brains stay plain text. This is the exception the Tripartite Parity rule asks to be approved; name it in every summary.
 **Pro (Valentina, 2026-10-27)**: using an HTML email or an HTML file as a snippet's layout is the Pro feature. Plain snippets stay free.
@@ -105,15 +105,39 @@ Built ahead of pasted layouts, on the same columns (migration live since 2026-10
 - Pasting into the box takes text only. Formatting copied from elsewhere stays the Pro layout feature (steps 2 to 5 above).
 - **Text colour** (v3.97.0, free like the rest of the bar): an "A" button after Underline opens Default and nine colours (`app/src/features/snippets/TextColorButton.tsx`, palette in `app/src/lib/textColors.ts` and `docs/DESIGN_SYSTEM.md`). A run carries a palette key; `docToHtml` writes `<span style="color:#…">` around the marks, and `docFromNode` keeps only palette colours, by either shade, so anything else in a layout is dropped. Selected text is coloured through the model; with nothing selected, the browser's own typing colour is used and the box redraws its `<font>` at once. `layoutFragment` keeps a `color` written as `#rgb`, `#rrggbb` or `rgb()`, so every preview shows it; inserts and Copy carry the layout as it is. Plain text has no colour.
 
+### 2.9 Email layouts in the editor (v3.102.0, step 2)
+
+Valentina's answers on 2026-10-27 (every recommended option): the entry is a **Use an email layout** button at the right of the body's bar; a value selected in the card gets a small **Make it a field: Text · Number · Date · Choice** bar; where formatting cannot go, a table row reads as one line with its cells side by side. The switch (`emailLayout` in `proFeatures.ts`) ships **on**: a layout costs nothing to run, so everyone has it until the plan exists.
+
+- `app/src/lib/emailLayout.ts` decides everything about an email layout: `cleanLayout` (DOMPurify with the 2.4 allowlist, comments out, pictures over https only, the markup's own spacing collapsed), `isEmailLayout` (anything the bar's `docToHtml` would not write: a tag outside its set, or an attribute on anything but a picture), `plainSegments` / `layoutToPlain` (the plain body read off the layout: a block or a row is a line, inline cells sit side by side, a cell with lines of its own keeps them, `<br>` breaks, list prefixes as the bar's, pictures left out, chips read as their codes), the offset mapping (`plainOffsetAt`, `pointAt`) that keeps the textarea contract, `labelBefore` (the words before a selected value in its cell, else the cell before) and `numberFromSample` (an amount and its currency sign). Tests in `app/src/__tests__/emailLayout.test.ts`, run in jsdom.
+- `FormattedBodyBox.tsx` has an email mode: the card itself in the box, codes as chips, read back by `serializeLayout`; a change made outside the box (a window's Insert, Remove, Undo) goes in through `changedSpan` as a DOM edit; the layout is the source and the plain body follows it. **Remove layout** keeps the words, **Undo** puts the card back. The toolbar button opens `EmailLayoutDialog.tsx` (paste, or open an .html file; the layout cleaned before it is shown in a `LayoutFrame`, a frame that runs nothing).
+- Make it a field: `onMakeField` tells `NewSnippetDialog.tsx` the sample and its label; Text and Number open their window with the name (`fieldNameFromWords`) and the default filled in (`newName`, `newDefault`, `newCurrency` props, in the pattern of the Choice window's `newName`); Date goes straight in; Choice opens its window. The box keeps the selection, so the window's Insert lands over the sample.
+- The bar's Text colour works inside a card too: the browser writes it as a `<font color>` the email keeps.
+- `SnippetPreview.tsx` draws an email layout in the same `LayoutFrame`; the bar's lines keep `layoutFragment`. `layoutFragment` itself now draws a table's rows as lines with the cells a space apart, so the popup and the phone read a card as its plain text does until steps 3 and 4 give them the frame.
+- The overlay already pasted `formatted` as `text/html` (2.7). Its "did it land" check now reads the field as it shows (`innerText`), because a table's cells run together in `textContent` and the plain line was never found, which inserted the text a second time.
+
+### 2.10 The extension's previews and Undo (v3.103.0, step 3)
+
+- Every preview but the dashboard's (the overlay's, the popup's, the phone's) draws an email layout in a frame, as the dashboard does: `showPreview` in `extension/shared/fill-form-ui.js` puts the card in an `iframe` with `sandbox="allow-same-origin"` and no scripts, showing the document `layoutDocument` in `fill-form.js` builds (a base font, pictures and tables no wider than the frame, so a 600px card reads in the popup and on the phone). `LayoutFrame.tsx` shows the same document. The frame stays across redraws and only its body is rewritten, so typing in the form does not reload it; its height is read as soon as its document exists, again as each picture arrives, and again whenever the frame's own size changes (a pane behind a switch, a narrower window). A page whose policy refuses the frame gets `layoutFragment`'s lines and cells instead. Which layouts are an email's is decided by `isEmailLayout` in `fill-form.js`, the editor's rule from `emailLayout.ts` again; `scripts/check-fill-form.js` pins the two tag lists to each other.
+- **v3.105.1, found by Valentina in Gmail:** every formatted snippet expanded as plain text. The service worker's snippet refresh (`background.js`, on the 5-minute alarm and on tab focus) listed its columns by hand and never asked for `body_html` or `bodies_html`, so a moment after sign-in it rewrote the expansion cache with the layouts missing, while the popup's own load (`select=*`) kept them. The query now asks for both, and `scripts/check-fill-form.js` pins that every column `writeExpansionCache` keeps is asked for.
+- The overlay's "did it land" check (`_cePasteLand`) now ignores case as well as spacing: a card's first line shows in capitals (`text-transform`), `innerText` reads it so, and the plain text was inserted a second time.
+- Undo after a card lands (`_ceRemoveFormatted` in `content.js`): the Undo card still deletes the measured text, then takes out every block the insert added once it holds nothing, tables, rows and cells included (`_CE_BLOCKS`), the card's pictures, and the line break an email copied from Gmail ends with. When the editor dropped the line break that followed the trigger (Chrome does, pasting a block), the layout's break stands in for it and stays. A card pasted into the middle of a line splits the line in two; with the card gone, the rest is put back on its line. Proven against Chrome's own paste (`insertHTML`) in five shapes (a line, between breaks, an empty field, mid-line, line start) and in jsdom (`app/src/__tests__/layoutUndo.test.ts`). Gmail itself and Outlook web are still to be tried with the develop extension.
+
+### 2.11 The phone: Copy and Share (v3.106.0, step 4)
+
+- Copy on the phone already wrote both formats (`copyWithPictures` in `app/public/mobile/index.html`: `text/plain` and the filled layout as `text/html`), and Share already sent `vm.preview` alone. Checked at 375px with the real card: Copy hands over the card with the typed values in it, Share the plain lines.
+- The line under a preview that says where a formatted text's extras go is decided once, in `formattedNote` (`extension/shared/fill-form.js`): an email layout gets its own words ("Paste into an email and the layout goes in too", "Share sends the text only. Use Copy to paste the layout into an email", "This box takes text only, so the email layout is left out") whether or not it holds pictures; a text with pictures keeps the pictures' words. Before, a card without pictures showed no line, so Share on the phone gave no sign that the card stayed behind. Every surface reads it: the phone's two lines and the popup's through `pictureNote` in `fill-form-ui.js`, the overlay's Undo card through `_pictureNote` in `content.js`, the editor preview through `formattedNote` in `fillFormEngine.ts`.
+- Gmail keeps every emoji as a small picture sized by its own stylesheet, which a copied email does not carry: in a frame, and in the inbox of anyone the email went to, 👥 showed at full size, and the plain text lost it. `cleanLayout` now turns a picture whose description is an emoji into the emoji itself (`emojiOf`, the rule the extension already counts positions by), so it shows at text size everywhere, needs no outside picture and reads in the plain text. A layout saved before this keeps its emoji pictures until it is pasted again.
+
 ## 3. Order of work
 
 One feature, built in five steps. Each step passes the gates and bumps the version. The editor's **Use a formatted layout** entry stays hidden until step 4 is done, so develop never offers a layout that a fill surface cannot insert (⚡ Authoring and Expansion Parity). Nothing is promoted to `main` before step 5.
 
 1. **Database and engine.** Migration, revision RPC, review guard, `html` resolving, `formatted` in the fill form, phone parser port, gate cases. Nothing visible.
-2. **Editor.** DOMPurify and the cleaner, `layoutToPlain`, paste and open an `.html` file, chips, Make it a field, lists and Undo, save, history, duplicate, export; editor preview with Copy; the Pro switch. The cleaner moved here from step 1: it runs where layouts are saved, and it needs a browser to run and to be tested.
-3. **Extension.** Overlay insert in Gmail (then Outlook web), plain fallback elsewhere, Undo after a formatted insert; popup preview and Copy.
-4. **Mobile.** Preview and Copy at 375px; Share plain.
-5. **Manual and release.** New page `user-docs/text-snippets/formatted-layouts.mdx`, row in `docs/USER_DOCS.md`, store listing check, the entry switched on.
+2. **Editor.** Built (2.9): the cleaner, the plain body, paste and open an `.html` file, chips, Make it a field, Remove layout and Undo, the preview frame, the switch on, and the manual page `user-docs/text-snippets/email-layouts.mdx`. Save, history, duplicate and export came with the bar (2.8).
+3. **Extension.** Built (2.10): Undo takes a card out whole, and the overlay, popup and phone previews draw it in a frame. Proven in Gmail (v3.105.1); Outlook web still to be tried.
+4. **Mobile.** Built (2.11): the preview frame came with step 3; Copy hands over the card and its plain text, Share the plain text, and the line under the preview says so for every card. Emoji pictures become emoji.
+5. **Release.** Store listing check, and the promotion to `main`.
 
 `_progress.md` tracks the steps across sessions.
 
@@ -129,7 +153,7 @@ One feature, built in five steps. Each step passes the gates and bumps the versi
 
 ## 5. Risks
 
-- **Undo after a formatted insert.** The Undo card measures inserted text; a removed card may leave empty table cells behind. Step 3 must prove Undo, or change how a formatted insert is undone.
+- **Undo after a formatted insert.** The Undo card measures inserted text; a removed card left its empty tables behind. Since 2.10 the empty blocks the insert added go too, with the card's pictures and its trailing break, and a split line is rejoined: proven against Chrome's own paste, still to be seen in Gmail itself.
 - **Other editors.** Outlook web and helpdesk editors handle a pasted layout their own way. Gmail is the target; others are tested and named in the manual.
 - **Gmail on the phone** may simplify the two-column rows.
 - **Images** are linked, not hosted by Fibonax. A layout whose image address stops working shows a broken image.
@@ -141,4 +165,4 @@ One feature, built in five steps. Each step passes the gates and bumps the versi
 
 1. **Sanitizer: DOMPurify** (approved by Valentina, 2026-10-27). A new dependency in `app/` only, configured with the allowlist in 2.4, run where layouts are saved. The extension and mobile add no library: they render layouts inside sandboxed frames and insert through paste.
 2. **Pro** (Valentina, 2026-10-27): using an HTML email or an HTML file as a layout.
-3. **Open: switched on or locked.** Every Pro feature today ships locked for everyone, the owners included, until the Pro plan exists (`docs/pro-features/README.md`). The other Pro features are locked because each use costs AI credit; a layout costs nothing to run. To decide before step 2: ship this switch on (everyone can use it now, the plan check added when the plan exists) or locked.
+3. **Switched on** (Valentina, 2026-10-27): everyone can use it now; the plan check is added when the plan exists. The other Pro features stay locked because each use costs AI credit; a layout costs nothing to run.

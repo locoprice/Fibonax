@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type
 import { AlertCircle, AlertTriangle, Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LinkReadError, linkReadApi } from '@/lib/api/linkReadApi';
+import { LayoutFrame } from '@/features/snippets/LayoutFrame';
+import { isEmailLayout } from '@/lib/emailLayout';
 import {
   backwardDates,
   clockValue,
@@ -16,7 +18,7 @@ import {
   linkUrl,
   loadFillFormEngine,
   otherPlaceholder,
-  pictureCount,
+  formattedNote,
   pictureText,
   readFromPage,
   runFormButton,
@@ -514,6 +516,10 @@ export function SnippetPreview({
     focusRow(byKey.keys().next().value ?? '');
   }
 
+  // An email layout is drawn whole, in a frame of its own; the bar's lines and
+  // lists are rebuilt from the engine's safe copy.
+  const emailLayout = useMemo(() => isEmailLayout(view?.formatted), [view?.formatted]);
+
   async function copyNow() {
     if (!view?.preview && !view?.parts) return;
     if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
@@ -686,7 +692,11 @@ export function SnippetPreview({
             )}
           >
             {view?.formatted && !view.parts ? (
-              <LayoutResult html={view.formatted} />
+              emailLayout ? (
+                <LayoutFrame html={view.formatted} />
+              ) : (
+                <LayoutResult html={view.formatted} />
+              )
             ) : view?.parts
               ? view.parts.map((part, i) =>
                   'picture' in part ? (
@@ -697,10 +707,8 @@ export function SnippetPreview({
                 )
               : view?.preview || 'The finished message appears here as you type.'}
           </div>
-          {view && pictureCount(view) > 0 && (
-            <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">
-              {pictureText('copy', pictureCount(view))}
-            </p>
+          {view && formattedNote(view, 'copy') && (
+            <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">{formattedNote(view, 'copy')}</p>
           )}
         </div>
 

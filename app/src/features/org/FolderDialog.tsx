@@ -254,7 +254,7 @@ export function FolderDialog({
               ))}
             </select>
             <span className="text-[11px] text-ink-subtle">
-              Nest a category under a property, e.g. Villa Serena / Preventivi.
+              Nest a category under another one, e.g. Clients / Quotes.
             </span>
           </div>
 

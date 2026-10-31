@@ -12,6 +12,16 @@
 <link rel="alternate" hreflang="it" href="https://fibonax.com/it/pricing/">
 <link rel="alternate" hreflang="x-default" href="https://fibonax.com/pricing/">
 <link rel="icon" type="image/png" sizes="128x128" href="../icon128.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://fibonax.com/" },
+    { "@type": "ListItem", "position": 2, "name": "Pricing", "item": "https://fibonax.com/pricing/" }
+  ]
+}
+</script>
 <style>
 {{SITE_CSS}}
 /* Pricing-specific content; shared navigation and footer are generated from home. */
@@ -20,6 +30,15 @@
 .pricing-page{flex:1}
 .pricing-page .btn,.pm-dialog .btn{min-height:44px}
 .pricing-page .hero-eyebrow::before{animation:none}
+/* Breadcrumb in the eyebrow slot: Home › Pricing. */
+.crumbs{margin-bottom:var(--space-2)}
+.crumbs ol{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;list-style:none}
+.crumbs li{display:inline-flex;align-items:center}
+.crumbs li+li::before{content:"\203A";margin:0 6px 0 2px;color:var(--text3)}
+.crumbs a{display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-1);color:var(--text2);text-decoration:none;border-radius:var(--r-btn)}
+.crumbs a:hover{color:var(--primary);text-decoration:underline}
+.crumbs a:focus-visible{outline:3px solid var(--primary);outline-offset:-3px}
+.crumbs [aria-current="page"]{color:var(--primary)}
 .pricing-lead{max-width:680px;margin:0 auto;font-size:clamp(17px,2vw,20px);line-height:1.5;color:var(--text2)}
 /* Exchange-rate card under the lead: the FiboToken rate, read like a currency board. */
 .rate-board{max-width:640px;margin:var(--space-8) auto 0;padding:var(--space-6) var(--space-8);background:var(--card);border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:var(--r);box-shadow:var(--shadow-md);text-align:center}
@@ -33,14 +52,18 @@
 .rate-sub{margin-top:var(--space-3);font-size:15px;color:var(--text2)}
 .rate-sub strong{font-family:var(--sb-mono);font-weight:700;color:var(--text)}
 .rate-note{max-width:520px;margin:var(--space-4) auto 0;padding-top:var(--space-4);border-top:1px solid var(--border);font-size:14px;line-height:1.6;color:var(--text2)}
-.pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
+.pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.618fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
 .pricing-artwork{margin:0;min-width:0;aspect-ratio:1}
 .pricing-artwork canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .6s ease}
 .pricing-artwork.is-ready canvas{opacity:1}
 .pricing-content:not(:has(.pricing-artwork)){grid-template-columns:minmax(0,1fr)}
-.pricing-page .pricing-table{width:100%;margin:0;border-collapse:collapse;text-align:left}
-.pricing-table td{padding:var(--space-6) 0;border-top:1px solid var(--border);font-size:clamp(17px,2vw,20px);line-height:1.6;font-weight:500}
-.pricing-table tr:last-child td{border-bottom:1px solid var(--border)}
+.pricing-content .rate-board{max-width:none;margin:0}
+/* Pricing principles: four cards above the plan grid, two by two on wide screens. */
+.principles{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-6);margin:var(--space-8) 0 0;padding:0}
+.principles li{display:flex;gap:var(--space-4);padding:var(--space-6);background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.principle-num{flex:none;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--sb-mono);font-size:14px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-btn)}
+.principles h3{font-size:18px;font-weight:700;letter-spacing:0;line-height:1.3;color:var(--text);margin:0 0 var(--space-2)}
+.principles p{font-size:15px;line-height:1.6;color:var(--text2)}
 /* Sections below the hero share one rhythm. Tokens only. */
 .pr-section{margin-top:var(--space-16);text-align:left}
 .pr-section h2{font-size:clamp(28px,3.4vw,40px);font-weight:800;letter-spacing:-.025em;line-height:1.1;text-align:center;color:var(--text)}
@@ -97,6 +120,28 @@
 .plan-list li::before{content:"✓" / "";color:var(--primary);font-weight:700;flex:none}
 .plan-list li>span{min-width:0}
 .plan-list strong{font-weight:700;color:var(--text)}
+/* Fibonacci rectangle on wide screens: Pay as you go is the large square, Free the next square,
+   Monthly the golden remainder, and one faint spiral runs through all three. */
+@media(min-width:1200px){
+.plan-grid{grid-template-columns:1.618fr 1fr;grid-template-rows:1.618fr 1fr;aspect-ratio:1.618/1}
+.plan-grid>.plan:first-child{grid-column:2;grid-row:1;justify-content:center}
+.plan-grid>.plan:first-child>.plan-list,.plan-grid>.plan:last-child>.plan-list{display:none}
+.plan-grid>.plan:last-child{grid-column:2;grid-row:2;display:grid;grid-template-columns:1fr 1fr;column-gap:var(--space-6);row-gap:var(--space-2);align-content:center;padding:var(--space-4) var(--space-8)}
+.plan-grid>.plan:last-child>.plan-price{flex-wrap:nowrap}
+.plan-grid>.plan:last-child>.plan-kind,.plan-grid>.plan:last-child>.plan-name,.plan-grid>.plan:last-child>.plan-price{grid-column:1}
+.plan-grid>.plan:last-child>.plan-tagline{grid-column:2;grid-row:1/4}
+.plan-grid>.plan:last-child>.plan-cta{grid-column:1/-1;grid-row:4;margin-top:var(--space-2)}
+.plan-featured{grid-column:1;grid-row:1/3;display:grid;grid-template-columns:1fr 1fr;column-gap:var(--space-8);align-content:center}
+.plan-featured>.plan-kind,.plan-featured>.plan-name,.plan-featured>.plan-price,.plan-featured>.plan-tagline{grid-column:1/-1}
+.plan-featured>.packs{grid-column:1;grid-row:5}
+.plan-featured>.plan-cta{grid-column:1;grid-row:6}
+.plan-featured>.plan-note{grid-column:1;grid-row:7}
+.plan-featured>.plan-list{grid-column:2;grid-row:5/8;align-content:start;padding:0 0 0 var(--space-8);border-top:0;border-left:1px solid var(--border)}
+.plan-grid>.plan{background-repeat:no-repeat;background-size:100% 100%}
+.plan-featured{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 100A100 100 0 0 1 100 0' fill='none' stroke='%231B4FD8' stroke-opacity='.16' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.plan-grid>.plan:first-child{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 0A100 100 0 0 1 100 100' fill='none' stroke='%231B4FD8' stroke-opacity='.16' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.plan-grid>.plan:last-child{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 618 382' preserveAspectRatio='none'%3E%3Cpath d='M236 0V382M0 146H236M146 0V146M146 90H236M180 90V146' fill='none' stroke='%231B4FD8' stroke-opacity='.07' stroke-width='1' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M618 0A382 382 0 0 1 236 382A236 236 0 0 1 0 146A146 146 0 0 1 146 0A90 90 0 0 1 236 90A56 56 0 0 1 180 146' fill='none' stroke='%231B4FD8' stroke-opacity='.16' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+}
 /* Comparison: hidden behind Compare plans, columns on desktop, one card per row on a phone. */
 .compare-toggle-row{text-align:center;margin-top:var(--space-6)}
 .compare-body[hidden]{display:none}
@@ -160,7 +205,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 .skip-link:focus{top:var(--space-3)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:960px){.plan-grid,.steps{grid-template-columns:1fr;max-width:560px;margin-left:auto;margin-right:auto}.founding{grid-template-columns:1fr}.founding-benefits{grid-template-columns:1fr}}
-@media(max-width:800px){.rate-board{padding:var(--space-6) var(--space-4)}.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.pricing-table td{padding:var(--space-6) 0}.pr-section{margin-top:var(--space-12)}.founding{padding:var(--space-6)}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.step{padding:var(--space-6)}
+@media(max-width:800px){.rate-board{padding:var(--space-6) var(--space-4)}.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.principles{grid-template-columns:1fr;gap:var(--space-4)}.principles li{padding:var(--space-4)}.pr-section{margin-top:var(--space-12)}.founding{padding:var(--space-6)}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.step{padding:var(--space-6)}
   .compare thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
   .compare,.compare tbody,.compare tr,.compare th,.compare td{display:block;width:auto}
   .compare tr{padding:var(--space-4);border-top:1px solid var(--border)}
@@ -177,28 +222,19 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 {{SITE_HEADER}}
 <main id="pricing" class="hero pricing-page" tabindex="-1">
   <div class="hero-inner">
-  <div class="hero-eyebrow">Pricing</div>
+  <nav class="hero-eyebrow crumbs" aria-label="Breadcrumb"><ol><li><a href="../">Home</a></li><li aria-current="page">Pricing</li></ol></nav>
   <h1>Free every day. <span>FiboTokens</span> when you need more.</h1>
   <p class="pricing-lead">Every day you get 15 snippets, 10 prompts and 5 Brains for free. Beyond that, buy FiboTokens once and keep them forever. No subscription needed.</p>
+  <div class="pricing-content">
+  <figure class="pricing-artwork" aria-hidden="true">
+    <canvas></canvas>
+  </figure>
   <section class="rate-board" aria-labelledby="rate-title">
     <div class="rate-head"><h2 class="rate-label" id="rate-title">Current exchange rate</h2><span class="rate-chip"><span aria-hidden="true">↕</span> Variable rate</span></div>
     <p class="rate-main"><span class="rate-unit">1 FiboToken</span><span class="rate-eq" aria-hidden="true">=</span><span class="sr-only">is worth</span><span class="rate-value" data-pricing="euroPerFiboToken">€0.01</span></p>
     <p class="rate-sub"><strong data-pricing="topUpEuros">€25</strong> = <strong data-pricing="fiboTokensPerTopUp">2,500</strong> FiboTokens · Rate set on <span data-pricing="rateSetOn">October 28, 2026</span></p>
     <p class="rate-note">Like a currency, the FiboToken rate is variable: it can change over time and move with the market. A new rate applies to new packs only. FiboTokens you already own keep their value: one FiboToken, one use.</p>
   </section>
-  <div class="pricing-content">
-  <figure class="pricing-artwork" aria-hidden="true">
-    <canvas></canvas>
-  </figure>
-  <table class="pricing-table">
-    <caption class="sr-only">Our pricing principles</caption>
-    <tbody>
-      <tr><td>No subscription required. A monthly plan is there only if you want one. No pathetic marketing.</td></tr>
-      <tr><td>Only genuine pay per use.</td></tr>
-      <tr><td>Lifetime credit.</td></tr>
-      <tr><td>Revenue invested in top Developers and Ai coding model</td></tr>
-    </tbody>
-  </table>
   </div>
 
   <section class="founding" id="founding" aria-labelledby="founding-title" data-countdown>
@@ -228,7 +264,12 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 
   <section class="pr-section" id="plans" aria-labelledby="plans-title">
     <h2 id="plans-title">Choose how you pay</h2>
-    <p class="pr-intro">Start free. When you need more, buy FiboTokens once and keep them forever, or go unlimited for <span data-pricing="monthlyEuros">€4.90</span> a month.</p>
+    <ul class="principles" aria-label="Our pricing principles">
+      <li><span class="principle-num" aria-hidden="true">01</span><div><h3>No subscription required</h3><p>A monthly plan is there only if you want one. No pathetic marketing.</p></div></li>
+      <li><span class="principle-num" aria-hidden="true">02</span><div><h3>Only genuine pay per use</h3><p>One FiboToken, one use. The free allowance is always spent first.</p></div></li>
+      <li><span class="principle-num" aria-hidden="true">03</span><div><h3>Lifetime credit</h3><p>Your FiboTokens never expire. They stay in your account until you use them.</p></div></li>
+      <li><span class="principle-num" aria-hidden="true">04</span><div><h3>Revenue reinvested</h3><p>Revenue goes into top developers and AI coding models, so the product keeps improving.</p></div></li>
+    </ul>
     <div class="plan-grid">
       <article class="plan" aria-labelledby="plan-free">
         <p class="plan-kind">Free</p>
@@ -267,11 +308,10 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       </article>
       <article class="plan" aria-labelledby="plan-monthly">
         <p class="plan-kind">Monthly subscription</p>
-        <h3 class="plan-name" id="plan-monthly">Unlimited, every day</h3>
+        <h3 class="plan-name" id="plan-monthly">PRO</h3>
         <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€4.90</span><span class="plan-per">per month</span></p>
         <p class="plan-tagline">Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.</p>
         <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Compare plans</a>
-        <p class="plan-note">Opens on January 1, 2027. Renewal and cancellation terms are shown before you subscribe. Price includes VAT.</p>
         <ul class="plan-list">
           <li><span>Unlimited snippet, prompt and Brain uses</span></li>
           <li><span>No FiboTokens needed</span></li>

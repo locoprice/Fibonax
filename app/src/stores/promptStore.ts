@@ -19,6 +19,7 @@ import { matchesLabelFilter } from '@/lib/labelUtils';
 import { expandWithDescendants } from '@/lib/labelTree';
 import { useLabelStore } from '@/stores/labelStore';
 import { useSearchStore } from '@/stores/searchStore';
+import { useTeamLastUseStore } from '@/stores/teamLastUseStore';
 import { labelNameLookup, normalizeQuery, scorePrompt } from '@/lib/searchIndex';
 import { sortPrompts, type PromptSortColumn } from '@/lib/promptSort';
 import { nextSort, type SortDir } from '@/lib/sortToggle';
@@ -331,6 +332,9 @@ export const usePromptStore = create<PromptStore>((set, get) => ({
         p.id === id ? { ...p, last_used_at: now, usage_count: p.usage_count + 1 } : p,
       ),
     }));
+    // A prompt in a team folder says who used it last: you, from now.
+    const used = get().prompts.find((p) => p.id === id);
+    if (used?.organization_id && used.folder_id) useTeamLastUseStore.getState().markUsed('prompt', id);
     void promptsApi
       .markUsed(id)
       .then(({ usage_count, last_used_at }) => {
@@ -348,6 +352,8 @@ export const usePromptStore = create<PromptStore>((set, get) => ({
           ),
           error: err instanceof Error ? err.message : 'Failed to record prompt usage',
         }));
+        // The "Last used by" line goes back to what the server holds.
+        if (used?.organization_id && used.folder_id) void useTeamLastUseStore.getState().refresh();
       });
   },
 

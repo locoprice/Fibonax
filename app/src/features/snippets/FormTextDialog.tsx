@@ -48,6 +48,13 @@ interface FormTextDialogProps {
   readers?: number;
   /** Leaves the field being changed as it is and starts a new one. */
   onNew?: () => void;
+  /**
+   * The name a new field starts with, when a value in an email layout named
+   * it after the words beside it. '' or left out for the suggested name.
+   */
+  newName?: string;
+  /** The default a new field starts with: the value it stands in for. */
+  newDefault?: string;
   onInsert: (token: string) => void;
 }
 
@@ -68,6 +75,8 @@ export function FormTextDialog({
   list,
   readers = 0,
   onNew,
+  newName = '',
+  newDefault = '',
   onInsert,
 }: FormTextDialogProps) {
   const [name, setName] = useState('');
@@ -92,11 +101,11 @@ export function FormTextDialog({
       setLink(linkDraftFrom(initial.link, 'after'));
       return;
     }
-    setName(suggestedName);
-    setDefaultValue('');
+    setName(newName || suggestedName);
+    setDefaultValue(newDefault);
     setPersonChoice(null);
     setLink(TEXT_LINK_START);
-  }, [open, suggestedName, initial]);
+  }, [open, suggestedName, initial, newName, newDefault]);
 
   const nameValid = isValidFieldName(name);
 

@@ -18,8 +18,46 @@ function fail(msg) {
 }
 
 for (const fn of ['fillForm', 'inferType', 'chooseLayout', 'dayValue', 'clockValue', 'fixedShift',
-                  'linkUrl', 'readFromPage', 'linkText', 'linkSummary', 'linkNote', 'menuValue']) {
+                  'linkUrl', 'readFromPage', 'linkText', 'linkSummary', 'linkNote', 'menuValue',
+                  'layoutFragment', 'isEmailLayout', 'layoutDocument']) {
   if (typeof ff[fn] !== 'function') fail('fill-form.js no longer exports ' + fn);
+}
+
+// ── AN EMAIL LAYOUT, DECIDED IN TWO PLACES ──────────────────────────
+// The editor tells an email layout from the bar's lines before this module has
+// loaded (isEmailLayout in app/src/lib/emailLayout.ts), and every preview tells
+// it here, so the two keep one list of what the bar writes.
+const editorSrc = require('fs').readFileSync(path.join(__dirname, '..', 'app', 'src', 'lib', 'emailLayout.ts'), 'utf8');
+const barTags = /const BAR_TAGS = new Set\(\[([^\]]*)\]\)/.exec(editorSrc);
+if (!barTags) fail('emailLayout.ts no longer lists BAR_TAGS, the marks the bar writes');
+const editorTags = barTags[1].split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean);
+if (JSON.stringify(editorTags) !== JSON.stringify(ff.LAYOUT_BAR_TAGS)) {
+  fail('the bar\'s tags differ between emailLayout.ts (' + editorTags.join(' ') + ') and fill-form.js (' +
+    ff.LAYOUT_BAR_TAGS.join(' ') + '): the editor and the previews would disagree on what an email layout is');
+}
+// ── THE EXPANSION CACHE CARRIES WHAT THE FILL FORM NEEDS ────────────
+// The service worker refreshes the snippets content.js expands from, with
+// its own column list. A column writeExpansionCache reads but the query does
+// not ask for arrives empty: body_html was missing, and every formatted
+// snippet expanded as plain text a moment after sign-in.
+const bgSrc = require('fs').readFileSync(path.join(__dirname, '..', 'extension', 'background', 'background.js'), 'utf8')
+  .replace(/^\s*\/\/.*$/gm, '');
+const qs = /var snipQs = ([^;]*);/.exec(bgSrc);
+const cacheFn = /function writeExpansionCache\(rows\) \{[\s\S]*?\n\}/.exec(bgSrc);
+if (!qs || !cacheFn) fail('background.js no longer builds its snippet query or writeExpansionCache where this gate looks');
+const asked = (qs[1].match(/'([^']*)'/g) || []).map((s) => s.slice(1, -1)).join('')
+  .replace(/^select=/, '').split('&')[0].split(',');
+const read = Array.from(new Set((cacheFn[0].match(/\bs\.([a-z_]+)/g) || []).map((m) => m.slice(2))));
+const missing = read.filter((col) => asked.indexOf(col) === -1);
+if (missing.length) {
+  fail('the expansion cache reads ' + missing.join(', ') + ' but the service worker never asks for ' +
+    (missing.length > 1 ? 'them' : 'it') + ': those snippets would expand without it');
+}
+console.log('OK The expansion cache asks for every column it keeps (' + read.length + ')');
+
+const framed = ff.layoutDocument('<table><tr><td>x</td></tr></table>');
+if (framed.indexOf('<!doctype html>') !== 0 || framed.indexOf('<table><tr><td>x</td></tr></table>') === -1) {
+  fail('layoutDocument no longer wraps the layout in a document of its own');
 }
 
 // A fixed clock, so the date/time defaults are assertable rather than "today".

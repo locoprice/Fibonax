@@ -1,30 +1,83 @@
 ---
 title: "Analytics"
 sidebarTitle: "Analytics"
-description: "See how often you insert snippets, which ones you use most, and how your use changes over the year."
+description: "See how often you insert snippets, which few snippets and prompts do most of your work, when and where you use them, and how it compares with the period before."
 ---
 
-Open **Analytics** in the dashboard sidebar. Each time a snippet is inserted, the extension records it, and this page counts those inserts.
+Open **Analytics** in the dashboard sidebar, or tap **More**, then **Analytics** on your phone. Each time a snippet is inserted or a prompt is used, the extension, the dashboard or the phone records it, and this page counts those uses. The dashboard and the phone show the same figures.
 
-## Summary cards
+## Pick a period
 
-- **Total snippets**: how many snippets you own.
-- **Triggers this week**: snippets inserted in the last seven days.
+At the top, choose **7 days**, **30 days**, **90 days** or **12 months**. Each period ends today. Every figure is compared with the period just before it, of the same length, and the dates of both periods are shown under the title. Your choice is remembered next time.
+
+Next to each figure, a small label says how it moved: **↑ +12%**, **↓ −3%**, **New** when there was nothing before, or **No change**.
+
+Press **Refresh** (the circular arrow) to read the latest inserts.
+
+## Summary
+
+- **Snippets inserted**: how many times you inserted a snippet, and the average per day. The small line beside the number is your inserts day by day across the period.
 - **Time saved**: an estimate, counting 30 seconds for each insert.
-- **Top trigger**: your most-inserted snippet recently, and how many times.
+- **Active days**: how many days you used Fibonax, and how many inserts on those days.
+- **Different snippets used**: how many of your snippets you used at least once.
+
+Under them: your **busiest day**, your **daily streak** (days in a row with at least one insert; it carries on until the end of the day after your last insert), **fields filled per insert**, and the share of inserts from Monday to Friday.
+
+## Inserts per day
+
+A soft line for each day of the period, filled underneath. The dashed line is the same day in the period before, and from 30 days up, a dark line shows the average of the last seven days. Point at a day to see all three figures. On your phone the days are drawn as bars.
+
+## What does most of your work
+
+Most of your work usually comes from a few snippets. This section shows which ones, for the period you picked.
+
+- At the top, choose **Snippets** or **Prompts**. Your choice is remembered next time.
+- The headline says how many did most of your work, for example **4 snippets did 82% of your work**, and how many that is out of everything in your library.
+- **Your key snippets** (or **Your key prompts**) are the ones you used most. Together they reach at least 80% of your uses. Each row shows its uses and its share.
+- **The rest** lists everything else you used in the period. Select **Show all** to see the full list. Under it, a line says how many in your library were not used at all.
+- **Where your snippets were used** shows how much of your use happened on a **Computer** (the Chrome extension and the dashboard) and how much on your **Phone**. Each row shows the same split with small icons.
+- On the dashboard, select **Show chart** to see one bar per snippet, most used first, with a line for the running total and a mark at 80%. Select **Hide chart** to fold it away. Your choice is remembered.
+
+Only snippets and prompts that are still in your library are ranked.
+
+<Note>
+  Phone and computer are recorded from version 3.108.0 on. Uses from before then are shown as **Before tracking**, so the split fills in as you keep working. Prompt uses are counted from that version on, along with earlier ones made with the Chrome extension.
+</Note>
+
+## Top snippets and movers
+
+**Top snippets** lists your ten most-inserted snippets, each with a small trend line of its inserts across the period, its share of all your inserts and how it moved. Inserts of a snippet you have since deleted are counted as **Deleted snippet**. On your phone, tap a snippet to open it.
+
+**Rising fastest** and **Falling fastest** list the snippets whose use went up or down the most compared with the period before.
+
+## When you use snippets
+
+A grid of the week, Monday to Sunday, by hour of the day in your local time. The darker the square, the more you inserted at that hour. Under it: your busiest weekday and hour.
+
+## Where your use goes
+
+Your inserts by **folder** and by **language**, each with its share and how it moved.
+
+## Team
+
+If you belong to a team, this table shows who uses the shared snippets and prompts: each person's uses, how many different snippets and prompts they used, their share and how it moved, then the whole team. The person with the most uses in the period is tagged **Most active**. When two people share the top, nobody is tagged. It counts only snippets and prompts in team folders you can open, and shows one total per person, never single uses or times.
+
+## Library health
+
+How many of the snippets you can use (yours and shared with you) were used in this period, have a shortcut, and sit in a folder.
+
+- **Never used**: snippets nobody has ever inserted, oldest first.
+- **Not used for 90 days**: snippets whose last insert, by you or your team, was more than 90 days ago.
 
 ## Activity
 
-A grid of the last twelve months, one square per day. The darker the square, the more you inserted that day.
+On the dashboard, **Daily activity** is a grid of the last twelve months, one square per day. The darker the square, the more you inserted that day.
 
-Under it, an overview shows how many snippets, prompts and folders you have, which folders you use most, and a month-by-month breakdown.
+Under the grid, one row of figures shows how many snippets, prompts, folders and Brains you have, your inserts this year, and your current and longest streak of days with at least one insert. Then **Most used folders** names the folders you insert from most.
 
-Two switches in the activity settings control what you see:
+**Month by month** shows the current month in one line: how many inserts, and a chip per folder. Select **Show earlier months** to see every month as a block with one bar per folder, and **Show less** to fold them away again.
 
-- **Private contributions**: show the exact counts in the heading and when you point at a square.
-- **Activity overview**: show or hide the breakdown under the grid.
+The **Display** menu above the grid has two switches:
 
-## Recent use
-
-- **Usage** chart: inserts per day over the last two weeks.
-- **Top triggers**: your five most-inserted snippets over the same two weeks, each with a small trend line.
+- **Show counts**: show the exact counts in the heading and when you point at a square.
+- **Show breakdown**: show or hide the figures and the month by month view under the grid.

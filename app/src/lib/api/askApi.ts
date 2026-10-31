@@ -1,6 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
-import { AI_LIMIT_MESSAGE, readEdgeErrorCode } from '@/lib/api/edgeFunctionError';
+import {
+  AI_LIMIT_MESSAGE,
+  AI_PRO_CHECK_MESSAGE,
+  AI_PRO_MESSAGE,
+  readEdgeErrorCode,
+} from '@/lib/api/edgeFunctionError';
 import {
   feedbackSources,
   parseAskResponse,
@@ -24,6 +29,8 @@ const ASK_ERRORS: Record<string, string> = {
   anthropic_bad_output: 'The answer came back unreadable. Try again.',
   question_too_short: 'Write a few more words.',
   question_too_long: 'Shorten the question to 1,000 characters or fewer.',
+  pro_check_failed: AI_PRO_CHECK_MESSAGE,
+  pro_required: AI_PRO_MESSAGE,
   rate_limited: AI_LIMIT_MESSAGE,
   search_failed: 'Could not search your Fibonax. Try again.',
   sources_read_failed: 'Could not read the matching items. Try again.',

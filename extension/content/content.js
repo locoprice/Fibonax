@@ -18,11 +18,26 @@ function logEvent(snip, fieldsFilled) {
         user_id: snip.user_id || null,
         shortcut: snip.shortcut || '',
         lang: snip.lang || null,
-        fields_filled: fieldsFilled || 0
+        fields_filled: fieldsFilled || 0,
+        device: 'computer'
       }
     });
   } catch(e) { /* extension context lost during reload, silent */ }
   touchLastUsed(snip);
+}
+
+// A picked saved prompt is logged as a PROMPT use (public.prompt_events through
+// increment_prompt_usage), never as a snippet use: it used to land in
+// snippet_events and read as "Deleted snippet" on the Analytics page. The
+// built-in Base Prompts live only here, so they have no row to count.
+function logPromptUse(item) {
+  if (!item || !item.id) return;
+  for (var i = 0; i < BASE_PROMPTS.length; i++) {
+    if (BASE_PROMPTS[i].id === item.id) return;
+  }
+  try {
+    chrome.runtime.sendMessage({ type: 'log_prompt_use', prompt_id: item.id });
+  } catch(e) { /* extension context lost during reload, silent */ }
 }
 
 // ── INACTIVE-001: local mirror of "when was this last used" ───────
@@ -151,6 +166,124 @@ function _promptInsertText(item) {
     if (BASE_PROMPTS[i].id === item.id) return body;
   }
   return SBInteractiveSteps.apply(body, interactiveStepsOn);
+}
+
+// ── A BRAIN INSIDE A PROMPT ───────────────────────────────────────
+// A prompt whose Context block holds a `{brain: …}` token (shared/memory-pack.js)
+// is finished by the service worker, which reads the Brain and puts its items
+// where the token sits, so the prompt carries the Brain as it is now. All the
+// prompts that carry one are asked for in one message the moment the prompt
+// menu opens, and the answers are kept for a minute, so typing """ again and
+// again (a code docstring) reads the Brains once. A pick made before its
+// answer waits with the menu open (selectTriggerItem, _holdPromptPick) and
+// inserts once it arrives, while the field's selection is still live. When the
+// worker cannot answer (no session, no connection), the prompt still goes in,
+// with one visible line in place of each Brain rather than a hole nobody
+// noticed; a failed answer is kept only until the menu opens again, which asks
+// afresh.
+var PROMPT_BRAIN_FRESH_MS = 60000;
+var _promptBrainCache = {};    // prompt text -> { text: finished text, at: time, failed: bool }
+var _promptBrainWaiting = {};  // prompt text -> callbacks waiting for it
+var _promptBrainInFlight = {}; // prompt text -> true while asked
+
+function _promptHasBrain(item) {
+  return typeof SBMemoryPack !== 'undefined' && SBMemoryPack.promptBrainRefs(item.body || '').length > 0;
+}
+
+function _promptBrainCached(text) {
+  return Object.prototype.hasOwnProperty.call(_promptBrainCache, text);
+}
+
+// Asks the worker, in one message, for every text not kept and not already asked.
+function _askPromptBrains(texts) {
+  var todo = [];
+  for (var i = 0; i < texts.length; i++) {
+    var t = texts[i];
+    if (!_promptBrainCached(t) && !_promptBrainInFlight[t] && todo.indexOf(t) === -1) todo.push(t);
+  }
+  if (!todo.length) return;
+  todo.forEach(function(t) { _promptBrainInFlight[t] = true; });
+  var done = false;
+  function settle(results, failed) {
+    if (done) return;
+    done = true;
+    var now = Date.now();
+    todo.forEach(function(t, j) {
+      delete _promptBrainInFlight[t];
+      _promptBrainCache[t] = { text: results[j], at: now, failed: failed };
+      var waiting = _promptBrainWaiting[t] || [];
+      delete _promptBrainWaiting[t];
+      for (var k = 0; k < waiting.length; k++) waiting[k](results[j]);
+    });
+  }
+  function withoutBrains() {
+    settle(todo.map(function(t) { return SBMemoryPack.resolvePromptBrains(t, {}, 'failed'); }), true);
+  }
+  try {
+    chrome.runtime.sendMessage({ type: 'prompt_texts', texts: todo }, function(res) {
+      var ok = !chrome.runtime.lastError && res && res.ok && Array.isArray(res.texts) && res.texts.length === todo.length;
+      if (!ok) { withoutBrains(); return; }
+      settle(res.texts, false);
+    });
+  } catch(e) {
+    withoutBrains();
+  }
+}
+
+// The finished text of `item`, handed to `cb`: at once when it is kept,
+// otherwise when the worker answers.
+function _whenPromptBrains(item, cb) {
+  var t = item.body || '';
+  if (_promptBrainCached(t)) { cb(_promptBrainCache[t].text); return; }
+  (_promptBrainWaiting[t] = _promptBrainWaiting[t] || []).push(cb);
+  _askPromptBrains([t]);
+}
+
+// Asked when the prompt menu opens. Answers older than a minute, and failed
+// ones, are dropped, so a Brain changed since, or unreachable last time, is
+// read again.
+function _prefetchPromptBrains() {
+  var now = Date.now();
+  Object.keys(_promptBrainCache).forEach(function(t) {
+    var kept = _promptBrainCache[t];
+    if (kept.failed || now - kept.at > PROMPT_BRAIN_FRESH_MS) delete _promptBrainCache[t];
+  });
+  var texts = [];
+  var list = promptTemplates();
+  for (var i = 0; i < list.length; i++) {
+    if (_promptHasBrain(list[i])) texts.push(list[i].body || '');
+  }
+  _askPromptBrains(texts);
+}
+
+// The text to insert, handed to `cb`: a prompt without a Brain at once, as
+// before; one with a Brain as the worker finished it, then the Interactive
+// Steps block in front when the switch is on.
+function _promptText(item, cb) {
+  if (!_promptHasBrain(item)) { cb(_promptInsertText(item)); return; }
+  _whenPromptBrains(item, function(text) {
+    cb(SBInteractiveSteps.apply(text, interactiveStepsOn));
+  });
+}
+
+// A pick of a prompt whose Brain has not arrived yet. The menu stays open and
+// says so; the pick goes through once the answer is in, if the person has not
+// typed, moved on or closed the menu meanwhile. Nothing is deleted or inserted
+// until then, so the prompt can never land after words typed in the gap.
+var _heldPromptPick = null;
+
+function _holdPromptPick(item) {
+  var held = { id: item.id, query: triggerPickerQuery, target: triggerPickerTarget };
+  _heldPromptPick = held;
+  _setPickerHint('Adding your Brain\u2026');
+  _whenPromptBrains(item, function() {
+    if (_heldPromptPick !== held) return;
+    _heldPromptPick = null;
+    if (!triggerPickerEl || triggerPickerTarget !== held.target || triggerPickerQuery !== held.query) return;
+    for (var i = 0; i < triggerPickerFiltered.length; i++) {
+      if (triggerPickerFiltered[i].id === held.id) { selectTriggerItem(i); return; }
+    }
+  });
 }
 
 // ── DEFAULT LANGUAGE PREFERENCE ────────────────────────────────────
@@ -1478,15 +1611,22 @@ function _cePasteLand(el, host, dt, text) {
   // means "the snippet is in the field", not "the field grew". Spaces are
   // compared loosely: formatted text lands with runs of spaces joined or kept
   // as non-breaking ones, and a strict compare would insert the body twice.
+  // The field is read as it shows (innerText), not as its nodes run together:
+  // an email layout's cells and rows land side by side with nothing between
+  // them in textContent, and the plain line would never be found in it. Case
+  // is ignored too: a layout may show its first line in capitals
+  // (text-transform), and innerText reads it so.
   var probe = '';
   var lines = text.split('\n');
   for (var i = 0; i < lines.length; i++) {
     if (lines[i]) { probe = lines[i].slice(0, 24); break; }
   }
   if (probe) {
-    var loose = function(s) { return String(s).replace(/[\s\u00a0]+/g, ' '); };
+    var loose = function(s) { return String(s).replace(/[\s\u00a0]+/g, ' ').toLowerCase(); };
     setTimeout(function() {
-      if (loose(_ceHost(el).textContent).indexOf(loose(probe)) === -1) _ceLineInsert(text);
+      var landed = _ceHost(el);
+      var shown = landed && typeof landed.innerText === 'string' ? landed.innerText : (landed ? landed.textContent : '');
+      if (loose(shown).indexOf(loose(probe)) === -1) _ceLineInsert(text);
     }, 120);
   }
   return true;
@@ -1524,11 +1664,11 @@ function _formattedPictures(vm) {
   });
 }
 
-// The Undo card's note, with a line added when a plain box left pictures out.
+// The Undo card's note, with a line added when a plain box left an email
+// layout or pictures out.
 function _pictureNote(note, vm, html) {
-  var n = vm && vm.formatted && !html && _SBFF ? _SBFF.pictureCount(vm) : 0;
-  if (!n) return note;
-  var line = _SBFF.pictureText('left-out-done', n);
+  var line = vm && vm.formatted && !html && _SBFF ? _SBFF.formattedNote(vm, 'left-out-done') : '';
+  if (!line) return note;
   return note ? note + ' ' + line : line;
 }
 
@@ -2729,7 +2869,12 @@ function _markSyncInserted(snapshot, el, before, text, vm) {
   var startCO = before ? before.start : -1;
   snapshot.syncInserted = true;
   if (vm && vm.formatted && before) {
-    snapshot.formatted = { imgs: before.imgs, brs: before.brs, blocks: before.blocks, pictures: _formattedPictures(vm) };
+    snapshot.formatted = {
+      imgs: before.imgs, brs: before.brs, blocks: before.blocks, pictures: _formattedPictures(vm),
+      // An email copied from Gmail ends with a line break, which lands after
+      // its last table.
+      trailingBreak: /<br\s*\/?>\s*$/i.test(String(vm.formatted))
+    };
   }
   snapshot.visibleLen = String(text).replace(/[\r\n]/g, '').length;
   if (_isLexicalHost(host) && startCO >= 0) {
@@ -2773,23 +2918,27 @@ function _ceHoldSpace(at) {
   } catch(e) { console.error('[Fibonax] could not keep the space before the snippet', e); }
 }
 
-// The elements a formatted insert adds as lines and lists.
-var _CE_BLOCKS = 'div,p,ul,ol,li';
+// The elements a formatted insert adds as lines and lists, and the ones an
+// email layout adds: tables with their rows and cells, headings, quotes, a
+// centred block, a rule.
+var _CE_BLOCKS = 'div,p,ul,ol,li,table,thead,tbody,tfoot,tr,td,th,blockquote,h1,h2,h3,h4,h5,h6,center,hr';
 
 // Takes out what a formatted insert left once its text is gone, all of it new
 // since the insert. The pictures that show one of the snippet's pictures (by
 // address, or by description where the editor moved the picture to its own
 // address): text offsets cannot find them, a picture holds no characters. The
 // line break beside such a picture, or one at the end of the snippet would
-// leave an empty line. Then the lines and lists left with nothing in them, the
-// innermost first, or an empty numbered item stays behind. Returns how many
-// pictures went.
+// leave an empty line. Then the lines, lists, tables, rows and cells left with
+// nothing in them, the innermost first, or an empty numbered item, or a card's
+// table with its borders and colours, stays behind. The line break an email
+// layout ends with lands after its last table and goes with it. Returns how
+// many nodes went.
 function _ceRemoveFormatted(host, snapshot) {
   var p = snapshot.formatted;
   if (!host || !p) return 0;
   var removed = 0;
-  var newBreak = function(img, side) {
-    var node = img[side];
+  var newBreak = function(from, side) {
+    var node = from[side];
     while (node && node.nodeType === 3 && node.nodeValue === '') node = node[side];
     return node && node.nodeName === 'BR' && p.brs.indexOf(node) === -1 ? node : null;
   };
@@ -2804,11 +2953,37 @@ function _ceRemoveFormatted(host, snapshot) {
     img.parentNode.removeChild(img);
     removed++;
   });
+  // Pasting a block over a trigger that had a line break right after it, the
+  // editor takes that break as the block's own and drops it (Chrome). The
+  // layout's trailing break then stands in for it and stays.
+  var lostBreaks = p.brs.some(function(br) { return !host.contains(br); });
   Array.prototype.slice.call(host.querySelectorAll(_CE_BLOCKS)).reverse().forEach(function(block) {
     if (p.blocks.indexOf(block) !== -1 || !block.parentNode) return;
     if (block.textContent.replace(/[\s\u00a0]+/g, '') !== '' || block.querySelector('img')) return;
+    var br = p.trailingBreak && !lostBreaks ? newBreak(block, 'nextSibling') : null;
+    if (br) { br.parentNode.removeChild(br); removed++; }
     block.parentNode.removeChild(block);
+    removed++;
   });
+  // A card pasted into the middle of a line splits the line: the rest of it
+  // goes into a new block of the same kind after the card. With the card gone,
+  // the rest goes back onto its line.
+  var startCO = typeof snapshot.endCharOffset === 'number' && typeof snapshot.visibleLen === 'number'
+    ? Math.max(0, snapshot.endCharOffset - snapshot.visibleLen) : -1;
+  if (startCO >= 0) {
+    var at = _ceCharOffsetToPoint(host, startCO);
+    var line = at.node === host ? null : (at.node.nodeType === 1 ? at.node : at.node.parentNode);
+    while (line && line !== host && !(line.matches && line.matches(_CE_BLOCKS))) line = line.parentNode;
+    var rest = line && line !== host && p.blocks.indexOf(line) !== -1 ? line.nextSibling : null;
+    while (rest && rest.nodeType === 3 && rest.nodeValue === '') rest = rest.nextSibling;
+    if (rest && rest.nodeType === 1 && rest.tagName === line.tagName && p.blocks.indexOf(rest) === -1) {
+      var holder = line.lastChild;
+      if (holder && holder.nodeName === 'BR' && p.brs.indexOf(holder) === -1) line.removeChild(holder);
+      while (rest.firstChild) line.appendChild(rest.firstChild);
+      rest.parentNode.removeChild(rest);
+      removed++;
+    }
+  }
   return removed;
 }
 
@@ -3473,6 +3648,7 @@ function _renderPickerItems(query) {
 function showTriggerPicker(el, mode, seqLen, filterStr) {
   if (processing) return;
   closeTriggerPicker();
+  if (mode === 'prompt') _prefetchPromptBrains();
   triggerPickerTarget = el;
   triggerPickerMode   = mode;
   triggerPickerIdx    = 0;
@@ -3563,6 +3739,11 @@ function _pickerHasOnePrefixMatch() {
 function selectTriggerItem(idx) {
   if (idx < 0 || idx >= triggerPickerFiltered.length) return;
   var item  = triggerPickerFiltered[idx];
+  // A prompt whose Brain is still on its way waits, menu open (_holdPromptPick).
+  if (triggerPickerMode === 'prompt' && _promptHasBrain(item) && !_promptBrainCached(item.body || '')) {
+    _holdPromptPick(item);
+    return;
+  }
   var el    = triggerPickerTarget;
   var mode  = triggerPickerMode;
   // Full delete span: the trigger sequence (::) + everything typed since.
@@ -3645,8 +3826,10 @@ function selectTriggerItem(idx) {
         showOverlay(el, item, dLen, function() { processing = false; });
       }
     } else {
-      insertText(el, _promptInsertText(item));
-      logEvent(item, 0);
+      _promptText(item, function(text) {
+        insertText(el, text);
+        logPromptUse(item);
+      });
     }
   }
 
@@ -3662,6 +3845,7 @@ function selectTriggerItem(idx) {
 
 function closeTriggerPicker() {
   if (triggerPickerEl) { triggerPickerEl.remove(); triggerPickerEl = null; }
+  _heldPromptPick = null;
   triggerPickerMode      = null;
   triggerPickerTarget    = null;
   triggerPickerIdx       = 0;

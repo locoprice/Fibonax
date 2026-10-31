@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { SearchDetails } from '@/components/shared/SearchDetails';
 import { useSearchStore } from '@/stores/searchStore';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { TeamLastUseLine } from '@/components/shared/TeamLastUseLine';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
 import { cn } from '@/lib/utils';
 import type { Prompt } from '@/types/database';
@@ -15,6 +16,7 @@ import { useUiStore } from '@/stores/uiStore';
 import { useLabelStore } from '@/stores/labelStore';
 import { usePromptStore } from '@/stores/promptStore';
 import { resolveLabels } from '@/lib/labelUtils';
+import { labelBrainTokens } from '@/lib/promptBrain';
 import { assembleBlocks } from '@/lib/promptUtils';
 import { maxPromptUsage, promptStatus } from '@/lib/statusSignals';
 import { evaluatePrompt, promptToEvaluatorInput } from '@/lib/usePromptEvaluator';
@@ -53,8 +55,8 @@ function getPreviewText(prompt: Prompt): string {
   if (prompt.blocks) {
     const assembled = assembleBlocks(prompt.blocks);
     if (assembled) {
-      // Strip markdown headers for the card preview
-      const stripped = assembled.replace(/^##\s+\w+\n/gm, '').trim();
+      // Strip markdown headers for the card preview; a Brain reads as its name.
+      const stripped = labelBrainTokens(assembled.replace(/^##\s+\w+\n/gm, '')).trim();
       return stripped.length > PREVIEW_LIMIT
         ? `${stripped.slice(0, PREVIEW_LIMIT).trim()}…`
         : stripped;
@@ -256,15 +258,19 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
           )}
         </p>
 
-        {/* Footer */}
-        <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
-          <span
-            className="text-xs text-ink-subtle"
-            title={attributionTitle(resolveUserName, prompt.user_id, prompt.updated_by, prompt.updated_at)}
-          >
-            {lastUsed}
-          </span>
-          <div className="flex items-center gap-1.5">
+        {/* Footer: a prompt in a team folder says who used it last. */}
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
+          {prompt.organization_id && prompt.folder_id ? (
+            <TeamLastUseLine kind="prompt" ids={[prompt.id]} />
+          ) : (
+            <span
+              className="text-xs text-ink-subtle"
+              title={attributionTitle(resolveUserName, prompt.user_id, prompt.updated_by, prompt.updated_at)}
+            >
+              {lastUsed}
+            </span>
+          )}
+          <div className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
               onClick={handlePin}

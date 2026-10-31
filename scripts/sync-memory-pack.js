@@ -12,12 +12,14 @@
 //   estimateTokens       the token count shown while text is being added. It
 //                        is the arithmetic the database generates, so a count
 //                        worked out anywhere else is a second rule.
-//   formatInjectedBlock  the text "Copy whole Brain" hands out, the same block
+//   formatBrainBlock     the text "Copy whole Brain" hands out, the same block
 //                        the extension's Context button puts into an AI chat.
+//   resolvePromptBrains  a prompt that carries a Brain, finished with the
+//                        Brain's items where its token sits (v3.104.0).
 //
 // --check also fails if the phone stops reaching them through the module, or
-// if the popup's Brains tab, which loads the module itself, builds its "Copy
-// whole Brain" text any other way.
+// if the popup, which loads the module itself, builds its "Copy whole Brain"
+// text or finishes a prompt's Brain any other way.
 
 const fs = require('fs');
 const path = require('path');
@@ -96,8 +98,9 @@ function structure() {
   if (open !== 0) problems.push('the block opens inside another <script>');
 
   const uses = [
-    ['function memBrainBlock(', 'SBMemoryPack.formatInjectedBlock(', 'Copy whole Brain builds its text through the module'],
+    ['function memBrainBlock(', 'SBMemoryPack.formatBrainBlock(', 'Copy whole Brain builds its text through the module'],
     ['function memAddCount(', 'SBMemoryPack.estimateTokens(', 'the Add text token count comes from the module'],
+    ['function promptBrainText(', 'SBMemoryPack.resolvePromptBrains(', 'a prompt that carries a Brain is finished through the module'],
   ];
   uses.forEach(([decl, call, what]) => {
     if (fnSource(html, decl).indexOf(call) === -1) problems.push(what + ' (' + decl + '... must call ' + call + '...)');
@@ -113,10 +116,14 @@ function popup() {
   const mod = html.indexOf('<script src="../shared/memory-pack.js"></script>');
   const app = html.indexOf('<script src="popup.js"></script>');
   if (mod === -1 || app === -1 || mod > app) problems.push('popup.html must load ../shared/memory-pack.js before popup.js');
-  const call = 'SBMemoryPack.formatInjectedBlock(';
-  if (fnSource(readText(POPUP_JS), 'function brainBlock(').indexOf(call) === -1) {
-    problems.push('Copy whole Brain builds its text through the module (function brainBlock(... must call ' + call + '...)');
-  }
+  const js = readText(POPUP_JS);
+  const uses = [
+    ['function brainBlock(', 'SBMemoryPack.formatBrainBlock(', 'Copy whole Brain builds its text through the module'],
+    ['function promptBrainText(', 'SBMemoryPack.resolvePromptBrains(', 'a prompt that carries a Brain is finished through the module'],
+  ];
+  uses.forEach(([decl, call, what]) => {
+    if (fnSource(js, decl).indexOf(call) === -1) problems.push(what + ' (' + decl + '... must call ' + call + '...)');
+  });
   return problems;
 }
 

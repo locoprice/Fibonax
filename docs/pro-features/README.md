@@ -13,6 +13,15 @@ One switch per feature, in `app/src/lib/proFeatures.ts`. `scripts/check-pro-gate
 | Read a picture | `picture`, and `PICTURE_AVAILABLE` in `app/public/mobile/index.html` | The **Read a picture** row in the phone's Save to Brain, with the lock and the label in plain sight; under it, a tip to copy a picture's text with Live Text or Google Lens instead | `read-picture`, **not deployed** | `read-picture.mdx`, a section of the phone page rather than a page of its own |
 
 | Add a picture (v3.94.0, calls no AI service: the cost is storage) | `snippetPictures` | **Add picture** in the snippet editor's Pictures section; the window is not mounted while locked. Pictures already in a snippet are still listed with Remove, and every fill surface shows them | none; needs the `snippet-pictures` bucket (`20261027130000_snippet_pictures_storage.sql`, **not applied**) and the `delete-account` deploy that empties it | `snippet-pictures.mdx`, a section of `user-docs/text-snippets/dynamic-fields.mdx` |
+| Use an email layout (v3.102.0, calls no service) | `emailLayout`, **on** | Nowhere: Valentina chose on 2026-10-27 to ship it switched on for everyone, since a layout costs nothing to run. The lock (`ProSoon`) sits in `FormattedBodyBox.tsx` for the day the plan check turns it off for free accounts | none | published: `user-docs/text-snippets/email-layouts.mdx` |
+
+## Who is Pro (since v3.101.0)
+
+The AI features belong to **Pro**, a monthly subscription. Since v3.101.0 the server enforces it: `20261028150000_pro_plan.sql` adds `is_pro()`, true while the account's `app_metadata.plan` is `pro` and `app_metadata.pro_until` (the end of the month already paid for) has not passed. That is the same plan field the review prompt reads (`20261027140000_review_prompt.sql`), and only the service role can write it, so nobody can make themselves Pro. Every AI edge function asks `is_pro()` first and answers 403 `pro_required` to a free account ("AI features are part of Fibonax Pro." on the dashboard and the phone); `ai_call_allow()` asks it again, so no call reaches the model for a free account even from an older deploy. Payments are not connected yet, so Pro is granted by hand (the statement is at the top of the migration); billing will set the same two keys.
+
+Apply the migration **before** deploying the five functions: until `is_pro()` exists they answer 503.
+
+The switches below still decide what the dashboard and the phone show. Turning one on also needs the plan check on the client (step 1), so a free account keeps seeing the lock rather than a control that fails. Use an email layout is the exception: on for everyone, free accounts included, until the plan check joins it.
 
 The two features whose function is not deployed need that deploy before their switch can go on. Before any switch goes on, the Anthropic account behind `ANTHROPIC_API_KEY` needs credit: with none, every call fails with "Your credit balance is too low".
 

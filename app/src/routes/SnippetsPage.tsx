@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { PageBanner } from '@/components/layout/PageBanner';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { InactiveAssetBanner } from '@/components/shared/InactiveAssetBanner';
+import { useTeamLastUseRefresh } from '@/components/shared/TeamLastUseLine';
 import { FolderBreadcrumb } from '@/features/org/FolderBreadcrumb';
 import { LabelManagerDialog } from '@/features/labels/LabelManagerDialog';
 import { BulkActionsBar } from '@/features/snippets/BulkActionsBar';
@@ -88,6 +89,8 @@ export function SnippetsPage() {
       void load();
     }
   }, [load, snippets.length]);
+
+  useTeamLastUseRefresh(snippets.some((s) => s.organization_id && s.folder_id));
 
   // Labels load on their own: a failure here costs badges, never the library.
   useEffect(() => {

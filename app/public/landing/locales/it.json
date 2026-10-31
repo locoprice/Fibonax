@@ -2,8 +2,8 @@
   "lang": "it",
   "entries": [
     {
-      "find": "<section id=\"sb-expansion\" aria-labelledby=\"sb-title\" data-demo=\"true\" data-paused=\"false\">\n    <div class=\"sb-grain\" aria-hidden=\"true\"></div>\n    <div class=\"sb-heading\">\n      <p class=\"sb-eyebrow\"><span class=\"sb-star\" aria-hidden=\"true\">✳</span> YOUR KNOWLEDGE, SET IN MOTION</p>\n      <h2 id=\"sb-title\">Small shortcuts.<br><span>Extraordinary momentum.</span></h2>\n\n    </div>\n\n    <div class=\"sb-engine\" aria-label=\"Expansion engine demonstration\">\n      <svg class=\"sb-connections\" viewBox=\"0 0 1160 390\" preserveAspectRatio=\"none\" aria-hidden=\"true\">\n        <defs>\n          <linearGradient id=\"sb-path-gradient\"><stop stop-color=\"#6284ef\" stop-opacity=\".05\"/><stop offset=\".48\" stop-color=\"#537df5\" stop-opacity=\".55\"/><stop offset=\"1\" stop-color=\"#8a6ded\" stop-opacity=\".12\"/></linearGradient>\n          <linearGradient id=\"sb-packet-gradient\"><stop stop-color=\"#507cf0\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#507cf0\"/></linearGradient>\n        </defs>\n        <path class=\"sb-track\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n        <path class=\"sb-packet sb-packet-a\" pathLength=\"100\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-b\" pathLength=\"100\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-c\" pathLength=\"100\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-out\" pathLength=\"100\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n      </svg>\n\n      <div class=\"sb-input-side\">\n\n        <span class=\"sb-sr-only\" id=\"sb-shortcut-readable\">Shortcut ::brief</span>\n        <div class=\"sb-shortcuts\" aria-hidden=\"true\">\n          <div class=\"sb-ghost-key sb-ghost-top\"><span class=\"sb-shortcut-sign\">::</span>intro<span class=\"sb-key-kind\">SNIPPET</span></div>\n          <div class=\"sb-active-key\"><span class=\"sb-shortcut-sign\">::</span><span id=\"sb-trigger\">brief</span><span class=\"sb-caret\"></span><span class=\"sb-enter-symbol\">↵</span></div>\n          <div class=\"sb-ghost-key sb-ghost-bottom\"><span class=\"sb-shortcut-sign\">::</span>followup<span class=\"sb-key-kind\">SNIPPET</span></div>\n        </div>\n        <p class=\"sb-side-note\">Start with what you already know.</p>\n      </div>\n\n      <div class=\"sb-core\">\n        <svg class=\"sb-orbit\" viewBox=\"0 0 460 410\" aria-hidden=\"true\">\n          <defs>\n            <radialGradient id=\"sb-core-glow\"><stop stop-color=\"#edf1ff\" stop-opacity=\".9\"/><stop offset=\".58\" stop-color=\"#eaf0ff\" stop-opacity=\".3\"/><stop offset=\"1\" stop-color=\"#fff\" stop-opacity=\"0\"/></radialGradient>\n            <linearGradient id=\"sb-orbit-color\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\"><stop stop-color=\"#bfd0ff\"/><stop offset=\".5\" stop-color=\"#4368e0\"/><stop offset=\"1\" stop-color=\"#b7a6f4\"/></linearGradient>\n          </defs>\n          <ellipse cx=\"230\" cy=\"205\" rx=\"219\" ry=\"194\" fill=\"url(#sb-core-glow)\"/>\n          <ellipse class=\"sb-orbit-outer\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\"/>\n          <ellipse class=\"sb-orbit-inner\" cx=\"230\" cy=\"207\" rx=\"192\" ry=\"161\"/>\n          <g id=\"sb-ticks\"></g>\n          <ellipse class=\"sb-orbit-sweep\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\" pathLength=\"100\"/>\n          <circle class=\"sb-orbit-dot\" cx=\"230\" cy=\"26\" r=\"3.5\"/>\n        </svg>\n        <div class=\"sb-metric-content\">\n          <div class=\"sb-data-badge\" id=\"sb-data-badge\"><span aria-hidden=\"true\"></span> DEMO DATA</div>\n          <div class=\"sb-number-line\" aria-live=\"off\">\n            <span class=\"sb-sr-only\" id=\"sb-rate-readable\">128 snippet and prompt expansions per second, simulated.</span>\n            <span class=\"sb-odometer\" id=\"sb-odometer\" aria-hidden=\"true\">128</span>\n            <span class=\"sb-rate-unit\" aria-hidden=\"true\">/sec</span>\n          </div>\n          <p class=\"sb-metric-label\">snippets &amp; prompts expanded</p>\n          <div class=\"sb-breakdown\" aria-live=\"off\">\n            <div><span class=\"sb-category-dot sb-snippet-dot\" aria-hidden=\"true\"></span><strong id=\"sb-snippet-rate\">86</strong><span>snippets/s</span></div>\n            <span class=\"sb-stat-divider\" aria-hidden=\"true\"></span>\n            <div><span class=\"sb-category-dot sb-prompt-dot\" aria-hidden=\"true\"></span><strong id=\"sb-prompt-rate\">42</strong><span>prompts/s</span></div>\n          </div>\n          <div class=\"sb-wave\" id=\"sb-wave\" aria-hidden=\"true\"></div>\n        </div>\n      </div>\n\n      <div class=\"sb-output-side\">\n\n        <div class=\"sb-output-card\" id=\"sb-output-card\">\n          <div class=\"sb-card-header\"><span class=\"sb-doc-icon\" aria-hidden=\"true\">≡</span><span id=\"sb-output-kind\">PROMPT</span><span class=\"sb-output-ready\"><span aria-hidden=\"true\">✓</span> Expanded</span></div>\n          <h3 id=\"sb-output-title\">A sharper project brief.</h3>\n          <p id=\"sb-output-copy\">Act as my strategy partner. Turn these notes into a clear brief: objective, audience, deliverables, and next steps.</p>\n          <div class=\"sb-card-footer\"><span class=\"sb-output-tag\" id=\"sb-output-tag\">Ready for your next AI</span><span class=\"sb-card-spark\" aria-hidden=\"true\">✳</span></div>\n        </div>\n        <p class=\"sb-side-note\">The right context. Without the repetition.</p>\n      </div>\n    </div>\n\n    <div class=\"sb-actions\">\n      <button class=\"sb-try\" id=\"sb-try\" type=\"button\"><span class=\"sb-button-spark\" aria-hidden=\"true\">✳</span><span>Try an expansion</span><span class=\"sb-button-arrow\" aria-hidden=\"true\">↗</span></button>\n      <a class=\"sb-cta\" href=\"https://app.fibonax.com/signup\">Try Fibonax free <span aria-hidden=\"true\">→</span></a>\n    </div>\n    <div class=\"sb-footer\">\n      <p id=\"sb-data-note\">Simulated activity. Real possibilities.</p>\n      <button class=\"sb-pause\" id=\"sb-pause\" type=\"button\" aria-pressed=\"false\"><span class=\"sb-pause-icon\" aria-hidden=\"true\">Ⅱ</span><span>Pause motion</span></button>\n    </div>\n    <p class=\"sb-sr-only\" id=\"sb-expansion-announcement\" role=\"status\" aria-live=\"polite\"></p>\n  </section>",
-      "replace": "<section id=\"sb-expansion\" aria-labelledby=\"sb-title\" data-demo=\"true\" data-paused=\"false\">\n    <div class=\"sb-grain\" aria-hidden=\"true\"></div>\n    <div class=\"sb-heading\">\n      <p class=\"sb-eyebrow\"><span class=\"sb-star\" aria-hidden=\"true\">✳</span> IL TUO SAPERE, IN MOVIMENTO</p>\n      <h2 id=\"sb-title\">Piccole scorciatoie.<br><span>Una spinta straordinaria.</span></h2>\n\n    </div>\n\n    <div class=\"sb-engine\" aria-label=\"Dimostrazione delle espansioni\">\n      <svg class=\"sb-connections\" viewBox=\"0 0 1160 390\" preserveAspectRatio=\"none\" aria-hidden=\"true\">\n        <defs>\n          <linearGradient id=\"sb-path-gradient\"><stop stop-color=\"#6284ef\" stop-opacity=\".05\"/><stop offset=\".48\" stop-color=\"#537df5\" stop-opacity=\".55\"/><stop offset=\"1\" stop-color=\"#8a6ded\" stop-opacity=\".12\"/></linearGradient>\n          <linearGradient id=\"sb-packet-gradient\"><stop stop-color=\"#507cf0\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#507cf0\"/></linearGradient>\n        </defs>\n        <path class=\"sb-track\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n        <path class=\"sb-packet sb-packet-a\" pathLength=\"100\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-b\" pathLength=\"100\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-c\" pathLength=\"100\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-out\" pathLength=\"100\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n      </svg>\n\n      <div class=\"sb-input-side\">\n\n        <span class=\"sb-sr-only\" id=\"sb-shortcut-readable\">Scorciatoia ::brief</span>\n        <div class=\"sb-shortcuts\" aria-hidden=\"true\">\n          <div class=\"sb-ghost-key sb-ghost-top\"><span class=\"sb-shortcut-sign\">::</span>intro<span class=\"sb-key-kind\">SNIPPET</span></div>\n          <div class=\"sb-active-key\"><span class=\"sb-shortcut-sign\">::</span><span id=\"sb-trigger\">brief</span><span class=\"sb-caret\"></span><span class=\"sb-enter-symbol\">↵</span></div>\n          <div class=\"sb-ghost-key sb-ghost-bottom\"><span class=\"sb-shortcut-sign\">::</span>followup<span class=\"sb-key-kind\">SNIPPET</span></div>\n        </div>\n        <p class=\"sb-side-note\">Parti da ciò che sai già.</p>\n      </div>\n\n      <div class=\"sb-core\">\n        <svg class=\"sb-orbit\" viewBox=\"0 0 460 410\" aria-hidden=\"true\">\n          <defs>\n            <radialGradient id=\"sb-core-glow\"><stop stop-color=\"#edf1ff\" stop-opacity=\".9\"/><stop offset=\".58\" stop-color=\"#eaf0ff\" stop-opacity=\".3\"/><stop offset=\"1\" stop-color=\"#fff\" stop-opacity=\"0\"/></radialGradient>\n            <linearGradient id=\"sb-orbit-color\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\"><stop stop-color=\"#bfd0ff\"/><stop offset=\".5\" stop-color=\"#4368e0\"/><stop offset=\"1\" stop-color=\"#b7a6f4\"/></linearGradient>\n          </defs>\n          <ellipse cx=\"230\" cy=\"205\" rx=\"219\" ry=\"194\" fill=\"url(#sb-core-glow)\"/>\n          <ellipse class=\"sb-orbit-outer\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\"/>\n          <ellipse class=\"sb-orbit-inner\" cx=\"230\" cy=\"207\" rx=\"192\" ry=\"161\"/>\n          <g id=\"sb-ticks\"></g>\n          <ellipse class=\"sb-orbit-sweep\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\" pathLength=\"100\"/>\n          <circle class=\"sb-orbit-dot\" cx=\"230\" cy=\"26\" r=\"3.5\"/>\n        </svg>\n        <div class=\"sb-metric-content\">\n          <div class=\"sb-data-badge\" id=\"sb-data-badge\"><span aria-hidden=\"true\"></span> DATI DEMO</div>\n          <div class=\"sb-number-line\" aria-live=\"off\">\n            <span class=\"sb-sr-only\" id=\"sb-rate-readable\">128 espansioni di snippet e prompt al secondo, dati simulati.</span>\n            <span class=\"sb-odometer\" id=\"sb-odometer\" aria-hidden=\"true\">128</span>\n            <span class=\"sb-rate-unit\" aria-hidden=\"true\">/sec</span>\n          </div>\n          <p class=\"sb-metric-label\">snippet e prompt espansi</p>\n          <div class=\"sb-breakdown\" aria-live=\"off\">\n            <div><span class=\"sb-category-dot sb-snippet-dot\" aria-hidden=\"true\"></span><strong id=\"sb-snippet-rate\">86</strong><span>snippet/s</span></div>\n            <span class=\"sb-stat-divider\" aria-hidden=\"true\"></span>\n            <div><span class=\"sb-category-dot sb-prompt-dot\" aria-hidden=\"true\"></span><strong id=\"sb-prompt-rate\">42</strong><span>prompt/s</span></div>\n          </div>\n          <div class=\"sb-wave\" id=\"sb-wave\" aria-hidden=\"true\"></div>\n        </div>\n      </div>\n\n      <div class=\"sb-output-side\">\n\n        <div class=\"sb-output-card\" id=\"sb-output-card\">\n          <div class=\"sb-card-header\"><span class=\"sb-doc-icon\" aria-hidden=\"true\">≡</span><span id=\"sb-output-kind\">PROMPT</span><span class=\"sb-output-ready\"><span aria-hidden=\"true\">✓</span> Espanso</span></div>\n          <h3 id=\"sb-output-title\">Un brief di progetto più chiaro.</h3>\n          <p id=\"sb-output-copy\">Agisci come mio consulente strategico. Trasforma questi appunti in un brief chiaro: obiettivo, pubblico, risultati attesi e prossimi passi.</p>\n          <div class=\"sb-card-footer\"><span class=\"sb-output-tag\" id=\"sb-output-tag\">Pronto per la tua prossima AI</span><span class=\"sb-card-spark\" aria-hidden=\"true\">✳</span></div>\n        </div>\n        <p class=\"sb-side-note\">Il contesto giusto. Senza ripetizioni.</p>\n      </div>\n    </div>\n\n    <div class=\"sb-actions\">\n      <button class=\"sb-try\" id=\"sb-try\" type=\"button\"><span class=\"sb-button-spark\" aria-hidden=\"true\">✳</span><span>Prova un’espansione</span><span class=\"sb-button-arrow\" aria-hidden=\"true\">↗</span></button>\n      <a class=\"sb-cta\" href=\"https://app.fibonax.com/signup\">Prova Fibonax gratis <span aria-hidden=\"true\">→</span></a>\n    </div>\n    <div class=\"sb-footer\">\n      <p id=\"sb-data-note\">Attività simulata. Possibilità reali.</p>\n      <button class=\"sb-pause\" id=\"sb-pause\" type=\"button\" aria-pressed=\"false\"><span class=\"sb-pause-icon\" aria-hidden=\"true\">Ⅱ</span><span>Pausa animazione</span></button>\n    </div>\n    <p class=\"sb-sr-only\" id=\"sb-expansion-announcement\" role=\"status\" aria-live=\"polite\"></p>\n  </section>",
+      "find": "<section id=\"sb-expansion\" aria-labelledby=\"sb-title\" data-demo=\"true\" data-paused=\"false\">\n    <div class=\"sb-grain\" aria-hidden=\"true\"></div>\n    <div class=\"sb-heading\">\n      <h2 id=\"sb-title\">Small shortcuts.<br><span>Extraordinary momentum.</span></h2>\n\n    </div>\n\n    <div class=\"sb-engine\" aria-label=\"Expansion engine demonstration\">\n      <svg class=\"sb-connections\" viewBox=\"0 0 1160 390\" preserveAspectRatio=\"none\" aria-hidden=\"true\">\n        <defs>\n          <linearGradient id=\"sb-path-gradient\"><stop stop-color=\"#6284ef\" stop-opacity=\".05\"/><stop offset=\".48\" stop-color=\"#537df5\" stop-opacity=\".55\"/><stop offset=\"1\" stop-color=\"#8a6ded\" stop-opacity=\".12\"/></linearGradient>\n          <linearGradient id=\"sb-packet-gradient\"><stop stop-color=\"#507cf0\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#507cf0\"/></linearGradient>\n        </defs>\n        <path class=\"sb-track\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n        <path class=\"sb-packet sb-packet-a\" pathLength=\"100\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-b\" pathLength=\"100\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-c\" pathLength=\"100\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-out\" pathLength=\"100\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n      </svg>\n\n      <div class=\"sb-input-side\">\n\n        <span class=\"sb-sr-only\" id=\"sb-shortcut-readable\">Shortcut ::brief</span>\n        <div class=\"sb-shortcuts\" aria-hidden=\"true\">\n          <div class=\"sb-ghost-key sb-ghost-top\"><span class=\"sb-shortcut-sign\">::</span>intro<span class=\"sb-key-kind\">SNIPPET</span></div>\n          <div class=\"sb-active-key\"><span class=\"sb-shortcut-sign\">::</span><span id=\"sb-trigger\">brief</span><span class=\"sb-caret\"></span><span class=\"sb-enter-symbol\">↵</span></div>\n          <div class=\"sb-ghost-key sb-ghost-bottom\"><span class=\"sb-shortcut-sign\">::</span>followup<span class=\"sb-key-kind\">SNIPPET</span></div>\n        </div>\n        <p class=\"sb-side-note\">Start with what you already know.</p>\n      </div>\n\n      <div class=\"sb-core\">\n        <svg class=\"sb-orbit\" viewBox=\"0 0 460 410\" aria-hidden=\"true\">\n          <defs>\n            <radialGradient id=\"sb-core-glow\"><stop stop-color=\"#edf1ff\" stop-opacity=\".9\"/><stop offset=\".58\" stop-color=\"#eaf0ff\" stop-opacity=\".3\"/><stop offset=\"1\" stop-color=\"#fff\" stop-opacity=\"0\"/></radialGradient>\n            <linearGradient id=\"sb-orbit-color\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\"><stop stop-color=\"#bfd0ff\"/><stop offset=\".5\" stop-color=\"#4368e0\"/><stop offset=\"1\" stop-color=\"#b7a6f4\"/></linearGradient>\n          </defs>\n          <ellipse cx=\"230\" cy=\"205\" rx=\"219\" ry=\"194\" fill=\"url(#sb-core-glow)\"/>\n          <ellipse class=\"sb-orbit-outer\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\"/>\n          <ellipse class=\"sb-orbit-inner\" cx=\"230\" cy=\"207\" rx=\"192\" ry=\"161\"/>\n          <g id=\"sb-ticks\"></g>\n          <ellipse class=\"sb-orbit-sweep\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\" pathLength=\"100\"/>\n          <circle class=\"sb-orbit-dot\" cx=\"230\" cy=\"26\" r=\"3.5\"/>\n        </svg>\n        <div class=\"sb-metric-content\">\n          <div class=\"sb-data-badge\" id=\"sb-data-badge\"><span aria-hidden=\"true\"></span> DEMO DATA</div>\n          <div class=\"sb-number-line\" aria-live=\"off\">\n            <span class=\"sb-sr-only\" id=\"sb-rate-readable\">128 snippet and prompt expansions per second, simulated.</span>\n            <span class=\"sb-odometer\" id=\"sb-odometer\" aria-hidden=\"true\">128</span>\n            <span class=\"sb-rate-unit\" aria-hidden=\"true\">/sec</span>\n          </div>\n          <p class=\"sb-metric-label\">snippets &amp; prompts expanded</p>\n          <div class=\"sb-breakdown\" aria-live=\"off\">\n            <div><span class=\"sb-category-dot sb-snippet-dot\" aria-hidden=\"true\"></span><strong id=\"sb-snippet-rate\">86</strong><span>snippets/s</span></div>\n            <span class=\"sb-stat-divider\" aria-hidden=\"true\"></span>\n            <div><span class=\"sb-category-dot sb-prompt-dot\" aria-hidden=\"true\"></span><strong id=\"sb-prompt-rate\">42</strong><span>prompts/s</span></div>\n          </div>\n          <div class=\"sb-wave\" id=\"sb-wave\" aria-hidden=\"true\"></div>\n        </div>\n      </div>\n\n      <div class=\"sb-output-side\">\n\n        <div class=\"sb-output-card\" id=\"sb-output-card\">\n          <div class=\"sb-card-header\"><span class=\"sb-doc-icon\" aria-hidden=\"true\">≡</span><span id=\"sb-output-kind\">PROMPT</span><span class=\"sb-output-ready\"><span aria-hidden=\"true\">✓</span> Expanded</span></div>\n          <h3 id=\"sb-output-title\">A sharper project brief.</h3>\n          <p id=\"sb-output-copy\">Act as my strategy partner. Turn these notes into a clear brief: objective, audience, deliverables, and next steps.</p>\n          <div class=\"sb-card-footer\"><span class=\"sb-output-tag\" id=\"sb-output-tag\">Ready for your next AI</span><span class=\"sb-card-spark\" aria-hidden=\"true\">✳</span></div>\n        </div>\n        <p class=\"sb-side-note\">The right context. Without the repetition.</p>\n      </div>\n    </div>\n\n    <div class=\"sb-actions\">\n      <button class=\"sb-try\" id=\"sb-try\" type=\"button\"><span class=\"sb-button-spark\" aria-hidden=\"true\">✳</span><span>Try an expansion</span><span class=\"sb-button-arrow\" aria-hidden=\"true\">↗</span></button>\n      <a class=\"sb-cta\" href=\"https://app.fibonax.com/signup\">Try Fibonax free <span aria-hidden=\"true\">→</span></a>\n    </div>\n    <div class=\"sb-footer\">\n      <p id=\"sb-data-note\">Simulated activity. Real possibilities.</p>\n      <button class=\"sb-pause\" id=\"sb-pause\" type=\"button\" aria-pressed=\"false\"><span class=\"sb-pause-icon\" aria-hidden=\"true\">Ⅱ</span><span>Pause motion</span></button>\n    </div>\n    <p class=\"sb-sr-only\" id=\"sb-expansion-announcement\" role=\"status\" aria-live=\"polite\"></p>\n  </section>",
+      "replace": "<section id=\"sb-expansion\" aria-labelledby=\"sb-title\" data-demo=\"true\" data-paused=\"false\">\n    <div class=\"sb-grain\" aria-hidden=\"true\"></div>\n    <div class=\"sb-heading\">\n      <h2 id=\"sb-title\">Piccole scorciatoie.<br><span>Una spinta straordinaria.</span></h2>\n\n    </div>\n\n    <div class=\"sb-engine\" aria-label=\"Dimostrazione delle espansioni\">\n      <svg class=\"sb-connections\" viewBox=\"0 0 1160 390\" preserveAspectRatio=\"none\" aria-hidden=\"true\">\n        <defs>\n          <linearGradient id=\"sb-path-gradient\"><stop stop-color=\"#6284ef\" stop-opacity=\".05\"/><stop offset=\".48\" stop-color=\"#537df5\" stop-opacity=\".55\"/><stop offset=\"1\" stop-color=\"#8a6ded\" stop-opacity=\".12\"/></linearGradient>\n          <linearGradient id=\"sb-packet-gradient\"><stop stop-color=\"#507cf0\" stop-opacity=\"0\"/><stop offset=\"1\" stop-color=\"#507cf0\"/></linearGradient>\n        </defs>\n        <path class=\"sb-track\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-track\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n        <path class=\"sb-packet sb-packet-a\" pathLength=\"100\" d=\"M 160 143 C 330 143 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-b\" pathLength=\"100\" d=\"M 160 201 C 330 201 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-c\" pathLength=\"100\" d=\"M 160 259 C 330 259 335 199 488 199\"/>\n        <path class=\"sb-packet sb-packet-out\" pathLength=\"100\" d=\"M 673 199 C 787 199 796 199 947 199\"/>\n      </svg>\n\n      <div class=\"sb-input-side\">\n\n        <span class=\"sb-sr-only\" id=\"sb-shortcut-readable\">Scorciatoia ::brief</span>\n        <div class=\"sb-shortcuts\" aria-hidden=\"true\">\n          <div class=\"sb-ghost-key sb-ghost-top\"><span class=\"sb-shortcut-sign\">::</span>intro<span class=\"sb-key-kind\">SNIPPET</span></div>\n          <div class=\"sb-active-key\"><span class=\"sb-shortcut-sign\">::</span><span id=\"sb-trigger\">brief</span><span class=\"sb-caret\"></span><span class=\"sb-enter-symbol\">↵</span></div>\n          <div class=\"sb-ghost-key sb-ghost-bottom\"><span class=\"sb-shortcut-sign\">::</span>followup<span class=\"sb-key-kind\">SNIPPET</span></div>\n        </div>\n        <p class=\"sb-side-note\">Parti da ciò che sai già.</p>\n      </div>\n\n      <div class=\"sb-core\">\n        <svg class=\"sb-orbit\" viewBox=\"0 0 460 410\" aria-hidden=\"true\">\n          <defs>\n            <radialGradient id=\"sb-core-glow\"><stop stop-color=\"#edf1ff\" stop-opacity=\".9\"/><stop offset=\".58\" stop-color=\"#eaf0ff\" stop-opacity=\".3\"/><stop offset=\"1\" stop-color=\"#fff\" stop-opacity=\"0\"/></radialGradient>\n            <linearGradient id=\"sb-orbit-color\" x1=\"0\" x2=\"1\" y1=\"0\" y2=\"1\"><stop stop-color=\"#bfd0ff\"/><stop offset=\".5\" stop-color=\"#4368e0\"/><stop offset=\"1\" stop-color=\"#b7a6f4\"/></linearGradient>\n          </defs>\n          <ellipse cx=\"230\" cy=\"205\" rx=\"219\" ry=\"194\" fill=\"url(#sb-core-glow)\"/>\n          <ellipse class=\"sb-orbit-outer\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\"/>\n          <ellipse class=\"sb-orbit-inner\" cx=\"230\" cy=\"207\" rx=\"192\" ry=\"161\"/>\n          <g id=\"sb-ticks\"></g>\n          <ellipse class=\"sb-orbit-sweep\" cx=\"230\" cy=\"207\" rx=\"215\" ry=\"181\" pathLength=\"100\"/>\n          <circle class=\"sb-orbit-dot\" cx=\"230\" cy=\"26\" r=\"3.5\"/>\n        </svg>\n        <div class=\"sb-metric-content\">\n          <div class=\"sb-data-badge\" id=\"sb-data-badge\"><span aria-hidden=\"true\"></span> DATI DEMO</div>\n          <div class=\"sb-number-line\" aria-live=\"off\">\n            <span class=\"sb-sr-only\" id=\"sb-rate-readable\">128 espansioni di snippet e prompt al secondo, dati simulati.</span>\n            <span class=\"sb-odometer\" id=\"sb-odometer\" aria-hidden=\"true\">128</span>\n            <span class=\"sb-rate-unit\" aria-hidden=\"true\">/sec</span>\n          </div>\n          <p class=\"sb-metric-label\">snippet e prompt espansi</p>\n          <div class=\"sb-breakdown\" aria-live=\"off\">\n            <div><span class=\"sb-category-dot sb-snippet-dot\" aria-hidden=\"true\"></span><strong id=\"sb-snippet-rate\">86</strong><span>snippet/s</span></div>\n            <span class=\"sb-stat-divider\" aria-hidden=\"true\"></span>\n            <div><span class=\"sb-category-dot sb-prompt-dot\" aria-hidden=\"true\"></span><strong id=\"sb-prompt-rate\">42</strong><span>prompt/s</span></div>\n          </div>\n          <div class=\"sb-wave\" id=\"sb-wave\" aria-hidden=\"true\"></div>\n        </div>\n      </div>\n\n      <div class=\"sb-output-side\">\n\n        <div class=\"sb-output-card\" id=\"sb-output-card\">\n          <div class=\"sb-card-header\"><span class=\"sb-doc-icon\" aria-hidden=\"true\">≡</span><span id=\"sb-output-kind\">PROMPT</span><span class=\"sb-output-ready\"><span aria-hidden=\"true\">✓</span> Espanso</span></div>\n          <h3 id=\"sb-output-title\">Un brief di progetto più chiaro.</h3>\n          <p id=\"sb-output-copy\">Agisci come mio consulente strategico. Trasforma questi appunti in un brief chiaro: obiettivo, pubblico, risultati attesi e prossimi passi.</p>\n          <div class=\"sb-card-footer\"><span class=\"sb-output-tag\" id=\"sb-output-tag\">Pronto per la tua prossima AI</span><span class=\"sb-card-spark\" aria-hidden=\"true\">✳</span></div>\n        </div>\n        <p class=\"sb-side-note\">Il contesto giusto. Senza ripetizioni.</p>\n      </div>\n    </div>\n\n    <div class=\"sb-actions\">\n      <button class=\"sb-try\" id=\"sb-try\" type=\"button\"><span class=\"sb-button-spark\" aria-hidden=\"true\">✳</span><span>Prova un’espansione</span><span class=\"sb-button-arrow\" aria-hidden=\"true\">↗</span></button>\n      <a class=\"sb-cta\" href=\"https://app.fibonax.com/signup\">Prova Fibonax gratis <span aria-hidden=\"true\">→</span></a>\n    </div>\n    <div class=\"sb-footer\">\n      <p id=\"sb-data-note\">Attività simulata. Possibilità reali.</p>\n      <button class=\"sb-pause\" id=\"sb-pause\" type=\"button\" aria-pressed=\"false\"><span class=\"sb-pause-icon\" aria-hidden=\"true\">Ⅱ</span><span>Pausa animazione</span></button>\n    </div>\n    <p class=\"sb-sr-only\" id=\"sb-expansion-announcement\" role=\"status\" aria-live=\"polite\"></p>\n  </section>",
       "count": 1
     },
     {
@@ -67,7 +67,7 @@
       "count": 1
     },
     {
-      "find": "        A drop-in replacement for <b>TextBlaze</b>, <b>TextExpander</b>, and <b>Magical</b>, with\n        live formulas and a reusable prompt library on top.",
+      "find": "        A drop-in replacement for <b>TextBlaze</b>, <b>TextExpander</b>&nbsp;and <b>Magical</b>, with\n        live formulas and a reusable prompt library on top.",
       "replace": "        Un sostituto diretto di <b>TextBlaze</b>, <b>TextExpander</b> e <b>Magical</b>, con in più\n        formule dal vivo e una libreria di prompt riutilizzabili.",
       "count": 1
     },
@@ -307,18 +307,13 @@
       "count": 3
     },
     {
-      "find": "<div class=\"sb-eyebrow\">No app to download</div>",
-      "replace": "<div class=\"sb-eyebrow\">Nessuna app da scaricare</div>",
-      "count": 1
-    },
-    {
       "find": "<h2 id=\"sb-platforms-heading\">One account. <span>Three surfaces.</span></h2>",
       "replace": "<h2 id=\"sb-platforms-heading\">Un solo account. <span>Tre tecnologie diverse.</span></h2>",
       "count": 1
     },
     {
-      "find": "<p>Fibonax ships as a Chrome extension, a web dashboard, and a mobile website. Sign in once. Your snippets and formulas are everywhere, instantly.</p>",
-      "replace": "<p>Fibonax arriva come estensione Chrome, dashboard web e sito mobile. Accedi una volta sola. I tuoi snippet e le tue formule sono ovunque, all'istante.</p>",
+      "find": "<p>Fibonax ships as a Chrome extension, a web dashboard and a mobile website. Sign in once. Your tools are everywhere, instantly.</p>",
+      "replace": "<p>Fibonax arriva come estensione Chrome, dashboard web e sito mobile. Accedi una volta sola. I tuoi strumenti sono ovunque, all'istante.</p>",
       "count": 1
     },
     {
@@ -369,11 +364,6 @@
     {
       "find": "<footer class=\"sb-footer\">One account &nbsp;·&nbsp; Three surfaces &nbsp;·&nbsp; Always in sync</footer>",
       "replace": "<footer class=\"sb-footer\">Un account &nbsp;·&nbsp; Tre superfici &nbsp;·&nbsp; Sempre sincronizzati</footer>",
-      "count": 1
-    },
-    {
-      "find": "<div class=\"ps-eyebrow\">Partner Stories</div>",
-      "replace": "<div class=\"ps-eyebrow\">Storie dei partner</div>",
       "count": 1
     },
     {
@@ -499,6 +489,11 @@
     {
       "find": "<span>Encrypted in transit</span>",
       "replace": "<span>Cifrato in transito</span>",
+      "count": 1
+    },
+    {
+      "find": "Meet us at Wave<svg",
+      "replace": "Incontraci a Wave<svg",
       "count": 1
     },
     {
@@ -672,11 +667,6 @@
       "count": 1
     },
     {
-      "find": ">Try Fibonax Free →<",
-      "replace": ">Prova Fibonax gratis →<",
-      "count": 1
-    },
-    {
       "find": ">One system. Three powerful layers.<",
       "replace": ">Un sistema. Tre livelli di potenzialità.<",
       "count": 1
@@ -812,13 +802,8 @@
       "count": 1
     },
     {
-      "find": ">Give your AI the context it needs.<",
-      "replace": ">Dai alla tua AI il contesto di cui ha bisogno.<",
-      "count": 1
-    },
-    {
-      "find": ">Your AI can change. Your context shouldn’t.<",
-      "replace": ">La tua AI può cambiare. Il tuo contesto no.<",
+      "find": ">Your AI can change. Your context no!<",
+      "replace": ">La tua AI può cambiare. Il tuo contesto no!<",
       "count": 1
     },
     {
@@ -834,11 +819,6 @@
     {
       "find": ">Execute<",
       "replace": ">Esegui<",
-      "count": 1
-    },
-    {
-      "find": ">Portable context<",
-      "replace": ">Contesto portabile<",
       "count": 1
     },
     {
@@ -1032,11 +1012,6 @@
       "count": 1
     },
     {
-      "find": "</span> Stop starting from zero.</p>",
-      "replace": "</span> Smetti di ripartire da zero.</p>",
-      "count": 1
-    },
-    {
       "find": "One home for your<br><strong>Snippets, Prompts and Brains.</strong>",
       "replace": "Un unico spazio per i tuoi<br><strong>Snippets, Prompts e Brains.</strong>",
       "count": 1
@@ -1064,16 +1039,6 @@
     {
       "find": "aria-label=\"Interactive context portability demo\"",
       "replace": "aria-label=\"Demo interattiva del contesto portatile\"",
-      "count": 1
-    },
-    {
-      "find": ">Your context, connected.<",
-      "replace": ">Il tuo contesto, connesso.<",
-      "count": 1
-    },
-    {
-      "find": ">Interactive demo<",
-      "replace": ">Demo interattiva<",
       "count": 1
     },
     {
@@ -1129,7 +1094,7 @@
     {
       "find": "<span class=\"sr-only\"> (opens in a new tab)</span>",
       "replace": "<span class=\"sr-only\"> (si apre in una nuova scheda)</span>",
-      "count": 1
+      "count": 2
     },
     {
       "find": "content=\"Fibonax: Your context. Every AI. One direction.\"",
@@ -1142,8 +1107,8 @@
       "count": 1
     },
     {
-      "find": "      <div class=\"faq-eyebrow\">Frequently asked questions</div>\n      <h2 id=\"faq-title\">Questions, answered.</h2>\n      <p>The short version of what people ask before they start.</p>",
-      "replace": "      <div class=\"faq-eyebrow\">Domande frequenti</div>\n      <h2 id=\"faq-title\">Domande e risposte.</h2>\n      <p>In breve, quello che le persone chiedono prima di iniziare.</p>",
+      "find": "      <h2 id=\"faq-title\">Questions, answered.</h2>\n      <p>The short version of what people ask before they start.</p>",
+      "replace": "      <h2 id=\"faq-title\">Domande e risposte.</h2>\n      <p>In breve, quello che le persone chiedono prima di iniziare.</p>",
       "count": 1
     },
     {
@@ -1193,6 +1158,26 @@
     }
   ],
   "pricingEntries": [
+    {
+      "find": "aria-label=\"Breadcrumb\"",
+      "replace": "aria-label=\"Percorso di navigazione\"",
+      "count": 1
+    },
+    {
+      "find": "\"name\": \"Pricing\"",
+      "replace": "\"name\": \"Prezzo\"",
+      "count": 1
+    },
+    {
+      "find": "\"item\": \"https://fibonax.com/\"",
+      "replace": "\"item\": \"https://fibonax.com/it/\"",
+      "count": 1
+    },
+    {
+      "find": "\"item\": \"https://fibonax.com/pricing/\"",
+      "replace": "\"item\": \"https://fibonax.com/it/pricing/\"",
+      "count": 1
+    },
     {
       "find": "</strong> FiboTokens</span></li>",
       "replace": "</strong> FiboToken</span></li>",
@@ -1255,12 +1240,17 @@
     },
     {
       "find": "Beyond that, buy FiboTokens once and keep them forever, or go unlimited with a small monthly plan. Founding Members who join by December 31, 2026 keep their benefits for life.",
-      "replace": "Oltre, compri FiboToken una volta e li tieni per sempre, oppure passi all’illimitato con un piccolo piano mensile. I Founding Member iscritti entro il 31 dicembre 2026 tengono i vantaggi a vita.",
+      "replace": "Oltre a questo, compri FiboToken una volta e li tieni per sempre, oppure passi all’illimitato con un piccolo piano mensile. I Founding Member iscritti entro il 31 dicembre 2026 tengono i vantaggi a vita.",
+      "count": 1
+    },
+    {
+      "find": "Every day you get 15 snippets, 10 prompts and 5 Brains for free.",
+      "replace": "Ogni giorno hai 15 snippet, 10 prompt e 5 Brain gratis.",
       "count": 1
     },
     {
       "find": "Beyond that, buy FiboTokens once and keep them forever. No subscription needed.",
-      "replace": "Oltre, compri FiboToken una volta e li tieni per sempre. Nessun abbonamento necessario.",
+      "replace": "Oltre a questo, compri FiboToken una volta e li tieni per sempre. Nessun abbonamento necessario.",
       "count": 1
     },
     {
@@ -1282,16 +1272,6 @@
       "find": "</span> and <span",
       "replace": "</span> e <span",
       "count": 3
-    },
-    {
-      "find": "Start free. When you need more, buy FiboTokens once and keep them forever, or go unlimited for <span",
-      "replace": "Parti gratis. Quando ti serve di più, compri FiboToken una volta e li tieni per sempre, oppure passi all’illimitato a <span",
-      "count": 1
-    },
-    {
-      "find": "</span> a month.</p>",
-      "replace": "</span> al mese.</p>",
-      "count": 1
     },
     {
       "find": "Buy once. Yours forever.",
@@ -1341,7 +1321,7 @@
     {
       "find": ">€4.90<",
       "replace": ">€4,90<",
-      "count": 3
+      "count": 2
     },
     {
       "find": "Packs open on January 1, 2027. Founding Members get <span",
@@ -1374,11 +1354,6 @@
       "count": 1
     },
     {
-      "find": "Unlimited, every day",
-      "replace": "Illimitato, ogni giorno",
-      "count": 1
-    },
-    {
       "find": ">per month<",
       "replace": ">al mese<",
       "count": 1
@@ -1386,11 +1361,6 @@
     {
       "find": "Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.",
       "replace": "Snippet, prompt e Brain illimitati a un piccolo prezzo mensile. Nessun FiboToken da contare.",
-      "count": 1
-    },
-    {
-      "find": "Opens on January 1, 2027. Renewal and cancellation terms are shown before you subscribe. Price includes VAT.",
-      "replace": "Apre il 1º gennaio 2027. Rinnovo e disdetta sono mostrati prima di abbonarti. Prezzo IVA inclusa.",
       "count": 1
     },
     {
@@ -1614,23 +1584,43 @@
       "count": 1
     },
     {
-      "find": "No subscription required. A monthly plan is there only if you want one. No pathetic marketing.",
-      "replace": "Nessun abbonamento obbligatorio. Il piano mensile c’è solo se lo vuoi. Nessun marketing patetico.",
+      "find": ">No subscription required</h3>",
+      "replace": ">Nessun abbonamento obbligatorio</h3>",
       "count": 1
     },
     {
-      "find": "Only genuine pay per use.",
-      "replace": "Solo autentico pagamento a consumo.",
+      "find": "A monthly plan is there only if you want one. No pathetic marketing.",
+      "replace": "Il piano mensile c’è solo se lo vuoi. Nessun marketing patetico.",
       "count": 1
     },
     {
-      "find": "Lifetime credit.",
-      "replace": "Credito senza scadenza.",
+      "find": ">Only genuine pay per use</h3>",
+      "replace": ">Solo autentico pagamento a consumo</h3>",
       "count": 1
     },
     {
-      "find": "Revenue invested in top Developers and Ai coding model",
-      "replace": "Ricavi investiti nei migliori sviluppatori e modelli AI per il coding",
+      "find": "One FiboToken, one use. The free allowance is always spent first.",
+      "replace": "Un FiboToken, un uso. La quota gratuita si consuma sempre per prima.",
+      "count": 1
+    },
+    {
+      "find": ">Lifetime credit</h3>",
+      "replace": ">Credito senza scadenza</h3>",
+      "count": 1
+    },
+    {
+      "find": "Your FiboTokens never expire. They stay in your account until you use them.",
+      "replace": "I tuoi FiboToken non scadono mai. Restano nel tuo account finché non li usi.",
+      "count": 1
+    },
+    {
+      "find": ">Revenue reinvested</h3>",
+      "replace": ">Ricavi reinvestiti</h3>",
+      "count": 1
+    },
+    {
+      "find": "Revenue goes into top developers and AI coding models, so the product keeps improving.",
+      "replace": "I ricavi vanno ai migliori sviluppatori e ai modelli AI per il coding, così il prodotto continua a migliorare.",
       "count": 1
     },
     {

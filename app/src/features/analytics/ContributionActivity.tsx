@@ -1,5 +1,5 @@
-import { Activity } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import type { ActivityData, ActivityMonth } from '@/types/database';
 
 interface ContributionActivityProps {
@@ -7,68 +7,115 @@ interface ContributionActivityProps {
   showPrivate: boolean;
 }
 
+/**
+ * Month by month, under the year grid. Folded, it is one line about the
+ * current month, so the sections below stay in view. Unfolded, every month
+ * gets a compact block with one thin bar per folder, in columns, so a year of
+ * history fits on one screen.
+ */
 export function ContributionActivity({ data, showPrivate }: ContributionActivityProps) {
+  const [expanded, setExpanded] = useState(false);
   const timeline = data.overview.timeline;
+  const current = timeline[0];
+  const hiddenCount = Math.max(0, timeline.length - 1);
 
   return (
     <div>
-      <h3 className="text-base font-semibold tracking-tight text-ink">Contribution activity</h3>
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="text-xs font-medium text-ink-subtle">Month by month</h4>
+        {hiddenCount > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? 'Show less' : `Show earlier months (${hiddenCount})`}
+          </Button>
+        )}
+      </div>
 
-      {timeline.length === 0 ? (
-        <p className="mt-3 text-sm text-ink-muted">
-          No snippet activity yet. Expansions will show up here as you use your snippets.
+      {!current ? (
+        <p className="mt-2 text-sm text-ink-muted">
+          No inserts yet. Months show up here as you use your snippets.
         </p>
-      ) : (
-        <div className="mt-4 space-y-4">
+      ) : expanded ? (
+        <div className="mt-3 grid grid-cols-2 gap-x-10 gap-y-6 2xl:grid-cols-3">
           {timeline.map((month) => (
             <MonthGroup key={month.key} month={month} showPrivate={showPrivate} />
           ))}
         </div>
+      ) : (
+        <MonthLine month={current} showPrivate={showPrivate} />
       )}
     </div>
   );
 }
 
-function MonthGroup({ month, showPrivate }: { month: ActivityMonth; showPrivate: boolean }) {
-  const maxCount = Math.max(1, ...month.items.map((i) => i.count));
-  const folderWord = month.items.length === 1 ? 'folder' : 'folders';
+function folderWord(n: number): string {
+  return n === 1 ? 'folder' : 'folders';
+}
 
+/** The current month as one line: its total and a chip per folder. */
+function MonthLine({ month, showPrivate }: { month: ActivityMonth; showPrivate: boolean }) {
   const headline = showPrivate
-    ? `Expanded snippets ${month.total.toLocaleString()} times across ${month.items.length} ${folderWord}`
-    : `Active across ${month.items.length} ${folderWord}`;
+    ? `${month.total.toLocaleString()} inserts across ${month.items.length} ${folderWord(month.items.length)}`
+    : `Active across ${month.items.length} ${folderWord(month.items.length)}`;
 
   return (
-    <div className="flex gap-3">
-      <div className="flex flex-col items-center">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-line bg-bg-alt text-ink-muted">
-          <Activity className="h-3.5 w-3.5" />
-        </span>
-        <span className="mt-1 w-px flex-1 bg-line" />
+    <div className="mt-2 flex items-center gap-4">
+      <div className="w-72 shrink-0">
+        <p className="text-sm font-semibold text-ink">{month.label}</p>
+        <p className="text-xs text-ink-muted">{headline}</p>
       </div>
+      <div className="flex min-w-0 flex-wrap gap-1.5">
+        {month.items.map((item) => (
+          <span
+            key={item.label}
+            className="inline-flex max-w-[14rem] items-center gap-1.5 rounded-full bg-bg-alt px-2.5 py-1 text-xs text-ink"
+            title={item.label}
+          >
+            <span className="truncate">{item.label}</span>
+            {showPrivate && (
+              <span className="tabular-nums text-ink-muted">{item.count.toLocaleString()}</span>
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-      <div className="flex-1 pb-1">
-        <p className="mb-2 text-sm font-semibold text-ink">{month.label}</p>
-        <Card className="p-4">
-          <p className="mb-3 text-sm text-ink">{headline}</p>
-          <div className="space-y-2">
-            {month.items.map((item) => (
-              <div key={item.label} className="flex items-center gap-3">
-                <span className="w-36 shrink-0 truncate text-xs text-ink-muted" title={item.label}>
-                  {item.label}
-                </span>
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-alt">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${Math.round((item.count / maxCount) * 100)}%` }}
-                  />
-                </div>
-                <span className="w-8 shrink-0 text-right text-xs tabular-nums text-ink-muted">
-                  {showPrivate ? item.count.toLocaleString() : '·'}
-                </span>
-              </div>
-            ))}
+/** One month as a compact block: its total, then a thin bar per folder. */
+function MonthGroup({ month, showPrivate }: { month: ActivityMonth; showPrivate: boolean }) {
+  const maxCount = Math.max(1, ...month.items.map((i) => i.count));
+  const summary = showPrivate
+    ? `${month.total.toLocaleString()} inserts · ${month.items.length} ${folderWord(month.items.length)}`
+    : `${month.items.length} ${folderWord(month.items.length)}`;
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-sm font-semibold text-ink">{month.label}</p>
+        <p className="text-xs tabular-nums text-ink-muted">{summary}</p>
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {month.items.map((item) => (
+          <div key={item.label} className="flex items-center gap-3">
+            <span className="w-32 shrink-0 truncate text-xs text-ink-muted" title={item.label}>
+              {item.label}
+            </span>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-bg-alt">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.round((item.count / maxCount) * 100)}%` }}
+              />
+            </div>
+            <span className="w-7 shrink-0 text-right text-xs tabular-nums text-ink">
+              {showPrivate ? item.count.toLocaleString() : '·'}
+            </span>
           </div>
-        </Card>
+        ))}
       </div>
     </div>
   );

@@ -233,9 +233,10 @@ export const promptsApi: PromptsApi = {
     // UPDATE and stamps last_used_at in the same statement. SECURITY INVOKER,
     // so RLS gates it exactly as the plain update it replaces did — including
     // the shared-folder branch, which the old `.eq('user_id')` filter silently
-    // excluded for teammates.
+    // excluded for teammates. The same call logs the use for Analytics, as a
+    // computer use.
     const { data, error } = await supabase
-      .rpc('increment_prompt_usage', { p_prompt_id: id })
+      .rpc('increment_prompt_usage', { p_prompt_id: id, p_device: 'computer' })
       .select('id, usage_count, last_used_at')
       .maybeSingle<{ id: string; usage_count: number; last_used_at: string }>();
     if (error) throw toApiError(error);

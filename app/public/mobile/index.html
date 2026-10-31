@@ -191,15 +191,6 @@ body{
   padding:6px 12px;border-radius:9999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
   font-size:14px;font-weight:700;letter-spacing:-.2px;line-height:1.2;font-variant-numeric:tabular-nums}
 .mstatbig .mstatbig-unit{font-size:12.5px;font-weight:600;color:var(--navy-copy)}
-.hdr-btn{
-  width:42px;height:42px;min-width:42px;border-radius:50%;border:none;
-  background:rgba(255,255,255,.18);color:#fff;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  -webkit-tap-highlight-color:transparent;transition:background .15s;padding:0;
-  border:2px solid rgba(255,255,255,.30)
-}
-.hdr-btn:active{background:rgba(255,255,255,.32)}
-.hdr-btn svg{width:18px;height:18px;display:block}
 /* Search rides on the band as a translucent field, 16px so iOS never zooms
    on focus; the clear button and the Filters pill take the same glass. */
 .lib-search{display:flex;align-items:center;gap:8px;margin-top:16px}
@@ -491,6 +482,10 @@ body{
 .sb-info-row.is-list{display:block}
 .sb-info-row.is-list .sb-info-v{display:block;white-space:pre-wrap;text-align:left;
   overflow-wrap:anywhere;margin-top:8px;line-height:1.6;font-weight:500}
+.sb-info-row.is-multi .sb-info-v{white-space:normal;overflow:visible;text-overflow:clip;
+  overflow-wrap:anywhere;line-height:1.6}
+.sb-info-item{white-space:nowrap}
+.sb-info-sep{color:var(--text2);font-weight:500}
 .sb-info-close{position:absolute;right:12px;top:18px;min-height:44px;min-width:44px;
   border:0;border-radius:8px;background:var(--bg-alt);color:var(--text);font-size:20px;cursor:pointer}
 #sb-info-sheet .sb-sheet-title{padding-right:62px}
@@ -894,6 +889,8 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 /* Tap-to-copy id row: same tap feedback as the sheet action list. */
 .sb-info-row[data-copy]{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .sb-info-row[data-copy]:active{background:var(--bg-alt)}
+/* "Last used by NAME on DD/MM/YYYY at HH:MM" under a team snippet or prompt. */
+.sb-info-foot{margin-top:2px;padding:12px 0 2px;border-top:1px solid var(--bg-alt);font-size:12.5px;color:var(--text2)}
 .sb-info-mono{font-family:var(--mono);font-size:12px;color:var(--primary-copy)}
 
 /* ── REVIEW STATUS (AI-KNOWLEDGE P2) ───────────────
@@ -1132,12 +1129,12 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .sb-folder-new-form{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 2px}
 /* Folder-icon glyphs render at the container's font-size, inheriting text color —
    keeps mobile byte-identical to the extension & dashboard SVG set. */
-.folder-pill-ico svg,.fbadge-ico svg,.sb-field-ico svg,.sb-folder-row-ico svg,.det-folder-ico svg,.an-folder-ico svg,.sb-fico-opt svg,.snip-icon svg,.prompt-icon svg,.an-recent-ico svg{
+.folder-pill-ico svg,.fbadge-ico svg,.sb-field-ico svg,.sb-folder-row-ico svg,.det-folder-ico svg,.sb-fico-opt svg,.snip-icon svg,.prompt-icon svg{
   width:1em;height:1em;display:inline-block;vertical-align:-.125em;
   stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round
 }
 /* Keep the approved Snippets glyph identical to the landing on every surface. */
-.mqa-ico svg.snippet-icon,.an-recent-ico svg.snippet-icon,
+.mqa-ico svg.snippet-icon,
 .mqa-ico svg.prompt-type-icon,.prompt-icon svg.prompt-type-icon{stroke-width:1.8}
 svg.brain-type-icon{stroke-width:1.8}
 /* New-folder icon picker (matches the extension folder-modal + dashboard FolderDialog).
@@ -1311,94 +1308,135 @@ svg.brain-type-icon{stroke-width:1.8}
 .empty .spinner{margin:0 auto 14px}
 
 /* ── ANALYTICS VIEW ──────────────────────────────── */
+/* Every figure comes from SBUsageAnalytics (extension/shared/usage-analytics.js,
+   inlined between the SB_USAGE_ANALYTICS markers), the module the dashboard's
+   Analytics page loads, so the two pages print the same numbers. The frame is
+   the library band's; the period picker rides on the band and the four headline
+   figures overlap its bottom edge like the quick-action bar. */
 #view-analytics{overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding-bottom:calc(110px + env(safe-area-inset-bottom))}
-.an-hdr{
-  background:linear-gradient(160deg,#1B4FD8 0%,#1440B0 100%);color:#fff;
-  padding:calc(16px + env(safe-area-inset-top)) 20px 22px;
-  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
-  position:relative;overflow:hidden
-}
-.an-hdr::after{content:"";position:absolute;right:-30px;top:-30px;width:160px;height:160px;
-  background:radial-gradient(circle,rgba(255,255,255,.14),transparent 60%);pointer-events:none}
-.an-hdr-left{position:relative;z-index:1}
-.an-hdr-sup{font-size:12px;font-weight:500;opacity:.78;letter-spacing:.1px}
-.an-hdr-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-top:2px}
-.an-hdr-sub{font-size:12px;opacity:.82;margin-top:4px;font-weight:500}
-.an-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 4px}
-.an-kpi{background:var(--card);border-radius:var(--r-card);padding:16px;
-  box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:4px;
-  border-left:3px solid transparent}
-/* Refresh button spin animation */
+.an-band{padding-bottom:48px}
+.an-band-sub{margin-top:8px;font-size:13.5px;font-weight:500;line-height:1.45;color:var(--navy-copy)}
+.an-refresh{width:44px;height:44px;flex-shrink:0;border-radius:var(--r-btn);
+  border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.10);color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:background .15s,transform .1s}
+.an-refresh:active{background:rgba(255,255,255,.22);transform:scale(.97)}
+.an-refresh[disabled]{cursor:default}
+.an-refresh svg{width:18px;height:18px;display:block}
 @keyframes an-spin{to{transform:rotate(360deg)}}
 #an-refresh-btn.spinning svg{animation:an-spin .7s linear infinite}
-.an-kpi.a-primary{border-left-color:var(--primary-copy)}
-.an-kpi.a-orange{border-left-color:#C2410C}
-.an-kpi.a-green{border-left-color:var(--success)}
-.an-kpi.a-purple{border-left-color:#7C3AED}
-.an-kpi-val{font-size:34px;font-weight:800;letter-spacing:-1.2px;color:var(--text);
-  font-variant-numeric:tabular-nums;line-height:1.1}
-.an-kpi-lbl{font-size:12px;font-weight:600;color:var(--text2);margin-top:2px}
-.an-kpi-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;
-  border-radius:4px;margin-top:4px;letter-spacing:.2px}
-.an-kpi-tag.good{background:#F0FDF4;color:#15803D}
-.an-kpi-tag.warn{background:#FFF7ED;color:#C2410C}
-.an-sec{padding:8px 16px 2px}
-.an-sec-hdr{font-size:18px;font-weight:800;letter-spacing:-.5px;color:var(--text);
-  padding:12px 0 8px}
-.an-card{background:var(--card);border-radius:var(--r-card);
+@media(prefers-reduced-motion:reduce){#an-refresh-btn.spinning svg{animation:none}}
+/* Period: a glass segmented control on the band, the filled segment white. */
+.an-period{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:14px;padding:4px;
+  border-radius:14px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16)}
+.an-period button{min-height:40px;border:0;border-radius:10px;background:transparent;color:#fff;
+  font-family:inherit;font-size:13px;font-weight:650;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.an-period button[aria-pressed="true"]{background:#fff;color:var(--navy)}
+.an-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 4px;
+  margin-top:-28px;position:relative;z-index:2}
+.an-kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);padding:14px;
+  box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.an-kpi-lbl{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text3)}
+.an-kpi-val{font-size:26px;font-weight:750;letter-spacing:-.8px;color:var(--text);
+  font-variant-numeric:tabular-nums;line-height:1.15;margin-top:4px}
+.an-kpi-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.an-kpi-prev{font-size:11.5px;color:var(--text2);font-variant-numeric:tabular-nums}
+.an-kpi-hint{font-size:11.5px;line-height:1.4;color:var(--text3);margin-top:4px}
+/* How a figure moved: an arrow and the shared module's wording. The arrow
+   carries the direction, so colour is never the only signal. */
+.an-chg{display:inline-flex;align-items:center;gap:2px;padding:2px 8px;border-radius:9999px;
+  font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;
+  background:var(--bg-alt);color:var(--text2)}
+.an-chg.up{background:#F0FDF4;color:#15803D}
+.an-chg.down{background:var(--danger-bg);color:var(--danger)}
+.an-sec{padding:0 16px}
+.an-sec .msec{padding-left:0;padding-right:0}
+.an-sec-sub{font-size:12.5px;line-height:1.45;color:var(--text2);margin:-4px 0 10px}
+.an-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);
   padding:0 16px;box-shadow:var(--shadow-sm);overflow:hidden}
-.an-lang-row{display:flex;align-items:center;gap:10px;padding:12px 0;
-  border-bottom:1px solid var(--bg-alt)}
-.an-lang-row:last-child{border-bottom:none}
-.an-lang-pill{min-width:46px;flex-shrink:0}
-.an-lang-bar-wrap{flex:1;height:7px;background:var(--bg-alt);border-radius:4px;overflow:hidden}
-.an-lang-bar{height:100%;border-radius:4px;transition:width .5s ease}
-.an-lang-count{font-size:13px;font-weight:700;color:var(--text);
-  min-width:26px;text-align:right;flex-shrink:0}
-.an-lang-pct{font-size:11px;color:var(--text3);min-width:32px;text-align:right;flex-shrink:0}
-.an-folder-row{display:flex;align-items:center;gap:10px;padding:12px 0;
-  border-bottom:1px solid var(--bg-alt)}
-.an-folder-row:last-child{border-bottom:none}
-.an-folder-rank{font-size:11px;font-weight:800;color:var(--text3);
-  min-width:18px;text-align:center;flex-shrink:0}
-.an-folder-ico{font-size:20px;line-height:1;flex-shrink:0}
-.an-folder-info{flex:1;min-width:0}
-.an-folder-name{font-size:14px;font-weight:600;color:var(--text);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.an-folder-bar-wrap{height:4px;background:var(--bg-alt);border-radius:2px;
-  margin-top:5px;overflow:hidden}
-.an-folder-bar{height:100%;background:var(--primary);border-radius:2px;
-  transition:width .5s ease}
-.an-folder-cnt{font-size:14px;font-weight:700;color:var(--primary-copy);flex-shrink:0}
-.an-health-row{display:flex;flex-direction:column;gap:7px;padding:12px 0;
-  border-bottom:1px solid var(--bg-alt)}
-.an-health-row:last-child{border-bottom:none}
-.an-health-top{display:flex;justify-content:space-between;align-items:center}
-.an-health-lbl{font-size:13px;font-weight:600;color:var(--text)}
-.an-health-pct{font-size:14px;font-weight:800;color:var(--primary-copy)}
-.an-health-pct.h-warn{color:var(--warn-deep)}
-.an-health-pct.h-ok{color:var(--success)}
-.an-health-bar-wrap{height:6px;background:var(--bg-alt);border-radius:3px;overflow:hidden}
-.an-health-bar{height:100%;border-radius:3px;background:var(--primary);
-  transition:width .5s ease}
-.an-health-bar.h-warn{background:var(--warn-deep)}
-.an-health-bar.h-ok{background:var(--success)}
-.an-recent-item{display:flex;align-items:center;gap:12px;padding:12px 0;
-  border-bottom:1px solid var(--bg-alt);cursor:pointer;
-  -webkit-tap-highlight-color:transparent;transition:background .1s}
-.an-recent-item:last-child{border-bottom:none}
-.an-recent-item:active{background:var(--bg-alt);
-  margin:0 -16px;padding-left:16px;padding-right:16px}
-.an-recent-ico{width:40px;height:40px;border-radius:12px;flex-shrink:0;
-  background:var(--primary-lt);color:var(--primary-copy);
-  display:flex;align-items:center;justify-content:center;font-size:19px}
-.an-recent-info{flex:1;min-width:0}
-.an-recent-title{font-size:14px;font-weight:700;color:var(--text);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.an-recent-meta{display:flex;align-items:center;gap:6px;margin-top:3px}
-.an-recent-date{font-size:11px;color:var(--text3)}
-.an-empty-sec{padding:24px 0;text-align:center;color:var(--text2);font-size:13px}
+.an-card.pad{padding:14px 16px}
+.an-facts{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px}
+.an-fact dt{font-size:11.5px;color:var(--text2)}
+.an-fact dd{margin:2px 0 0;font-size:16px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.an-fact dd.an-fact-hint{font-size:11.5px;font-weight:500;color:var(--text3)}
+/* Inserts per day, drawn as an SVG: bars for this period, a dashed line for
+   the one before, a dark line for the 7-day average. */
+.an-chart svg{display:block;width:100%;height:auto}
+.an-chart-axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text3);margin-top:4px}
+.an-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:11.5px;color:var(--text2)}
+.an-legend span{display:inline-flex;align-items:center;gap:6px}
+.an-key{width:12px;height:3px;border-radius:2px;background:var(--primary)}
+.an-key.bar{height:10px;width:8px}
+.an-key.prev{background:none;border-top:2px dashed var(--text3);height:0}
+.an-key.avg{background:var(--text)}
+/* Ranked rows: top snippets, movers, folders, languages, team. */
+.an-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bg-alt)}
+.an-row:last-child{border-bottom:none}
+.an-row[role="button"]{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.an-row[role="button"]:active{background:var(--bg-alt);margin:0 -16px;padding-left:16px;padding-right:16px}
+.an-rank{min-width:18px;font-size:11.5px;font-weight:700;color:var(--text3);text-align:center;flex-shrink:0}
+.an-main{flex:1;min-width:0}
+.an-title{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-me{font-weight:500;color:var(--text2)}
+.an-most{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:600;vertical-align:1px}
+.an-detail{font-size:11.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.an-spark{width:52px;height:20px;flex-shrink:0}
+.an-kpi-spark svg{display:block;width:72px;height:22px;margin-top:4px}
+.an-bar{height:5px;background:var(--bg-alt);border-radius:3px;overflow:hidden;margin-top:6px}
+.an-bar span{display:block;height:100%;background:var(--primary);border-radius:3px}
+.an-side{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.an-num{font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.an-num small{font-size:11px;font-weight:500;color:var(--text3)}
+.an-sub-h{font-size:13px;font-weight:700;color:var(--text);padding:12px 0 2px;display:flex;align-items:center;gap:6px}
+.an-sub-h svg{width:15px;height:15px;stroke:var(--text2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* When: weekday by hour, Monday first, local time. */
+.an-grid{display:grid;grid-template-columns:30px repeat(24,1fr);gap:2px;align-items:center}
+.an-grid .an-gl{font-size:9.5px;color:var(--text3);text-align:right;padding-right:4px}
+.an-grid .an-gh{font-size:9.5px;color:var(--text3);height:12px}
+.an-grid i{display:block;aspect-ratio:1;border-radius:2px;background:var(--bg-alt)}
+.an-grid i.l1{background:rgba(27,79,216,.18)}
+.an-grid i.l2{background:rgba(27,79,216,.40)}
+.an-grid i.l3{background:rgba(27,79,216,.65)}
+.an-grid i.l4{background:var(--primary)}
+.an-msg{padding:22px 4px;text-align:center;font-size:13px;line-height:1.5;color:var(--text2)}
+.an-retry{margin-top:10px;min-height:40px;padding:0 16px;border-radius:var(--r-btn);border:1px solid var(--border);
+  background:var(--card);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.an-more{font-size:11.5px;color:var(--text3);padding:8px 0}
+/* What does most of your work (80/20): a Snippets / Prompts switch, the
+   headline, where the uses happened, then the key group and the rest. Phone
+   share in the azure the heatmap's second step uses; uses logged before
+   devices were recorded in the hairline grey. Every part also carries an
+   icon and its percentage, so colour is never the only signal. */
+.an-kind{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:14px 0 4px;
+  border-radius:12px;background:var(--bg-alt)}
+.an-kind button{min-height:40px;border:0;border-radius:9px;background:transparent;color:var(--text2);
+  font-family:inherit;font-size:13px;font-weight:650;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.an-kind button[aria-pressed="true"]{background:var(--card);color:var(--text);box-shadow:var(--shadow-sm)}
+.an-head{font-size:20px;font-weight:750;letter-spacing:-.4px;line-height:1.25;color:var(--text);margin-top:10px}
+.an-head-sub{font-size:12.5px;line-height:1.45;color:var(--text2);margin-top:4px}
+.an-dev-t{font-size:11.5px;font-weight:600;color:var(--text2);margin:14px 0 6px}
+.an-dev{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--bg-alt)}
+.an-dev span{display:block;height:100%}
+.an-dev .computer{background:var(--primary)}
+.an-dev .phone{background:rgba(27,79,216,.40)}
+.an-dev .unknown{background:var(--border)}
+.an-dev-key{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:11.5px;color:var(--text2)}
+.an-dev-key span{display:inline-flex;align-items:center;gap:5px}
+.an-dev-key b{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.an-dev-key i{width:8px;height:8px;border-radius:50%}
+.an-dev-key i.computer{background:var(--primary)}
+.an-dev-key i.phone{background:rgba(27,79,216,.40)}
+.an-dev-key i.unknown{background:var(--border)}
+.an-dev-ico{width:13px;height:13px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.an-where{display:flex;flex-wrap:wrap;gap:2px 9px;margin-top:5px;font-size:11px;color:var(--text2);font-variant-numeric:tabular-nums}
+.an-where span{display:inline-flex;align-items:center;gap:3px}
+.an-where .unknown{color:var(--text3)}
+.an-bar.rest span{background:var(--text3);opacity:.5}
+.an-sub-h .an-kpi-prev{margin-left:auto;font-weight:500}
+.an-more-btn{min-height:44px;padding:0 4px;border:0;background:none;color:var(--primary-copy);
+  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.an-unused{font-size:12.5px;line-height:1.45;color:var(--text2);padding:12px 0 14px;border-top:1px solid var(--bg-alt)}
 /* Detail view hides the global tab bar */
 .sb-detail-view .mtab,.sb-detail-view .mtab-indicator{display:none !important}
 </style>
@@ -1767,71 +1805,39 @@ svg.brain-type-icon{stroke-width:1.8}
 </div>
 
 <!-- ANALYTICS -->
-<div id="view-analytics" class="view">
+<div id="view-analytics" class="view lib-page">
 
-  <!-- Header -->
-  <div class="an-hdr">
-    <div class="an-hdr-left">
-      <div class="an-hdr-sup">Library overview</div>
-      <div class="an-hdr-title">Analytics</div>
-      <div class="an-hdr-sub" id="an-hdr-sub">Loading…</div>
+  <!-- Library band: the same frame as the snippets, prompts and Brains pages. -->
+  <header class="lib-band an-band">
+    <div class="lib-top">
+      <p class="lib-greet"><span class="mgreet">Welcome</span> <span class="mname">Fibonax</span></p>
+      <button class="home-account lib-account" type="button" data-lib-action="account" aria-label="Open your account">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </button>
     </div>
-    <button class="hdr-btn" id="an-refresh-btn" aria-label="Refresh analytics">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-        <path d="M21 3v5h-5"/>
-        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-        <path d="M3 21v-5h5"/>
-      </svg>
-    </button>
-  </div>
-
-  <!-- KPI Cards -->
-  <div class="an-kpi-grid">
-    <div class="an-kpi a-primary">
-      <div class="an-kpi-val" id="an-total">—</div>
-      <div class="an-kpi-lbl">Total snippets</div>
+    <div class="lib-title-row">
+      <h1 class="lib-title">Analytics</h1>
+      <button class="an-refresh" id="an-refresh-btn" type="button" aria-label="Refresh figures">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+          <path d="M3 21v-5h5"/>
+        </svg>
+      </button>
     </div>
-    <div class="an-kpi a-green">
-      <div class="an-kpi-val" id="an-folders-cnt">—</div>
-      <div class="an-kpi-lbl">Active folders</div>
+    <p class="an-band-sub" id="an-hdr-sub">Loading…</p>
+    <div class="an-period" role="group" aria-label="Period" id="an-period">
+      <button type="button" data-an-period="7" aria-pressed="false">7 days</button>
+      <button type="button" data-an-period="30" aria-pressed="true">30 days</button>
+      <button type="button" data-an-period="90" aria-pressed="false">90 days</button>
+      <button type="button" data-an-period="365" aria-pressed="false">12 months</button>
     </div>
-    <div class="an-kpi a-orange">
-      <div class="an-kpi-val" id="an-interactive">—</div>
-      <div class="an-kpi-lbl">Interactive templates</div>
-      <span class="an-kpi-tag good" id="an-interactive-pct" style="display:none"></span>
-    </div>
-    <div class="an-kpi a-purple">
-      <div class="an-kpi-val" id="an-noshortcut">—</div>
-      <div class="an-kpi-lbl">Missing shortcuts</div>
-      <span class="an-kpi-tag warn" id="an-noshortcut-tag" style="display:none">Assign some!</span>
-    </div>
-  </div>
+  </header>
 
-  <!-- By Language -->
-  <div class="an-sec">
-    <div class="an-sec-hdr">By Language</div>
-    <div class="an-card"><div id="an-lang-list"></div></div>
-  </div>
-
-  <!-- Top Folders -->
-  <div class="an-sec">
-    <div class="an-sec-hdr">Top Folders</div>
-    <div class="an-card"><div id="an-folder-list"></div></div>
-  </div>
-
-  <!-- Library Health -->
-  <div class="an-sec">
-    <div class="an-sec-hdr">Library Health</div>
-    <div class="an-card"><div id="an-health-list"></div></div>
-  </div>
-
-  <!-- Recently Modified -->
-  <div class="an-sec">
-    <div class="an-sec-hdr">Recently Modified</div>
-    <div class="an-card"><div id="an-recent-list"></div></div>
-  </div>
+  <!-- Filled by renderAnalytics() from SBUsageAnalytics.compute(). -->
+  <div id="an-body"></div>
 
   <!-- Footer -->
   <div class="mpage-footer" style="padding-top:24px">
@@ -1981,7 +1987,7 @@ svg.brain-type-icon{stroke-width:1.8}
   <div class="sb-modal-body">
     <div class="sb-field-group">
       <label for="sb-edit-title" class="sb-field-label">Snippet Title</label>
-      <input type="text" id="sb-edit-title" placeholder="e.g. Booking quote EN" autocomplete="off" autocorrect="off" spellcheck="false">
+      <input type="text" id="sb-edit-title" placeholder="e.g. Price quote EN" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
     <div class="sb-field-group">
       <label for="sb-edit-shortcut" class="sb-field-label">Shortcut</label>
@@ -3281,6 +3287,31 @@ svg.brain-type-icon{stroke-width:1.8}
     return pair[count > 1 ? 1 : 0];
   }
 
+  // Where an email layout goes, in the same words everywhere. It is said
+  // whether or not the layout holds pictures: a card with none is still left
+  // out of a chat or a Share.
+  var LAYOUT_TEXT = {
+    'left-out': 'This box takes text only, so the email layout is left out.',
+    'left-out-done': 'This box takes text only, so the email layout was left out.',
+    'copy': 'Paste into an email and the layout goes in too. Chats get the text only.',
+    'share': 'Share sends the text only. Use Copy to paste the layout into an email.'
+  };
+
+  /**
+   * The line under a preview, or in the Undo card, that says where a
+   * formatted text's extras go ('left-out', 'left-out-done', 'copy',
+   * 'share'): its email layout, else its pictures. '' when it has neither,
+   * so the line stays hidden.
+   */
+  function formattedNote(vm, key) {
+    if (!vm) return '';
+    if (vm.formatted && !vm.parts && isEmailLayout(vm.formatted)) {
+      return Object.prototype.hasOwnProperty.call(LAYOUT_TEXT, key) ? LAYOUT_TEXT[key] : '';
+    }
+    var n = pictureCount(vm);
+    return n ? pictureText(key, n) : '';
+  }
+
   /** How many pictures a view model's text shows, in its parts or its layout. */
   function pictureCount(vm) {
     if (!vm) return 0;
@@ -3291,12 +3322,18 @@ svg.brain-type-icon{stroke-width:1.8}
   // ── A LAYOUT ON SCREEN ──────────────────────────────────────────
   // What a preview draws for a formatted text (`formatted`): the layout read
   // in an inert document and rebuilt node by node, keeping lines, lists, Bold,
-  // Italic, Underline, text colours and https pictures. Layouts come from
-  // teammates too, so nothing in one runs, and no attribute comes through but
-  // a picture's address, description and size, and a colour written as
-  // `#rgb`, `#rrggbb` or `rgb()`. Needs a browser; returns null without one.
+  // Italic, Underline, text colours and https pictures. An email layout is
+  // drawn in a frame instead (isEmailLayout, layoutDocument below); here its
+  // table reads as the plain text does, a row to a line with its cells side
+  // by side, for a page that refuses the frame. Layouts come from teammates
+  // too, so nothing in one runs, and no
+  // attribute comes through but a picture's address, description and size,
+  // and a colour written as `#rgb`, `#rrggbb` or `rgb()`. Needs a browser;
+  // returns null without one.
   var LAYOUT_KEEP = { DIV: 'div', P: 'div', BR: 'br', B: 'b', STRONG: 'b', I: 'i', EM: 'i', U: 'u',
-    UL: 'ul', OL: 'ol', LI: 'li' };
+    UL: 'ul', OL: 'ol', LI: 'li', TABLE: 'div', TR: 'div', TD: 'span', TH: 'span',
+    H1: 'div', H2: 'div', H3: 'div', H4: 'div', H5: 'div', H6: 'div', BLOCKQUOTE: 'div' };
+  var LAYOUT_CELL = { TD: 1, TH: 1 };
   var LAYOUT_SKIP = { SCRIPT: 1, STYLE: 1, TEMPLATE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, HEAD: 1, TITLE: 1 };
   var PICTURE_WIDTH_SIZE = { 160: 'small', 320: 'medium', 600: 'full' };
   var LAYOUT_COLOR_RE = /^(#[0-9a-f]{3}|#[0-9a-f]{6}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+)\s*)?\))$/i;
@@ -3339,9 +3376,44 @@ svg.brain-type-icon{stroke-width:1.8}
         if (color) el.style.setProperty('color', color, 'important');
         to.appendChild(el);
         copy(n, el);
+        if (LAYOUT_CELL[tag]) to.appendChild(d.createTextNode(' '));
       });
     })(source, out);
     return out;
+  }
+
+  // What the formatting bar writes (docToHtml in app/src/lib/formattedBody.ts),
+  // in the editor's order. A layout holding anything else is an email's.
+  var LAYOUT_BAR_TAGS = ['DIV', 'P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'UL', 'OL', 'LI', 'IMG'];
+
+  // Whether a layout is an email's rather than the bar's lines, lists and
+  // marks: a tag outside the bar's set, or an attribute on anything but a
+  // picture. The editor decides the same in app/src/lib/emailLayout.ts, which
+  // runs before this module has loaded; scripts/check-fill-form.js pins the
+  // two lists to each other. Needs a browser; false without one.
+  function isEmailLayout(html) {
+    if (!html || typeof DOMParser === 'undefined') return false;
+    var all = new DOMParser().parseFromString(String(html), 'text/html').body.querySelectorAll('*');
+    for (var i = 0; i < all.length; i++) {
+      var tag = all[i].tagName.toUpperCase();
+      if (LAYOUT_BAR_TAGS.indexOf(tag) === -1) return true;
+      if (tag !== 'IMG' && all[i].attributes.length > 0) return true;
+    }
+    return false;
+  }
+
+  // The document a preview frame shows an email layout in, the same on every
+  // surface (the dashboard's LayoutFrame.tsx, the popup, the overlay and the
+  // phone): the layout as the email will show it, a base font for text it
+  // leaves unstyled, and tables and pictures no wider than the frame, so a
+  // 600px card reads in a popup or on a phone. The frame runs no scripts.
+  function layoutDocument(html) {
+    return '<!doctype html><html><head><meta charset="utf-8"><style>' +
+      'html,body{margin:0;padding:0}' +
+      'body{font:14px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#111;background:#fff;padding:8px}' +
+      'img{max-width:100%;height:auto}' +
+      'table{max-width:100%}' +
+      '</style></head><body>' + String(html == null ? '' : html) + '</body></html>';
   }
 
   // Comparison form of a piece of page text or of the author's word: case,
@@ -3855,7 +3927,11 @@ svg.brain-type-icon{stroke-width:1.8}
     linkText: linkText,
     pictureText: pictureText,
     pictureCount: pictureCount,
+    formattedNote: formattedNote,
     layoutFragment: layoutFragment,
+    isEmailLayout: isEmailLayout,
+    layoutDocument: layoutDocument,
+    LAYOUT_BAR_TAGS: LAYOUT_BAR_TAGS,
     linkSummary: linkSummary,
     linkNote: linkNote,
     LINK_TEXT: LINK_TEXT,
@@ -3984,6 +4060,9 @@ svg.brain-type-icon{stroke-width:1.8}
 .ff-layout b{font-weight:700!important;}
 .ff-layout i{font-style:italic!important;}
 .ff-layout u{text-decoration:underline!important;}
+/* An email layout in a preview: a frame sized to the card that takes no clicks (the box around it scrolls). */
+.ff-framed{white-space:normal!important;}
+.ff-frame{display:block!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;background:#fff;border-radius:8px;pointer-events:none;}
 </style>
 <script>
 // DOM presentation shared by the overlay, popup and mobile fill forms.
@@ -4324,13 +4403,22 @@ svg.brain-type-icon{stroke-width:1.8}
   // web pages. A picture the page will not load (some sites refuse outside
   // pictures) shows as a labelled box. Pictures already drawn are kept, so
   // typing in the form does not make them blink.
+  // An email layout is drawn in a frame of its own instead, as the dashboard
+  // draws it (LayoutFrame.tsx): the card with its tables, colours and spacing,
+  // in a document that runs nothing and reads nothing of the page
+  // (layoutDocument in fill-form.js). The frame stays across redraws and only
+  // its body is rewritten, so typing in the form does not reload it. A page
+  // whose policy refuses the frame gets the card as lines and cells instead.
   function showPreview(box, vm) {
     if (!box) return;
-    // A formatted text draws its layout; anything else, its text.
-    var layout = vm.formatted && !vm.parts && root.SBFillForm.layoutFragment
-      ? root.SBFillForm.layoutFragment(vm.formatted) : null;
-    box.classList.toggle('ff-layout', !!layout);
-    if (layout) { box.textContent = ''; box.appendChild(layout); return; }
+    var M = root.SBFillForm;
+    var layout = vm.formatted && !vm.parts ? String(vm.formatted) : '';
+    var framed = !!layout && !box._ffNoFrame && M.isEmailLayout(layout) && layoutFrame(box, layout);
+    box.classList.toggle('ff-framed', framed);
+    if (framed) { box.classList.remove('ff-layout'); return; }
+    var lines = layout ? M.layoutFragment(layout) : null;
+    box.classList.toggle('ff-layout', !!lines);
+    if (lines) { box.textContent = ''; box.appendChild(lines); return; }
     if (!vm.parts) { box.textContent = vm.preview; return; }
     var drawn = {};
     Array.prototype.forEach.call(box.querySelectorAll('[data-ff-pic]'), function(n) {
@@ -4358,13 +4446,94 @@ svg.brain-type-icon{stroke-width:1.8}
     });
   }
 
-  // The line that says where the pictures go ('left-out', 'copy', 'share').
-  // Hidden while the text has none.
+  // Draws an email layout in the box's frame, making the frame on the first
+  // call. False once the page has refused the frame.
+  function layoutFrame(box, html) {
+    var M = root.SBFillForm;
+    var frame = box.querySelector('iframe.ff-frame');
+    if (frame && frame._ffHtml === html) return true;
+    if (frame && frame._ffReady) {
+      frame._ffHtml = html;
+      frame.contentDocument.body.innerHTML = html;
+      sizeFrame(frame);
+      return true;
+    }
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.className = 'ff-frame';
+      frame.title = 'Layout';
+      frame.setAttribute('sandbox', 'allow-same-origin');
+      frame.setAttribute('referrerpolicy', 'no-referrer');
+      frame.addEventListener('load', function() {
+        var inner = frame.contentDocument;
+        // The frame's first, blank document loads before the layout does.
+        if (inner && inner.URL !== 'about:srcdoc') return;
+        if (!inner || !inner.body) {
+          // The page's policy refused the frame: the card as lines and cells.
+          box._ffNoFrame = true;
+          box.classList.remove('ff-framed');
+          box.classList.add('ff-layout');
+          box.textContent = '';
+          box.appendChild(M.layoutFragment(frame._ffHtml));
+          return;
+        }
+        frame._ffReady = true;
+        sizeFrame(frame);
+      });
+      // A card wraps differently at every width, and a pane hidden behind a
+      // switch (the overlay's Preview on a narrow window) measures nothing
+      // until it shows: the height is read again whenever the frame's own
+      // size changes.
+      if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(function() { sizeFrame(frame); }).observe(frame);
+      }
+      box.textContent = '';
+      box.appendChild(frame);
+    }
+    // Asked again before the first document has loaded: the newest layout wins.
+    frame._ffHtml = html;
+    frame.srcdoc = M.layoutDocument(html);
+    readyFrame(frame, 40);
+    return true;
+  }
+
+  // The frame's load waits for the card's pictures, so the height is read as
+  // soon as the layout's document has its body, and the frame takes redraws
+  // from then on.
+  function readyFrame(frame, tries) {
+    var inner = frame.contentDocument;
+    if (inner && inner.URL === 'about:srcdoc' && inner.body && inner.readyState !== 'loading') {
+      frame._ffReady = true;
+      sizeFrame(frame);
+      return;
+    }
+    if (tries > 0) setTimeout(function() { readyFrame(frame, tries - 1); }, 50);
+  }
+
+  // The frame as tall as the card, and again as each of its pictures arrives.
+  // The box around it scrolls; the frame never does. A frame that is not laid
+  // out yet (a hidden pane) measures nothing and keeps its height for now.
+  function sizeFrame(frame) {
+    var inner = frame.contentDocument;
+    if (!inner || !inner.body) return;
+    var height = inner.body.offsetHeight;
+    if (!height) return;
+    frame.style.height = Math.min(Math.max(height, 40), 2400) + 'px';
+    Array.prototype.forEach.call(inner.images, function(img) {
+      if (img._ffSized) return;
+      img._ffSized = true;
+      img.addEventListener('load', function() { sizeFrame(frame); });
+    });
+  }
+
+  // The line that says where an email layout or the pictures go ('left-out',
+  // 'copy', 'share'), decided in formattedNote. Hidden while the text has
+  // neither.
   function pictureNote(el, vm, key) {
     if (!el) return;
-    var n = root.SBFillForm.pictureCount(vm);
-    el.hidden = n === 0;
-    el.textContent = n ? root.SBFillForm.pictureText(key, n) : '';
+    var text = root.SBFillForm.formattedNote(vm, key);
+    el.hidden = !text;
+    el.textContent = text;
   }
 
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
@@ -4527,21 +4696,35 @@ svg.brain-type-icon{stroke-width:1.8}
     return lines.join('\n');
   }
 
-  /** True when this text already carries an injected block. */
+  // Where the Context panel's own block starts: at the top of the draft, the
+  // only place the panel ever puts one ('block + draft'), after any blank
+  // lines; -1 when the draft does not open with one. A block further down is
+  // somebody else's: a Brain inside a prompt (resolvePromptBrains), or a Copy
+  // whole Brain pasted mid-message. The panel must never take that for its own,
+  // or its Insert and Remove would cut a prompt's Brain out.
+  function injectedBlockStart(s) {
+    var at = 0;
+    while (at < s.length && /\s/.test(s.charAt(at))) at++;
+    return s.indexOf(BLOCK_OPEN, at) === at ? at : -1;
+  }
+
+  /** True when this text opens with the panel's injected block. */
   function hasInjectedBlock(text) {
-    return String(text == null ? '' : text).indexOf(BLOCK_OPEN) !== -1;
+    return injectedBlockStart(String(text == null ? '' : text)) !== -1;
   }
 
   /**
-   * Remove the injected block, leaving everything else byte-identical.
+   * Remove the injected block at the top of the text, leaving everything else
+   * byte-identical.
    *
-   * Returns the original string untouched when there is no block, or when the
-   * markers are malformed: half-deleting someone's message because a marker got
-   * edited is far worse than leaving the block in place for them to select.
+   * Returns the original string untouched when the text does not open with a
+   * block, or when the markers are malformed: half-deleting someone's message
+   * because a marker got edited is far worse than leaving the block in place
+   * for them to select.
    */
   function stripInjectedBlock(text) {
     var s = String(text == null ? '' : text);
-    var start = s.indexOf(BLOCK_OPEN);
+    var start = injectedBlockStart(s);
     if (start === -1) return s;
     var end = s.indexOf(BLOCK_CLOSE, start);
     if (end === -1) return s;
@@ -4551,6 +4734,166 @@ svg.brain-type-icon{stroke-width:1.8}
     // does not accumulate whitespace above the draft.
     while (after < s.length && (s.charAt(after) === '\n' || s.charAt(after) === '\r')) after++;
     return s.slice(0, start) + s.slice(after);
+  }
+
+  // ── A BRAIN INSIDE A PROMPT (v3.104.0) ────────────────────────────────────
+  //
+  // A prompt's Context block can carry a Brain. The prompt keeps a reference,
+  // never the Brain's text: one token on its own line where the Brain goes,
+  //
+  //   {brain: id=<uuid>; name=<name>}
+  //
+  // written by the dashboard editor and read here. At use time every surface
+  // (the """ picker and the Context panel through the extension's background,
+  // the popup's copy, the phone's Use now, the dashboard's Use) swaps the token
+  // for the Brain's items, as "Copy whole Brain" hands them out, so the prompt
+  // always carries the Brain as it is today. The name in the token is only a
+  // label for a surface that cannot read the Brain: a teammate's prompt from a
+  // shared folder (Brains are personal), a Brain in the trash, no connection.
+  // The live name wins whenever the Brain can be read.
+  //
+  // Presentation again, so no twin in engine.ts. The dashboard writes and reads
+  // the token with the same two lines in app/src/lib/promptBrain.ts, and
+  // app/src/__tests__/promptBrain.test.ts holds them to these.
+  var BRAIN_TOKEN_RE = /\{brain:\s*id=([0-9a-fA-F-]{36})\s*(?:;\s*name=([^}]*))?\}/g;
+  var BRAIN_NAME_MAX = 64;
+
+  /** A Brain's name as the token carries it: one line, no braces, at most 64. */
+  function brainTokenName(name) {
+    return String(name == null ? '' : name).replace(/[{}\r\n]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, BRAIN_NAME_MAX);
+  }
+
+  /** The token the editor writes into the Context block for `brain` ({id, name}). */
+  function brainToken(brain) {
+    var name = brainTokenName(brain && brain.name);
+    return '{brain: id=' + String(brain && brain.id || '') + (name ? '; name=' + name : '') + '}';
+  }
+
+  /** Every Brain a prompt carries, as [{id, name}], once each, in order. */
+  function promptBrainRefs(text) {
+    var out = [];
+    var seen = {};
+    var m;
+    BRAIN_TOKEN_RE.lastIndex = 0;
+    while ((m = BRAIN_TOKEN_RE.exec(String(text == null ? '' : text))) !== null) {
+      var id = m[1].toLowerCase();
+      if (seen[id]) continue;
+      seen[id] = true;
+      out.push({ id: id, name: brainTokenName(m[2]) });
+    }
+    return out;
+  }
+
+  /**
+   * A whole Brain as an AI chat receives it: the injected block over every
+   * item, name and body. "Copy whole Brain" on the popup and the phone, and a
+   * Brain inside a prompt, all build their text here. `plain` leaves the
+   * block's own markers off, for text that will itself be wrapped in a block
+   * (a prompt the Context panel inserts): a block inside a block would break
+   * the panel's Remove, which strips the first marker to the first close.
+   */
+  function formatBrainBlock(items, plain) {
+    var list = Array.isArray(items) ? items : [];
+    var pack = { items: list.map(function (it) {
+      return { name: it.name, text: it.body || '' };
+    }) };
+    if (!plain) return formatInjectedBlock(pack);
+    var lines = [];
+    for (var i = 0; i < pack.items.length; i++) {
+      lines.push('## ' + pack.items[i].name);
+      lines.push(pack.items[i].text);
+      lines.push('');
+    }
+    return lines.join('\n');
+  }
+
+  /**
+   * What stands in for a Brain that cannot be handed out: one visible line in
+   * the prompt, so it is never sent with a hole nobody noticed.
+   *   'missing'  not this person's Brain, or in the trash
+   *   'empty'    the Brain has no items
+   *   'failed'   it could not be loaded (no connection, a server error)
+   */
+  function brainUnavailableLine(name, reason) {
+    var label = name ? 'The Brain "' + name + '"' : 'A Brain';
+    if (reason === 'empty') return '[' + label + ' is empty]';
+    if (reason === 'failed') return '[' + label + ' could not be loaded]';
+    return '[' + label + ' is not available here]';
+  }
+
+  /**
+   * The line that opens a Brain inside a prompt. A prompt's answer is only as
+   * accurate as the AI's grip on its material, so the AI is told what the
+   * material is (the Brain's name says what it is about) and that it is the
+   * source to work from, not a suggestion. Copy whole Brain has no such line:
+   * pasted on its own, the person's own message says what to do with it.
+   */
+  function brainLeadLine(name) {
+    var label = brainTokenName(name);
+    return 'Source material' + (label ? ' from "' + label + '"' : '') +
+      '. Base your answer on it, and say so if something you need is not covered.';
+  }
+
+  /**
+   * The prompt with every Brain token replaced. `lookup` maps a Brain id to
+   * { name, items: [{name, body}] } when the Brain was read, or to
+   * { name, reason } when it was not. An id the lookup does not know gets
+   * `fallbackReason`: 'missing' unless the caller says the read itself failed.
+   * `plain` is formatBrainBlock's: items without the block's markers. The
+   * block keeps no trailing blank line: the editor already leaves one between
+   * the token and any text typed under it.
+   */
+  function resolvePromptBrains(text, lookup, fallbackReason, plain) {
+    return String(text == null ? '' : text).replace(BRAIN_TOKEN_RE, function (token, id, name) {
+      var entry = lookup && lookup[id.toLowerCase()];
+      var label = (entry && entry.name) ? brainTokenName(entry.name) : brainTokenName(name);
+      var reason = brainGapReason(entry, fallbackReason);
+      if (reason) return brainUnavailableLine(label, reason);
+      return brainLeadLine(label) + '\n\n' + formatBrainBlock(entry.items, plain).replace(/\n$/, '');
+    });
+  }
+
+  // Why a Brain is not handed out, or '' when it is: no entry (the fallback,
+  // 'missing' unless the read failed), a reason on the entry, or no items.
+  function brainGapReason(entry, fallbackReason) {
+    if (!entry) return fallbackReason || 'missing';
+    if (entry.reason) return entry.reason;
+    return Array.isArray(entry.items) && entry.items.length ? '' : 'empty';
+  }
+
+  /**
+   * The Brains a prompt names that resolvePromptBrains, with the same lookup,
+   * leaves out, once each: [{ id, name, reason }]. A surface tells the person
+   * so when it hands the prompt out, rather than letting them believe the
+   * Brain went in.
+   */
+  function promptBrainGaps(text, lookup, fallbackReason) {
+    var gaps = [];
+    var refs = promptBrainRefs(text);
+    for (var i = 0; i < refs.length; i++) {
+      var entry = lookup && lookup[refs[i].id];
+      var reason = brainGapReason(entry, fallbackReason);
+      if (reason) gaps.push({ id: refs[i].id, name: (entry && entry.name) ? brainTokenName(entry.name) : refs[i].name, reason: reason });
+    }
+    return gaps;
+  }
+
+  /** One plain sentence for those gaps, for a toast; '' when there are none. */
+  function brainGapNote(gaps) {
+    if (!gaps || !gaps.length) return '';
+    if (gaps.length > 1) return 'Some of its Brains were not added.';
+    var label = gaps[0].name ? 'The Brain "' + gaps[0].name + '"' : 'Its Brain';
+    if (gaps[0].reason === 'empty') return label + ' is empty.';
+    if (gaps[0].reason === 'failed') return label + ' could not be loaded.';
+    return label + ' is not available here.';
+  }
+
+  /** The prompt as a list or a card previews it: each token as 'Brain: <name>'. */
+  function labelBrainTokens(text) {
+    return String(text == null ? '' : text).replace(BRAIN_TOKEN_RE, function (token, id, name) {
+      var label = brainTokenName(name);
+      return label ? 'Brain: ' + label : 'Brain';
+    });
   }
 
   /**
@@ -4923,6 +5266,15 @@ svg.brain-type-icon{stroke-width:1.8}
     formatInjectedBlock: formatInjectedBlock,
     hasInjectedBlock: hasInjectedBlock,
     stripInjectedBlock: stripInjectedBlock,
+    brainToken: brainToken,
+    promptBrainRefs: promptBrainRefs,
+    formatBrainBlock: formatBrainBlock,
+    brainLeadLine: brainLeadLine,
+    brainUnavailableLine: brainUnavailableLine,
+    resolvePromptBrains: resolvePromptBrains,
+    promptBrainGaps: promptBrainGaps,
+    brainGapNote: brainGapNote,
+    labelBrainTokens: labelBrainTokens,
     candidateFromSearchRow: candidateFromSearchRow,
     shardFromRow: shardFromRow,
     stepFromRow: stepFromRow
@@ -5423,6 +5775,771 @@ svg.brain-type-icon{stroke-width:1.8}
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
 </script>
 <!-- SB_MEMORY_CHUNK:END -->
+<!-- SB_USAGE_ANALYTICS:BEGIN (generated from extension/shared/usage-analytics.js by scripts/sync-usage-analytics.js, do not edit) -->
+<script>
+// USAGE ANALYTICS — one reading of "how is my library being used".
+//
+// The dashboard's Analytics page and the phone's Analytics page used to count
+// on their own. The phone counted only what the library holds (no use at all),
+// and the dashboard printed a comparison it never computed ("+12% vs previous
+// 7 days" was typed into the page). Here every figure both pages show is
+// decided once, from the same inputs, so the two can never disagree:
+//
+//   events     the caller's own rows of public.snippet_events (one per real
+//              insert, written by the extension and by the phone), at least
+//              LOAD_DAYS back: { snippet_id, created_at, fields_filled }
+//   snippets   the library the caller can read: { id, title, shortcut,
+//              folder_id, lang, created_at }
+//   folders    { id, name }
+//   lastUsed   snippet_last_used(): { snippet_id: iso } over ALL time, across
+//              the team for a shared snippet. It is what "never used" and "not
+//              used for 90 days" read, because the event window is finite.
+//   period     7, 30, 90 or 365 days, ending today
+//   now        a timestamp, passed in so the gate can pin the clock
+//
+// pareto() reads the same inputs, plus the prompt log (public.prompt_events)
+// and the prompt library, for the 80/20 view: the few snippets and prompts
+// that did most of the work, and how much of it happened on a phone.
+//
+// Rules that keep the numbers honest:
+//   - Days are LOCAL calendar days, stepped with setDate, so a day across a
+//     clock change is still one day. "Last 7 days" is today and the 6 before.
+//   - The previous period is the same number of days immediately before, so
+//     every change compares like with like. A change from 0 has no percentage;
+//     it reads "New", never "+100%" or "Infinity".
+//   - An insert of a snippet that no longer exists still counts in every
+//     total, and is ranked as "Deleted snippet" rather than vanishing.
+//   - Time saved is an estimate at SECONDS_PER_USE per insert, the figure the
+//     dashboard has always used, and every surface says it is an estimate.
+//   - A streak that reaches back to the start of the loaded window is reported
+//     as "at least", not as an exact number.
+(function (root) {
+  'use strict';
+
+  var PERIODS = [7, 30, 90, 365];
+  var DEFAULT_PERIOD = 30;
+  var SECONDS_PER_USE = 30;
+  // Two years: the previous period of "Last 12 months" is the year before it.
+  var LOAD_DAYS = 730;
+  var DORMANT_DAYS = 90;
+  var TOP_LIMIT = 10;
+  var MOVER_LIMIT = 5;
+  var LIST_LIMIT = 5;
+  var DELETED_KEY = '__deleted__';
+  var WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  var WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var LANG_NAMES = { EN: 'English', IT: 'Italian', ES: 'Spanish', FR: 'French', DE: 'German', PT: 'Portuguese', MULTI: 'Several languages' };
+
+  function pad(n) { return n < 10 ? '0' + n : String(n); }
+
+  function startOfDay(ms) {
+    var d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function addDays(date, n) {
+    var d = new Date(date.getTime());
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+
+  function dayKey(date) {
+    return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+  }
+
+  function normalizePeriod(p) {
+    var n = Number(p);
+    return PERIODS.indexOf(n) === -1 ? DEFAULT_PERIOD : n;
+  }
+
+  function periodLabel(p) {
+    var n = normalizePeriod(p);
+    return n === 365 ? 'Last 12 months' : 'Last ' + n + ' days';
+  }
+
+  /** The two windows a period compares, as Dates (start inclusive, end exclusive). */
+  function range(period, now) {
+    var p = normalizePeriod(period);
+    var today = startOfDay(now);
+    var end = addDays(today, 1);
+    var start = addDays(today, -(p - 1));
+    var prevStart = addDays(start, -p);
+    return { period: p, start: start, end: end, prevStart: prevStart, prevEnd: start, today: today };
+  }
+
+  /** Where the event read has to start for every figure to be complete. */
+  function loadFrom(now) {
+    return addDays(startOfDay(now), -(LOAD_DAYS - 1));
+  }
+
+  function shortDate(date) {
+    return MONTHS_SHORT[date.getMonth()] + ' ' + date.getDate();
+  }
+
+  function rangeLabel(start, endExclusive) {
+    var last = addDays(endExclusive, -1);
+    var a = shortDate(start);
+    var b = shortDate(last);
+    if (start.getFullYear() !== last.getFullYear()) {
+      a += ', ' + start.getFullYear();
+    }
+    return a + ' – ' + b + ', ' + last.getFullYear();
+  }
+
+  /**
+   * How one figure moved against the previous period. `pct` is null when the
+   * previous period had nothing, because no percentage of zero is honest.
+   */
+  function change(cur, prev) {
+    var c = Number(cur) || 0;
+    var p = Number(prev) || 0;
+    var diff = c - p;
+    var pct = p > 0 ? (diff / p) * 100 : null;
+    var dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+    var text;
+    if (p === 0 && c === 0) text = 'No change';
+    else if (p === 0) text = 'New';
+    else if (diff === 0) text = 'No change';
+    else {
+      var abs = Math.abs(pct);
+      var shown = abs < 10 ? Math.round(abs * 10) / 10 : Math.round(abs);
+      text = (diff > 0 ? '+' : '−') + shown + '%';
+    }
+    return { cur: c, prev: p, diff: diff, pct: pct, dir: dir, text: text };
+  }
+
+  function percentOf(part, whole) {
+    if (!whole) return 0;
+    return Math.round((part / whole) * 1000) / 10;
+  }
+
+  /** Whole numbers with thousands separators, the way both pages print counts. */
+  function formatCount(n) {
+    var s = String(Math.round(Number(n) || 0));
+    return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function formatDuration(seconds) {
+    var s = Math.max(0, Math.round(Number(seconds) || 0));
+    if (s < 60) return s + ' sec';
+    var m = Math.round(s / 60);
+    if (m < 60) return m + ' min';
+    var h = Math.floor(m / 60);
+    var rest = m % 60;
+    return rest ? h + ' h ' + rest + ' min' : h + ' h';
+  }
+
+  function hourLabel(h) {
+    return pad(h) + ':00–' + pad((h + 1) % 24) + ':00';
+  }
+
+  function eventTime(ev) {
+    var t = new Date(ev && ev.created_at).getTime();
+    return isNaN(t) ? null : t;
+  }
+
+  function langName(code) {
+    var c = String(code || '').toUpperCase();
+    if (!c) return 'Not set';
+    return LANG_NAMES[c] || c;
+  }
+
+  function sum(arr) {
+    var t = 0;
+    for (var i = 0; i < arr.length; i++) t += arr[i];
+    return t;
+  }
+
+  // Totals for one window: the figures the summary row prints.
+  // `known` says whether a snippet id is still in the library: a deleted one
+  // counts as an insert but not as one of the "different snippets used", so that
+  // figure and the library-health share always agree.
+  function windowTotals(list, days, startDate, known) {
+    var perDay = {};
+    var snippetsUsed = {};
+    var fields = 0;
+    var withFields = 0;
+    for (var i = 0; i < list.length; i++) {
+      var ev = list[i];
+      var k = dayKey(new Date(ev.t));
+      perDay[k] = (perDay[k] || 0) + 1;
+      if (ev.snippet_id && known(ev.snippet_id)) snippetsUsed[ev.snippet_id] = true;
+      var f = Math.max(0, Number(ev.fields_filled) || 0);
+      fields += f;
+      if (f > 0) withFields++;
+    }
+    var best = null;
+    var activeDays = 0;
+    for (var d = 0; d < days; d++) {
+      var day = addDays(startDate, d);
+      var key = dayKey(day);
+      var n = perDay[key] || 0;
+      if (n > 0) activeDays++;
+      // Ties go to the most recent day: it is the one a person remembers.
+      if (n > 0 && (!best || n >= best.count)) best = { date: key, label: shortDate(day), count: n };
+    }
+    var uses = list.length;
+    return {
+      uses: uses,
+      activeDays: activeDays,
+      avgPerDay: Math.round((uses / days) * 10) / 10,
+      avgPerActiveDay: activeDays ? Math.round((uses / activeDays) * 10) / 10 : 0,
+      bestDay: best,
+      snippetsUsed: Object.keys(snippetsUsed).length,
+      fieldsFilled: fields,
+      usesWithFields: withFields,
+      avgFieldsPerUse: uses ? Math.round((fields / uses) * 10) / 10 : 0,
+      secondsSaved: uses * SECONDS_PER_USE,
+      perDay: perDay
+    };
+  }
+
+  function rank(map, total, prevMap, describe) {
+    var keys = Object.keys(map);
+    var rows = keys.map(function (k) {
+      var d = describe(k);
+      return {
+        key: k,
+        title: d.title,
+        detail: d.detail || '',
+        uses: map[k],
+        share: percentOf(map[k], total),
+        change: change(map[k], prevMap ? prevMap[k] || 0 : 0)
+      };
+    });
+    rows.sort(function (a, b) {
+      if (b.uses !== a.uses) return b.uses - a.uses;
+      return a.title.localeCompare(b.title);
+    });
+    return rows;
+  }
+
+  function streaks(dayHasUse, today, windowStart, periodStart) {
+    // A streak is alive while today or yesterday has a use: nobody loses a
+    // streak at 9 in the morning for not having worked yet today.
+    var cursor = dayHasUse[dayKey(today)] ? today : addDays(today, -1);
+    var current = 0;
+    var atLeast = false;
+    while (dayHasUse[dayKey(cursor)]) {
+      current++;
+      if (dayKey(cursor) === dayKey(windowStart)) { atLeast = true; break; }
+      cursor = addDays(cursor, -1);
+    }
+    var longest = 0;
+    var run = 0;
+    for (var d = new Date(periodStart.getTime()); d <= today; d = addDays(d, 1)) {
+      if (dayHasUse[dayKey(d)]) { run++; if (run > longest) longest = run; } else run = 0;
+    }
+    return { current: current, currentAtLeast: atLeast, longestInPeriod: longest };
+  }
+
+  /**
+   * Every figure for one period. Pure: the same input always gives the same
+   * answer, and nothing here reads the clock or the network.
+   */
+  function compute(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var r = range(inp.period, now);
+    var p = r.period;
+    var snippets = Array.isArray(inp.snippets) ? inp.snippets : [];
+    var folders = Array.isArray(inp.folders) ? inp.folders : [];
+    var lastUsed = inp.lastUsed || {};
+    var loadStart = inp.loadedFrom ? startOfDay(new Date(inp.loadedFrom).getTime()) : loadFrom(now);
+
+    var snipById = {};
+    for (var s = 0; s < snippets.length; s++) if (snippets[s] && snippets[s].id) snipById[snippets[s].id] = snippets[s];
+    var folderName = {};
+    for (var f = 0; f < folders.length; f++) if (folders[f] && folders[f].id) folderName[folders[f].id] = folders[f].name || 'Untitled folder';
+
+    var startMs = r.start.getTime();
+    var endMs = r.end.getTime();
+    var prevMs = r.prevStart.getTime();
+
+    var cur = [];
+    var prev = [];
+    var dayHasUse = {};
+    var lastSeen = {};
+    var events = Array.isArray(inp.events) ? inp.events : [];
+    for (var i = 0; i < events.length; i++) {
+      var t = eventTime(events[i]);
+      // A row stamped after now (a device clock running fast) is not counted yet.
+      if (t === null || t >= endMs || t > now) continue;
+      var ev = { t: t, snippet_id: events[i].snippet_id || null, fields_filled: events[i].fields_filled, lang: events[i].lang || null };
+      if (t >= loadStart.getTime()) dayHasUse[dayKey(new Date(t))] = true;
+      if (ev.snippet_id && (!lastSeen[ev.snippet_id] || t > lastSeen[ev.snippet_id])) lastSeen[ev.snippet_id] = t;
+      if (t >= startMs) cur.push(ev);
+      else if (t >= prevMs) prev.push(ev);
+    }
+
+    function known(id) { return !!snipById[id]; }
+    var totals = windowTotals(cur, p, r.start, known);
+    var prevTotals = windowTotals(prev, p, r.prevStart, known);
+
+    // Daily series, with the previous period's same day beside it and a
+    // trailing 7-day average once a period is long enough for one to mean
+    // something.
+    var series = [];
+    var trail = [];
+    for (var d = 0; d < p; d++) {
+      var day = addDays(r.start, d);
+      var key = dayKey(day);
+      var pday = addDays(r.prevStart, d);
+      var count = totals.perDay[key] || 0;
+      trail.push(count);
+      if (trail.length > 7) trail.shift();
+      series.push({
+        date: key,
+        label: shortDate(day),
+        weekday: WEEKDAYS_SHORT[(day.getDay() + 6) % 7],
+        count: count,
+        prev: prevTotals.perDay[dayKey(pday)] || 0,
+        avg7: p >= 30 && d >= 6 ? Math.round((sum(trail) / 7) * 10) / 10 : null
+      });
+    }
+
+    // Ranking and movers.
+    function keyOf(ev) { return ev.snippet_id && snipById[ev.snippet_id] ? ev.snippet_id : DELETED_KEY; }
+    var curBy = {};
+    var prevBy = {};
+    for (var c1 = 0; c1 < cur.length; c1++) { var k1 = keyOf(cur[c1]); curBy[k1] = (curBy[k1] || 0) + 1; }
+    for (var c2 = 0; c2 < prev.length; c2++) { var k2 = keyOf(prev[c2]); prevBy[k2] = (prevBy[k2] || 0) + 1; }
+    function describeSnippet(k) {
+      if (k === DELETED_KEY) return { title: 'Deleted snippet', detail: 'No longer in the library' };
+      var sn = snipById[k];
+      var detail = [];
+      if (sn.shortcut) detail.push(sn.shortcut);
+      if (sn.folder_id && folderName[sn.folder_id]) detail.push(folderName[sn.folder_id]);
+      return { title: sn.title || sn.shortcut || 'Untitled snippet', detail: detail.join(' · ') };
+    }
+    var top = rank(curBy, totals.uses, prevBy, describeSnippet).slice(0, TOP_LIMIT);
+
+    // Each top snippet's inserts per day across the period: its trend line.
+    var perSnippetDay = {};
+    for (var c3 = 0; c3 < cur.length; c3++) {
+      var k3 = keyOf(cur[c3]);
+      var dk3 = dayKey(new Date(cur[c3].t));
+      if (!perSnippetDay[k3]) perSnippetDay[k3] = {};
+      perSnippetDay[k3][dk3] = (perSnippetDay[k3][dk3] || 0) + 1;
+    }
+    for (var t1 = 0; t1 < top.length; t1++) {
+      var byDay = perSnippetDay[top[t1].key] || {};
+      top[t1].trend = series.map(function (pt) { return byDay[pt.date] || 0; });
+    }
+
+    var moverKeys = {};
+    Object.keys(curBy).concat(Object.keys(prevBy)).forEach(function (k) { if (k !== DELETED_KEY) moverKeys[k] = true; });
+    var movers = Object.keys(moverKeys).map(function (k) {
+      var d2 = describeSnippet(k);
+      return { key: k, title: d2.title, detail: d2.detail, uses: curBy[k] || 0, change: change(curBy[k] || 0, prevBy[k] || 0) };
+    });
+    var rising = movers.filter(function (m) { return m.change.diff > 0; })
+      .sort(function (a, b) { return b.change.diff - a.change.diff || b.uses - a.uses || a.title.localeCompare(b.title); })
+      .slice(0, MOVER_LIMIT);
+    var falling = movers.filter(function (m) { return m.change.diff < 0; })
+      .sort(function (a, b) { return a.change.diff - b.change.diff || a.title.localeCompare(b.title); })
+      .slice(0, MOVER_LIMIT);
+
+    // When: weekday by hour, Monday first, local time.
+    var grid = [];
+    for (var w = 0; w < 7; w++) { grid.push([]); for (var h = 0; h < 24; h++) grid[w].push(0); }
+    var weekdayTotals = [0, 0, 0, 0, 0, 0, 0];
+    var hourTotals = [];
+    for (var h2 = 0; h2 < 24; h2++) hourTotals.push(0);
+    var gridMax = 0;
+    for (var g = 0; g < cur.length; g++) {
+      var dt = new Date(cur[g].t);
+      var wd = (dt.getDay() + 6) % 7;
+      var hr = dt.getHours();
+      grid[wd][hr]++;
+      weekdayTotals[wd]++;
+      hourTotals[hr]++;
+      if (grid[wd][hr] > gridMax) gridMax = grid[wd][hr];
+    }
+    function peak(arr) {
+      var best = -1, at = -1;
+      for (var q = 0; q < arr.length; q++) if (arr[q] > best) { best = arr[q]; at = q; }
+      return best > 0 ? at : -1;
+    }
+    var pw = peak(weekdayTotals);
+    var ph = peak(hourTotals);
+    var patterns = {
+      grid: grid,
+      max: gridMax,
+      weekdays: WEEKDAYS_SHORT.map(function (name, idx) { return { name: name, uses: weekdayTotals[idx], share: percentOf(weekdayTotals[idx], totals.uses) }; }),
+      peakWeekday: pw === -1 ? null : { name: WEEKDAYS[pw], uses: weekdayTotals[pw], share: percentOf(weekdayTotals[pw], totals.uses) },
+      peakHour: ph === -1 ? null : { hour: ph, label: hourLabel(ph), uses: hourTotals[ph], share: percentOf(hourTotals[ph], totals.uses) },
+      workdayShare: percentOf(sum(weekdayTotals.slice(0, 5)), totals.uses),
+      streak: streaks(dayHasUse, r.today, loadStart, r.start)
+    };
+
+    // Where the use goes: folders and languages, current and previous.
+    function shareBy(list, keyFn) {
+      var m = {};
+      for (var z = 0; z < list.length; z++) { var kk = keyFn(list[z]); m[kk] = (m[kk] || 0) + 1; }
+      return m;
+    }
+    function folderKey(ev) {
+      var sn = ev.snippet_id && snipById[ev.snippet_id];
+      if (!sn) return DELETED_KEY;
+      return sn.folder_id && folderName[sn.folder_id] ? sn.folder_id : '__none__';
+    }
+    function langKey(ev) {
+      var sn = ev.snippet_id && snipById[ev.snippet_id];
+      return String((ev.lang || (sn && sn.lang) || '')).toUpperCase() || '__none__';
+    }
+    var byFolder = rank(shareBy(cur, folderKey), totals.uses, shareBy(prev, folderKey), function (k) {
+      if (k === DELETED_KEY) return { title: 'Deleted snippets' };
+      if (k === '__none__') return { title: 'No folder' };
+      return { title: folderName[k] };
+    });
+    var byLanguage = rank(shareBy(cur, langKey), totals.uses, shareBy(prev, langKey), function (k) {
+      return { title: k === '__none__' ? 'Not set' : langName(k), detail: k === '__none__' ? '' : k };
+    });
+
+    // Library health, against the whole history (lastUsed) and not only the
+    // loaded window, so "never used" means never.
+    var nowDay = r.today.getTime();
+    var dormantCut = addDays(r.today, -DORMANT_DAYS).getTime();
+    var never = [];
+    var dormant = [];
+    var usedInPeriod = 0;
+    for (var s2 = 0; s2 < snippets.length; s2++) {
+      var sn2 = snippets[s2];
+      if (!sn2 || !sn2.id) continue;
+      var fromServer = lastUsed[sn2.id] ? new Date(lastUsed[sn2.id]).getTime() : NaN;
+      var last = Math.max(isNaN(fromServer) ? 0 : fromServer, lastSeen[sn2.id] || 0);
+      if (curBy[sn2.id]) usedInPeriod++;
+      var created = new Date(sn2.created_at).getTime();
+      var row = { key: sn2.id, title: sn2.title || sn2.shortcut || 'Untitled snippet', detail: sn2.shortcut || '' };
+      if (!last) {
+        row.since = isNaN(created) ? null : created;
+        row.days = isNaN(created) ? null : Math.max(0, Math.round((nowDay - startOfDay(created).getTime()) / 86400000));
+        never.push(row);
+      } else if (last < dormantCut) {
+        row.since = last;
+        row.days = Math.max(0, Math.round((nowDay - startOfDay(last).getTime()) / 86400000));
+        dormant.push(row);
+      }
+    }
+    function oldestFirst(a, b) { return (b.days || 0) - (a.days || 0) || a.title.localeCompare(b.title); }
+    never.sort(oldestFirst);
+    dormant.sort(oldestFirst);
+    var library = snippets.length;
+    var health = {
+      library: library,
+      usedInPeriod: usedInPeriod,
+      usedShare: percentOf(usedInPeriod, library),
+      neverUsed: never.length,
+      neverUsedList: never.slice(0, LIST_LIMIT),
+      dormant: dormant.length,
+      dormantDays: DORMANT_DAYS,
+      dormantList: dormant.slice(0, LIST_LIMIT),
+      withShortcut: snippets.filter(function (x) { return x && String(x.shortcut || '').trim(); }).length,
+      inFolder: snippets.filter(function (x) { return x && x.folder_id; }).length
+    };
+
+    return {
+      period: p,
+      label: periodLabel(p),
+      rangeLabel: rangeLabel(r.start, r.end),
+      prevRangeLabel: rangeLabel(r.prevStart, r.prevEnd),
+      start: dayKey(r.start),
+      prevStart: dayKey(r.prevStart),
+      empty: totals.uses === 0 && prevTotals.uses === 0,
+      totals: {
+        uses: change(totals.uses, prevTotals.uses),
+        activeDays: change(totals.activeDays, prevTotals.activeDays),
+        snippetsUsed: change(totals.snippetsUsed, prevTotals.snippetsUsed),
+        avgPerDay: change(totals.avgPerDay, prevTotals.avgPerDay),
+        avgPerActiveDay: totals.avgPerActiveDay,
+        secondsSaved: change(totals.secondsSaved, prevTotals.secondsSaved),
+        fieldsFilled: change(totals.fieldsFilled, prevTotals.fieldsFilled),
+        avgFieldsPerUse: totals.avgFieldsPerUse,
+        usesWithFieldsShare: percentOf(totals.usesWithFields, totals.uses),
+        bestDay: totals.bestDay,
+        days: p
+      },
+      series: series,
+      top: top,
+      rising: rising,
+      falling: falling,
+      byFolder: byFolder,
+      byLanguage: byLanguage,
+      patterns: patterns,
+      health: health
+    };
+  }
+
+  /**
+   * The line under a snippet or prompt in a team folder, from
+   * shared_snippet_last_use() / shared_prompt_last_use():
+   * "Last used by Anna on 30/10/2026 at 14:05", or "Never used" when nobody on
+   * the team has used it yet. Local time, day first, 24-hour clock.
+   */
+  function lastUseLine(lastUse) {
+    var d = lastUse && lastUse.used_at ? new Date(lastUse.used_at) : null;
+    if (!d || isNaN(d.getTime())) return 'Never used';
+    var name = lastUse.used_by_name ? String(lastUse.used_by_name) : 'a team member';
+    return 'Last used by ' + name + ' on ' + pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() +
+      ' at ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  /**
+   * The team table, from two reads of team_usage_by_member(): the period and
+   * the one before it. A member who used nothing this period but did before
+   * stays in the table at 0, because a drop is part of the picture. Uses count
+   * shared snippets and shared prompts together; the person with the most this
+   * period is the most active, unless two share the top (then nobody is).
+   */
+  function team(current, previous, myId) {
+    var curRows = Array.isArray(current) ? current : [];
+    var prevRows = Array.isArray(previous) ? previous : [];
+    var byId = {};
+    function add(rows, field) {
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row || !row.user_id) continue;
+        var m = byId[row.user_id] || (byId[row.user_id] = { id: row.user_id, name: '', uses: 0, prevUses: 0, snippets: 0, prompts: 0 });
+        if (row.member_name && !m.name) m.name = String(row.member_name);
+        if (field === 'cur') {
+          m.uses += Number(row.uses) || 0;
+          m.snippets += Number(row.snippets) || 0;
+          m.prompts += Number(row.prompts) || 0;
+        } else m.prevUses += Number(row.uses) || 0;
+      }
+    }
+    add(curRows, 'cur');
+    add(prevRows, 'prev');
+    var list = Object.keys(byId).map(function (k) { return byId[k]; });
+    var total = sum(list.map(function (m) { return m.uses; }));
+    var prevTotal = sum(list.map(function (m) { return m.prevUses; }));
+    list.sort(function (a, b) { return b.uses - a.uses || b.prevUses - a.prevUses || a.name.localeCompare(b.name); });
+    var topId = list.length && list[0].uses > 0 && !(list[1] && list[1].uses === list[0].uses) ? list[0].id : null;
+    return {
+      total: change(total, prevTotal),
+      members: list.map(function (m, idx) {
+        return {
+          id: m.id,
+          rank: idx + 1,
+          name: m.name || 'Team member',
+          isMe: !!myId && m.id === myId,
+          mostActive: m.id === topId,
+          uses: m.uses,
+          snippets: m.snippets,
+          prompts: m.prompts,
+          share: percentOf(m.uses, total),
+          change: change(m.uses, m.prevUses)
+        };
+      })
+    };
+  }
+
+  // ── 80/20 ──────────────────────────────────────────────────────────────
+  // Which few snippets (and, apart, which few prompts) did most of the work
+  // in the period. Items are ranked by uses; the key group is the shortest run
+  // from the top whose uses reach PARETO_TARGET percent of all uses, so it is
+  // never padded and never short. Only items still in the library are ranked:
+  // a deleted one cannot be acted on. Each row also says where its uses
+  // happened, phone or computer, from the device the event carries; a row
+  // logged before devices were recorded reads "Before tracking".
+  var PARETO_TARGET = 80;
+  var DEVICE_LABELS = { computer: 'Computer', phone: 'Phone', unknown: 'Before tracking' };
+  var PARETO_NOUNS = { snippet: ['snippet', 'snippets'], prompt: ['prompt', 'prompts'] };
+
+  function deviceOf(raw) {
+    var d = String(raw || '').toLowerCase();
+    return d === 'computer' || d === 'phone' ? d : 'unknown';
+  }
+
+  function deviceSplit(counts) {
+    var total = counts.computer + counts.phone + counts.unknown;
+    return {
+      computer: counts.computer,
+      phone: counts.phone,
+      unknown: counts.unknown,
+      computerShare: percentOf(counts.computer, total),
+      phoneShare: percentOf(counts.phone, total),
+      unknownShare: percentOf(counts.unknown, total)
+    };
+  }
+
+  function noun(kind, n) {
+    var pair = PARETO_NOUNS[kind] || PARETO_NOUNS.snippet;
+    return n === 1 ? pair[0] : pair[1];
+  }
+
+  // One kind's 80/20. `uses` are { id, t, device } already inside the period;
+  // `items` the library, `describe` turns an id into { title, detail }.
+  function paretoOf(kind, uses, items, describe) {
+    var byId = {};
+    for (var i = 0; i < uses.length; i++) {
+      var u = uses[i];
+      var row = byId[u.id] || (byId[u.id] = { computer: 0, phone: 0, unknown: 0, uses: 0 });
+      row[deviceOf(u.device)]++;
+      row.uses++;
+    }
+    var total = 0;
+    var ids = Object.keys(byId);
+    for (var j = 0; j < ids.length; j++) total += byId[ids[j]].uses;
+
+    var rows = ids.map(function (id) {
+      var d = describe(id);
+      var c = byId[id];
+      return { key: id, title: d.title, detail: d.detail || '', uses: c.uses, share: percentOf(c.uses, total), device: deviceSplit(c) };
+    });
+    rows.sort(function (a, b) { return b.uses - a.uses || a.title.localeCompare(b.title); });
+
+    var running = 0;
+    var keyCount = 0;
+    for (var r = 0; r < rows.length; r++) {
+      running += rows[r].uses;
+      rows[r].rank = r + 1;
+      rows[r].cumShare = percentOf(running, total);
+      if (!keyCount && running * 100 >= total * PARETO_TARGET) keyCount = r + 1;
+    }
+
+    var key = rows.slice(0, keyCount);
+    var rest = rows.slice(keyCount);
+    function group(list) {
+      var c = { computer: 0, phone: 0, unknown: 0 };
+      var n = 0;
+      for (var g = 0; g < list.length; g++) {
+        n += list[g].uses;
+        c.computer += list[g].device.computer;
+        c.phone += list[g].device.phone;
+        c.unknown += list[g].device.unknown;
+      }
+      return { count: list.length, uses: n, share: percentOf(n, total), device: deviceSplit(c) };
+    }
+    var keyGroup = group(key);
+    var restGroup = group(rest);
+    var all = group(rows);
+    var library = items.length;
+    // Floor, so the headline never claims more than the key group did.
+    var keyPct = total ? Math.floor((keyGroup.uses / total) * 100) : 0;
+    var headline = total
+      ? keyCount + ' ' + noun(kind, keyCount) + ' did ' + (keyPct === 100 ? 'all' : keyPct + '%') + ' of your work'
+      : 'No ' + noun(kind, 2) + ' used in this period';
+    var summary = total
+      ? (library
+        ? 'That is ' + keyCount + ' of the ' + formatCount(library) + ' ' + noun(kind, library) + ' in your library (' + percentOf(keyCount, library) + '%).'
+        : '')
+      : 'Use a few and the ones that matter most will show up here.';
+
+    return {
+      kind: kind,
+      target: PARETO_TARGET,
+      empty: total === 0,
+      headline: headline,
+      summary: summary,
+      uses: total,
+      library: library,
+      used: rows.length,
+      unused: Math.max(0, library - rows.length),
+      key: key,
+      rest: rest,
+      keyGroup: keyGroup,
+      restGroup: restGroup,
+      device: all.device
+    };
+  }
+
+  /**
+   * The 80/20 of one period, for snippets and for prompts. Pure, like compute():
+   *   events / snippets / folders   as compute() takes them; events may carry
+   *                                 `device`
+   *   promptEvents  { prompt_id, created_at, device } (public.prompt_events)
+   *   prompts       { id, name, shortcut }; leave both out and `prompts` is null
+   */
+  function pareto(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var r = range(inp.period, now);
+    var startMs = r.start.getTime();
+    var endMs = r.end.getTime();
+
+    function within(list, idField, known) {
+      var out = [];
+      for (var i = 0; i < list.length; i++) {
+        var t = eventTime(list[i]);
+        if (t === null || t < startMs || t >= endMs || t > now) continue;
+        var id = list[i][idField];
+        if (!id || !known[id]) continue;
+        out.push({ id: id, t: t, device: list[i].device });
+      }
+      return out;
+    }
+
+    var snippets = Array.isArray(inp.snippets) ? inp.snippets : [];
+    var folders = Array.isArray(inp.folders) ? inp.folders : [];
+    var snipById = {};
+    for (var s = 0; s < snippets.length; s++) if (snippets[s] && snippets[s].id) snipById[snippets[s].id] = snippets[s];
+    var folderName = {};
+    for (var f = 0; f < folders.length; f++) if (folders[f] && folders[f].id) folderName[folders[f].id] = folders[f].name || 'Untitled folder';
+    var snippetReport = paretoOf('snippet', within(Array.isArray(inp.events) ? inp.events : [], 'snippet_id', snipById), snippets, function (id) {
+      var sn = snipById[id];
+      var detail = [];
+      if (sn.shortcut) detail.push(sn.shortcut);
+      if (sn.folder_id && folderName[sn.folder_id]) detail.push(folderName[sn.folder_id]);
+      return { title: sn.title || sn.shortcut || 'Untitled snippet', detail: detail.join(' · ') };
+    });
+
+    var promptReport = null;
+    if (Array.isArray(inp.prompts) && Array.isArray(inp.promptEvents)) {
+      var promptById = {};
+      for (var p = 0; p < inp.prompts.length; p++) if (inp.prompts[p] && inp.prompts[p].id) promptById[inp.prompts[p].id] = inp.prompts[p];
+      promptReport = paretoOf('prompt', within(inp.promptEvents, 'prompt_id', promptById), inp.prompts, function (id) {
+        var pr = promptById[id];
+        return { title: pr.name || pr.shortcut || 'Untitled prompt', detail: pr.shortcut || '' };
+      });
+    }
+
+    return {
+      period: r.period,
+      label: periodLabel(r.period),
+      rangeLabel: rangeLabel(r.start, r.end),
+      snippets: snippetReport,
+      prompts: promptReport
+    };
+  }
+
+  var API = {
+    PERIODS: PERIODS,
+    DEFAULT_PERIOD: DEFAULT_PERIOD,
+    SECONDS_PER_USE: SECONDS_PER_USE,
+    LOAD_DAYS: LOAD_DAYS,
+    DORMANT_DAYS: DORMANT_DAYS,
+    normalizePeriod: normalizePeriod,
+    periodLabel: periodLabel,
+    range: range,
+    loadFrom: loadFrom,
+    change: change,
+    formatCount: formatCount,
+    formatDuration: formatDuration,
+    hourLabel: hourLabel,
+    PARETO_TARGET: PARETO_TARGET,
+    DEVICE_LABELS: DEVICE_LABELS,
+    compute: compute,
+    pareto: pareto,
+    team: team,
+    lastUseLine: lastUseLine
+  };
+
+  // UMD: browser globals, CommonJS (the node gate), AMD.
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = API;
+  } else if (typeof define === 'function' && define.amd) {
+    define(function () { return API; });
+  } else {
+    root.SBUsageAnalytics = API;
+  }
+
+}(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
+</script>
+<!-- SB_USAGE_ANALYTICS:END -->
 <!-- SB_INTERACTIVE_STEPS:BEGIN (generated from extension/shared/interactive-steps.js by scripts/check-interactive-steps.js --write, do not edit) -->
 <script>
 // interactive-steps.js: the "Interactive Steps" prompt setting, decided once.
@@ -7282,6 +8399,10 @@ var snipsLoaded=false, snipsFailed=false;
    snippet_events would otherwise hide teammates' usage). Fail-open: an empty
    map only hides the "Last used by" line. */
 var lastUseMap={};
+/* The same for ORG-SHARED prompts, from shared_prompt_last_use(). Loaded with
+   the prompt list. The *Loaded flags say the read worked: until then a team
+   item shows no line, never a "Never used" that may be wrong. */
+var promptLastUseMap={}, lastUseLoaded=false, promptLastUseLoaded=false;
 /* owner_id → display name, for every snippet the caller can read (own +
    org-shared). From the accessible_owners() RPC (SECURITY DEFINER — RLS on
    auth.users would otherwise block resolving a teammate's name at all).
@@ -7427,10 +8548,11 @@ function loadSnips(){
   var fFetch=fetch(SUPA+'/rest/v1/folders?select=*&order=sort_order,name',{headers:authHeaders()})
     .then(function(r){if(handle401(r))throw new Error('401');return r.ok?r.json():[];})
     .catch(function(){return [];});
-  // Last-use attribution for org-shared snippets (fail-open on any error).
+  // Last-use attribution for org-shared snippets (fail-open on any error: null
+  // hides the line).
   var uFetch=fetch(SUPA+'/rest/v1/rpc/shared_snippet_last_use',{headers:authHeaders()})
-    .then(function(r){return r.ok?r.json():[];})
-    .catch(function(){return [];});
+    .then(function(r){return r.ok?r.json():null;})
+    .catch(function(){return null;});
   // Team-wide expansion totals for the count badges. This RPC is decoration:
   // it fails open, and the library still loads if the count service is down.
   var countFetch=fetch(SUPA+'/rest/v1/rpc/snippet_usage_counts',{
@@ -7493,7 +8615,8 @@ function loadSnips(){
     snipsLoaded=true;
     snipsFailed=false;
     lastUseMap={};
-    if(Array.isArray(uses)){
+    lastUseLoaded=Array.isArray(uses);
+    if(lastUseLoaded){
       uses.forEach(function(u){
         if(u&&u.snippet_id)lastUseMap[u.snippet_id]={used_at:u.used_at,used_by_name:u.used_by_name||''};
       });
@@ -7618,7 +8741,7 @@ function esc(s){
 function homePinnedPreview(kind,item){
   var raw=kind==='snippet'
     ?String(item.body||'').replace(/\{[^{}]*\}/g,'…')
-    :String(item.content||'').replace(/^##\s+\w+\n/gm,'');
+    :SBMemoryPack.labelBrainTokens(String(item.content||'').replace(/^##\s+\w+\n/gm,''));
   var text=raw.replace(/\s+/g,' ').trim();
   return text.length>160?text.slice(0,160)+'…':text;
 }
@@ -7909,6 +9032,36 @@ function sharingBadge(item){
 }
 
 /* ── PROMPTS ────────────────────────────────────── */
+/* Who last used each team prompt, for the info sheet. Fails open. */
+function loadPromptLastUse(){
+  fetch(SUPA+'/rest/v1/rpc/shared_prompt_last_use',{headers:authHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .catch(function(){return null;})
+    .then(function(rows){
+      if(!Array.isArray(rows))return;
+      promptLastUseMap={};
+      promptLastUseLoaded=true;
+      rows.forEach(function(u){
+        if(u&&u.prompt_id)promptLastUseMap[u.prompt_id]={used_at:u.used_at,used_by_name:u.used_by_name||''};
+      });
+    });
+}
+/* The snippet half, read again when the app comes back into view so a
+   teammate's use shows without a reload. The first read rides with the
+   library in loadSnips. */
+function loadSnippetLastUse(){
+  fetch(SUPA+'/rest/v1/rpc/shared_snippet_last_use',{headers:authHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .catch(function(){return null;})
+    .then(function(rows){
+      if(!Array.isArray(rows))return;
+      lastUseMap={};
+      lastUseLoaded=true;
+      rows.forEach(function(u){
+        if(u&&u.snippet_id)lastUseMap[u.snippet_id]={used_at:u.used_at,used_by_name:u.used_by_name||''};
+      });
+    });
+}
 function loadPrompts(){
   if(promptsLoading)return;
   promptsLoading=true;
@@ -7927,6 +9080,10 @@ function loadPrompts(){
       promptsFailed=false;
       renderPromptList();
       renderHome();
+      // A prompt that carries a Brain needs its Brain in hand before it can be
+      // copied inside a tap, so the Brains the prompts name are read now.
+      loadPromptBrains();
+      loadPromptLastUse();
       // Assignments arrive separately and fail open: losing them costs the
       // facet its counts, never the prompt list.
       fetch(SUPA+'/rest/v1/prompt_labels?select=prompt_id,label_id',{headers:authHeaders()})
@@ -8064,7 +9221,8 @@ function renderPromptList(){
     var outBadge=p.output_type
       ?'<span class="prompt-out">'+esc(p.output_type)+'</span>':'';
     var share=promptShareBadge(p);
-    var cleaned=(p.content||'').replace(/^##\s+\w+\n/gm,'').trim();
+    // Headings out, and a Brain the prompt carries reads as its name.
+    var cleaned=SBMemoryPack.labelBrainTokens((p.content||'').replace(/^##\s+\w+\n/gm,'')).trim();
     var preview=cleaned.slice(0,120);
     if(cleaned.length>120)preview+='…';
     var when=p.last_used_at?('Used '+timeAgo(p.last_used_at)):'Never used';
@@ -8125,27 +9283,108 @@ function syncPromptClear(){
   if(wrap&&input)wrap.classList.toggle('has-text',!!input.value);
   syncAskRow('prompt-srch');
 }
+/* A prompt that carries a Brain (its Context block holds a `{brain: …}` token,
+   extension/shared/memory-pack.js, here as the generated SBMemoryPack) gets the
+   Brain's items where the token sits, as Copy whole Brain hands them out. The
+   page reads only the Brains its prompts name (loadPromptBrains), when the
+   prompts arrive and again each time the prompts or the page come back into
+   view, so a Brain changed on another device is current here too. A Brain
+   that is not there (a teammate's behind a shared prompt, one in the trash)
+   becomes one visible line in the prompt, and so does a read that never
+   succeeded; a refresh that failed keeps the Brains already in hand. */
+var promptBrainLookup=null;   /* Brain id -> {name, items}; null until a read succeeds */
+var promptBrainLoading=false, promptBrainFailed=false, promptBrainQueued=false;
+function promptBrainIds(){
+  var seen={},ids=[];
+  allPrompts.forEach(function(p){
+    SBMemoryPack.promptBrainRefs(p.content||'').forEach(function(r){if(!seen[r.id]){seen[r.id]=true;ids.push(r.id);}});
+  });
+  return ids;
+}
+function loadPromptBrains(){
+  var ids=promptBrainIds();
+  if(!ids.length)return;
+  if(promptBrainLoading){promptBrainQueued=true;return;}
+  promptBrainLoading=true;
+  /* Ids come from the token's own pattern (hex and dashes), safe in a filter. */
+  var inIds='in.('+ids.join(',')+')';
+  memFetchAll('memory_spaces','id,name','name.asc,id.asc','&id='+inIds).then(function(spaces){
+    /* None of them is this person's (a teammate's prompt): no item read at all. */
+    if(!spaces.length)return [spaces,[]];
+    return memFetchAll('memory_shards','id,space_id,name,body','pinned.desc,updated_at.desc,id.asc',
+      '&review_status=neq.archived&space_id='+inIds).then(function(items){return [spaces,items];});
+  }).then(function(res){
+    var lookup={};
+    res[0].forEach(function(b){lookup[b.id]={name:b.name,items:[]};});
+    res[1].forEach(function(it){if(lookup[it.space_id])lookup[it.space_id].items.push({name:it.name,body:it.body||''});});
+    promptBrainLookup=lookup;
+    promptBrainFailed=false;
+  }).catch(function(e){
+    promptBrainFailed=true;
+    console.error('[Fibonax] Could not read the Brains your prompts use:',e);
+  }).then(function(){
+    promptBrainLoading=false;
+    if(promptBrainQueued){promptBrainQueued=false;loadPromptBrains();}
+  });
+}
+function promptBrainText(p){
+  var content=p.content||'';
+  if(!SBMemoryPack.promptBrainRefs(content).length)return content;
+  return SBMemoryPack.resolvePromptBrains(content,promptBrainLookup||{},promptBrainLookup?'missing':'failed');
+}
+/* The sentence a copy or share adds when a Brain was left out, '' when none was. */
+function promptBrainNote(p){
+  var content=p.content||'';
+  if(!SBMemoryPack.promptBrainRefs(content).length)return '';
+  return SBMemoryPack.brainGapNote(SBMemoryPack.promptBrainGaps(content,promptBrainLookup||{},promptBrainLookup?'missing':'failed'));
+}
+/* True when the prompt can be handed out now. The copy has to run inside the
+   tap, so while the first read of its Brains is still on its way the tap says
+   so and waits for the next one, rather than copying a prompt with a hole in
+   it. After a read that failed, the copy goes ahead with the Brain marked as
+   not loaded, and the Brains are asked for again, so the next tap has them. */
+function promptBrainsReady(p){
+  if(!SBMemoryPack.promptBrainRefs(p.content||'').length)return true;
+  if(promptBrainLookup)return true;
+  if(promptBrainFailed&&!promptBrainLoading){loadPromptBrains();return true;}
+  if(!promptBrainLoading)loadPromptBrains();
+  showToast('Your Brains are still loading. Tap again in a moment');
+  return false;
+}
+/* The copy's message: what the Brain added, against the long-Brain note Copy
+   whole Brain shows, or the sentence for a Brain that was left out. */
+function promptCopyNote(p,content){
+  var note=promptBrainNote(p);
+  if(note)return ' '+note;
+  var added=SBMemoryPack.estimateTokens(content)-SBMemoryPack.estimateTokens(p.content||'');
+  return added>MEM_LONG_TOKENS?' Long Brain: check the paste':'';
+}
 function promptCopy(p){
-  var text=SBInteractiveSteps.apply(p.content||'',promptStepsOn);
+  if(!promptBrainsReady(p))return;
+  var content=promptBrainText(p);
+  var text=SBInteractiveSteps.apply(content,promptStepsOn);
   copyText(text,function(){
-    var msg=text!==(p.content||'')?'Prompt copied with Interactive Steps ✓':'Prompt copied ✓';
+    var msg=(text!==content?'Prompt copied with Interactive Steps ✓':'Prompt copied ✓')+promptCopyNote(p,content);
     showToast(p.review_status==='deprecated'?msg+' · Deprecated: check it is still right':msg);
   });
   promptMarkUsed(p);
 }
-/* Mirrors desktop promptsApi.markUsed with the shared atomic usage counter. */
+/* Mirrors desktop promptsApi.markUsed with the shared atomic usage counter,
+   which also logs the use for Analytics, tagged as a phone use. */
 function promptMarkUsed(p){
   if(!p||!p.id)return;
   var now=new Date().toISOString();
   var previousLastUsed=p.last_used_at||null;
   p.last_used_at=now;
   p.usage_count=(Number(p.usage_count)||0)+1;
+  var team=!!(p.organization_id&&p.folder_id), previousTeamUse=promptLastUseMap[p.id];
+  if(team)promptLastUseMap[p.id]={used_at:now,used_by_name:myDisplayName()};
   if(document.getElementById('view-prompts').classList.contains('active'))renderPromptList();
   if(curView==='home')renderHome();
   fetch(SUPA+'/rest/v1/rpc/increment_prompt_usage',{
     method:'POST',
     headers:authHeaders({'Content-Type':'application/json'}),
-    body:JSON.stringify({p_prompt_id:p.id})
+    body:JSON.stringify({p_prompt_id:p.id,p_device:'phone'})
   }).then(function(r){
     if(handle401(r))throw new Error('401');
     if(!r.ok)throw new Error('Usage could not be recorded');
@@ -8160,6 +9399,9 @@ function promptMarkUsed(p){
   }).catch(function(){
     p.usage_count=Math.max(0,(Number(p.usage_count)||0)-1);
     if(p.last_used_at===now)p.last_used_at=previousLastUsed;
+    if(team&&promptLastUseMap[p.id]&&promptLastUseMap[p.id].used_at===now){
+      if(previousTeamUse)promptLastUseMap[p.id]=previousTeamUse;else delete promptLastUseMap[p.id];
+    }
     if(document.getElementById('view-prompts').classList.contains('active'))renderPromptList();
     if(curView==='home')renderHome();
   });
@@ -8196,23 +9438,26 @@ function closePromptSheet(){
 /* Share mirrors the snippet sheet: hand the text to the OS share sheet where
    there is one, fall back to the clipboard where there is not. */
 function sharePrompt(p){
-  var text=SBInteractiveSteps.apply(p.content||'',promptStepsOn);
+  if(!promptBrainsReady(p))return;
+  var text=SBInteractiveSteps.apply(promptBrainText(p),promptStepsOn);
+  var note=promptBrainNote(p);
   closePromptSheet();
-  shareOut(p.name||'Prompt',text,function(){promptMarkUsed(p);});
+  shareOut(p.name||'Prompt',text,function(){promptMarkUsed(p);if(note)showToast(note);});
 }
 /* Read-only prompt detail, the prompt half of the shared info sheet. */
 function openPromptInfo(p){
   var f=getFolderById(p.folder_id);
   var labels=assetLabelNames(p.id,promptLabelMap,true);
-  showInfoSheet(p.name||'Prompt',(labels.length?[['Labels',labels.join('\n')]]:[]).concat([
+  var brainNames=SBMemoryPack.promptBrainRefs(p.content||'').map(function(r){return r.name||'Brain';});
+  showInfoSheet(p.name||'Prompt',(labels.length?[['Labels',labels.join('\n')]]:[]).concat(brainNames.length?[['Brain',brainNames.join('\n')]]:[]).concat([
     ['Folder', f?(folderPathLabel(f.id)||f.name||'Folder'):'None'],
     ['Strategy', p.strategy_type||'None'],
     ['Model', p.preferred_model||'—'],
-    ['Characters', String((p.content||'').length)],
+    ['Characters', String(promptBrainText(p).length)],
     ['Updated', p.updated_at?timeAgo(p.updated_at):'—'],
     ['Last used', p.last_used_at?timeAgo(p.last_used_at):'Never'],
     ['ID', p.id]
-  ]));
+  ]),p.organization_id&&p.folder_id&&promptLastUseLoaded?SBUsageAnalytics.lastUseLine(promptLastUseMap[p.id]):'');
 }
 // Reflect the current page on the quick-action bar(s): the matching tile gets
 // the pushed/active state, every other tile resets. name=null clears them all.
@@ -8239,7 +9484,7 @@ function showPrompts(){
   setActivePrimaryTab('prompts');
   syncFilterHeader();
   if(!promptsLoaded&&!promptsLoading)loadPrompts();
-  else renderPromptList();
+  else{renderPromptList();loadPromptBrains();}
 }
 function hidePrompts(){
   closePromptSheet();
@@ -8336,7 +9581,10 @@ function memBySpaceOrder(a,b){
 /* Always attached first, then most recently touched. Matches the server order. */
 function memByItemOrder(a,b){
   if(!!a.pinned!==!!b.pinned)return a.pinned?-1:1;
-  return String(b.updated_at||'').localeCompare(String(a.updated_at||''));
+  var byTime=String(b.updated_at||'').localeCompare(String(a.updated_at||''));
+  /* Items saved together (an upload's pieces) tie on time: the id decides, as
+     it does in the popup and the extension, so every surface lists them alike. */
+  return byTime||String(a.id||'').localeCompare(String(b.id||''));
 }
 function memBrainById(id){
   for(var i=0;i<allBrains.length;i++){if(allBrains[i].id===id)return allBrains[i];}
@@ -8375,10 +9623,10 @@ function memMatchesBrain(b,q){
 /* Every live row of a memory table, a page at a time: an uploaded file alone
    can become hundreds of items, and a read that stopped at the server's row
    cap would drop the rest without a word. */
-function memFetchAll(table,select,order){
+function memFetchAll(table,select,order,filter){
   var rows=[];
   function page(offset){
-    return fetch(SUPA+'/rest/v1/'+table+'?select='+select+'&deleted_at=is.null&order='+order
+    return fetch(SUPA+'/rest/v1/'+table+'?select='+select+'&deleted_at=is.null'+(filter||'')+'&order='+order
         +'&limit='+MEM_PAGE+'&offset='+offset,{headers:authHeaders()})
       .then(function(r){
         if(handle401(r))throw new Error('signed out');
@@ -8400,7 +9648,7 @@ function loadMemory(){
   if(capOpen())capFillBrains();
   Promise.all([
     memFetchAll('memory_spaces',MEM_SPACE_SELECT,'is_default.desc,name.asc'),
-    memFetchAll('memory_shards',MEM_ITEM_SELECT,'pinned.desc,updated_at.desc')
+    memFetchAll('memory_shards',MEM_ITEM_SELECT,'pinned.desc,updated_at.desc,id.asc')
   ]).then(function(res){
     allBrains=res[0].slice().sort(memBySpaceOrder);
     var live={};
@@ -8632,11 +9880,10 @@ function closeMemItem(){
 
 /* ── Memory: copy and share ── */
 /* What an AI chat receives: the block the extension's Context button inserts,
-   built by the same module (extension/shared/memory-pack.js). */
+   built by the same module (extension/shared/memory-pack.js), as the popup's
+   Copy whole Brain and a Brain inside a prompt build it. */
 function memBrainBlock(b){
-  return SBMemoryPack.formatInjectedBlock({items:memItemsOf(b.id).map(function(it){
-    return {name:it.name,text:it.body||''};
-  })});
+  return SBMemoryPack.formatBrainBlock(memItemsOf(b.id));
 }
 function memItemBlock(it){
   return SBMemoryPack.formatInjectedBlock({items:[{name:it.name,text:it.body||''}]});
@@ -9177,7 +10424,13 @@ var PICTURE_TIP='Text in a screenshot? Copy it with Live Text on iPhone or Googl
 /* Every AI feature counts against one per-person limit (ai_call_allow).
    Same words as AI_LIMIT_MESSAGE in app/src/lib/api/edgeFunctionError.ts. */
 var AI_LIMIT_TEXT='You have reached the AI limit: 30 uses an hour and 200 a day. Try again later.';
+/* Every AI feature is Pro only (is_pro). Same words as AI_PRO_MESSAGE and
+   AI_PRO_CHECK_MESSAGE in app/src/lib/api/edgeFunctionError.ts. */
+var AI_PRO_TEXT='AI features are part of Fibonax Pro.';
+var AI_PRO_CHECK_TEXT='Could not check your plan. Try again.';
 var PICTURE_ERRORS={
+  pro_required:AI_PRO_TEXT,
+  pro_check_failed:AI_PRO_CHECK_TEXT,
   rate_limited:AI_LIMIT_TEXT,
   invalid_picture:'That file is not a picture Fibonax can read.',
   picture_too_large:'That picture is too large to read. Try a smaller one.',
@@ -9619,20 +10872,6 @@ function lastUseOf(variants){
     if(lu&&(!best||new Date(lu.used_at).getTime()>new Date(best.used_at).getTime()))best=lu;
   }
   return best;
-}
-/* Last-use split into label/value pairs for the info sheet. It used to render
-   two stacked lines on the card itself, which only org-shared cards had — so
-   shared cards stood ~2 lines taller than personal ones and the list never
-   settled to one rhythm. The data is unchanged, it just lives one tap away. */
-function lastUseParts(lu){
-  if(!lu||!lu.used_at)return null;
-  var d=new Date(lu.used_at);
-  if(isNaN(d.getTime()))return null;
-  return {
-    by: lu.used_by_name||'—',
-    when: _sbPad(d.getDate())+'/'+_sbPad(d.getMonth()+1)+'/'+d.getFullYear()
-        +' · '+_sbPad(d.getHours())+':'+_sbPad(d.getMinutes())
-  };
 }
 /* Latest use for the group a snippet belongs to, for the info sheet. Reads the
    shared index rather than the render-scoped one: it holds every row of the
@@ -10792,6 +12031,8 @@ var ASK_MIN=3, ASK_MAX=1000;
 var PRO_SOON_LABEL='Available to Pro users soon';
 var ASK_AVAILABLE=false;
 var ASK_ERRORS={
+  pro_required:AI_PRO_TEXT,
+  pro_check_failed:AI_PRO_CHECK_TEXT,
   rate_limited:AI_LIMIT_TEXT,
   anthropic_not_configured:'FiboChat is not set up yet.',
   anthropic_request_failed:'The answer service did not respond. Try again.',
@@ -11123,7 +12364,7 @@ function logSnipUse(s,fieldsFilled){
     body:JSON.stringify({
       snippet_id:s.id, user_id:USER_ID,
       shortcut:s.shortcut||'', lang:s.lang||null,
-      fields_filled:fieldsFilled||0
+      fields_filled:fieldsFilled||0, device:'phone'
     })
   }).then(function(r){
     if(handle401(r)||!r.ok)return;
@@ -11190,36 +12431,33 @@ function openSnippetInfo(s){
   var labels=assetLabelNames(s.id,snipLabelMap,true);
   if(s.alternative_queries&&s.alternative_queries.length)rows.unshift(['Search keywords',s.alternative_queries.join('\n')]);
   if(labels.length)rows.unshift(['Labels',labels.join('\n')]);
-  var lu=lastUseForSnippet(s);
-  if(lu){
-    var p=lastUseParts(lu);
-    if(p){
-      rows.push(['Last used', p.when]);
-      rows.push(['Last used by', p.by]);
-    }
-  }
   // ID last: the least glanceable, most technical fact here, kept for support
   // and API use. Tappable — a full id does not fit the row, so read-by-eye is
   // not the point; copy is.
   rows.push(['ID', s.id]);
-  showInfoSheet(s.title||'Snippet',rows);
+  showInfoSheet(s.title||'Snippet',rows,
+    s.organization_id&&s.folder_id&&lastUseLoaded?SBUsageAnalytics.lastUseLine(lastUseForSnippet(s)):'');
 }
 /* Snippets and prompts share one info panel: same key/value rows, same open
-   animation, only the title and the rows differ. */
+   animation, only the title and the rows differ. foot is the "Last used by"
+   line of a team snippet or prompt, empty for anything else. */
 var _infoReturnFocus=null,_infoCloseTimer;
-function showInfoSheet(title,rows){
+function showInfoSheet(title,rows,foot){
   clearTimeout(_infoCloseTimer);
   _infoReturnFocus=document.activeElement;
   document.getElementById('sb-info-title').textContent=title;
   document.getElementById('sb-info-body').innerHTML=rows.map(function(r){
-    var isId=r[0]==='ID',isLanguages=r[0]==='Languages';
+    var isId=r[0]==='ID',isLanguages=r[0]==='Languages',isMulti=r[0]==='Labels'||r[0]==='Search keywords';
     var value=isLanguages?r[1].split('\n').map(function(lang){
       return '<span class="lbadge l'+esc(lang)+'">'+esc(LANG_NAMES[lang]||lang)+'</span>';
-    }).join(''):esc(r[1]);
-    return '<div class="sb-info-row'+(r[0]==='Labels'||r[0]==='Search keywords'||isLanguages?' is-list':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
+    }).join(''):isMulti?r[1].split('\n').map(function(item,i,all){
+      // The dot stays with the word before it, so a wrapped line never starts with one.
+      return '<span class="sb-info-item">'+esc(item)+(i<all.length-1?'<span class="sb-info-sep"> ·</span>':'')+'</span>';
+    }).join(' '):esc(r[1]);
+    return '<div class="sb-info-row'+(isLanguages?' is-list':isMulti?' is-multi':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
       +'<span class="sb-info-k">'+esc(r[0])+'</span>'
       +'<span class="sb-info-v'+(isId?' sb-info-mono':isLanguages?' sb-info-languages':'')+'">'+value+'</span></div>';
-  }).join('');
+  }).join('')+(foot?'<div class="sb-info-foot">'+esc(foot)+'</div>':'');
   var sh=document.getElementById('sb-info-sheet');
   sh.classList.remove('sb-hidden');
   sh.setAttribute('aria-hidden','false');
@@ -12258,193 +13496,494 @@ document.addEventListener('keydown',function(e){
 })();
 
 /* ── ANALYTICS ──────────────────────────────────── */
-var LANG_COLORS={EN:'#1B4FD8',IT:'#15803D',ES:'#C2410C',MULTI:'#7C3AED'};
-var LANG_LABELS={EN:'EN',IT:'IT',ES:'ES',MULTI:'Multi'};
+/* Every figure is decided by SBUsageAnalytics (extension/shared/usage-analytics.js,
+   inlined above by scripts/sync-usage-analytics.js), the module the dashboard's
+   Analytics page loads. This page only reads the inputs and draws the result:
+     - your own inserts (snippet_events is select-own) for the last two years,
+       read in pages because the server stops a read at 1,000 rows;
+     - snippet_last_used(), so "never used" and "not used for 90 days" read all
+       time and the whole team, not only the loaded window;
+     - team_usage_by_member() for the period and the one before it, only when
+       you belong to a team. When the server has no such function the Team
+       section is left out instead of showing an error;
+     - your own prompt uses (prompt_events is select-own) and the prompts you
+       can read, for the 80/20 section (SBUsageAnalytics.pareto). */
+var AN_PAGE=1000;
+var AN_PERIOD_KEY='sb_mob_an_period';
+var anPeriod=(function(){
+  try{var p=Number(localStorage.getItem(AN_PERIOD_KEY));return SBUsageAnalytics.PERIODS.indexOf(p)>-1?p:SBUsageAnalytics.DEFAULT_PERIOD;}
+  catch(e){return SBUsageAnalytics.DEFAULT_PERIOD;}
+})();
+var anUsage=null, anLoading=false, anError=null;
+var anTeam={}, anTeamLoading={}, anTeamError=null, anTeamAvailable=true, anInTeam=null;
+var AN_PARETO_KEY='sb_mob_an_pareto';
+var anParetoKind=(function(){
+  try{return localStorage.getItem(AN_PARETO_KEY)==='prompt'?'prompt':'snippet';}
+  catch(e){return 'snippet';}
+})();
+var anParetoRestOpen=false;
+var AN_PARETO_REST=5;
 
-function relativeTime(iso){
-  if(!iso)return '';
-  var diff=Date.now()-new Date(iso).getTime();
-  if(diff<0)diff=0;
-  var m=Math.floor(diff/60000);
-  if(m<2)return 'just now';
-  if(m<60)return m+'m ago';
-  var h=Math.floor(diff/3600000);
-  if(h<24)return h+'h ago';
-  var d=Math.floor(diff/86400000);
-  if(d<30)return d+'d ago';
-  var mo=Math.floor(d/30);
-  if(mo<12)return mo+'mo ago';
-  return Math.floor(mo/12)+'y ago';
+function anFetchPages(url){
+  var rows=[];
+  function next(from){
+    return fetch(url,{headers:authHeaders({'Range-Unit':'items','Range':from+'-'+(from+AN_PAGE-1)})})
+      .then(function(r){
+        if(handle401(r))throw new Error('Your session has ended.');
+        if(!r.ok)throw new Error('The server answered '+r.status+'.');
+        return r.json();
+      })
+      .then(function(batch){
+        rows=rows.concat(Array.isArray(batch)?batch:[]);
+        return batch.length<AN_PAGE?rows:next(from+AN_PAGE);
+      });
+  }
+  return next(0);
+}
+
+function anRpc(name,body){
+  return fetch(SUPA+'/rest/v1/rpc/'+name,{
+    method:'POST',
+    headers:authHeaders({'Content-Type':'application/json'}),
+    body:JSON.stringify(body||{})
+  });
+}
+
+function loadAnalyticsUsage(){
+  if(anLoading)return;
+  anLoading=true;anError=null;
+  var now=Date.now();
+  var from=SBUsageAnalytics.loadFrom(now).toISOString();
+  var evUrl=SUPA+'/rest/v1/snippet_events?select=snippet_id,created_at,fields_filled,lang,device'
+    +'&user_id=eq.'+encodeURIComponent(USER_ID)
+    +'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc';
+  var pevUrl=SUPA+'/rest/v1/prompt_events?select=prompt_id,created_at,device'
+    +'&user_id=eq.'+encodeURIComponent(USER_ID)
+    +'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc';
+  // The prompts you can read, archived ones left out as the dashboard leaves them out.
+  var prUrl=SUPA+'/rest/v1/prompts?select=id,name,shortcut'
+    +'&or=(review_status.is.null,review_status.neq.archived)&order=id.asc';
+  var luFetch=anRpc('snippet_last_used').then(function(r){
+    if(handle401(r))throw new Error('Your session has ended.');
+    if(!r.ok)throw new Error('The server answered '+r.status+'.');
+    return r.json();
+  });
+  var memberFetch=anInTeam!==null?Promise.resolve(anInTeam)
+    :fetch(SUPA+'/rest/v1/organization_members?select=organization_id&user_id=eq.'+encodeURIComponent(USER_ID)+'&limit=1',{headers:authHeaders()})
+      .then(function(r){return r.ok?r.json():[];})
+      .then(function(rows){return Array.isArray(rows)&&rows.length>0;})
+      .catch(function(){return false;});
+  Promise.all([anFetchPages(evUrl),luFetch,memberFetch,anFetchPages(pevUrl),anFetchPages(prUrl)]).then(function(res){
+    var lastUsed={};
+    (Array.isArray(res[1])?res[1]:[]).forEach(function(r){if(r&&r.snippet_id&&r.last_used_at)lastUsed[r.snippet_id]=r.last_used_at;});
+    anUsage={events:res[0],lastUsed:lastUsed,loadedFrom:from,at:now,promptEvents:res[3],prompts:res[4]};
+    anInTeam=!!res[2];
+    anTeam={};anTeamError=null;
+    anLoading=false;
+    if(curView==='analytics')renderAnalytics();
+  }).catch(function(err){
+    console.error('Analytics: could not load usage',err);
+    anLoading=false;
+    anError=(err&&err.message)||'Check your connection.';
+    if(curView==='analytics')renderAnalytics();
+  });
+}
+
+function loadAnalyticsTeam(period){
+  if(!anUsage||anTeamLoading[period])return;
+  anTeamLoading[period]=true;
+  var r=SBUsageAnalytics.range(period,anUsage.at);
+  function read(a,b){
+    return anRpc('team_usage_by_member',{p_from:a.toISOString(),p_to:b.toISOString()}).then(function(res){
+      if(handle401(res))throw new Error('Your session has ended.');
+      // 404: this database has no team function; the section stays hidden.
+      if(res.status===404)return null;
+      if(!res.ok)throw new Error('The server answered '+res.status+'.');
+      return res.json();
+    });
+  }
+  Promise.all([read(r.start,r.end),read(r.prevStart,r.prevEnd)]).then(function(res){
+    anTeamLoading[period]=false;
+    if(res[0]===null||res[1]===null){anTeamAvailable=false;}
+    else{anTeam[period]=SBUsageAnalytics.team(res[0],res[1],USER_ID);}
+    if(curView==='analytics')renderAnalytics();
+  }).catch(function(err){
+    console.error('Analytics: could not load team usage',err);
+    anTeamLoading[period]=false;
+    anTeamError=(err&&err.message)||'Check your connection.';
+    if(curView==='analytics')renderAnalytics();
+  });
+}
+
+function anChange(c){
+  var cls=c.dir==='up'?' up':c.dir==='down'?' down':'';
+  var arrow=c.dir==='up'?'<span aria-hidden="true">↑</span>':c.dir==='down'?'<span aria-hidden="true">↓</span>':'';
+  return '<span class="an-chg'+cls+'">'+arrow+esc(c.text)+'</span>';
+}
+/* A small trend line in the brand colour: one point per day of the period. The number beside it carries the value. */
+function anSpark(raw){
+  if(!raw||!raw.length)return '';
+  // Past 30 points the line is folded into 30 buckets, each the sum of its days, so a year reads as a line, not noise.
+  var values=raw;
+  if(raw.length>30){var size=Math.ceil(raw.length/30);values=[];for(var b=0;b<raw.length;b+=size){var acc=0;for(var j=b;j<Math.min(raw.length,b+size);j++)acc+=raw[j];values.push(acc);}}
+  var max=Math.max.apply(null,values), min=Math.min.apply(null,values), range=(max-min)||1, step=80/Math.max(values.length-1,1);
+  var pts=values.map(function(v,i){return (i*step).toFixed(2)+','+(24-((v-min)/range)*20-2).toFixed(2);}).join(' ');
+  return '<svg class="an-spark" viewBox="0 0 80 24" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+}
+function anBar(share){
+  return '<div class="an-bar" aria-hidden="true"><span style="width:'+Math.min(100,Number(share)||0)+'%"></span></div>';
+}
+function anSection(title,sub,inner,pad){
+  return '<div class="an-sec"><div class="msec"><h2 class="msec-t">'+esc(title)+'</h2></div>'
+    +(sub?'<p class="an-sec-sub">'+esc(sub)+'</p>':'')
+    +'<div class="an-card'+(pad?' pad':'')+'">'+inner+'</div></div>';
+}
+function anKpi(label,value,change,prev,hint,trend){
+  return '<div class="an-kpi">'
+    +'<div class="an-kpi-lbl">'+esc(label)+'</div>'
+    +'<div class="an-kpi-val">'+esc(value)+'</div>'
+    +(trend?'<div class="an-kpi-spark">'+anSpark(trend)+'</div>':'')
+    +'<div class="an-kpi-row">'+anChange(change)+'<span class="an-kpi-prev">before: '+esc(prev)+'</span></div>'
+    +'<div class="an-kpi-hint">'+esc(hint)+'</div>'
+  +'</div>';
+}
+function anRows(rows,opts){
+  var n=SBUsageAnalytics.formatCount;
+  return rows.map(function(r,i){
+    var tap=opts.tap&&r.key&&r.key.indexOf('__')!==0;
+    return '<div class="an-row"'+(tap?' role="button" tabindex="0" data-an-snip="'+esc(r.key)+'"':'')+'>'
+      +(opts.rank?'<span class="an-rank">'+(i+1)+'</span>':'')
+      +'<div class="an-main"><div class="an-title">'+esc(r.title)+'</div>'
+        +(r.detail?'<div class="an-detail">'+esc(r.detail)+'</div>':'')
+        +(opts.bar?anBar(r.share):'')
+      +'</div>'
+      +(opts.trend&&r.trend?anSpark(r.trend):'')
+      +'<div class="an-side"><span class="an-num">'+n(r.uses)+(opts.bar?' <small>'+r.share+'%</small>':'')+'</span>'+anChange(r.change)+'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function anChart(report){
+  var pts=report.series, W=340, H=120, len=pts.length;
+  var max=1;
+  pts.forEach(function(p){max=Math.max(max,p.count,p.prev,p.avg7||0);});
+  var bw=W/len, y=function(v){return (H-(v/max)*(H-4)).toFixed(1);};
+  var bars=pts.map(function(p,i){
+    if(!p.count)return '';
+    var h=(p.count/max)*(H-4);
+    return '<rect x="'+(i*bw+bw*0.12).toFixed(2)+'" y="'+(H-h).toFixed(1)+'" width="'+Math.max(0.6,bw*0.76).toFixed(2)+'" height="'+h.toFixed(1)+'" rx="'+(bw>6?1.5:0)+'" fill="var(--primary)"/>';
+  }).join('');
+  var prev=pts.map(function(p,i){return (i*bw+bw/2).toFixed(1)+','+y(p.prev);}).join(' ');
+  var avg='', seg=[];
+  pts.forEach(function(p,i){
+    if(p.avg7===null){if(seg.length>1)avg+='<polyline points="'+seg.join(' ')+'" fill="none" stroke="var(--text)" stroke-width="1.6"/>';seg=[];return;}
+    seg.push((i*bw+bw/2).toFixed(1)+','+y(p.avg7));
+  });
+  if(seg.length>1)avg+='<polyline points="'+seg.join(' ')+'" fill="none" stroke="var(--text)" stroke-width="1.6"/>';
+  var mid=pts[Math.floor(len/2)];
+  var t=report.totals;
+  var summary=SBUsageAnalytics.formatCount(t.uses.cur)+' inserts from '+report.rangeLabel
+    +(t.bestDay?', busiest '+t.bestDay.label+' with '+t.bestDay.count:'');
+  return '<div class="an-chart">'
+    +'<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(summary)+'" preserveAspectRatio="none">'
+      +'<line x1="0" y1="'+H+'" x2="'+W+'" y2="'+H+'" stroke="var(--border)"/>'
+      +bars
+      +'<polyline points="'+prev+'" fill="none" stroke="var(--text3)" stroke-width="1.2" stroke-dasharray="3 3"/>'
+      +avg
+    +'</svg>'
+    +'<div class="an-chart-axis"><span>'+esc(pts[0].label)+'</span><span>'+esc(mid.label)+'</span><span>'+esc(pts[len-1].label)+'</span></div>'
+    +'<div class="an-legend"><span><i class="an-key bar"></i>Inserts</span><span><i class="an-key prev"></i>Previous period</span>'
+      +(pts.some(function(p){return p.avg7!==null;})?'<span><i class="an-key avg"></i>7-day average</span>':'')
+    +'</div>'
+  +'</div>';
+}
+
+function anPatterns(report){
+  var p=report.patterns, n=SBUsageAnalytics.formatCount;
+  function level(c){return c<=0||p.max<=0?0:Math.min(4,Math.max(1,Math.ceil(c/p.max*4)));}
+  var g='<span></span>';
+  for(var h=0;h<24;h++)g+='<span class="an-gh">'+(h%6===0?(h<10?'0':'')+h:'')+'</span>';
+  p.grid.forEach(function(row,w){
+    g+='<span class="an-gl">'+esc(p.weekdays[w].name)+'</span>';
+    row.forEach(function(c,hh){
+      g+='<i class="l'+level(c)+'" title="'+esc(p.weekdays[w].name+' '+SBUsageAnalytics.hourLabel(hh)+': '+n(c))+'"></i>';
+    });
+  });
+  var label='Inserts by weekday and hour'+(p.peakWeekday?'. Busiest: '+p.peakWeekday.name+(p.peakHour?', '+p.peakHour.label:''):'');
+  return '<div class="an-grid" role="img" aria-label="'+esc(label)+'">'+g+'</div>'
+    +'<dl class="an-facts" style="margin-top:14px">'
+      +'<div class="an-fact"><dt>Busiest weekday</dt><dd>'+(p.peakWeekday?esc(p.peakWeekday.name)+', '+p.peakWeekday.share+'%':'—')+'</dd></div>'
+      +'<div class="an-fact"><dt>Busiest hour</dt><dd>'+(p.peakHour?esc(p.peakHour.label)+', '+p.peakHour.share+'%':'—')+'</dd></div>'
+      +'<div class="an-fact"><dt>Monday to Friday</dt><dd>'+p.workdayShare+'% of inserts</dd></div>'
+    +'</dl>';
+}
+
+function anTeamHtml(){
+  var team=anTeam[anPeriod], n=SBUsageAnalytics.formatCount;
+  var sub='Uses of shared snippets and prompts in this period, by person. Only team folders you can open are counted.';
+  if(anTeamError){
+    return anSection('Team',sub,'<div class="an-msg">The team figures could not load. '+esc(anTeamError)
+      +'<br><button type="button" class="an-retry" data-an-action="team-retry">Try again</button></div>');
+  }
+  if(!team)return anSection('Team',sub,'<div class="an-msg">Loading…</div>');
+  if(!team.members.length)return anSection('Team',sub,'<div class="an-msg">Nobody has used a shared snippet or prompt in this period.</div>');
+  var rows=team.members.map(function(m){
+    return '<div class="an-row"><span class="an-rank">'+m.rank+'</span>'
+      +'<div class="an-main"><div class="an-title">'+esc(m.name)+(m.isMe?' <span class="an-me">(you)</span>':'')
+        +(m.mostActive?' <span class="an-most">Most active</span>':'')+'</div>'
+        +'<div class="an-detail">'+n(m.snippets)+' '+(m.snippets===1?'snippet':'snippets')
+        +' · '+n(m.prompts)+' '+(m.prompts===1?'prompt':'prompts')+'</div>'+anBar(m.share)+'</div>'
+      +'<div class="an-side"><span class="an-num">'+n(m.uses)+' <small>'+m.share+'%</small></span>'+anChange(m.change)+'</div>'
+    +'</div>';
+  }).join('');
+  rows+='<div class="an-row"><span class="an-rank"></span><div class="an-main"><div class="an-title">Whole team</div></div>'
+    +'<div class="an-side"><span class="an-num">'+n(team.total.cur)+'</span>'+anChange(team.total)+'</div></div>';
+  return anSection('Team',sub,rows);
+}
+
+function anHealthList(title,total,rows,word,empty){
+  var html='<div class="an-sub-h">'+esc(title)+' <span class="an-kpi-prev">('+total+')</span></div>';
+  if(!rows.length)return html+'<div class="an-detail" style="padding:4px 0 12px;white-space:normal">'+esc(empty)+'</div>';
+  html+=rows.map(function(r){
+    return '<div class="an-row" role="button" tabindex="0" data-an-snip="'+esc(r.key)+'">'
+      +'<div class="an-main"><div class="an-title">'+esc(r.title)+'</div></div>'
+      +'<span class="an-detail">'+(r.days===null?'':esc(word+' '+r.days+' '+(r.days===1?'day':'days')))+'</span></div>';
+  }).join('');
+  if(total>rows.length)html+='<div class="an-more">and '+(total-rows.length)+' more</div>';
+  return html;
+}
+
+var AN_DEV_ICONS={
+  computer:'<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  phone:'<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  unknown:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>'
+};
+var AN_DEVICES=['computer','phone','unknown'];
+function anDevIcon(key){return '<svg class="an-dev-ico" viewBox="0 0 24 24" aria-hidden="true">'+AN_DEV_ICONS[key]+'</svg>';}
+/* The sentence a screen reader hears for a device split: "Computer 60%, Phone 40%". */
+function anDevSpoken(d){
+  return AN_DEVICES.filter(function(k){return d[k]>0;}).map(function(k){return SBUsageAnalytics.DEVICE_LABELS[k]+' '+d[k+'Share']+'%';}).join(', ');
+}
+function anDevBar(d){
+  var parts=AN_DEVICES.filter(function(k){return d[k]>0;});
+  return '<div class="an-dev" role="img" aria-label="'+esc(anDevSpoken(d))+'">'
+      +parts.map(function(k){return '<span class="'+k+'" style="width:'+d[k+'Share']+'%"></span>';}).join('')
+    +'</div>'
+    +'<div class="an-dev-key" aria-hidden="true">'
+      +parts.map(function(k){return '<span><i class="'+k+'"></i>'+anDevIcon(k)+esc(SBUsageAnalytics.DEVICE_LABELS[k])+' <b>'+d[k+'Share']+'%</b></span>';}).join('')
+    +'</div>';
+}
+/* One row's split as icons and percentages, adding up to its uses. */
+function anDevLine(d){
+  var total=d.computer+d.phone+d.unknown;
+  if(!total)return '';
+  var inner=d.unknown===total
+    ?'<span class="unknown">'+esc(SBUsageAnalytics.DEVICE_LABELS.unknown)+'</span>'
+    :AN_DEVICES.filter(function(k){return d[k]>0;}).map(function(k){
+      return '<span class="'+k+'">'+anDevIcon(k)+Math.round(d[k+'Share'])+'%</span>';
+    }).join('');
+  return '<div class="an-where" role="img" aria-label="'+esc(anDevSpoken(d))+'">'+inner+'</div>';
+}
+function anParetoRows(rows,rest,tap){
+  var n=SBUsageAnalytics.formatCount;
+  return rows.map(function(r){
+    return '<div class="an-row"'+(tap?' role="button" tabindex="0" data-an-snip="'+esc(r.key)+'"':'')+'>'
+      +'<span class="an-rank">'+r.rank+'</span>'
+      +'<div class="an-main"><div class="an-title">'+esc(r.title)+'</div>'
+        +(r.detail?'<div class="an-detail">'+esc(r.detail)+'</div>':'')
+        +'<div class="an-bar'+(rest?' rest':'')+'" aria-hidden="true"><span style="width:'+Math.min(100,Number(r.share)||0)+'%"></span></div>'
+        +anDevLine(r.device)
+      +'</div>'
+      +'<div class="an-side"><span class="an-num">'+n(r.uses)+' <small>'+r.share+'%</small></span></div>'
+    +'</div>';
+  }).join('');
+}
+/* What does most of your work: SBUsageAnalytics.pareto decides every figure
+   and every sentence, as on the dashboard. The phone shows the list only. */
+function anParetoHtml(pareto){
+  var n=SBUsageAnalytics.formatCount;
+  var kind=anParetoKind==='prompt'&&pareto.prompts?'prompt':'snippet';
+  var r=kind==='prompt'?pareto.prompts:pareto.snippets;
+  var one=kind==='prompt'?'prompt':'snippet', many=kind==='prompt'?'prompts':'snippets';
+  var html='';
+  if(pareto.prompts){
+    html+='<div class="an-kind" role="group" aria-label="Show">'
+      +'<button type="button" data-an-kind="snippet" aria-pressed="'+(kind==='snippet')+'">Snippets</button>'
+      +'<button type="button" data-an-kind="prompt" aria-pressed="'+(kind==='prompt')+'">Prompts</button>'
+    +'</div>';
+  }
+  if(r.empty){
+    return html+'<p class="an-head">'+esc(r.headline)+'.</p><p class="an-head-sub" style="padding-bottom:14px">'+esc(r.summary)+'</p>';
+  }
+  html+='<p class="an-head">'+esc(r.headline)+'</p>'
+    +(r.summary?'<p class="an-head-sub">'+esc(r.summary)+'</p>':'')
+    +'<p class="an-dev-t">Where your '+many+' were used</p>'+anDevBar(r.device);
+  function count(c){return n(c)+' '+(c===1?one:many)+' · ';}
+  html+='<div class="an-sub-h">Your key '+many+'<span class="an-kpi-prev">'+count(r.keyGroup.count)+r.keyGroup.share+'% of uses</span></div>'
+    +anParetoRows(r.key,false,kind==='snippet');
+  if(r.rest.length){
+    var shown=anParetoRestOpen?r.rest:r.rest.slice(0,AN_PARETO_REST);
+    html+='<div class="an-sub-h">The rest<span class="an-kpi-prev">'+count(r.restGroup.count)+r.restGroup.share+'% of uses</span></div>'
+      +anParetoRows(shown,true,kind==='snippet');
+    if(r.rest.length>AN_PARETO_REST){
+      html+='<button type="button" class="an-more-btn" data-an-action="pareto-rest" aria-expanded="'+anParetoRestOpen+'">'
+        +(anParetoRestOpen?'Show fewer':'Show all '+n(r.rest.length)+' ('+n(r.rest.length-shown.length)+' more)')+'</button>';
+    }
+  }
+  if(r.unused){
+    html+='<p class="an-unused">'+n(r.unused)+' '+(r.unused===1?one:many)+' in your library '+(r.unused===1?'was':'were')+' not used in this period.</p>';
+  }
+  return html;
 }
 
 function renderAnalytics(){
-  var total=allSnips.length;
-  var folderCnt=allFolders.length;
-
-  if(!total&&!folderCnt){
-    document.getElementById('an-hdr-sub').textContent='No snippets yet';
-    document.getElementById('an-total').textContent='0';
-    document.getElementById('an-folders-cnt').textContent='0';
-    document.getElementById('an-interactive').textContent='0';
-    document.getElementById('an-noshortcut').textContent='0';
-    document.getElementById('an-interactive-pct').style.display='none';
-    document.getElementById('an-noshortcut-tag').style.display='none';
-    document.getElementById('an-lang-list').innerHTML='<div class="an-empty-sec">No data yet</div>';
-    document.getElementById('an-folder-list').innerHTML='<div class="an-empty-sec">No folders yet</div>';
-    document.getElementById('an-health-list').innerHTML='<div class="an-empty-sec">No data yet</div>';
-    document.getElementById('an-recent-list').innerHTML='<div class="an-empty-sec">No snippets yet</div>';
+  var body=document.getElementById('an-body');
+  var sub=document.getElementById('an-hdr-sub');
+  document.querySelectorAll('[data-an-period]').forEach(function(b){
+    b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-an-period'))===anPeriod));
+  });
+  if(!anUsage){
+    if(anError){
+      sub.textContent='Your figures could not load.';
+      body.innerHTML='<div class="an-sec" style="margin-top:16px"><div class="an-card"><div class="an-msg">'+esc(anError)
+        +' Check your connection and try again.<br><button type="button" class="an-retry" data-an-action="retry">Try again</button></div></div></div>';
+      return;
+    }
+    sub.textContent='Loading…';
+    body.innerHTML='<div class="an-sec" style="margin-top:16px"><div class="an-card"><div class="an-msg">Loading your figures…</div></div></div>';
+    loadAnalyticsUsage();
     return;
   }
 
-  /* ── header subtitle ── */
-  var oneWeekMs=7*86400000;
-  var now=Date.now();
-  var updatedThisWeek=allSnips.filter(function(s){
-    return s.updated_at&&(now-new Date(s.updated_at).getTime())<oneWeekMs;
-  }).length;
-  var sub=total+' snippet'+(total!==1?'s':'');
-  if(updatedThisWeek>0)sub+=' · '+updatedThisWeek+' updated this week';
-  document.getElementById('an-hdr-sub').textContent=sub;
+  var UA=SBUsageAnalytics, n=UA.formatCount;
+  var report=UA.compute({
+    now:anUsage.at, period:anPeriod, events:anUsage.events, lastUsed:anUsage.lastUsed, loadedFrom:anUsage.loadedFrom,
+    folders:allFolders.map(function(f){return {id:f.id,name:f.name};}),
+    snippets:allSnips.map(function(s){return {id:s.id,title:s.title,shortcut:s.shortcut,folder_id:s.folder_id,lang:s.lang,created_at:s.created_at};})
+  });
+  var t=report.totals, h=report.health, p=report.patterns;
+  sub.textContent=report.label+': '+report.rangeLabel+', compared with '+report.prevRangeLabel+'.';
 
-  /* ── KPI cards ── */
-  var withFields=allSnips.filter(function(s){return extractFields(s.body||'').length>0;}).length;
-  var withShortcut=allSnips.filter(function(s){return !!(s.shortcut||'').trim();}).length;
-  var withFolder=allSnips.filter(function(s){return !!s.folder_id;}).length;
-  var noShortcut=total-withShortcut;
+  var html='<div class="an-kpi-grid">'
+    +anKpi('Inserted',n(t.uses.cur),t.uses,n(t.uses.prev),t.avgPerDay.cur+' a day on average',report.series.map(function(pt){return pt.count;}))
+    +anKpi('Time saved',UA.formatDuration(t.secondsSaved.cur),t.secondsSaved,UA.formatDuration(t.secondsSaved.prev),'At '+UA.SECONDS_PER_USE+' seconds per insert')
+    +anKpi('Active days',n(t.activeDays.cur)+' of '+n(t.days),t.activeDays,n(t.activeDays.prev),t.activeDays.cur?t.avgPerActiveDay+' inserts on a day you used Fibonax':'No inserts in this period')
+    +anKpi('Snippets used',n(t.snippetsUsed.cur),t.snippetsUsed,n(t.snippetsUsed.prev),h.usedShare+'% of the '+n(h.library)+' you can use')
+  +'</div>';
 
-  document.getElementById('an-total').textContent=total;
-  document.getElementById('an-folders-cnt').textContent=folderCnt;
-  document.getElementById('an-interactive').textContent=withFields;
+  html+='<div class="an-sec" style="margin-top:12px"><div class="an-card pad"><dl class="an-facts">'
+    +'<div class="an-fact"><dt>Busiest day</dt><dd>'+(t.bestDay?esc(t.bestDay.label):'—')+'</dd><dd class="an-fact-hint">'+(t.bestDay?n(t.bestDay.count)+' inserts':'No inserts yet')+'</dd></div>'
+    +'<div class="an-fact"><dt>Daily streak</dt><dd>'+(p.streak.currentAtLeast?'At least ':'')+n(p.streak.current)+' '+(p.streak.current===1?'day':'days')+'</dd><dd class="an-fact-hint">Longest in this period: '+n(p.streak.longestInPeriod)+'</dd></div>'
+    +'<div class="an-fact"><dt>Fields filled per insert</dt><dd>'+t.avgFieldsPerUse+'</dd><dd class="an-fact-hint">'+t.usesWithFieldsShare+'% of inserts had a form</dd></div>'
+    +'<div class="an-fact"><dt>Weekdays</dt><dd>'+p.workdayShare+'%</dd><dd class="an-fact-hint">of inserts from Monday to Friday</dd></div>'
+  +'</dl></div></div>';
 
-  var iPct=document.getElementById('an-interactive-pct');
-  if(total>0){
-    iPct.textContent=Math.round(withFields/total*100)+'% of library';
-    iPct.style.display='';
-  }else{
-    iPct.style.display='none';
+  html+=anSection('Inserts per day',report.rangeLabel+', with '+report.prevRangeLabel+' dashed for comparison.',anChart(report),true);
+
+  var pareto=SBUsageAnalytics.pareto({
+    now:anUsage.at, period:anPeriod, events:anUsage.events,
+    folders:allFolders.map(function(f){return {id:f.id,name:f.name};}),
+    snippets:allSnips.map(function(s){return {id:s.id,title:s.title,shortcut:s.shortcut,folder_id:s.folder_id};}),
+    promptEvents:anUsage.promptEvents, prompts:anUsage.prompts
+  });
+  var paretoTarget=(anParetoKind==='prompt'&&pareto.prompts?'prompts':'snippets');
+  html+=anSection('What does most of your work','Ranked by uses in this period. Your key '+paretoTarget
+    +' are the top ones that together reach '+UA.PARETO_TARGET+'% of them.',anParetoHtml(pareto));
+
+  html+=anSection('Top snippets','Your ten most-inserted snippets, each with its share of all your inserts.',
+    report.top.length?anRows(report.top,{rank:true,bar:true,tap:true,trend:true})
+      :'<div class="an-msg">No inserts in this period yet. Type a shortcut anywhere and it shows up here.</div>');
+
+  var up='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>';
+  var down='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg>';
+  function movers(list){
+    return list.map(function(m){
+      return '<div class="an-row" role="button" tabindex="0" data-an-snip="'+esc(m.key)+'"><div class="an-main"><div class="an-title">'+esc(m.title)+'</div>'
+        +'<div class="an-detail">'+n(m.change.prev)+' → '+n(m.change.cur)+' inserts</div></div>'
+        +'<div class="an-side">'+anChange(m.change)+'</div></div>';
+    }).join('');
+  }
+  html+=anSection('Movers','Against the period before.',
+    '<div class="an-sub-h">'+up+'Rising fastest</div>'
+      +(report.rising.length?movers(report.rising):'<div class="an-detail" style="padding:4px 0 10px">Nothing is used more than in the period before.</div>')
+    +'<div class="an-sub-h">'+down+'Falling fastest</div>'
+      +(report.falling.length?movers(report.falling):'<div class="an-detail" style="padding:4px 0 12px">Nothing is used less than in the period before.</div>'));
+
+  html+=anSection('When you use snippets','Inserts by weekday and hour, in your local time.',anPatterns(report),true);
+
+  html+=anSection('Where your use goes','Your inserts in this period by folder and by language.',
+    '<div class="an-sub-h">By folder</div>'+(report.byFolder.length?anRows(report.byFolder,{bar:true}):'<div class="an-detail" style="padding:4px 0 10px">No inserts in this period.</div>')
+    +'<div class="an-sub-h">By language</div>'+(report.byLanguage.length?anRows(report.byLanguage,{bar:true}):'<div class="an-detail" style="padding:4px 0 12px">No inserts in this period.</div>'));
+
+  if(anInTeam&&anTeamAvailable){
+    html+=anTeamHtml();
+    if(!anTeam[anPeriod]&&!anTeamError)loadAnalyticsTeam(anPeriod);
   }
 
-  document.getElementById('an-noshortcut').textContent=noShortcut;
-  var nsTag=document.getElementById('an-noshortcut-tag');
-  nsTag.style.display=noShortcut>0?'':'none';
+  function gauge(label,v){
+    var pct=h.library?Math.round(v/h.library*1000)/10:0;
+    return '<div class="an-row"><div class="an-main"><div class="an-title">'+esc(label)+'</div>'+anBar(pct)+'</div>'
+      +'<div class="an-side"><span class="an-num">'+n(v)+' <small>of '+n(h.library)+' · '+pct+'%</small></span></div></div>';
+  }
+  html+=anSection('Library health','The '+n(h.library)+' snippets you can use, yours and shared with you.',
+    gauge('Used in this period',h.usedInPeriod)+gauge('Have a shortcut',h.withShortcut)+gauge('In a folder',h.inFolder)
+    +anHealthList('Never used',h.neverUsed,h.neverUsedList,'created','Every snippet has been used at least once.')
+    +anHealthList('Not used for '+h.dormantDays+' days',h.dormant,h.dormantList,'last used','Everything was used in the last '+h.dormantDays+' days.'));
 
-  /* ── language breakdown ── */
-  var langCounts={EN:0,IT:0,ES:0,MULTI:0};
-  allSnips.forEach(function(s){
-    var l=s.lang||'EN';
-    if(Object.prototype.hasOwnProperty.call(langCounts,l))langCounts[l]++;
-    else langCounts['MULTI']++;
-  });
-  var maxLang=Math.max(langCounts.EN,langCounts.IT,langCounts.ES,langCounts.MULTI,1);
-  document.getElementById('an-lang-list').innerHTML=
-    ['EN','IT','ES','MULTI'].map(function(l){
-      var cnt=langCounts[l];
-      var barW=Math.round(cnt/maxLang*100);
-      var pct=total>0?Math.round(cnt/total*100):0;
-      return '<div class="an-lang-row">'
-        +'<span class="lbadge l'+l+' an-lang-pill">'+esc(LANG_LABELS[l])+'</span>'
-        +'<div class="an-lang-bar-wrap">'
-          +'<div class="an-lang-bar" style="width:'+barW+'%;background:'+LANG_COLORS[l]+'"></div>'
-        +'</div>'
-        +'<span class="an-lang-count">'+cnt+'</span>'
-        +'<span class="an-lang-pct">'+pct+'%</span>'
-      +'</div>';
-    }).join('');
-
-  /* ── top folders ── */
-  var fSnipCnt={};
-  allSnips.forEach(function(s){
-    if(s.folder_id)fSnipCnt[s.folder_id]=(fSnipCnt[s.folder_id]||0)+1;
-  });
-  var topFolders=allFolders
-    .map(function(f){return{f:f,cnt:fSnipCnt[f.id]||0};})
-    .filter(function(x){return x.cnt>0;})
-    .sort(function(a,b){return b.cnt-a.cnt;})
-    .slice(0,5);
-  var maxFCnt=topFolders.length?topFolders[0].cnt:1;
-  document.getElementById('an-folder-list').innerHTML=topFolders.length
-    ?topFolders.map(function(x,i){
-        var barW=Math.round(x.cnt/maxFCnt*100);
-        return '<div class="an-folder-row">'
-          +'<span class="an-folder-rank">#'+(i+1)+'</span>'
-          +'<span class="an-folder-ico">'+folderIcon(x.f)+'</span>'
-          +'<div class="an-folder-info">'
-            +'<div class="an-folder-name">'+esc(x.f.name||'Folder')+'</div>'
-            +'<div class="an-folder-bar-wrap">'
-              +'<div class="an-folder-bar" style="width:'+barW+'%"></div>'
-            +'</div>'
-          +'</div>'
-          +'<span class="an-folder-cnt">'+x.cnt+'</span>'
-        +'</div>';
-      }).join('')
-    :'<div class="an-empty-sec">Assign snippets to folders to see rankings</div>';
-
-  /* ── library health ── */
-  var healthRows=[
-    {label:'Have a shortcut',val:withShortcut},
-    {label:'Assigned to a folder',val:withFolder},
-    {label:'Interactive (have fields)',val:withFields}
-  ];
-  document.getElementById('an-health-list').innerHTML=healthRows.map(function(h){
-    var pct=total>0?Math.round(h.val/total*100):0;
-    var cls=pct>=80?'h-ok':pct>=50?'':'h-warn';
-    return '<div class="an-health-row">'
-      +'<div class="an-health-top">'
-        +'<span class="an-health-lbl">'+esc(h.label)+'</span>'
-        +'<span class="an-health-pct '+cls+'">'+pct+'%</span>'
-      +'</div>'
-      +'<div class="an-health-bar-wrap">'
-        +'<div class="an-health-bar '+cls+'" style="width:'+pct+'%"></div>'
-      +'</div>'
-    +'</div>';
-  }).join('');
-
-  /* ── recently modified ── */
-  var recent=allSnips.slice().sort(function(a,b){
-    var ta=a.updated_at?new Date(a.updated_at).getTime():0;
-    var tb=b.updated_at?new Date(b.updated_at).getTime():0;
-    return tb-ta;
-  }).slice(0,6);
-  var recentEl=document.getElementById('an-recent-list');
-  recentEl.innerHTML=recent.length
-    ?recent.map(function(s){
-        var rel=relativeTime(s.updated_at);
-        var langBadge='<span class="lbadge l'+esc(s.lang||'EN')+'" style="font-size:9px;padding:1px 5px">'+esc(s.lang||'EN')+'</span>';
-        return '<div class="an-recent-item" data-snip-id="'+esc(s.id)+'" role="button" tabindex="0" aria-label="'+esc(s.title||s.id)+'">'
-          +'<div class="an-recent-ico">'+(getFolderById(s.folder_id)?folderIcon(getFolderById(s.folder_id)):SNIPPET_SVG)+'</div>'
-          +'<div class="an-recent-info">'
-            +'<div class="an-recent-title">'+esc(s.title||s.id)+'</div>'
-            +'<div class="an-recent-meta">'
-              +(rel?'<span class="an-recent-date">'+esc(rel)+'</span>':'')
-              +langBadge
-            +'</div>'
-          +'</div>'
-        +'</div>';
-      }).join('')
-    :'<div class="an-empty-sec">No snippets yet</div>';
-
-  recentEl.querySelectorAll('.an-recent-item').forEach(function(el){
-    function activate(){
-      var id=this.getAttribute('data-snip-id');
-      var s=allSnips.find(function(x){return x.id===id;});
-      if(!s)return;
-      var grp=groupForRow(s);
-      openDetail(pickActiveVariant(grp,curLang),grp.variants);
-    }
-    el.addEventListener('click',activate);
-    el.addEventListener('keydown',function(e){
-      if(e.key==='Enter'||e.key===' '){e.preventDefault();activate.call(this);}
-    });
-  });
+  body.innerHTML=html;
 }
+
+/* One listener for the whole page: period, retries, and a tap on a snippet
+   row opens that snippet, like a tap on a card in the list. */
+document.getElementById('view-analytics').addEventListener('click',function(e){
+  var pb=e.target.closest('[data-an-period]');
+  if(pb){
+    anPeriod=Number(pb.getAttribute('data-an-period'));
+    try{localStorage.setItem(AN_PERIOD_KEY,String(anPeriod));}catch(err){}
+    renderAnalytics();
+    return;
+  }
+  var kb=e.target.closest('[data-an-kind]');
+  if(kb){
+    anParetoKind=kb.getAttribute('data-an-kind')==='prompt'?'prompt':'snippet';
+    anParetoRestOpen=false;
+    try{localStorage.setItem(AN_PARETO_KEY,anParetoKind);}catch(err){}
+    renderAnalytics();
+    return;
+  }
+  var act=e.target.closest('[data-an-action]');
+  if(act&&act.getAttribute('data-an-action')==='pareto-rest'){
+    anParetoRestOpen=!anParetoRestOpen;
+    renderAnalytics();
+    return;
+  }
+  if(act){
+    if(act.getAttribute('data-an-action')==='team-retry'){anTeamError=null;}
+    else{anError=null;}
+    renderAnalytics();
+    return;
+  }
+  var row=e.target.closest('[data-an-snip]');
+  if(row){
+    var id=row.getAttribute('data-an-snip');
+    var s=allSnips.find(function(x){return x.id===id;});
+    if(!s)return;
+    var grp=groupForRow(s);
+    openDetail(pickActiveVariant(grp,curLang),grp.variants);
+  }
+});
+document.getElementById('view-analytics').addEventListener('keydown',function(e){
+  if((e.key==='Enter'||e.key===' ')&&e.target.closest('[data-an-snip]')){e.preventDefault();e.target.click();}
+});
 
 document.getElementById('an-refresh-btn').addEventListener('click',function(){
   var btn=this;
   btn.classList.add('spinning');
   btn.disabled=true;
+  anUsage=null;anError=null;anTeam={};anTeamError=null;
   loadSnips();
-  // Stop spinning once the network response lands (give it at least 600ms so
-  // the animation is visible even when cache resolves immediately)
+  renderAnalytics();
+  // At least 600ms of spin so the press is visible even when the cache answers at once.
   setTimeout(function(){btn.classList.remove('spinning');btn.disabled=false;},600);
 });
 
@@ -12540,7 +14079,11 @@ if(requireAuth()){
   applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();refreshAccountDetails();
   captureResume();
   document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible'){sbCheckAlive();refreshAccountDetails();}
+    if(document.visibilityState==='visible'){
+      sbCheckAlive();refreshAccountDetails();
+      if(promptsLoaded){loadPromptBrains();loadPromptLastUse();}
+      if(snipsLoaded)loadSnippetLastUse();
+    }
   });
 }
 </script>

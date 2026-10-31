@@ -799,7 +799,9 @@
           var body = !row ? '' : (c.lang ? PACK.bodyForLang(row, c.lang) : row.body);
           candidates.push({
             id: c.id, kind: c.kind, name: c.name, summary: c.summary,
-            body: body || '', tokens: c.tokens,
+            // A prompt carrying a Brain comes back finished and counted again:
+            // its search count was the reference, not the Brain.
+            body: body || '', tokens: (row && typeof row.tokens === 'number') ? row.tokens : c.tokens,
             pinned: false, rank: c.rank, contentHash: ''
           });
         }

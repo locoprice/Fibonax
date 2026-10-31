@@ -5,13 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#1B4FD8">
 <title>Precio — Fibonax</title>
-<meta name="description" content="Fibonax is free every day: 15 snippets, 10 prompts and 5 Brains. Más allá, compras FiboTokens una vez y te los quedas para siempre, o pasas a ilimitado con un pequeño plan mensual. Los Founding Members que se registren antes del 31 de diciembre de 2026 conservan sus ventajas de por vida.">
+<meta name="description" content="Fibonax is free every day: 15 snippets, 10 prompts and 5 Brains. Además, compras FiboTokens una vez y te los quedas para siempre, o pasas a ilimitado con un pequeño plan mensual. Los Founding Members que se registren antes del 31 de diciembre de 2026 conservan sus ventajas de por vida.">
 <link rel="canonical" href="https://fibonax.com/es/pricing/">
 <link rel="alternate" hreflang="en" href="https://fibonax.com/pricing/">
 <link rel="alternate" hreflang="es" href="https://fibonax.com/es/pricing/">
 <link rel="alternate" hreflang="it" href="https://fibonax.com/it/pricing/">
 <link rel="alternate" hreflang="x-default" href="https://fibonax.com/pricing/">
 <link rel="icon" type="image/png" sizes="128x128" href="../../icon128.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://fibonax.com/es/" },
+    { "@type": "ListItem", "position": 2, "name": "Precio", "item": "https://fibonax.com/es/pricing/" }
+  ]
+}
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -151,6 +161,8 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 .foot-logo-aws{height:26px}
 .foot-logo-nvidia{height:40px}
 .foot-logo-google{height:42px}
+.foot-meet{font-size:13.5px;color:#C7C7CC;transition:color .15s}
+.foot-meet:hover{color:#fff}
 .foot-inner{max-width:var(--max);margin:0 auto;display:flex;
   flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px}
 .foot-brand{display:flex;align-items:center;gap:10px;font-size:14px;color:#AEAEB2}
@@ -272,6 +284,15 @@ footer{padding:28px 20px}
 .pricing-page{flex:1}
 .pricing-page .btn,.pm-dialog .btn{min-height:44px}
 .pricing-page .hero-eyebrow::before{animation:none}
+/* Breadcrumb in the eyebrow slot: Home › Pricing. */
+.crumbs{margin-bottom:var(--space-2)}
+.crumbs ol{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;list-style:none}
+.crumbs li{display:inline-flex;align-items:center}
+.crumbs li+li::before{content:"\203A";margin:0 6px 0 2px;color:var(--text3)}
+.crumbs a{display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-1);color:var(--text2);text-decoration:none;border-radius:var(--r-btn)}
+.crumbs a:hover{color:var(--primary);text-decoration:underline}
+.crumbs a:focus-visible{outline:3px solid var(--primary);outline-offset:-3px}
+.crumbs [aria-current="page"]{color:var(--primary)}
 .pricing-lead{max-width:680px;margin:0 auto;font-size:clamp(17px,2vw,20px);line-height:1.5;color:var(--text2)}
 /* Exchange-rate card under the lead: the FiboToken rate, read like a currency board. */
 .rate-board{max-width:640px;margin:var(--space-8) auto 0;padding:var(--space-6) var(--space-8);background:var(--card);border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:var(--r);box-shadow:var(--shadow-md);text-align:center}
@@ -285,14 +306,18 @@ footer{padding:28px 20px}
 .rate-sub{margin-top:var(--space-3);font-size:15px;color:var(--text2)}
 .rate-sub strong{font-family:var(--sb-mono);font-weight:700;color:var(--text)}
 .rate-note{max-width:520px;margin:var(--space-4) auto 0;padding-top:var(--space-4);border-top:1px solid var(--border);font-size:14px;line-height:1.6;color:var(--text2)}
-.pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
+.pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.618fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
 .pricing-artwork{margin:0;min-width:0;aspect-ratio:1}
 .pricing-artwork canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .6s ease}
 .pricing-artwork.is-ready canvas{opacity:1}
 .pricing-content:not(:has(.pricing-artwork)){grid-template-columns:minmax(0,1fr)}
-.pricing-page .pricing-table{width:100%;margin:0;border-collapse:collapse;text-align:left}
-.pricing-table td{padding:var(--space-6) 0;border-top:1px solid var(--border);font-size:clamp(17px,2vw,20px);line-height:1.6;font-weight:500}
-.pricing-table tr:last-child td{border-bottom:1px solid var(--border)}
+.pricing-content .rate-board{max-width:none;margin:0}
+/* Pricing principles: four cards above the plan grid, two by two on wide screens. */
+.principles{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-6);margin:var(--space-8) 0 0;padding:0}
+.principles li{display:flex;gap:var(--space-4);padding:var(--space-6);background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.principle-num{flex:none;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--sb-mono);font-size:14px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-btn)}
+.principles h3{font-size:18px;font-weight:700;letter-spacing:0;line-height:1.3;color:var(--text);margin:0 0 var(--space-2)}
+.principles p{font-size:15px;line-height:1.6;color:var(--text2)}
 /* Sections below the hero share one rhythm. Tokens only. */
 .pr-section{margin-top:var(--space-16);text-align:left}
 .pr-section h2{font-size:clamp(28px,3.4vw,40px);font-weight:800;letter-spacing:-.025em;line-height:1.1;text-align:center;color:var(--text)}
@@ -349,6 +374,28 @@ footer{padding:28px 20px}
 .plan-list li::before{content:"✓" / "";color:var(--primary);font-weight:700;flex:none}
 .plan-list li>span{min-width:0}
 .plan-list strong{font-weight:700;color:var(--text)}
+/* Fibonacci rectangle on wide screens: Pay as you go is the large square, Free the next square,
+   Monthly the golden remainder, and one faint spiral runs through all three. */
+@media(min-width:1200px){
+.plan-grid{grid-template-columns:1.618fr 1fr;grid-template-rows:1.618fr 1fr;aspect-ratio:1.618/1}
+.plan-grid>.plan:first-child{grid-column:2;grid-row:1;justify-content:center}
+.plan-grid>.plan:first-child>.plan-list,.plan-grid>.plan:last-child>.plan-list{display:none}
+.plan-grid>.plan:last-child{grid-column:2;grid-row:2;display:grid;grid-template-columns:1fr 1fr;column-gap:var(--space-6);row-gap:var(--space-2);align-content:center;padding:var(--space-4) var(--space-8)}
+.plan-grid>.plan:last-child>.plan-price{flex-wrap:nowrap}
+.plan-grid>.plan:last-child>.plan-kind,.plan-grid>.plan:last-child>.plan-name,.plan-grid>.plan:last-child>.plan-price{grid-column:1}
+.plan-grid>.plan:last-child>.plan-tagline{grid-column:2;grid-row:1/4}
+.plan-grid>.plan:last-child>.plan-cta{grid-column:1/-1;grid-row:4;margin-top:var(--space-2)}
+.plan-featured{grid-column:1;grid-row:1/3;display:grid;grid-template-columns:1fr 1fr;column-gap:var(--space-8);align-content:center}
+.plan-featured>.plan-kind,.plan-featured>.plan-name,.plan-featured>.plan-price,.plan-featured>.plan-tagline{grid-column:1/-1}
+.plan-featured>.packs{grid-column:1;grid-row:5}
+.plan-featured>.plan-cta{grid-column:1;grid-row:6}
+.plan-featured>.plan-note{grid-column:1;grid-row:7}
+.plan-featured>.plan-list{grid-column:2;grid-row:5/8;align-content:start;padding:0 0 0 var(--space-8);border-top:0;border-left:1px solid var(--border)}
+.plan-grid>.plan{background-repeat:no-repeat;background-size:100% 100%}
+.plan-featured{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 100A100 100 0 0 1 100 0' fill='none' stroke='%231B4FD8' stroke-opacity='.16' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.plan-grid>.plan:first-child{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 0A100 100 0 0 1 100 100' fill='none' stroke='%231B4FD8' stroke-opacity='.16' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+.plan-grid>.plan:last-child{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 618 382' preserveAspectRatio='none'%3E%3Cpath d='M236 0V382M0 146H236M146 0V146M146 90H236M180 90V146' fill='none' stroke='%231B4FD8' stroke-opacity='.07' stroke-width='1' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M618 0A382 382 0 0 1 236 382A236 236 0 0 1 0 146A146 146 0 0 1 146 0A90 90 0 0 1 236 90A56 56 0 0 1 180 146' fill='none' stroke='%231B4FD8' stroke-opacity='.16' stroke-width='1.5' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}
+}
 /* Comparison: hidden behind Compare plans, columns on desktop, one card per row on a phone. */
 .compare-toggle-row{text-align:center;margin-top:var(--space-6)}
 .compare-body[hidden]{display:none}
@@ -412,7 +459,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 .skip-link:focus{top:var(--space-3)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:960px){.plan-grid,.steps{grid-template-columns:1fr;max-width:560px;margin-left:auto;margin-right:auto}.founding{grid-template-columns:1fr}.founding-benefits{grid-template-columns:1fr}}
-@media(max-width:800px){.rate-board{padding:var(--space-6) var(--space-4)}.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.pricing-table td{padding:var(--space-6) 0}.pr-section{margin-top:var(--space-12)}.founding{padding:var(--space-6)}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.step{padding:var(--space-6)}
+@media(max-width:800px){.rate-board{padding:var(--space-6) var(--space-4)}.pricing-content{grid-template-columns:1fr;gap:var(--space-6);margin-top:var(--space-8)}.pricing-artwork{width:min(100%,320px);margin:0 auto;aspect-ratio:4/3}.principles{grid-template-columns:1fr;gap:var(--space-4)}.principles li{padding:var(--space-4)}.pr-section{margin-top:var(--space-12)}.founding{padding:var(--space-6)}.plan{padding:var(--space-6)}.plan-badge{left:var(--space-6)}.step{padding:var(--space-6)}
   .compare thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
   .compare,.compare tbody,.compare tr,.compare th,.compare td{display:block;width:auto}
   .compare tr{padding:var(--space-4);border-top:1px solid var(--border)}
@@ -502,28 +549,19 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 </div>
 <main id="pricing" class="hero pricing-page" tabindex="-1">
   <div class="hero-inner">
-  <div class="hero-eyebrow">Precio</div>
+  <nav class="hero-eyebrow crumbs" aria-label="Ruta de navegación"><ol><li><a href="../">Inicio</a></li><li aria-current="page">Precio</li></ol></nav>
   <h1>Gratis cada día. <span>FiboTokens</span> cuando necesitas más.</h1>
-  <p class="pricing-lead">Every day you get 15 snippets, 10 prompts and 5 Brains for free. Más allá, compras FiboTokens una vez y te los quedas para siempre. Sin necesidad de suscripción.</p>
+  <p class="pricing-lead">Cada día tienes 15 snippets, 10 prompts y 5 Brains gratis. Además, compras FiboTokens una vez y te los quedas para siempre. Sin necesidad de suscripción.</p>
+  <div class="pricing-content">
+  <figure class="pricing-artwork" aria-hidden="true">
+    <canvas></canvas>
+  </figure>
   <section class="rate-board" aria-labelledby="rate-title">
     <div class="rate-head"><h2 class="rate-label" id="rate-title">Tipo de cambio actual</h2><span class="rate-chip"><span aria-hidden="true">↕</span> Tipo variable</span></div>
     <p class="rate-main"><span class="rate-unit">1 FiboToken</span><span class="rate-eq" aria-hidden="true">=</span><span class="sr-only">vale</span><span class="rate-value" data-pricing="euroPerFiboToken">€0,01</span></p>
     <p class="rate-sub"><strong data-pricing="topUpEuros">€25</strong> = <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens · Tipo fijado el <span data-pricing="rateSetOn">28 de octubre de 2026</span></p>
     <p class="rate-note">Como una divisa, el tipo del FiboToken es variable: puede cambiar con el tiempo y oscilar con el mercado. Un nuevo tipo solo se aplica a los paquetes nuevos. Los FiboTokens que ya tienes conservan su valor: un FiboToken, un uso.</p>
   </section>
-  <div class="pricing-content">
-  <figure class="pricing-artwork" aria-hidden="true">
-    <canvas></canvas>
-  </figure>
-  <table class="pricing-table">
-    <caption class="sr-only">Nuestros principios de precios</caption>
-    <tbody>
-      <tr><td>Sin suscripción obligatoria. El plan mensual está ahí solo si lo quieres. Sin marketing patético.</td></tr>
-      <tr><td>Solo auténtico pago por uso.</td></tr>
-      <tr><td>Crédito sin caducidad.</td></tr>
-      <tr><td>Ingresos invertidos en los mejores desarrolladores y modelos de IA para programar</td></tr>
-    </tbody>
-  </table>
   </div>
 
   <section class="founding" id="founding" aria-labelledby="founding-title" data-countdown>
@@ -553,7 +591,12 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
 
   <section class="pr-section" id="plans" aria-labelledby="plans-title">
     <h2 id="plans-title">Elige cómo pagar</h2>
-    <p class="pr-intro">Empieza gratis. Cuando necesites más, compras FiboTokens una vez y te los quedas para siempre, o pasas a ilimitado por <span data-pricing="monthlyEuros">€4,90</span> al mes.</p>
+    <ul class="principles" aria-label="Nuestros principios de precios">
+      <li><span class="principle-num" aria-hidden="true">01</span><div><h3>Sin suscripción obligatoria</h3><p>El plan mensual está ahí solo si lo quieres. Sin marketing patético.</p></div></li>
+      <li><span class="principle-num" aria-hidden="true">02</span><div><h3>Solo auténtico pago por uso</h3><p>Un FiboToken, un uso. La cuota gratuita se gasta siempre primero.</p></div></li>
+      <li><span class="principle-num" aria-hidden="true">03</span><div><h3>Crédito sin caducidad</h3><p>Tus FiboTokens no caducan nunca. Se quedan en tu cuenta hasta que los uses.</p></div></li>
+      <li><span class="principle-num" aria-hidden="true">04</span><div><h3>Ingresos reinvertidos</h3><p>Los ingresos van a los mejores desarrolladores y modelos de IA para programar, así el producto sigue mejorando.</p></div></li>
+    </ul>
     <div class="plan-grid">
       <article class="plan" aria-labelledby="plan-free">
         <p class="plan-kind">Gratis</p>
@@ -592,11 +635,10 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       </article>
       <article class="plan" aria-labelledby="plan-monthly">
         <p class="plan-kind">Suscripción mensual</p>
-        <h3 class="plan-name" id="plan-monthly">Ilimitado, cada día</h3>
+        <h3 class="plan-name" id="plan-monthly">PRO</h3>
         <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€4,90</span><span class="plan-per">al mes</span></p>
         <p class="plan-tagline">Snippets, prompts y Brains ilimitados por un pequeño precio mensual. Sin FiboTokens que contar.</p>
         <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Comparar planes</a>
-        <p class="plan-note">Abre el 1 de enero de 2027. La renovación y la cancelación se muestran antes de suscribirte. Precio con IVA incluido.</p>
         <ul class="plan-list">
           <li><span>Usos ilimitados de snippets, prompts y Brains</span></li>
           <li><span>Sin FiboTokens</span></li>
@@ -744,6 +786,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <img class="foot-logo-nvidia" src="../../supported-nvidia-inception.png" width="366" height="120" alt="NVIDIA Inception Program" loading="lazy" decoding="async" draggable="false">
       <img class="foot-logo-google" src="../../supported-google-for-startups.png" width="249" height="126" alt="Google for Startups" loading="lazy" decoding="async" draggable="false">
     </div>
+    <a class="foot-meet foot-ext" href="https://wavebyvento.com/" target="_blank" rel="noopener" title="Opens in a new tab">Encuéntranos en Wave<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg><span class="sr-only"> (se abre en una pestaña nueva)</span></a>
   </div>
   <nav class="foot-lang" aria-label="Idioma">
     <a href="../../pricing/" hreflang="en">English</a>
@@ -933,7 +976,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.99.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.109.2';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
+import { fetchAllPages } from '@/lib/api/fetchAllPages';
 import { buildChunkItems } from '@/lib/documentImport';
 import { DocumentTextError, extractDocumentText } from '@/lib/documentText';
 import { loadMemoryChunk } from '@/lib/memoryChunk';
@@ -84,8 +85,22 @@ export interface SaveMemoryItemInput {
   reviewStatus?: WaitingStatus;
 }
 
+/** One Brain item as a prompt hands it to an AI: its name over its text. */
+export interface PromptBrainItem {
+  space_id: string;
+  name: string;
+  body: string;
+}
+
 export interface MemoryApi {
   listSpaces(includeTrashed?: boolean): Promise<MemorySpace[]>;
+  /**
+   * What prompts that carry these Brains hand out (lib/promptBrain.ts): live,
+   * unarchived items, pinned first, newest next, the id breaking a tie, every
+   * page of them. The order and the filter are the ones the extension and the
+   * phone read with, so a prompt reads the same everywhere.
+   */
+  listPromptBrainItems(spaceIds: string[]): Promise<PromptBrainItem[]>;
   /** Item and token totals per space id, over live items only. */
   spaceTotals(): Promise<Map<string, MemorySpaceTotals>>;
   createSpace(name: string, description?: string): Promise<MemorySpace>;
@@ -437,6 +452,22 @@ export const memoryApi: MemoryApi = {
       .order('updated_at', { ascending: false });
     if (error) throw toApiError(error);
     return ((data ?? []) as unknown as DbItem[]).map(dbItemToItem);
+  },
+
+  async listPromptBrainItems(spaceIds) {
+    if (!spaceIds.length) return [];
+    return fetchAllPages<PromptBrainItem>((from, to) =>
+      supabase
+        .from('memory_shards')
+        .select('space_id, name, body')
+        .in('space_id', spaceIds)
+        .is('deleted_at', null)
+        .neq('review_status', 'archived')
+        .order('pinned', { ascending: false })
+        .order('updated_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(from, to),
+    );
   },
 
   async listAllItems() {

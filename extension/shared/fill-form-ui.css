@@ -96,3 +96,6 @@
 .ff-layout b{font-weight:700!important;}
 .ff-layout i{font-style:italic!important;}
 .ff-layout u{text-decoration:underline!important;}
+/* An email layout in a preview: a frame sized to the card that takes no clicks (the box around it scrolls). */
+.ff-framed{white-space:normal!important;}
+.ff-frame{display:block!important;width:100%!important;margin:0!important;padding:0!important;border:0!important;background:#fff;border-radius:8px;pointer-events:none;}
