@@ -12797,13 +12797,13 @@ document.getElementById('sb-modal-save').addEventListener('click',function(e){
 
 /* ── QUICK ACTIONS ──────────────────────────────── */
 /* One bar, written once and mounted on every page that has a [data-mqa] slot,
-   so the three pages cannot drift apart. Prompts · Snippets · Brains act as a
+   so the three pages cannot drift apart. Snippets · Prompts · Brains act as a
    segmented page switch: the current page's tile stays pushed. The third
    section is called Brains wherever someone reads it, as on the dashboard;
    "memory" is only its name inside the code. */
 var QUICK_ACTIONS=[
-  {qa:'prompts',label:'Prompts',svg:PROMPT_SVG},
   {qa:'snippets',label:'Snippets',svg:SNIPPET_SVG},
+  {qa:'prompts',label:'Prompts',svg:PROMPT_SVG},
   {qa:'memory',label:'Brains',svg:BRAIN_SVG}
 ];
 function mountQuickActions(){
