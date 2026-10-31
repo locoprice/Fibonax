@@ -482,8 +482,10 @@ body{
 .sb-info-row.is-list{display:block}
 .sb-info-row.is-list .sb-info-v{display:block;white-space:pre-wrap;text-align:left;
   overflow-wrap:anywhere;margin-top:8px;line-height:1.6;font-weight:500}
-.sb-info-row.is-multi .sb-info-v{white-space:pre-wrap;overflow:visible;text-overflow:clip;
+.sb-info-row.is-multi .sb-info-v{white-space:normal;overflow:visible;text-overflow:clip;
   overflow-wrap:anywhere;line-height:1.6}
+.sb-info-item{white-space:nowrap}
+.sb-info-sep{color:var(--text2);font-weight:500}
 .sb-info-close{position:absolute;right:12px;top:18px;min-height:44px;min-width:44px;
   border:0;border-radius:8px;background:var(--bg-alt);color:var(--text);font-size:20px;cursor:pointer}
 #sb-info-sheet .sb-sheet-title{padding-right:62px}
@@ -12445,11 +12447,14 @@ function showInfoSheet(title,rows,foot){
   _infoReturnFocus=document.activeElement;
   document.getElementById('sb-info-title').textContent=title;
   document.getElementById('sb-info-body').innerHTML=rows.map(function(r){
-    var isId=r[0]==='ID',isLanguages=r[0]==='Languages';
+    var isId=r[0]==='ID',isLanguages=r[0]==='Languages',isMulti=r[0]==='Labels'||r[0]==='Search keywords';
     var value=isLanguages?r[1].split('\n').map(function(lang){
       return '<span class="lbadge l'+esc(lang)+'">'+esc(LANG_NAMES[lang]||lang)+'</span>';
-    }).join(''):esc(r[1]);
-    return '<div class="sb-info-row'+(isLanguages?' is-list':r[0]==='Labels'||r[0]==='Search keywords'?' is-multi':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
+    }).join(''):isMulti?r[1].split('\n').map(function(item,i,all){
+      // The dot stays with the word before it, so a wrapped line never starts with one.
+      return '<span class="sb-info-item">'+esc(item)+(i<all.length-1?'<span class="sb-info-sep"> ·</span>':'')+'</span>';
+    }).join(' '):esc(r[1]);
+    return '<div class="sb-info-row'+(isLanguages?' is-list':isMulti?' is-multi':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
       +'<span class="sb-info-k">'+esc(r[0])+'</span>'
       +'<span class="sb-info-v'+(isId?' sb-info-mono':isLanguages?' sb-info-languages':'')+'">'+value+'</span></div>';
   }).join('')+(foot?'<div class="sb-info-foot">'+esc(foot)+'</div>':'');
