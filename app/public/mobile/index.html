@@ -482,6 +482,8 @@ body{
 .sb-info-row.is-list{display:block}
 .sb-info-row.is-list .sb-info-v{display:block;white-space:pre-wrap;text-align:left;
   overflow-wrap:anywhere;margin-top:8px;line-height:1.6;font-weight:500}
+.sb-info-row.is-multi .sb-info-v{white-space:pre-wrap;overflow:visible;text-overflow:clip;
+  overflow-wrap:anywhere;line-height:1.6}
 .sb-info-close{position:absolute;right:12px;top:18px;min-height:44px;min-width:44px;
   border:0;border-radius:8px;background:var(--bg-alt);color:var(--text);font-size:20px;cursor:pointer}
 #sb-info-sheet .sb-sheet-title{padding-right:62px}
@@ -12447,7 +12449,7 @@ function showInfoSheet(title,rows,foot){
     var value=isLanguages?r[1].split('\n').map(function(lang){
       return '<span class="lbadge l'+esc(lang)+'">'+esc(LANG_NAMES[lang]||lang)+'</span>';
     }).join(''):esc(r[1]);
-    return '<div class="sb-info-row'+(r[0]==='Labels'||r[0]==='Search keywords'||isLanguages?' is-list':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
+    return '<div class="sb-info-row'+(isLanguages?' is-list':r[0]==='Labels'||r[0]==='Search keywords'?' is-multi':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
       +'<span class="sb-info-k">'+esc(r[0])+'</span>'
       +'<span class="sb-info-v'+(isId?' sb-info-mono':isLanguages?' sb-info-languages':'')+'">'+value+'</span></div>';
   }).join('')+(foot?'<div class="sb-info-foot">'+esc(foot)+'</div>':'');
