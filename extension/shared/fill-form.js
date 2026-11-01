@@ -412,6 +412,47 @@
     return groups;
   }
 
+  // ── PROGRESS ────────────────────────────────────────────────────
+  // A long form says how far along it is: a thin line above the fields and
+  // "3 of 8 filled in" beside it, on every surface. Counted here, once, so the
+  // four cannot disagree about what is left to do. A field counts once it
+  // holds an answer the text can use: something in the box and nothing wrong
+  // with it (a number that is not one, a closing date before its opening one,
+  // an Other choice with an empty box). A date that opened on today counts
+  // from the start, which is honest: it is an answer, and the person may well
+  // leave it. A field that is not visible is not counted at all.
+  //
+  // Nothing shows under the threshold. A short form is read at a glance, and
+  // a line over three boxes is decoration.
+  var PROGRESS_THRESHOLD = 5;
+
+  /**
+   * How far along a form is.
+   *
+   * @param {Array} fields  fillForm(...).fields, after the form is resolved
+   * @returns {{ show: boolean, done: number, total: number, percent: number, label: string }}
+   *   show    whether the form is long enough to carry the line
+   *   label   the words beside it, the same on every surface
+   */
+  function progress(fields) {
+    var list = Array.isArray(fields) ? fields : [];
+    var total = 0, done = 0;
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      if (!f || f.visible === false) continue;
+      total++;
+      if (trim(f.value) !== '' && !f.error) done++;
+    }
+    var all = total > 0 && done === total;
+    return {
+      show: total >= PROGRESS_THRESHOLD,
+      done: done,
+      total: total,
+      percent: total ? Math.round(done / total * 100) : 0,
+      label: all ? 'All ' + total + ' filled in' : done + ' of ' + total + ' filled in'
+    };
+  }
+
   // Only a whole line containing exclusively unanswered optional fields is
   // omitted. Mixed answered/empty lines and lines carrying rules or formulas
   // stay intact: removing them would discard independent content or logic.
@@ -575,7 +616,7 @@
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], progress: progress([]), layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -797,6 +838,10 @@
       parts: resolved.parts,
       errors: resolved.errors,
       sections: sectionsFor(fields),
+      // How far along the form is, for the line a long form carries above its
+      // fields. Read after the form is resolved, so a box holding something
+      // the text cannot use (a number that is not one) does not count yet.
+      progress: progress(fields),
       // Hand straight to resolveBody alongside the values. A surface that
       // resolves the body itself on insert — the overlay does — must pass this
       // too, or what it inserts prints in a different format from the preview
@@ -1576,6 +1621,8 @@
     UNFINISHED_SHOWN: UNFINISHED_SHOWN,
     inferType: inferType,
     chooseLayout: chooseLayout,
+    progress: progress,
+    PROGRESS_THRESHOLD: PROGRESS_THRESHOLD,
     dayValue: dayValue,
     clockValue: clockValue,
     fixedShift: fixedShift,

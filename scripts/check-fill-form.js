@@ -84,7 +84,7 @@ for (const [key, want] of TYPE_CASES) {
 console.log('OK Field kind inferred from the name (' + TYPE_CASES.length + ' cases)');
 
 // ── THE VIEW MODEL EVERY SURFACE READS ──────────────────────────────
-const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'layout', 'steps', 'fmtOverride', 'linkable'];
+const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'layout', 'steps', 'fmtOverride', 'linkable', 'progress'];
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
                      'other', 'otherOn', 'otherText',
                      'cols', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
@@ -240,6 +240,34 @@ if (ff.chooseLayout(99) !== 'flat') {
   fail('chooseLayout no longer answers flat for every size');
 }
 console.log('OK Step mode is still off, and off deliberately');
+
+// ── THE PROGRESS LINE ───────────────────────────────────────────────
+// A long form says how far along it is, counted once here and drawn by every
+// surface. Under the threshold nothing shows. A field counts once it holds an
+// answer the text can use: spaces alone do not, a number that is not one does
+// not, and a date that opened on today does from the start.
+if (typeof ff.progress !== 'function' || ff.PROGRESS_THRESHOLD !== 5) {
+  fail('the progress line is no longer decided here, or its threshold moved from 5 fields');
+}
+const fourFields = ff.fillForm('A{F1}B{F2}C{F3}D{F4}', {}, opt());
+if (fourFields.progress.show) fail('a four-field form shows the progress line; it starts at ' + ff.PROGRESS_THRESHOLD);
+const fiveFields = ff.fillForm('A{F1}B{F2}C{F3}D{F4}E{F5}', {}, opt());
+if (!fiveFields.progress.show || fiveFields.progress.total !== 5 || fiveFields.progress.done !== 0 ||
+    fiveFields.progress.percent !== 0 || fiveFields.progress.label !== '0 of 5 filled in') {
+  fail('a five-field form opens on ' + JSON.stringify(fiveFields.progress) + ', expected the line at 0 of 5');
+}
+const partWay = ff.fillForm('{F1}{F2}{F3}{F4}{formtext: name=N; type=number}{formdate: name=D}',
+  { F1: 'Ada', F2: '   ', N: 'abc' }, opt());
+if (partWay.progress.done !== 2 || partWay.progress.total !== 6 || partWay.progress.percent !== 33 ||
+    partWay.progress.label !== '2 of 6 filled in') {
+  fail('progress counted ' + JSON.stringify(partWay.progress) + ': expected the typed name and the date on today, not spaces or a bad number');
+}
+const allDone = ff.fillForm('{F1}{F2}{F3}{F4}{F5}', { F1: 'a', F2: 'b', F3: 'c', F4: 'd', F5: 'e' }, opt());
+if (allDone.progress.percent !== 100 || allDone.progress.label !== 'All 5 filled in') {
+  fail('a finished form reads ' + JSON.stringify(allDone.progress) + ', expected "All 5 filled in"');
+}
+if (vmLong.progress.total !== 8 || !vmLong.progress.show) fail('the eight-field form lost its progress line');
+console.log('OK The progress line is counted once, from five fields up');
 
 // ── THE ADJUST PANEL ────────────────────────────────────────────────
 // The Date/Time builder's three decisions, offered again while the form is

@@ -529,6 +529,10 @@ Fill in / Preview views and an untruncated result. Shared vanilla presentation
 is extension/shared/fill-form-ui.{js,css}; mobile copies are generated.
 
 
+### Fill form progress line (v3.110.0)
+
+A form with five fields or more (`PROGRESS_THRESHOLD` in `extension/shared/fill-form.js`; five, a Fibonacci number) carries one line above its fields on all four fill surfaces: a 3 px `r-pill` track in `line`, the filled share in `primary`, and "3 of 8 filled in" beside it at 12 px medium `ink-muted` with tabular figures (11 px on the editor preview, which keeps its own text scale), turning `primary` once every field is filled. No new tokens. What counts as filled is decided once (`progress()`: a box holding an answer with nothing wrong in it; a date that opened on today counts from the start) and drawn by `fill-form-ui.js` on the overlay, the popup and the phone and by `features/snippets/FillProgress.tsx` on the dashboard. The overlay and the phone keep it in view while the form scrolls (`position: sticky` at the top of the scrolling pane, on the pane's own background, across its full width); the popup sets it across both columns above the fields; the editor preview puts it under the Fill in header, outside the scrolling fields, like the Link box. The fill moves over 300 ms and not at all under `prefers-reduced-motion`. The track is a `progressbar` whose value text is the same words, so neither colour nor length carries the meaning alone.
+
 ### One filter bar for Prompts and Brains (v3.77.0)
 
 The card under the page header of Prompts and Brains is one component, `app/src/components/shared/AssetFilterBar.tsx`, with its chips, menus, Clear and Sort. Scope chips, filter menus and **Clear N filters** sit on the left; **Sort** and anything only one page has (the Brains **Trash**) sit on the right. A page fills the slots it has something for and leaves the rest out: Prompts has the folder chips and Strategy / Intent / Labels, Brains has the count and Contents / Updated. Nothing is restyled per page. The Snippets header keeps its own bar, by the owners' decision.
