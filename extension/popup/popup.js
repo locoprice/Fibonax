@@ -339,7 +339,7 @@ function fuid(){ return 'f'+Date.now()+Math.random().toString(36).slice(2,5); }
 function gi(id){ return document.getElementById(id); }
 
 function show(id){
-  ['pane-list','pane-cfg'].forEach(function(p){
+  ['pane-list','pane-cfg','pane-focus'].forEach(function(p){
     var el=gi(p); if(el) el.className='pane'+(p===id?' on':'');
   });
 }
@@ -410,6 +410,13 @@ function sbApplyCompanyFavicon(meta) {
 
 // ── CHANGELOG ─────────────────────────────────────────────────────
 var CHANGELOG = [
+  { version:'v3.111.0', date:'2026-11-01', label:'Pomodoro timer',
+    changes:[
+      {type:'new', text:'A Pomodoro timer in the popup, after the technique Francesco Cirillo created in the 1980s. Click the clock at the top right, then Start: work sessions with a short break after each one, and a long break at the end of the block. Pick the lengths and turn the chime on or off in the same place.'},
+      {type:'new', text:'During a break, your web pages are covered by a break screen with the time left and an idea for the break. It lifts by itself when the break ends. Skip this break is always there, and skipped breaks are counted.'},
+      {type:'new', text:'I need a break now gives you 1, 2 or 5 minutes in the middle of a session, then picks up where you left off. The popup counts your sessions, extra breaks and skipped breaks for today and the last 7 days.'},
+      {type:'new', text:'Pick your detox day, your day off from screens, and add up to 5 pictures of what you love. Press Start on that day and your pictures ask you to take the day off; your breaks show them too, as a gallery when there is more than one. They stay on this computer.'}
+    ]},
   { version:'v3.69.0', date:'2026-10-16', label:'SprintBrain is now Fibonax',
     changes:[
       {type:'new', text:'SprintBrain has a new name: Fibonax. Your account, snippets and prompts stay exactly as they were.'},
@@ -823,6 +830,8 @@ function boot() {
       if (sw) sw.checked = on;
       showSaint();
     });
+
+    focusInit();
 
     // The snooze list and the offline last-used mirror. Repaints on arrival
     // because the library load below does not wait for it, and the notice stays
@@ -2835,6 +2844,211 @@ function openCfg(){
   show('pane-cfg');
 }
 
+// POMODORO TIMER: the pane and the header button ("focus" is its name inside
+// the code). The background keeps the timer (background.js, sbFocusApply) and
+// shared/focus-timer.js holds its rules; the popup draws the stored state and
+// sends the background what was clicked.
+var FOCUS_SELECTS = ['fo-work', 'fo-break', 'fo-sessions', 'fo-long', 'fo-detox'];
+var FOCUS_UNITS = { workMin: ' minutes', breakMin: ' minutes', longMin: ' minutes', sessions: ' sessions' };
+var focusState = null;
+var focusActsKey = '';
+var focusTickFor = 0;
+
+// quiet: a tick the person did not ask for shows no toast when it fails.
+function focusSend(action, quiet) {
+  function failed(why) {
+    console.error('[Fibonax] The Pomodoro timer did not answer:', why);
+    if (!quiet) showToast('Could not reach the timer. Try again');
+  }
+  try {
+    chrome.runtime.sendMessage({ type: 'sb_focus', action: action }, function(res) {
+      var err = chrome.runtime.lastError;
+      if (err) { failed(err.message); return; }
+      if (!res || !res.ok) { failed('no answer'); return; }
+      focusState = res.state;
+      renderFocus();
+    });
+  } catch (e) {
+    failed(e);
+  }
+}
+
+function focusText(id, text) {
+  var el = gi(id);
+  if (el && el.textContent !== text) el.textContent = text;
+}
+
+function focusButtons(v) {
+  function b(act, text, cls) {
+    return '<button type="button" class="fo-btn' + (cls ? ' ' + cls : '') + '" data-act="' + act + '">' + text + '</button>';
+  }
+  if (v.mode === 'idle') return b('start', 'Start', 'primary');
+  if (v.mode === 'paused') return b('resume', 'Resume', 'primary') + b('stop', 'Stop');
+  if (v.mode === 'break') return b('skip', 'Skip this break') + b('stop', 'Stop');
+  return b('pause', 'Pause') + b('stop', 'Stop') + b('ask', 'I need a break now', 'link');
+}
+
+function renderFocus() {
+  var now = Date.now();
+  var v = SBFocus.view(focusState, now);
+
+  // The header button shows the time while the timer runs.
+  var label = SBFocus.pillText(v);
+  var hb = gi('bfocus');
+  if (hb) {
+    focusText('fo-pill', label);
+    gi('fo-pill').hidden = !label;
+    hb.classList.toggle('on', !!label);
+    hb.setAttribute('aria-label', label ? 'Pomodoro timer, ' + v.title + ', ' + v.clock + ' left' : 'Pomodoro timer');
+  }
+
+  // An alarm can fire a few seconds late: when this clock reaches zero, the
+  // background is asked to move on, once per phase.
+  if ((v.mode === 'work' || v.mode === 'break') && v.leftMs <= 0) {
+    var endsAt = focusState && focusState.run ? focusState.run.endsAt : 0;
+    if (endsAt && focusTickFor !== endsAt) {
+      focusTickFor = endsAt;
+      focusSend({ type: 'tick' }, true);
+    }
+  }
+
+  var pane = gi('pane-focus');
+  if (!pane || pane.className.indexOf('on') < 0) return;
+
+  focusText('fo-phase', v.title);
+  focusText('fo-clock', v.clock);
+  focusText('fo-next', v.next);
+
+  var key = v.mode + ':' + v.kind;
+  if (key !== focusActsKey) {
+    focusActsKey = key;
+    gi('fo-acts').innerHTML = focusButtons(v);
+    if (v.mode !== 'work') gi('fo-ask').hidden = true;
+  }
+
+  var warn = v.warnings.join(' ');
+  focusText('fo-warn', warn);
+  gi('fo-warn').hidden = !warn;
+  focusText('fo-note', v.note || '');
+  gi('fo-note').hidden = !v.note;
+
+  var st = SBFocus.stats(focusState, now);
+  focusText('fo-t-done', String(st.today.done));
+  focusText('fo-t-extra', String(st.today.extra));
+  focusText('fo-t-skip', String(st.today.skipped));
+  focusText('fo-w-done', String(st.week.done));
+  focusText('fo-w-extra', String(st.week.extra));
+  focusText('fo-w-skip', String(st.week.skipped));
+  focusText('fo-dilute', st.diluted ? SBFocus.DILUTION_NOTE : '');
+  gi('fo-dilute').hidden = !st.diluted;
+
+  // A control being changed keeps what the person picked until it is saved.
+  FOCUS_SELECTS.forEach(function(id) {
+    var sel = gi(id);
+    if (sel && document.activeElement !== sel) sel.value = String(v.settings[sel.getAttribute('data-key')]);
+  });
+  var ch = gi('fo-chime');
+  if (ch && document.activeElement !== ch) ch.checked = v.settings.chime;
+}
+
+function openFocus(){
+  show('pane-focus');
+  focusActsKey = '';
+  renderFocus();
+}
+
+function focusInit() {
+  FOCUS_SELECTS.forEach(function(id) {
+    var sel = gi(id);
+    if (!sel) return;
+    var key = sel.getAttribute('data-key');
+    sel.innerHTML = SBFocus.OPTIONS[key].map(function(n) {
+      var text = key === 'detoxDay' ? SBFocus.DAY_NAMES[n] : n + FOCUS_UNITS[key];
+      return '<option value="' + n + '">' + text + '</option>';
+    }).join('');
+    sel.addEventListener('change', function() {
+      var patch = {};
+      patch[key] = Number(sel.value);
+      focusSend({ type: 'settings', settings: patch });
+    });
+  });
+  on('fo-chime', 'change', function() {
+    focusSend({ type: 'settings', settings: { chime: gi('fo-chime').checked } });
+  });
+
+  chrome.storage.local.get(SBFocus.STORAGE_KEY, function(d) {
+    if (chrome.runtime.lastError) {
+      console.error('[Fibonax] Could not read the Pomodoro timer:', chrome.runtime.lastError.message);
+      return;
+    }
+    focusState = d ? d[SBFocus.STORAGE_KEY] : null;
+    renderFocus();
+    // A phase that ended while nothing was looking moves on now.
+    focusSend({ type: 'tick' }, true);
+  });
+  chrome.storage.local.get(SBFocus.PHOTO_KEY, function(d) {
+    if (chrome.runtime.lastError) {
+      console.error('[Fibonax] Could not read the detox day picture:', chrome.runtime.lastError.message);
+      return;
+    }
+    focusSetPhotos(d ? d[SBFocus.PHOTO_KEY] : null);
+  });
+  chrome.storage.onChanged.addListener(function(changes, area) {
+    if (area !== 'local') return;
+    // Pictures saved in the picture tab show here without reopening the popup.
+    if (changes[SBFocus.PHOTO_KEY]) focusSetPhotos(changes[SBFocus.PHOTO_KEY].newValue);
+    if (!changes[SBFocus.STORAGE_KEY]) return;
+    focusState = changes[SBFocus.STORAGE_KEY].newValue;
+    renderFocus();
+  });
+  setInterval(renderFocus, 1000);
+}
+
+// DETOX DAY: the pictures the person loves, kept on this device, and the call
+// that shows them as a carousel when they press Start on their detox day.
+var focusPhotos = [];
+var focusGallery = null;
+
+function focusSetPhotos(stored) {
+  focusPhotos = SBFocus.photoUrls(stored);
+  var n = focusPhotos.length;
+  var img = gi('fo-thumb-img');
+  if (n) { img.src = focusPhotos[0]; img.hidden = false; }
+  else { img.removeAttribute('src'); img.hidden = true; }
+  gi('fo-thumb').classList.toggle('has', n > 0);
+  focusText('fo-pic-count', n > 1 ? n + ' pictures, shown as a gallery' : n === 1 ? '1 picture' : '');
+  gi('fo-pic-btn').textContent = n ? 'Manage pictures' : 'Add pictures';
+}
+
+// A page of its own: a file picker opened inside the popup can close the popup.
+function openFocusPhotoPage() {
+  try {
+    chrome.tabs.create({ url: chrome.runtime.getURL('focus/photo.html') });
+  } catch (e) {
+    console.error('[Fibonax] Could not open the picture page:', e);
+    showToast('Could not open the picture page. Try again');
+  }
+}
+
+function openDetoxCall() {
+  focusText('fo-call-t', SBFocus.detoxTitle(focusState));
+  focusText('fo-call-line', SBFocus.DETOX_LINE);
+  focusGallery = SBFocusCarousel.create(focusPhotos);
+  if (focusGallery) gi('fo-call-gallery').appendChild(focusGallery.el);
+  gi('fo-call-add').hidden = !!focusGallery;
+  gi('pane-focus').inert = true;
+  gi('fo-call').hidden = false;
+  gi('fo-call-off').focus();
+}
+
+function closeDetoxCall() {
+  if (focusGallery) { focusGallery.destroy(); focusGallery = null; }
+  gi('fo-call').hidden = true;
+  gi('pane-focus').inert = false;
+  var start = gi('fo-acts').querySelector('[data-act="start"]');
+  if (start) start.focus();
+}
+
 // Dashboard link — opens the Fibonax web app in a browser tab.
 // Reuses an already-open dashboard tab (focuses it) instead of stacking duplicates,
 // mirroring the context-menu behaviour in background.js.
@@ -2860,6 +3074,45 @@ on('bcfg','click',    openCfg);
 on('bdash','click',   openDashboard);
 on('bmanage','click', openDashboard);
 on('bbcfg','click',   function(){ show('pane-list'); refreshUI(); });
+on('bfocus','click',  openFocus);
+on('bbfocus','click', function(){ show('pane-list'); refreshUI(); });
+on('fo-acts','click', function(e){
+  var btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  var act = btn.getAttribute('data-act');
+  var ask = gi('fo-ask');
+  if (act === 'ask') {
+    ask.hidden = false;
+    ask.querySelector('[data-min]').focus();
+    return;
+  }
+  // Starting work on the detox day first shows the picture the person loves.
+  if (act === 'start' && SBFocus.isDetoxDay(focusState, Date.now())) {
+    openDetoxCall();
+    return;
+  }
+  ask.hidden = true;
+  focusSend({ type: act });
+});
+on('fo-ask','click', function(e){
+  var btn = e.target.closest('button');
+  if (!btn) return;
+  gi('fo-ask').hidden = true;
+  var minutes = Number(btn.getAttribute('data-min'));
+  if (minutes) { focusSend({ type: 'extra', minutes: minutes }); return; }
+  var back = gi('fo-acts').querySelector('[data-act="ask"]');
+  if (back) back.focus();
+});
+on('fo-pic-btn','click', openFocusPhotoPage);
+on('fo-call-add','click', openFocusPhotoPage);
+on('fo-call-off','click', function(){ window.close(); });
+on('fo-call-go','click', function(){
+  closeDetoxCall();
+  focusSend({ type: 'start' });
+});
+on('fo-call','keydown', function(e){
+  if (e.key === 'Escape') { e.preventDefault(); closeDetoxCall(); }
+});
 on('brel','click', function(){
   if(brainsLoaded || activeMode==='brains') loadBrains();
   Promise.all([DB.loadAll(), DB.loadPrompts()]).then(function(results){

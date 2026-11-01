@@ -494,6 +494,72 @@ html,body{
 .ic{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex-shrink:0}
 .ic svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
+/* ── POMODORO TIMER PANE ──
+   Two columns on the golden ratio (1.618fr 1fr): the timer on the left, the
+   counts and the settings on the right, and the credit to Francesco Cirillo
+   in the footer. The header button grows into a pill with the time left while
+   the timer runs. */
+.fo-grid{display:grid;grid-template-columns:1.618fr 1fr;gap:16px;align-content:start;align-items:start}
+.fo-card{padding:20px;border:1px solid var(--sb-line);border-radius:var(--sb-r-2xl);background:var(--sb-bg);box-shadow:var(--sb-shadow-sm)}
+.fo-phase{font-size:var(--sb-fs-11);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sb-azure)}
+.fo-clock{margin:2px 0 4px;font-size:var(--sb-fs-32);font-weight:700;letter-spacing:-.5px;line-height:1.2;color:var(--sb-ink);font-variant-numeric:tabular-nums}
+.fo-next{min-height:36px;margin-bottom:16px;font-size:var(--sb-fs-12);color:var(--sb-ink-muted);line-height:1.5}
+.fo-acts{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.fo-btn{
+  height:40px;padding:0 16px;font-family:inherit;font-size:var(--sb-fs-13);font-weight:600;color:var(--sb-ink);cursor:pointer;
+  background:var(--sb-bg);border:1px solid var(--sb-line);border-radius:var(--sb-r-md);
+  transition:background var(--sb-dur-fast),border-color var(--sb-dur-fast);
+}
+.fo-btn:hover{background:var(--sb-bg-muted);border-color:var(--sb-line-2)}
+.fo-btn:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px}
+.fo-btn.primary{color:#fff;background:var(--sb-azure);border-color:var(--sb-azure)}
+.fo-btn.primary:hover{background:var(--sb-azure-dark);border-color:var(--sb-azure-dark)}
+.fo-btn.link{margin-left:auto;padding:0 8px;color:var(--sb-azure);background:none;border-color:transparent}
+.fo-btn.link:hover{text-decoration:underline;background:none;border-color:transparent}
+.fo-ask{margin-top:16px;padding:12px;border-radius:var(--sb-r-md);background:var(--sb-azure-bg);border:1px solid var(--sb-azure-bdr)}
+.fo-ask-q{margin-bottom:8px;font-size:var(--sb-fs-12);font-weight:600;color:var(--sb-ink)}
+.fo-warn{margin-top:12px;padding:10px 12px;border-radius:var(--sb-r-md);background:var(--sb-warn-bg);border:1px solid var(--sb-warn-bdr);font-size:var(--sb-fs-12);color:var(--sb-ink);line-height:1.5}
+.fo-note{margin-top:12px;font-size:var(--sb-fs-12);color:var(--sb-ink-muted);line-height:1.5}
+.fo-ask[hidden],.fo-warn[hidden],.fo-note[hidden],.fo-dilute[hidden]{display:none}
+.fo-stats{width:100%;border-collapse:collapse;font-size:var(--sb-fs-11);font-variant-numeric:tabular-nums}
+.fo-stats caption{text-align:left}
+.fo-stats th,.fo-stats td{padding:6px 4px;text-align:right;border-bottom:1px solid var(--sb-line)}
+.fo-stats thead th{font-weight:600;color:var(--sb-ink-subtle);vertical-align:bottom;line-height:1.3}
+.fo-stats tbody th{text-align:left;font-weight:600;color:var(--sb-ink)}
+.fo-stats td{font-weight:700;color:var(--sb-ink)}
+.fo-set{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:var(--sb-fs-11);font-weight:600;color:var(--sb-ink)}
+.fo-set label{cursor:pointer}
+.fo-set .einp{width:120px;padding:6px 8px;font-size:var(--sb-fs-11)}
+.fo-set input[type=checkbox]{width:16px;height:16px;accent-color:var(--sb-azure);cursor:pointer}
+.fo-set + .set-note{margin:-4px 0 8px}
+.fo-hbtn.on{width:auto;padding:0 10px;gap:6px;color:var(--sb-azure);background:var(--sb-azure-bg)}
+.fo-pill{font-size:var(--sb-fs-12);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fo-credit{font-size:var(--sb-fs-10);color:var(--sb-ink-muted)}
+.fo-ttl{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.fo-ttl .set-title{flex:none}
+.fo-sub{font-size:var(--sb-fs-11);color:var(--sb-ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Detox day: the thumbnail is a golden rectangle, 89 x 55 (two Fibonacci numbers). */
+.fo-pic{display:flex;align-items:center;gap:12px;margin-top:4px}
+.fo-thumb{position:relative;width:89px;height:55px;flex-shrink:0;border-radius:var(--sb-r-md);overflow:hidden;background:var(--sb-bg-muted);border:1px dashed var(--sb-line-2)}
+.fo-thumb.has{border-style:solid;border-color:var(--sb-line)}
+.fo-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.fo-thumb img[hidden]{display:none}
+.fo-pic-txt{flex:1;min-width:0;font-size:var(--sb-fs-11);color:var(--sb-ink-muted);line-height:1.45}
+.fo-pic-count{display:block;margin-top:2px;font-weight:600;color:var(--sb-ink)}
+.fo-pic-count:empty{display:none}
+.fo-pic .fo-btn{flex-shrink:0;padding:0 12px}
+/* The call: the picture fills the popup behind one white card. */
+.fo-call{position:fixed;inset:0;z-index:var(--sb-z-modal);display:flex;align-items:center;justify-content:center;padding:16px;background:var(--sb-scrim-strong)}
+.fo-call[hidden]{display:none}
+.fo-call-gallery{position:absolute;inset:0}
+.fo-call-card{position:relative;width:min(420px,100%);padding:24px;background:var(--sb-bg);border-radius:var(--sb-r-2xl);box-shadow:var(--sb-shadow-xl)}
+.fo-call-t{margin:4px 0 8px;font-size:var(--sb-fs-20);font-weight:700;letter-spacing:-.2px;line-height:1.3;color:var(--sb-ink)}
+.fo-call-line{margin-bottom:20px;font-size:var(--sb-fs-13);color:var(--sb-ink-muted);line-height:1.5}
+.fo-call-add{margin-top:12px;padding:0;font-family:inherit;font-size:var(--sb-fs-12);font-weight:600;color:var(--sb-azure);background:none;border:0;cursor:pointer}
+.fo-call-add:hover{text-decoration:underline}
+.fo-call-add:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px;border-radius:var(--sb-r-sm)}
+.fo-call-add[hidden]{display:none}
+
 /* ── CHANGELOG MODAL ── */
 .cl-bg{position:fixed;inset:0;background:var(--sb-scrim);z-index:var(--sb-z-modal);display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .cl-bg.on{display:flex}
@@ -594,6 +660,10 @@ html,body{
       <span class="pop-greet" id="pop-greet">Welcome</span>
       <span class="pop-name" id="pop-name">Fibonax</span>
     </span>
+    <button class="ic-btn fo-hbtn" id="bfocus" title="Pomodoro timer" aria-label="Pomodoro timer">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M10 2h4"/></svg>
+      <span class="fo-pill" id="fo-pill" hidden></span>
+    </button>
     <button class="ic-btn" id="brel" title="Refresh data" aria-label="Refresh data">
       <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2.5 11.5a10 10 0 0 1 18.8-4.3M21.5 12.5a10 10 0 0 1-18.8 4.2"/></svg>
     </button>
@@ -789,6 +859,97 @@ html,body{
   </div>
 </div>
 
+<!-- ═══ POMODORO TIMER PANE ═══
+     The timer runs in the background (background.js, sbFocusApply) and its
+     rules live in shared/focus-timer.js ("focus" is its name inside the code).
+     renderFocus() in popup.js draws this pane and the header button from the
+     stored state. -->
+<div id="pane-focus" class="pane">
+  <div class="set-hdr">
+    <button class="ic-btn" id="bbfocus" title="Back" aria-label="Back">
+      <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </button>
+    <span class="fo-ttl">
+      <span class="set-title">Pomodoro timer</span>
+      <span class="fo-sub">The Italian way to boost productivity</span>
+    </span>
+  </div>
+  <div class="set-body fo-grid">
+    <div>
+      <div class="fo-card">
+        <div class="fo-phase" id="fo-phase" aria-live="polite">Ready</div>
+        <div class="fo-clock" id="fo-clock" role="timer" aria-label="Time left">25:00</div>
+        <div class="fo-next" id="fo-next"></div>
+        <div class="fo-acts" id="fo-acts"></div>
+        <div class="fo-ask" id="fo-ask" hidden>
+          <div class="fo-ask-q" id="fo-ask-q">How long should this break be?</div>
+          <div class="fo-acts" role="group" aria-labelledby="fo-ask-q">
+            <button type="button" class="fo-btn" data-min="1">1 minute</button>
+            <button type="button" class="fo-btn" data-min="2">2 minutes</button>
+            <button type="button" class="fo-btn" data-min="5">5 minutes</button>
+            <button type="button" class="fo-btn link" id="fo-ask-x">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div class="fo-warn" id="fo-warn" role="status" hidden></div>
+      <div class="fo-note" id="fo-note" role="status" hidden></div>
+      <div class="set-note">During a break, every open web page is covered until the break ends. Chrome's own pages and other programs stay open.</div>
+      <!-- DETOX DAY: the person's day off from screens, and the picture they
+           love most, shown when they try to work on that day. -->
+      <div class="set-sec">
+        <div class="fo-set"><label for="fo-detox">Detox day</label><select class="einp" id="fo-detox" data-key="detoxDay" aria-describedby="fo-detox-note"></select></div>
+        <div class="set-note" id="fo-detox-note">Your day off from screens and technology.</div>
+        <div class="fo-pic">
+          <div class="fo-thumb" id="fo-thumb"><img id="fo-thumb-img" alt="" hidden></div>
+          <div class="fo-pic-txt">Pictures of what you love, shown if you try to work on your detox day.<span class="fo-pic-count" id="fo-pic-count"></span></div>
+          <button type="button" class="fo-btn" id="fo-pic-btn">Add pictures</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <table class="fo-stats">
+        <caption class="lbl">Sessions and breaks</caption>
+        <thead>
+          <tr><td></td><th scope="col">Sessions</th><th scope="col">Extra breaks</th><th scope="col">Skipped</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Today</th><td id="fo-t-done">0</td><td id="fo-t-extra">0</td><td id="fo-t-skip">0</td></tr>
+          <tr><th scope="row">Last 7 days</th><td id="fo-w-done">0</td><td id="fo-w-extra">0</td><td id="fo-w-skip">0</td></tr>
+        </tbody>
+      </table>
+      <div class="set-note fo-dilute" id="fo-dilute" hidden></div>
+      <div class="set-sec">
+        <div class="lbl" style="margin-bottom:8px">Timer</div>
+        <div class="fo-set"><label for="fo-work">Work</label><select class="einp" id="fo-work" data-key="workMin"></select></div>
+        <div class="fo-set"><label for="fo-break">Break</label><select class="einp" id="fo-break" data-key="breakMin"></select></div>
+        <div class="fo-set"><label for="fo-sessions">Sessions in a block</label><select class="einp" id="fo-sessions" data-key="sessions"></select></div>
+        <div class="fo-set"><label for="fo-long">Long break at the end</label><select class="einp" id="fo-long" data-key="longMin"></select></div>
+        <div class="fo-set"><label for="fo-chime">Chime when a session or break ends</label><input type="checkbox" id="fo-chime" checked></div>
+        <div class="set-note">Changes start with the next session or break.</div>
+      </div>
+    </div>
+  </div>
+  <div class="lfoot">
+    <span class="fo-credit">The Pomodoro® Technique was created by Francesco Cirillo in the 1980s. Pomodoro® is a registered trademark.</span>
+  </div>
+</div>
+
+<!-- DETOX DAY CALL: Start pressed on the detox day. The picture fills the
+     window behind one card; the first button keeps the day offline. -->
+<div class="fo-call" id="fo-call" role="dialog" aria-modal="true" aria-labelledby="fo-call-t" aria-describedby="fo-call-line" hidden>
+  <div class="fo-call-gallery" id="fo-call-gallery"></div>
+  <div class="fo-call-card">
+    <div class="fo-phase">Detox day</div>
+    <div class="fo-call-t" id="fo-call-t"></div>
+    <p class="fo-call-line" id="fo-call-line"></p>
+    <div class="fo-acts">
+      <button type="button" class="fo-btn primary" id="fo-call-off">Take the day off</button>
+      <button type="button" class="fo-btn link" id="fo-call-go">Start anyway</button>
+    </div>
+    <button type="button" class="fo-call-add" id="fo-call-add" hidden>Add pictures of what you love</button>
+  </div>
+</div>
+
 <script src="../shared/tooltip.js"></script>
 <script src="../shared/snippet-stats.js"></script>
 <script src="../shared/memory-chunk.js"></script>
@@ -803,6 +964,8 @@ html,body{
 <script src="../shared/saint-of-day.js"></script>
 <script src="../shared/review-prompt.js"></script>
 <script src="../shared/usage-analytics.js"></script>
+<script src="../shared/focus-timer.js"></script>
+<script src="../shared/focus-carousel.js"></script>
 <script src="popup.js"></script>
 
 <!-- ═══ CHANGELOG MODAL ═══ -->

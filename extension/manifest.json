@@ -2,13 +2,14 @@
   "manifest_version": 3,
   "name": "Fibonax | Advanced prompt engineering | Native AI Snippets | Memory Layer",
   "short_name": "Fibonax",
-  "version": "3.110.0",
+  "version": "3.111.0",
   "description": "AI prompt library and text expander. Free team sharing and dynamic snippets with live formulas.",
   "permissions": [
     "storage",
     "activeTab",
     "contextMenus",
-    "alarms"
+    "alarms",
+    "offscreen"
   ],
   "host_permissions": [
     "<all_urls>",
@@ -41,10 +42,13 @@
         "shared/inactivity.js",
         "shared/memory-chunk.js",
         "shared/interactive-steps.js",
+        "shared/focus-timer.js",
+        "shared/focus-carousel.js",
         "content/memory-picker.js",
         "content/chat-capture.js",
         "content/save-selection.js",
-        "content/content.js"
+        "content/content.js",
+        "content/focus-break.js"
       ],
       "run_at": "document_idle",
       "all_frames": false

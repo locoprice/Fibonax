@@ -221,7 +221,7 @@ until they are real. Do not add them in a future edit without re-checking:
 *(Paste verbatim into the "Permission justification" field in the Developer Dashboard)*
 
 **storage**
-Fibonax stores your snippet and prompt library in `chrome.storage` to keep expansions instant and available offline. Authentication tokens, sync timestamps, and user preferences (active trigger, default language) are also persisted locally.
+Fibonax stores your snippet and prompt library in `chrome.storage` to keep expansions instant and available offline. Authentication tokens, sync timestamps, and user preferences (active trigger, default language) are also persisted locally, as are the Pomodoro timer's settings and counts and up to 5 pictures a user may pick for their detox day. The pictures are shrunk on the device and never uploaded.
 
 **activeTab**
 Required so that context menu clicks can identify the active tab and send the selected snippet to the correct page for insertion.
@@ -230,7 +230,10 @@ Required so that context menu clicks can identify the active tab and send the se
 Fibonax builds a dynamic right-click menu that mirrors your library, grouped by folder with language submenus. Clicking an entry inserts the snippet into the focused field on the current page.
 
 **alarms**
-A repeating alarm fires every 5 minutes so that a sign-out from another device reaches the extension, and so that the right-click menu picks up snippets and folders changed on the dashboard. Without this permission the Manifest V3 service worker cannot schedule periodic tasks.
+A repeating alarm fires every 5 minutes so that a sign-out from another device reaches the extension, and so that the right-click menu picks up snippets and folders changed on the dashboard. A second alarm ends each Pomodoro timer session and break on time. Without this permission the Manifest V3 service worker cannot schedule periodic tasks.
+
+**offscreen**
+The Pomodoro timer plays a short chime when a work session or a break ends. A Manifest V3 service worker cannot play audio, so the extension opens a small offscreen page with the `AUDIO_PLAYBACK` reason that plays the chime and closes by itself. It reads no data and shows nothing.
 
 **Host permission: `<all_urls>`**
 Snippet expansion must work in any text field on any website: CRMs, booking platforms, email clients, chat tools, AI chat interfaces, and internal dashboards all use different origins. Restricting to a fixed list of domains would make the core feature non-functional for most users. The content script runs at `document_idle`, injects no UI unless the user types a configured trigger, and reads no page content beyond the keystroke buffer needed for trigger detection.

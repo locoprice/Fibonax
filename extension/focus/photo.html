@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your detox day pictures · Fibonax</title>
+<link rel="icon" href="../assets/icons/icon128.png">
+<link rel="stylesheet" href="../shared/tokens/colors_and_type.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:var(--sb-s-6) var(--sb-s-4);
+  font-family:var(--sb-font);font-size:var(--sb-fs-14);line-height:1.5;color:var(--sb-ink);background:var(--sb-bg-alt);-webkit-font-smoothing:antialiased}
+/* One card; the picture area is a golden rectangle (1.618 : 1). */
+.card{width:min(560px,100%);padding:var(--sb-s-6);background:var(--sb-bg);border:1px solid var(--sb-line);border-radius:var(--sb-r-2xl);box-shadow:var(--sb-shadow-sm)}
+.brand{display:flex;align-items:center;gap:var(--sb-s-2);margin-bottom:var(--sb-s-4);font-size:var(--sb-fs-12);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sb-azure)}
+.brand img{width:20px;height:20px}
+h1{font-size:var(--sb-fs-20);font-weight:700;letter-spacing:-.2px;margin-bottom:var(--sb-s-2)}
+.lead{color:var(--sb-ink-muted);margin-bottom:var(--sb-s-5)}
+.frame{position:relative;width:100%;aspect-ratio:1.618/1;border-radius:var(--sb-r-xl);overflow:hidden;background:var(--sb-bg-muted);border:1px dashed var(--sb-line-2)}
+.frame.has{border-style:solid;border-color:var(--sb-line)}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:var(--sb-fs-13);color:var(--sb-ink-muted)}
+.empty[hidden],button[hidden]{display:none}
+.count{margin-top:var(--sb-s-3);min-height:21px;font-size:var(--sb-fs-12);font-weight:600;color:var(--sb-ink-muted);font-variant-numeric:tabular-nums}
+.acts{display:flex;align-items:center;flex-wrap:wrap;gap:var(--sb-s-2);margin-top:var(--sb-s-3)}
+button{height:44px;padding:0 var(--sb-s-4);font-family:inherit;font-size:var(--sb-fs-14);font-weight:600;color:var(--sb-ink);cursor:pointer;
+  background:var(--sb-bg);border:1px solid var(--sb-line);border-radius:var(--sb-r-md);transition:background var(--sb-dur-fast),border-color var(--sb-dur-fast)}
+button:hover{background:var(--sb-bg-muted);border-color:var(--sb-line-2)}
+button:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px}
+button.primary{color:#fff;background:var(--sb-azure);border-color:var(--sb-azure)}
+button.primary:hover{background:var(--sb-azure-dark);border-color:var(--sb-azure-dark)}
+button.danger{margin-left:auto;color:var(--sb-danger);background:none;border-color:transparent}
+button.danger:hover{text-decoration:underline;background:none}
+.status{min-height:21px;margin-top:var(--sb-s-3);font-size:var(--sb-fs-13);color:var(--sb-ok)}
+.status.err{color:var(--sb-danger)}
+.note{margin-top:var(--sb-s-4);padding-top:var(--sb-s-3);border-top:1px solid var(--sb-line);font-size:var(--sb-fs-12);color:var(--sb-ink-muted)}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="brand"><img src="../assets/icons/icon128.png" alt=""> Pomodoro timer</div>
+  <h1>Your detox day pictures</h1>
+  <p class="lead">Choose pictures of what you love most: your family, a sunset, your dog. If you try to work on your detox day, Fibonax shows them to you as a call to spend the day offline. With more than one, they play as a gallery.</p>
+  <div class="frame" id="ph-frame">
+    <div class="empty" id="ph-empty">No pictures yet</div>
+  </div>
+  <div class="count" id="ph-count"></div>
+  <div class="acts">
+    <button type="button" class="primary" id="ph-add">Choose pictures</button>
+    <button type="button" class="danger" id="ph-remove" hidden>Remove picture</button>
+  </div>
+  <input type="file" id="ph-file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+  <div class="status" id="ph-status" role="status" aria-live="polite"></div>
+  <p class="note">The pictures stay on this computer. Fibonax never uploads them.</p>
+</main>
+<script src="../shared/focus-timer.js"></script>
+<script src="../shared/focus-carousel.js"></script>
+<script src="photo.js"></script>
+</body>
+</html>

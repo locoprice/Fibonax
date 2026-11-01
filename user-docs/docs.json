@@ -29,7 +29,8 @@
             "pages": [
               "introduction",
               "quickstart",
-              "install-extension"
+              "install-extension",
+              "pomodoro-timer"
             ]
           },
           {
