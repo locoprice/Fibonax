@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { DashboardLayout } from '@/routes/DashboardLayout';
 import { SnippetsPage } from '@/routes/SnippetsPage';
 import { AnalyticsPage } from '@/routes/AnalyticsPage';
+import { BusinessIntelligencePage } from '@/routes/BusinessIntelligencePage';
 import { PromptsPage } from '@/routes/PromptsPage';
 import { MemoryPage } from '@/routes/MemoryPage';
 import { MemorySpacePage } from '@/routes/MemorySpacePage';
@@ -82,6 +83,7 @@ export function App() {
         >
           <Route index element={<SnippetsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/business-intelligence" element={<BusinessIntelligencePage />} />
           <Route path="/prompts" element={<PromptsPage />} />
           <Route path="/memory" element={<MemoryPage />} />
           <Route path="/memory/:spaceId" element={<MemorySpacePage />} />
