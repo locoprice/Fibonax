@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // Locked AI features (lib/proFeatures.ts).
 //
@@ -21,19 +21,64 @@ vi.mock('@/lib/api/labelSuggestApi', () => ({ labelSuggestApi: { suggestForSnipp
 import { ProSoonLock } from '@/components/shared/ProSoon';
 import { DraftFromTextButton } from '@/components/shared/DraftWithAi';
 import { LabelSuggestions } from '@/features/labels/LabelSuggestions';
-import { isProFeatureAvailable, PRO_SOON_LABEL, type ProFeature } from '@/lib/proFeatures';
+import { isProFeatureAvailable, isProPlan, PRO_SOON_LABEL, type ProFeature } from '@/lib/proFeatures';
+import { useAuthStore } from '@/stores/authStore';
+import type { User } from '@/lib/supabase';
 
-const FEATURES: ProFeature[] = ['ask', 'draft', 'translate', 'labels'];
+const FEATURES: ProFeature[] = ['ask', 'draft', 'translate', 'labels', 'picture'];
+const NOW = Date.parse('2026-11-02T12:00:00Z');
+
+function signInWith(appMetadata: Record<string, unknown>): void {
+  useAuthStore.setState({ user: { id: 'u1', app_metadata: appMetadata } as unknown as User });
+}
 
 describe('proFeatures', () => {
+  afterEach(() => {
+    useAuthStore.setState({ user: null });
+  });
+
   it('uses the words the product promises', () => {
     expect(PRO_SOON_LABEL).toBe('Available to Pro users soon');
   });
 
-  it('keeps every AI feature switched off until the Pro plan exists', () => {
+  it('keeps every AI feature locked for a signed-out or free account', () => {
     for (const feature of FEATURES) {
       expect(isProFeatureAvailable(feature), feature).toBe(false);
     }
+    signInWith({ provider: 'email' });
+    for (const feature of FEATURES) {
+      expect(isProFeatureAvailable(feature), feature).toBe(false);
+    }
+  });
+
+  it('opens every AI feature to a Pro account', () => {
+    signInWith({ plan: 'pro', pro_until: new Date(Date.now() + 86_400_000).toISOString() });
+    for (const feature of FEATURES) {
+      expect(isProFeatureAvailable(feature), feature).toBe(true);
+    }
+  });
+
+  it('locks them again once the paid month has passed', () => {
+    signInWith({ plan: 'pro', pro_until: new Date(Date.now() - 1000).toISOString() });
+    for (const feature of FEATURES) {
+      expect(isProFeatureAvailable(feature), feature).toBe(false);
+    }
+  });
+
+  it('keeps email layouts open to everyone and pictures in snippets off', () => {
+    expect(isProFeatureAvailable('emailLayout')).toBe(true);
+    signInWith({ plan: 'pro', pro_until: new Date(Date.now() + 86_400_000).toISOString() });
+    expect(isProFeatureAvailable('snippetPictures')).toBe(false);
+  });
+
+  it('decides who is Pro the way is_pro() does on the server', () => {
+    expect(isProPlan({ plan: 'pro', pro_until: '2026-12-02T12:00:00+00:00' }, NOW)).toBe(true);
+    expect(isProPlan({ plan: 'pro', pro_until: '2026-11-01T12:00:00+00:00' }, NOW)).toBe(false);
+    expect(isProPlan({ plan: 'pro' }, NOW)).toBe(false);
+    expect(isProPlan({ plan: 'pro', pro_until: 'infinity' }, NOW)).toBe(false);
+    expect(isProPlan({ plan: 'pro', pro_until: 'tomorrow' }, NOW)).toBe(false);
+    expect(isProPlan({ plan: 'free', pro_until: '2026-12-02T12:00:00+00:00' }, NOW)).toBe(false);
+    expect(isProPlan(null, NOW)).toBe(false);
   });
 });
 
@@ -85,5 +130,30 @@ describe('Suggest labels, locked', () => {
     expect(html).toContain('aria-disabled="true"');
     expect(html).toContain(PRO_SOON_LABEL);
     expect(suggestForSnippet).not.toHaveBeenCalled();
+  });
+});
+
+describe('AI controls, for a Pro account', () => {
+  afterEach(() => {
+    useAuthStore.setState({ user: null });
+  });
+
+  it('shows Draft from text and Suggest labels live, without the lock', () => {
+    signInWith({ plan: 'pro', pro_until: new Date(Date.now() + 86_400_000).toISOString() });
+    const draftHtml = renderToStaticMarkup(
+      <DraftFromTextButton kind="snippet" noun="snippet" onDrafted={() => {}} />,
+    );
+    expect(draftHtml).toContain('Draft from text');
+    expect(draftHtml).not.toContain(PRO_SOON_LABEL);
+    expect(draftHtml).not.toContain('aria-disabled="true"');
+    const labelsHtml = renderToStaticMarkup(
+      <LabelSuggestions
+        draft={{ name: 'Welcome', body: 'Hello and welcome aboard', folderName: null, language: 'EN' }}
+        value={[]}
+        onChange={() => {}}
+      />,
+    );
+    expect(labelsHtml).toContain('Suggest labels');
+    expect(labelsHtml).not.toContain(PRO_SOON_LABEL);
   });
 });

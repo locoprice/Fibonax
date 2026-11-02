@@ -6799,6 +6799,15 @@ function readSession(){
     return s;
   }catch(e){return null;}
 }
+/* Pro: app_metadata.plan is 'pro' and app_metadata.pro_until is a real date
+   that has not passed. Same rule as is_pro() on the server and isProPlan in
+   app/src/lib/proFeatures.ts; the server checks again on every AI call. */
+function isProAccount(){
+  var m=SESSION&&SESSION.user&&SESSION.user.app_metadata;
+  if(!m||m.plan!=='pro'||typeof m.pro_until!=='string')return false;
+  var ends=Date.parse(m.pro_until);
+  return isFinite(ends)&&ends>Date.now();
+}
 function clearLocalCaches(){
   try{localStorage.removeItem('sb_mob_cache');}catch(e){}
   try{localStorage.removeItem('sb_mob_folders');}catch(e){}
@@ -10526,12 +10535,13 @@ function pasteCapture(bid){
 }
 /* ── Save to Brain: Read a picture ── */
 /* A screenshot or a photo becomes text in the box, read by the read-picture
-   server function; the person checks it and saves. Pro, and the Pro plan does
-   not exist yet: until it does the row stays where it will live, locked, and
-   the tip under it says how to get the text out of a picture without it.
+   server function; the person checks it and saves. Pro only: for an account
+   that is not Pro the row stays where it lives, locked, and the tip under it
+   says how to get the text out of a picture without it.
    Keep in step with PRO_SOON_LABEL and the 'picture' switch in
    app/src/lib/proFeatures.ts: scripts/check-pro-gate.js. */
-var PICTURE_AVAILABLE=false;
+var PICTURE_AVAILABLE=true;
+function pictureOn(){return PICTURE_AVAILABLE&&isProAccount();}
 var PICTURE_TIP='Text in a screenshot? Copy it with Live Text on iPhone or Google Lens on Android, then paste it here.';
 /* Every AI feature counts against one per-person limit (ai_call_allow).
    Same words as AI_LIMIT_MESSAGE in app/src/lib/api/edgeFunctionError.ts. */
@@ -10562,13 +10572,13 @@ var picReading=false, _picSeq=0;
 
 function syncPictureRow(){
   var row=document.getElementById('sb-cap-pic');
-  row.classList.toggle('locked',!PICTURE_AVAILABLE);
-  row.setAttribute('aria-disabled',PICTURE_AVAILABLE&&!picReading?'false':'true');
+  row.classList.toggle('locked',!pictureOn());
+  row.setAttribute('aria-disabled',pictureOn()&&!picReading?'false':'true');
   row.setAttribute('aria-busy',picReading?'true':'false');
   /* A phone has no hover, so a locked row says why in plain sight. */
-  document.getElementById('sb-cap-pic-d').textContent=!PICTURE_AVAILABLE?PRO_SOON_LABEL
+  document.getElementById('sb-cap-pic-d').textContent=!pictureOn()?PRO_SOON_LABEL
     :picReading?'Reading the picture…':'A screenshot or a photo becomes text to check';
-  document.getElementById('sb-cap-tip').textContent=PICTURE_AVAILABLE?'':PICTURE_TIP;
+  document.getElementById('sb-cap-tip').textContent=pictureOn()?'':PICTURE_TIP;
   // Saving in the middle of a reading would leave its text behind.
   if(!capSaving)document.getElementById('sb-cap-save').disabled=picReading;
 }
@@ -10628,7 +10638,7 @@ function capAddPicture(b){
     :'Picture read ✓ Check the text, then Save');
 }
 function readPicture(file){
-  if(!PICTURE_AVAILABLE||picReading||capSaving)return;
+  if(!pictureOn()||picReading||capSaving)return;
   var seq=++_picSeq;
   picReading=true;
   capError('');
@@ -10732,7 +10742,7 @@ function saveCapture(){
   });
   /* Read a picture: locked, a tap only says why. */
   document.getElementById('sb-cap-pic').addEventListener('click',function(){
-    if(!PICTURE_AVAILABLE){showToast(PRO_SOON_LABEL);return;}
+    if(!pictureOn()){showToast(PRO_SOON_LABEL);return;}
     if(picReading||capSaving)return;
     document.getElementById('sb-cap-file').click();
   });
@@ -12136,12 +12146,13 @@ var ASK_VERDICTS=[
   {value:'conflicting',label:'Conflicts with policy'}
 ];
 var ASK_MIN=3, ASK_MAX=1000;
-/* FiboChat needs Pro, and the Pro plan does not exist yet. Until it does
-   the row stays where it will live, locked, and nothing here can send a
-   request. Keep in step with PRO_SOON_LABEL and the 'ask' switch in
-   app/src/lib/proFeatures.ts: scripts/check-pro-gate.js. */
+/* FiboChat needs Pro. For an account that is not Pro the row stays where it
+   lives, locked, and nothing here can send a request. Keep in step with
+   PRO_SOON_LABEL and the 'ask' switch in app/src/lib/proFeatures.ts:
+   scripts/check-pro-gate.js. */
 var PRO_SOON_LABEL='Available to Pro users soon';
-var ASK_AVAILABLE=false;
+var ASK_AVAILABLE=true;
+function askOn(){return ASK_AVAILABLE&&isProAccount();}
 var ASK_ERRORS={
   pro_required:AI_PRO_TEXT,
   pro_check_failed:AI_PRO_CHECK_TEXT,
@@ -12163,12 +12174,12 @@ function syncAskRow(inputId){
   if(!input||!row)return;
   var q=input.value.trim();
   row.classList.toggle('sb-hidden',q.length<ASK_MIN);
-  row.classList.toggle('locked',!ASK_AVAILABLE);
-  row.setAttribute('aria-disabled',ASK_AVAILABLE?'false':'true');
-  if(ASK_AVAILABLE)row.removeAttribute('title');
+  row.classList.toggle('locked',!askOn());
+  row.setAttribute('aria-disabled',askOn()?'false':'true');
+  if(askOn())row.removeAttribute('title');
   else row.setAttribute('title',PRO_SOON_LABEL);
   /* A phone has no hover, so a locked row says why in plain sight. */
-  row.querySelector('.ask-row-q').textContent=ASK_AVAILABLE
+  row.querySelector('.ask-row-q').textContent=askOn()
     ?'Answer “'+q.slice(0,ASK_MAX)+'” from your snippets and Brains'
     :PRO_SOON_LABEL;
 }
@@ -12273,7 +12284,7 @@ function runAsk(){
   });
 }
 function openAsk(question){
-  if(!ASK_AVAILABLE)return;
+  if(!askOn())return;
   var q=String(question||'').trim().slice(0,ASK_MAX);
   if(q.length<ASK_MIN)return;
   clearTimeout(_askSheetTimer);
@@ -12374,7 +12385,7 @@ function askOpenSource(ref){
   });
   document.querySelectorAll('.ask-row').forEach(function(row){
     row.addEventListener('click',function(){
-      if(!ASK_AVAILABLE){showToast(PRO_SOON_LABEL);return;}
+      if(!askOn()){showToast(PRO_SOON_LABEL);return;}
       var input=document.getElementById(row.getAttribute('data-ask-for'));
       if(input){input.blur();openAsk(input.value);}
     });

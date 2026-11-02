@@ -1,38 +1,32 @@
-# Pro features: locked until the plan exists
+# Pro features: on for Pro accounts only
 
-Five features call the AI service, and every use costs real money. The paid plan that will cover it does not exist yet, so since **v3.61.0** each one is shown where it will live, dimmed, with a lock and the tooltip **"Available to Pro users soon"**, and cannot start a request. Read a picture joined them in **v3.63.0**, built locked.
+Five features call the AI service, and every use costs real money. Since **v3.114.0** they are switched on, but only for a **Pro** account: anyone else sees each one where it lives, dimmed, with a lock and the tooltip **"Available to Pro users soon"**, and cannot start a request. The server checks the plan again on every call (`is_pro()`).
 
-One switch per feature, in `app/src/lib/proFeatures.ts`. `scripts/check-pro-gate.js` (CI) keeps the dashboard, the phone and the manual in step with those switches.
+One switch per feature, in `app/src/lib/proFeatures.ts`. A switch says the feature is built and its server function deployed; `isProFeatureAvailable` adds the plan check (`isProPlan`, the same rule as `is_pro()`). The phone carries its own copy: `ASK_AVAILABLE` and `PICTURE_AVAILABLE`, read only through `askOn()` and `pictureOn()`, which add `isProAccount()`. `scripts/check-pro-gate.js` (CI) keeps the dashboard, the phone and the manual in step.
 
-| Feature | Switch | Where it shows locked | Server function in production | Manual page, kept here |
+| Feature | Switch | Where it shows | Server function | Manual page |
 |---|---|---|---|---|
-| FiboChat | `ask`, and `ASK_AVAILABLE` in `app/public/mobile/index.html` | The answer row in the dashboard search panel (and the ⌘↵ shortcut); the row under the search box on the phone's Snippets, Prompts and Brains pages | `ask-sprintbrain`, deployed | `ask-sprintbrain.mdx` |
-| Draft with AI | `draft` | **Draft from text** in the snippet, prompt and Brain item editors (one shared component) | `draft-with-ai`, deployed | `draft-with-ai.mdx` |
-| Translate from EN | `translate` | The Translate button in the snippet editor (IT, ES, FR) | `translate-body`, **not deployed** | none (already left out of the manual) |
-| Suggest labels | `labels` | The Suggest labels button under the label picker in the snippet editor | `suggest-labels`, **not deployed** | none (already left out of the manual) |
-| Read a picture | `picture`, and `PICTURE_AVAILABLE` in `app/public/mobile/index.html` | The **Read a picture** row in the phone's Save to Brain, with the lock and the label in plain sight; under it, a tip to copy a picture's text with Live Text or Google Lens instead | `read-picture`, **not deployed** | `read-picture.mdx`, a section of the phone page rather than a page of its own |
+| FiboChat | `ask`, **on**; `ASK_AVAILABLE` on the phone | The answer row in the dashboard search panel (and ⌘↵); the row under the search box on the phone's Snippets, Prompts and Brains pages | `ask-sprintbrain` | `user-docs/ask/overview.mdx` |
+| Draft with AI | `draft`, **on** | **Draft from text** in the snippet, prompt and Brain item editors | `draft-with-ai` | `user-docs/draft/overview.mdx` |
+| Translate from EN | `translate`, **on** | The Translate button in the snippet editor (IT, ES, FR) | `translate-body` | `user-docs/text-snippets/multilanguage.mdx` |
+| Suggest labels | `labels`, **on** | Under the label picker in the snippet editor | `suggest-labels` | `user-docs/text-snippets/create-and-organize.mdx` |
+| Read a picture | `picture`, **on**; `PICTURE_AVAILABLE` on the phone | The **Read a picture** row in the phone's Save to Brain; locked, it shows the Live Text / Google Lens tip | `read-picture` | `user-docs/apps/mobile.mdx` |
+| Add a picture (v3.94.0, calls no AI service: the cost is storage) | `snippetPictures`, off | **Add picture** in the snippet editor's Pictures section; the window is not mounted while locked. Pictures already in a snippet are still listed with Remove, and every fill surface shows them | none; needs the `snippet-pictures` bucket (`20261027130000_snippet_pictures_storage.sql`, **not applied**) and the `delete-account` deploy that empties it | `snippet-pictures.mdx`, a section of `user-docs/text-snippets/dynamic-fields.mdx` |
+| Use an email layout (v3.102.0, calls no service) | `emailLayout`, **on for everyone** | Nowhere locked: free to run, so no plan check (`FREE_FOR_ALL`) | none | `user-docs/text-snippets/email-layouts.mdx` |
 
-| Add a picture (v3.94.0, calls no AI service: the cost is storage) | `snippetPictures` | **Add picture** in the snippet editor's Pictures section; the window is not mounted while locked. Pictures already in a snippet are still listed with Remove, and every fill surface shows them | none; needs the `snippet-pictures` bucket (`20261027130000_snippet_pictures_storage.sql`, **not applied**) and the `delete-account` deploy that empties it | `snippet-pictures.mdx`, a section of `user-docs/text-snippets/dynamic-fields.mdx` |
-| Use an email layout (v3.102.0, calls no service) | `emailLayout`, **on** | Nowhere: Valentina chose on 2026-10-27 to ship it switched on for everyone, since a layout costs nothing to run. The lock (`ProSoon`) sits in `FormattedBodyBox.tsx` for the day the plan check turns it off for free accounts | none | published: `user-docs/text-snippets/email-layouts.mdx` |
+## Who is Pro
 
-## Who is Pro (since v3.101.0)
+`20261028150000_pro_plan.sql` (applied 2026-11-02) adds `is_pro()`, true while the account's `app_metadata.plan` is `pro` and `app_metadata.pro_until` (an ISO 8601 date with its offset) has not passed. Only the service role can write it, so nobody can make themselves Pro. Every AI edge function asks `is_pro()` first and answers 403 `pro_required` ("AI features are part of Fibonax Pro."); `ai_call_allow()` asks it again. Payments are not connected yet, so Pro is granted by hand with the statement at the top of the migration; billing will set the same two keys.
 
-The AI features belong to **Pro**, a monthly subscription. Since v3.101.0 the server enforces it: `20261028150000_pro_plan.sql` adds `is_pro()`, true while the account's `app_metadata.plan` is `pro` and `app_metadata.pro_until` (the end of the month already paid for) has not passed. That is the same plan field the review prompt reads (`20261027140000_review_prompt.sql`), and only the service role can write it, so nobody can make themselves Pro. Every AI edge function asks `is_pro()` first and answers 403 `pro_required` to a free account ("AI features are part of Fibonax Pro." on the dashboard and the phone); `ai_call_allow()` asks it again, so no call reaches the model for a free account even from an older deploy. Payments are not connected yet, so Pro is granted by hand (the statement is at the top of the migration); billing will set the same two keys.
+The dashboard and the phone read the plan from the signed-in session. After Pro is granted or ends, the person sees the change at their next sign-in, or within the hour when the session refreshes; the server applies it at once.
 
-Apply the migration **before** deploying the five functions: until `is_pro()` exists they answer 503.
+The Anthropic account behind `ANTHROPIC_API_KEY` needs credit: with none, every call fails with "Your credit balance is too low".
 
-The switches below still decide what the dashboard and the phone show. Turning one on also needs the plan check on the client (step 1), so a free account keeps seeing the lock rather than a control that fails. Use an email layout is the exception: on for everyone, free accounts included, until the plan check joins it.
+## Turning a feature off again
 
-The two features whose function is not deployed need that deploy before their switch can go on. Before any switch goes on, the Anthropic account behind `ANTHROPIC_API_KEY` needs credit: with none, every call fails with "Your credit balance is too low".
+Set its switch to `false` (and the phone's, for Ask and Read a picture), move its manual text back here, and put back the lines below. `node scripts/check-pro-gate.js` fails until the switch and the manual agree. To take one account off Pro, remove `plan` and `pro_until` from its `app_metadata`.
 
-## Switching a feature on
-
-1. Set its switch to `true` (and the phone's, for Ask and Read a picture). Put the plan check in `isProFeatureAvailable` when the Pro plan exists, so a free account stays locked; the phone's two switches need the same check on the phone.
-2. Move its page from here to `user-docs/<ask|draft>/overview.mdx`, check it against the shipped feature, and add it to the menu in `user-docs/docs.json`. Read a picture is the exception: deploy `read-picture` first, then follow the steps at the top of `read-picture.mdx`, which goes into the phone's page instead.
-3. Restore the lines below, taken out of the published manual so that it documents only what works.
-4. `node scripts/check-pro-gate.js` fails if a switch is on while its page is unpublished, or the other way round. Update `docs/USER_DOCS.md` (page map and "Left out on purpose").
-
-## Lines taken out of the published manual (restore verbatim)
+## Lines restored to the published manual in v3.114.0 (remove them if the features turn off)
 
 **`user-docs/review/overview.mdx`**
 

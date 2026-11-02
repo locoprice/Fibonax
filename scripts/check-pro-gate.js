@@ -2,8 +2,8 @@
 //
 // Five features call the AI service and cost real money per use: Ask
 // Fibonax, Draft with AI, Translate from EN, Suggest labels and Read a
-// picture. Until the Pro plan exists each is shown locked ("Available to Pro
-// users soon") and cannot start a request. Add a picture (storage) is locked
+// picture. Each runs only for a Pro account; anyone else sees it locked
+// ("Available to Pro users soon") and cannot start a request. Add a picture (storage) is locked
 // the same way; Use an email layout costs nothing to run and is on for
 // everyone. Their switches live in app/src/lib/proFeatures.ts; the phone
 // carries its own copy of the label and of the Ask and Picture switches. This
@@ -84,6 +84,19 @@ check('the phone has a Picture switch', phonePicture !== null);
 check('the phone Picture switch matches the dashboard\'s', phonePicture !== null && (phonePicture[1] === 'true') === on.picture,
   'phone ' + (phonePicture && phonePicture[1]) + ' vs dashboard ' + on.picture);
 
+// ── 2b. Only a Pro account gets past a switch ─────────────────────────────
+// A switch says a feature is built and deployed; the account's plan decides
+// who may use it. Same rule as is_pro() on the server, on both surfaces.
+check('the dashboard opens an AI feature only to a Pro account',
+  /if \(FREE_FOR_ALL\.has\(feature\)\) return true;\s*return isProPlan\(/.test(LIB)
+  && /const FREE_FOR_ALL: ReadonlySet<ProFeature> = new Set<ProFeature>\(\['emailLayout'\]\);/.test(LIB));
+check('the phone opens Ask and Read a picture only to a Pro account',
+  MOBILE.includes('function askOn(){return ASK_AVAILABLE&&isProAccount();}')
+  && MOBILE.includes('function pictureOn(){return PICTURE_AVAILABLE&&isProAccount();}')
+  && /function isProAccount\(\)\{[^}]*m\.plan!=='pro'[^}]*pro_until/.test(MOBILE));
+check('the phone reads its switches only through the plan check',
+  (MOBILE.match(/\bASK_AVAILABLE\b/g) || []).length === 2 && (MOBILE.match(/\bPICTURE_AVAILABLE\b/g) || []).length === 2);
+
 // ── 3. Every entry point reads its switch and shows the lock ───────────────
 const ENTRY_POINTS = [
   ['ask', 'app/src/features/search/GlobalSearch.tsx'],
@@ -98,15 +111,15 @@ for (const [feature, file] of ENTRY_POINTS) {
   check(file.split('/').pop() + ' reads the ' + feature + ' switch', source.includes("isProFeatureAvailable('" + feature + "')"));
   check(file.split('/').pop() + ' shows the lock and its tooltip', source.includes('<ProSoonLock') && source.includes('<ProSoon'));
 }
-check('the phone guards the question before any request', /function openAsk\(question\)\{\s*if\(!ASK_AVAILABLE\)return;/.test(MOBILE));
-check('a tap on a locked phone row says the label', MOBILE.includes('if(!ASK_AVAILABLE){showToast(PRO_SOON_LABEL);return;}'));
+check('the phone guards the question before any request', /function openAsk\(question\)\{\s*if\(!askOn\(\)\)return;/.test(MOBILE));
+check('a tap on a locked phone row says the label', MOBILE.includes('if(!askOn()){showToast(PRO_SOON_LABEL);return;}'));
 check('the phone shows the lock on all three Ask rows', (MOBILE.match(/class="ask-lock"/g) || []).length === 3);
 check('the phone row shows the label in plain sight, since a phone has no hover', MOBILE.includes(':PRO_SOON_LABEL;'));
-check('the phone reads no picture while its switch is off', /function readPicture\(file\)\{\s*if\(!PICTURE_AVAILABLE\|\|/.test(MOBILE));
-check('a tap on the locked Read a picture row says the label', MOBILE.includes("if(!PICTURE_AVAILABLE){showToast(PRO_SOON_LABEL);return;}"));
+check('the phone reads no picture while its switch is off', /function readPicture\(file\)\{\s*if\(!pictureOn\(\)\|\|/.test(MOBILE));
+check('a tap on the locked Read a picture row says the label', MOBILE.includes("if(!pictureOn()){showToast(PRO_SOON_LABEL);return;}"));
 check('the locked Read a picture row shows the lock and the label in plain sight',
-  MOBILE.includes('class="cap-pic-lock"') && MOBILE.includes("textContent=!PICTURE_AVAILABLE?PRO_SOON_LABEL"));
-check('while locked, Save to Brain says how to copy a picture\'s text without it', MOBILE.includes("textContent=PICTURE_AVAILABLE?'':PICTURE_TIP;"));
+  MOBILE.includes('class="cap-pic-lock"') && MOBILE.includes("textContent=!pictureOn()?PRO_SOON_LABEL"));
+check('while locked, Save to Brain says how to copy a picture\'s text without it', MOBILE.includes("textContent=pictureOn()?'':PICTURE_TIP;"));
 
 // ── 4. A request leaves from one place only ────────────────────────────────
 function walk(dir, out = []) {
