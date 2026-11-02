@@ -32,7 +32,7 @@ export function BusinessIntelligencePage(): ReactElement {
             title="Chess puzzle of the day"
             loading="lazy"
             tabIndex={-1}
-            className="pointer-events-none block h-[666px] w-[600px] max-w-full rounded-[12px] border-0"
+            className="pointer-events-none block h-[777px] w-[700px] max-w-full rounded-[12px] border-0"
           />
         </a>
         <p className="text-xs text-ink-subtle">Click the board to play it on Lichess, in a new tab.</p>
