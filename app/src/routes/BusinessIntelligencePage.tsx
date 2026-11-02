@@ -7,7 +7,7 @@ import { PRO_SOON_LABEL } from '@/lib/proFeatures';
 /**
  * Business Intelligence: a Pro section that is not built yet. The page holds
  * its place in the sidebar and says so plainly, with the same words every
- * locked Pro control uses (lib/proFeatures.ts).
+ * locked Pro control uses (lib/proFeatures.ts), with a Lichess puzzle below.
  */
 export function BusinessIntelligencePage(): ReactElement {
   return (
@@ -19,6 +19,13 @@ export function BusinessIntelligencePage(): ReactElement {
         </span>
         <h2 className="text-lg font-semibold text-ink">Coming soon</h2>
         <p className="text-sm text-ink-muted">{PRO_SOON_LABEL}</p>
+        {/* A chess puzzle to try while the section is being built. */}
+        <iframe
+          src="https://lichess.org/training/frame?theme=brown&bg=dark"
+          title="Chess puzzle"
+          loading="lazy"
+          className="mt-6 h-[444px] w-[400px] max-w-full rounded-[12px] border-0"
+        />
       </Card>
     </>
   );
