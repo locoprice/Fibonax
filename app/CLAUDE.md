@@ -33,7 +33,7 @@
 
 The Fibonax dashboard is a **desktop-only single-page application** served at the site root (`/`) on Netlify. It is the SaaS surface complementary to the Chrome extension and the mobile companion at `/mobile/`.
 
-**Scope (v2.28.0)**: Supabase OTP authentication (open signups — any valid email; the original `@leibtour.com` gate was dropped, see §4.8) with live reads + full CRUD for snippets, folders, and prompts (AUTH-001 + SNIPPETS-CRUD-001 + PROMPTS-001 all shipped). Analytics still uses mock fixtures pending the `snippet_events` time-series table (`ANALYTICS-001`). Dashboard now includes an `ExtensionLinkPage` for connecting the Chrome extension to a logged-in user session.
+**Scope (v2.28.0)**: Supabase OTP authentication (open signups — any valid email; the original `@leibtour.com` gate was dropped, see §4.8) with live reads + full CRUD for snippets, folders, and prompts (AUTH-001 + SNIPPETS-CRUD-001 + PROMPTS-001 all shipped). Analytics reads the live `snippet_events` table (`ANALYTICS-001`). Dashboard now includes an `ExtensionLinkPage` for connecting the Chrome extension to a logged-in user session.
 
 **Audience**: hospitality operators (LeibTour) primarily; B2B prospects evaluating Fibonax.
 
@@ -99,21 +99,19 @@ app/
 │   │   └── settings/          # AccountPanel, SecurityPanel, IntegrationsPanel
 │   ├── stores/                # Zustand: snippet, prompt, analytics, settings, auth, ui
 │   ├── lib/
-│   │   ├── api/               # Service layer (live Supabase + mock stubs)
+│   │   ├── api/               # Service layer (live Supabase)
 │   │   │   ├── snippetsApi.ts # LIVE CRUD
 │   │   │   ├── promptsApi.ts  # LIVE CRUD
 │   │   │   ├── foldersApi.ts  # LIVE folder CRUD (shared by snippets + prompts)
 │   │   │   ├── settingsApi.ts # LIVE profile reads + writes
-│   │   │   └── analyticsApi.ts  # MOCK (pending snippet_events — ANALYTICS-001)
+│   │   │   └── analyticsApi.ts  # LIVE reads of snippet_events (ANALYTICS-001)
 │   │   ├── supabase.ts        # Supabase JS client (publishable key)
 │   │   ├── extensionId.ts     # Extension ID for postMessage handshake
 │   │   ├── utils.ts           # cn(), formatDuration(), formatCompact()
 │   │   └── useViewportGate.ts
-│   ├── types/
-│   │   ├── database.ts        # Mirrors Supabase tables (see PROJECT_CONTEXT.md §4)
-│   │   └── schemas.ts         # Zod schemas
-│   └── mock/
-│       └── fixtures.ts        # Deterministic seed data (stable UUIDs, fixed dates)
+│   └── types/
+│       ├── database.ts        # Mirrors Supabase tables (see PROJECT_CONTEXT.md §4)
+│       └── schemas.ts         # Zod schemas
 ├── index.html                 # Vite root
 ├── package.json               # Version must match extension/manifest.json
 ├── tailwind.config.ts
@@ -157,11 +155,9 @@ app/
 - Prefer `interface` for object shapes, `type` for unions and primitives.
 - All API service responses are typed against `src/types/database.ts`.
 
-### 4.7 Mock vs live data (as of v2.17.0)
-- **Live**: `snippetsApi` (folders + snippets + stats joined, full CRUD), `promptsApi` (live reads + CRUD against `public.prompts`), `settingsApi.getProfile` (derived from the authed `auth.users` record). The Notion sync settings and top-bar pill were retired with the extension's pull from Notion in v3.86.0.
-- **Still mock**: `analyticsApi` (needs `snippet_events` time-series table — tracked in `ANALYTICS-001`).
-- Fixtures in `src/mock/fixtures.ts` remain deterministic (no `Math.random()` at runtime). Date offsets use a fixed `day(offset)` helper from `Date.now()` so the chart shape is stable per session.
-- All mock UUIDs are hand-rolled and stable across re-renders.
+### 4.7 Live data
+- **Live**: `snippetsApi` (folders + snippets + stats joined, full CRUD), `promptsApi` (live reads + CRUD against `public.prompts`), `settingsApi.getProfile` (derived from the authed `auth.users` record), `analyticsApi` (reads `public.snippet_events`, one row per expansion, and buckets them client-side — `ANALYTICS-001`). The Notion sync settings and top-bar pill were retired with the extension's pull from Notion in v3.86.0.
+- No service reads mock data.
 
 ### 4.8 Auth + RLS
 - Magic-link flow via `supabase.auth.signInWithOtp`; PKCE. Signups are open to any valid email — the original `@leibtour.com` `BEFORE INSERT` trigger on `auth.users` was dropped (migration `20260518120000_drop_auth_domain_allowlist`).
