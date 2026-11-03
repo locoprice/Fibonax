@@ -3,6 +3,7 @@ import { AlertCircle, AlertTriangle, Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LinkReadError, linkReadApi } from '@/lib/api/linkReadApi';
 import { LayoutFrame } from '@/features/snippets/LayoutFrame';
+import { FillProgress } from '@/features/snippets/FillProgress';
 import { isEmailLayout } from '@/lib/emailLayout';
 import {
   backwardDates,
@@ -599,6 +600,10 @@ export function SnippetPreview({
             buttonRef={linkButtonRef}
           />
         )}
+
+        {/* How far along a long form is. Above the fields and outside their
+            scroll, like the Link box, so it stays in view. */}
+        <FillProgress progress={view?.progress} />
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           {engineError ? (

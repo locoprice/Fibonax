@@ -149,10 +149,29 @@ export type SbPreviewPart = { text: string } | { picture: SbPicture };
 /** Where a text's pictures go, in the shared words (`pictureText`). */
 export type SbPictureTextKey = 'left-out' | 'left-out-done' | 'copy' | 'share' | 'missing';
 
+/**
+ * How far along a form is, for the line a long form carries above its
+ * fields. Counted once in fill-form.js (`progress`), so the four fill
+ * surfaces never disagree about what is left to do.
+ */
+export interface SbFillProgress {
+  /** Whether the form is long enough to carry the line (PROGRESS_THRESHOLD fields or more). */
+  show: boolean;
+  /** Fields holding an answer the text can use. */
+  done: number;
+  /** Fields on the form. */
+  total: number;
+  /** `done` over `total`, 0 to 100. */
+  percent: number;
+  /** "3 of 8 filled in": the words beside the line, the same on every surface. */
+  label: string;
+}
+
 /** The view model every fill surface renders. Mirrors SHAPE in the gate. */
 export interface SbFillFormViewModel {
   errors?: Array<{ key: string; message: string }>;
   sections?: Array<{ title: string; keys: string[] }>;
+  progress: SbFillProgress;
   fields: SbFillField[];
   buttons: SbFillButton[];
   preview: string;

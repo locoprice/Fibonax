@@ -130,6 +130,7 @@
   /* ── OVERLAY SURFACES ────────────────────────────────────── */
   --sb-toast-bg:  rgba(24,24,27,.92);  /* toast pill — ink @ 92% */
   --sb-scrim:     rgba(0,0,0,.5);      /* modal / auth backdrop */
+  --sb-scrim-strong: rgba(24,24,27,.98); /* Pomodoro timer break screen: ink @ 98% */
 
   /* ── MOTION ──────────────────────────────────────────────── */
   --sb-dur-fast:   120ms;

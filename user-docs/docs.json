@@ -29,7 +29,8 @@
             "pages": [
               "introduction",
               "quickstart",
-              "install-extension"
+              "install-extension",
+              "pomodoro-timer"
             ]
           },
           {
@@ -63,8 +64,10 @@
             ]
           },
           {
-            "group": "Review",
+            "group": "AI and review",
             "pages": [
+              "ask/overview",
+              "draft/overview",
               "review/overview"
             ]
           },

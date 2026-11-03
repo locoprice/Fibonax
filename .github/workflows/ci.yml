@@ -83,6 +83,9 @@ jobs:
       - name: Santo del Giorno + Christmas countdown parity check
         run: node scripts/check-saint-of-day.js
 
+      - name: Focus timer
+        run: node scripts/check-focus-timer.js
+
       - name: Ask Fibonax parity check
         run: node scripts/check-ask-knowledge.js
 

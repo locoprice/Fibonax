@@ -2,6 +2,8 @@
 importScripts('../auth/auth.js');
 // The shared memory pack, for a prompt that carries a Brain (promptTexts below).
 importScripts('../shared/memory-pack.js');
+// The Pomodoro timer's rules (sbFocusApply below).
+importScripts('../shared/focus-timer.js');
 
 var SUPA_URL = SB_SUPA_URL;
 
@@ -1367,6 +1369,8 @@ chrome.runtime.onInstalled.addListener(function(details) {
   if (details && details.reason === 'update' && sbVersionBelow(details.previousVersion, '3.69.0')) {
     chrome.storage.local.set({ sb_welcome_fibonax: 'show' });
   }
+  // An update clears the alarms: put the Pomodoro timer's back on its phase.
+  sbFocusApply({ type: 'tick' });
 });
 
 // Rebuild when popup saves changes (snippets updated)
@@ -1389,6 +1393,8 @@ chrome.runtime.onStartup.addListener(function() {
   sbMigrateRoamingPrefs();
   initMenus();
   sbRefreshActionIcon();
+  // Chrome may drop alarms on restart, and a phase may have ended while it was closed.
+  sbFocusApply({ type: 'tick' });
 });
 
 // ── ALARM LISTENER — fires every 5 minutes ──────────────────────
@@ -1443,3 +1449,93 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   // other listeners), producing "message channel closed" noise and leaks.
 });
 
+
+// ── POMODORO TIMER ──────────────────────────────────────────────
+// "focus" is its name inside the code. The background is the timer's only writer. The popup and the break screen
+// send {type:'sb_focus', action}, and every change goes through SBFocus.reduce
+// (shared/focus-timer.js) one at a time, so two tabs asking in the same second
+// cannot move the timer on twice. The alarm sits on the end of the current
+// phase; the popup and the break screen also ask for a 'tick' when their own
+// clock reaches zero, because an alarm can fire a few seconds late.
+var sbFocusQueue = Promise.resolve();
+
+function sbFocusApply(action) {
+  var job = sbFocusQueue.then(function() {
+    return new Promise(function(resolve) {
+      chrome.storage.local.get(SBFocus.STORAGE_KEY, function(d) {
+        var res;
+        try {
+          res = SBFocus.reduce(d && d[SBFocus.STORAGE_KEY], action, Date.now());
+        } catch (e) {
+          // Never leave the queue waiting: the next change must still go through.
+          console.error('[Fibonax] Could not update the Pomodoro timer:', e);
+          resolve(null);
+          return;
+        }
+        if (!res.changed) {
+          sbFocusSchedule(res.state);
+          resolve(res.state);
+          return;
+        }
+        var patch = {};
+        patch[SBFocus.STORAGE_KEY] = res.state;
+        chrome.storage.local.set(patch, function() {
+          if (chrome.runtime.lastError) {
+            console.error('[Fibonax] Could not save the Pomodoro timer:', chrome.runtime.lastError.message);
+            resolve(null);
+            return;
+          }
+          sbFocusSchedule(res.state);
+          if (res.chime && res.state.settings.chime) sbFocusChime();
+          resolve(res.state);
+        });
+      });
+    });
+  });
+  sbFocusQueue = job;
+  return job;
+}
+
+function sbFocusSchedule(state) {
+  var run = state && state.run;
+  if (run && !run.paused && run.endsAt) {
+    chrome.alarms.create(SBFocus.ALARM_NAME, { when: run.endsAt });
+  } else {
+    chrome.alarms.clear(SBFocus.ALARM_NAME);
+  }
+}
+
+// The chime. A service worker has no audio, so an offscreen page plays it
+// (offscreen/chime.html plays on load). A page left from the last chime is
+// closed first, so every chime is a fresh page; Chrome closes it by itself
+// after 30 silent seconds.
+var SB_CHIME_PAGE = 'offscreen/chime.html';
+function sbFocusChime() {
+  var url = chrome.runtime.getURL(SB_CHIME_PAGE);
+  chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'], documentUrls: [url] })
+    .then(function(contexts) {
+      return contexts.length ? chrome.offscreen.closeDocument() : null;
+    })
+    .then(function() {
+      return chrome.offscreen.createDocument({
+        url: SB_CHIME_PAGE,
+        reasons: ['AUDIO_PLAYBACK'],
+        justification: 'Plays the Pomodoro timer chime when a work session or a break ends.'
+      });
+    })
+    .catch(function(e) {
+      console.error('[Fibonax] Could not play the Pomodoro timer chime:', e);
+    });
+}
+
+chrome.alarms.onAlarm.addListener(function(alarm) {
+  if (alarm.name === SBFocus.ALARM_NAME) sbFocusApply({ type: 'tick' });
+});
+
+chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
+  if (!msg || msg.type !== 'sb_focus') return;
+  sbFocusApply(msg.action).then(function(state) {
+    sendResponse({ ok: !!state, state: state });
+  });
+  return true; // answered once the change is saved
+});

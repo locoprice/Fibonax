@@ -59,12 +59,53 @@
         members.forEach(function(row) { grid.appendChild(row); });
       });
     }
-    host._fillUI = { rows: rows, cfg: cfg, attempted: false };
+    host._fillUI = { rows: rows, cfg: cfg, attempted: false, progress: null };
     refresh(host, vm);
+  }
+  // ── PROGRESS ────────────────────────────────────────────────────
+  // The line above a long form that says how far along it is. What it counts
+  // and when it shows come from the view model (SBFillForm.progress); this
+  // only draws it, right before the form, so each surface's stylesheet can
+  // place it (the overlay and the phone keep it in view while the form
+  // scrolls). Made the first time it is needed and then updated in place, so
+  // a keystroke moves the line rather than redrawing it.
+  function drawProgress(host, state, p) {
+    var bar = state.progress;
+    if (!p || !p.show) { if (bar) bar.hidden = true; return; }
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'ff-progress';
+      var track = document.createElement('div');
+      track.className = 'ff-progress-track';
+      track.setAttribute('role', 'progressbar');
+      track.setAttribute('aria-label', 'Form progress');
+      track.setAttribute('aria-valuemin', '0');
+      var fill = document.createElement('span');
+      fill.className = 'ff-progress-fill';
+      track.appendChild(fill);
+      var text = document.createElement('span');
+      text.className = 'ff-progress-text';
+      // The same words the bar carries as its value, so a screen reader
+      // hears them once.
+      text.setAttribute('aria-hidden', 'true');
+      bar.appendChild(track);
+      bar.appendChild(text);
+      host.before(bar);
+      state.progress = bar;
+    }
+    bar.hidden = false;
+    var meter = bar.querySelector('.ff-progress-track');
+    meter.setAttribute('aria-valuemax', String(p.total));
+    meter.setAttribute('aria-valuenow', String(p.done));
+    meter.setAttribute('aria-valuetext', p.label);
+    bar.querySelector('.ff-progress-fill').style.width = p.percent + '%';
+    bar.querySelector('.ff-progress-text').textContent = p.label;
+    bar.classList.toggle('ff-progress--done', p.total > 0 && p.done === p.total);
   }
   function refresh(host, vm) {
     if (!host || !host._fillUI) return;
     var state = host._fillUI;
+    drawProgress(host, state, vm.progress);
     state.rows.forEach(function(row) {
       var field = vm.fields.find(function(f) { return f.key === row.dataset.ffKey; });
       if (!field) return;

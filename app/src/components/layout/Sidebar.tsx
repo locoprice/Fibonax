@@ -10,6 +10,7 @@ import {
   Bug,
   Github,
   Lightbulb,
+  LineChart,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -143,6 +144,8 @@ export function Sidebar() {
     // What waits for a person, across snippets, prompts and Brains.
     { to: '/review', label: 'Review', icon: ShieldCheck, count: waitingCount },
     { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+    // A Pro section, not built yet: its page says "Coming soon".
+    { to: '/business-intelligence', label: 'Business Intelligence', icon: LineChart },
   ];
 
   // One small read per session, for the Review count. Status changes made in

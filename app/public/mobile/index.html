@@ -2778,6 +2778,47 @@ svg.brain-type-icon{stroke-width:1.8}
     return groups;
   }
 
+  // ── PROGRESS ────────────────────────────────────────────────────
+  // A long form says how far along it is: a thin line above the fields and
+  // "3 of 8 filled in" beside it, on every surface. Counted here, once, so the
+  // four cannot disagree about what is left to do. A field counts once it
+  // holds an answer the text can use: something in the box and nothing wrong
+  // with it (a number that is not one, a closing date before its opening one,
+  // an Other choice with an empty box). A date that opened on today counts
+  // from the start, which is honest: it is an answer, and the person may well
+  // leave it. A field that is not visible is not counted at all.
+  //
+  // Nothing shows under the threshold. A short form is read at a glance, and
+  // a line over three boxes is decoration.
+  var PROGRESS_THRESHOLD = 5;
+
+  /**
+   * How far along a form is.
+   *
+   * @param {Array} fields  fillForm(...).fields, after the form is resolved
+   * @returns {{ show: boolean, done: number, total: number, percent: number, label: string }}
+   *   show    whether the form is long enough to carry the line
+   *   label   the words beside it, the same on every surface
+   */
+  function progress(fields) {
+    var list = Array.isArray(fields) ? fields : [];
+    var total = 0, done = 0;
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      if (!f || f.visible === false) continue;
+      total++;
+      if (trim(f.value) !== '' && !f.error) done++;
+    }
+    var all = total > 0 && done === total;
+    return {
+      show: total >= PROGRESS_THRESHOLD,
+      done: done,
+      total: total,
+      percent: total ? Math.round(done / total * 100) : 0,
+      label: all ? 'All ' + total + ' filled in' : done + ' of ' + total + ' filled in'
+    };
+  }
+
   // Only a whole line containing exclusively unanswered optional fields is
   // omitted. Mixed answered/empty lines and lines carrying rules or formulas
   // stay intact: removing them would discard independent content or logic.
@@ -2941,7 +2982,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], progress: progress([]), layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -3163,6 +3204,10 @@ svg.brain-type-icon{stroke-width:1.8}
       parts: resolved.parts,
       errors: resolved.errors,
       sections: sectionsFor(fields),
+      // How far along the form is, for the line a long form carries above its
+      // fields. Read after the form is resolved, so a box holding something
+      // the text cannot use (a number that is not one) does not count yet.
+      progress: progress(fields),
       // Hand straight to resolveBody alongside the values. A surface that
       // resolves the body itself on insert — the overlay does — must pass this
       // too, or what it inserts prints in a different format from the preview
@@ -3942,6 +3987,8 @@ svg.brain-type-icon{stroke-width:1.8}
     UNFINISHED_SHOWN: UNFINISHED_SHOWN,
     inferType: inferType,
     chooseLayout: chooseLayout,
+    progress: progress,
+    PROGRESS_THRESHOLD: PROGRESS_THRESHOLD,
     dayValue: dayValue,
     clockValue: clockValue,
     fixedShift: fixedShift,
@@ -3978,6 +4025,16 @@ svg.brain-type-icon{stroke-width:1.8}
 .ff-form [aria-invalid=true]{border-color:var(--ff-danger)!important;}
 .ff-form .ff-warn{font-size:12px;line-height:1.5;color:var(--ff-ink);margin:4px 0 0;padding:4px 8px;border-left:3px solid var(--ff-warn);border-radius:4px;background:var(--ff-warn-bg);overflow-wrap:anywhere;}
 #sb-overlay .ff-form p.ff-warn{margin:4px 0 0;padding:4px 8px;font-size:12px;color:var(--ff-ink);}
+/* The line above a long form (SBFillForm.progress): a 3px track, the filled
+   share in Azure, and "3 of 8 filled in" beside it. It sits before the form,
+   outside .ff-form, so it carries its own tokens. */
+.ff-progress{--ff-line:var(--sb-line,#E5E5EA);--ff-muted:var(--sb-ink-muted,#6E6E73);--ff-primary:var(--sb-azure,#1B4FD8);--ff-bg:var(--sb-bg,#fff);display:flex;align-items:center;gap:12px;margin:0 0 16px;}
+.ff-progress[hidden]{display:none;}
+.ff-progress .ff-progress-track{flex:1;min-width:0;height:3px;border-radius:9999px;background:var(--ff-line);overflow:hidden;}
+.ff-progress .ff-progress-fill{display:block;height:100%;width:0;border-radius:inherit;background:var(--ff-primary);transition:width 300ms cubic-bezier(.4,0,.2,1);}
+.ff-progress .ff-progress-text{flex:none;margin:0;font-size:12px;line-height:1.5;font-weight:500;color:var(--ff-muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.ff-progress.ff-progress--done .ff-progress-text{color:var(--ff-primary);}
+@media(prefers-reduced-motion:reduce){.ff-progress .ff-progress-fill{transition:none;}}
 #ff-unf-bd{position:fixed;inset:0;z-index:2147483647;background:var(--sb-scrim,rgba(0,0,0,.5));}
 #ff-unf{all:initial;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483647;box-sizing:border-box;display:flex;flex-direction:column;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:var(--sb-bg,#fff);border:1px solid var(--sb-line,#E5E5EA);border-radius:16px;box-shadow:var(--sb-shadow-md,0 4px 20px rgba(27,79,216,.12),0 1px 3px rgba(0,0,0,.06));font-family:var(--sb-font,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif);font-size:14px;line-height:1.5;color:var(--sb-ink,#1C1C1E);text-align:left;color-scheme:light;-webkit-font-smoothing:antialiased;}
 #ff-unf,#ff-unf *{box-sizing:border-box;}
@@ -4012,7 +4069,11 @@ svg.brain-type-icon{stroke-width:1.8}
 @media(max-width:480px){#ff-unf .ff-unf-head{padding:16px 12px 0 20px;}#ff-unf .ff-unf-body{padding:12px 20px 16px;}#ff-unf .ff-unf-foot{flex-direction:column-reverse;padding:12px 20px;}#ff-unf .ff-unf-secondary{margin-right:0;}#ff-unf .ff-unf-foot button{width:100%;}}
 @media(min-width:900px){#sb-overlay[role=dialog] .ff-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 #sb-overlay[role=dialog] .sb-form-content{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);padding:0;overflow:hidden;}
-#sb-overlay[role=dialog] .sb-input-pane{min-width:0;overflow-y:auto;padding:24px;overscroll-behavior:contain;}
+#sb-overlay[role=dialog] .sb-input-pane{--ff-pane-pad:24px;min-width:0;overflow-y:auto;padding:var(--ff-pane-pad);overscroll-behavior:contain;}
+/* Kept in view while the fields scroll under it, on the pane's own background
+   and across its full width. A sticky box stops short of a scroll pane's top
+   by the pane's padding, so the inset is taken back to sit flush. */
+#sb-overlay[role=dialog] .ff-progress{position:sticky;top:calc(var(--ff-pane-pad) * -1);z-index:1;margin:0 calc(var(--ff-pane-pad) * -1) 16px;padding:10px var(--ff-pane-pad);background:var(--ff-bg);}
 #sb-overlay[role=dialog] .sb-preview{min-width:0;min-height:0;display:flex;flex-direction:column;margin:0;padding:24px;border-left:1px solid var(--sb-line);border-radius:0;}
 #sb-overlay[role=dialog] .sb-preview-heading{flex:none;margin-bottom:16px;}
 #sb-overlay[role=dialog] .sb-prev{overflow-y:auto;min-height:0;flex:1;color:var(--sb-ink);padding:16px;border:1px solid var(--sb-line);border-radius:12px;background:var(--sb-bg);}
@@ -4025,6 +4086,7 @@ svg.brain-type-icon{stroke-width:1.8}
  #sb-overlay[role=dialog] .sb-view-switch button{flex:1;}
  #sb-overlay[role=dialog] .sb-form-content{display:flex;flex-direction:column;padding:0;}
  #sb-overlay[role=dialog] .sb-input-pane,#sb-overlay[role=dialog] .sb-preview{flex:1;min-height:0;padding:16px;}
+ #sb-overlay[role=dialog] .sb-input-pane{--ff-pane-pad:16px;}
  #sb-overlay[role=dialog][data-pane=fields] .sb-preview,#sb-overlay[role=dialog][data-pane=preview] .sb-input-pane{display:none;}
 }
 .d-fields.ff-form{max-height:none;overflow:visible;}
@@ -4033,13 +4095,22 @@ svg.brain-type-icon{stroke-width:1.8}
 #view-detail .fill-switch button[aria-pressed=true]{color:var(--primary);border-color:var(--primary);}
 #view-detail[data-pane=preview] .mobile-fill-pane,#view-detail[data-pane=preview] #det-link,#view-detail[data-pane=fields] .mobile-preview-pane{display:none;}
 #view-detail .ff-field .field-inline{display:block;}
+/* On the phone the line takes the page's own tokens and stays at the top of
+   the screen while the form scrolls. The snippet page scrolls as a whole (its
+   view has a minimum height, not a height), so the pane around the form never
+   scrolls itself; its overflow is made plain, or a sticky box inside it would
+   answer to that pane and never move. */
+#view-detail .det-body{overflow:visible;}
+#view-detail .ff-progress{--ff-line:var(--border,#D7DCE8);--ff-muted:var(--text2,#596478);--ff-primary:var(--primary,#1B4FD8);--ff-bg:var(--bg,#F8F9FC);position:sticky;top:0;z-index:1;margin:0 -16px 10px;padding:10px 16px;background:var(--ff-bg);}
 
 #sb-overlay[role=dialog] .sb-row .sb-inp{width:100%;}
 
 .detail:has(.d-fields){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;}
 .detail .d-fields.ff-form{max-height:320px;overflow-y:auto;min-width:0;padding-right:4px;}
 .detail:has(.d-fields) .d-body{max-height:320px;height:320px;min-width:0;margin:0;}
-.detail:has(.d-fields) .d-acts,.detail:has(.d-fields) .d-note,.detail:has(.d-fields) .d-link,.detail:has(.d-fields) .d-langs,.detail:has(.d-fields) .d-warn,.detail:has(.d-fields) .ff-picnote{grid-column:1/-1;}
+.detail:has(.d-fields) .d-acts,.detail:has(.d-fields) .d-note,.detail:has(.d-fields) .d-link,.detail:has(.d-fields) .d-langs,.detail:has(.d-fields) .d-warn,.detail:has(.d-fields) .ff-picnote,.detail:has(.d-fields) .ff-progress{grid-column:1/-1;}
+/* Above both columns; the grid's gap spaces it. */
+.detail:has(.d-fields) .ff-progress{margin:0;}
 #view-detail #prev-text{max-height:none;overflow:visible;}
 
 /* Pictures in a preview, and the line that says where they go. Host pages style
@@ -4126,12 +4197,53 @@ svg.brain-type-icon{stroke-width:1.8}
         members.forEach(function(row) { grid.appendChild(row); });
       });
     }
-    host._fillUI = { rows: rows, cfg: cfg, attempted: false };
+    host._fillUI = { rows: rows, cfg: cfg, attempted: false, progress: null };
     refresh(host, vm);
+  }
+  // ── PROGRESS ────────────────────────────────────────────────────
+  // The line above a long form that says how far along it is. What it counts
+  // and when it shows come from the view model (SBFillForm.progress); this
+  // only draws it, right before the form, so each surface's stylesheet can
+  // place it (the overlay and the phone keep it in view while the form
+  // scrolls). Made the first time it is needed and then updated in place, so
+  // a keystroke moves the line rather than redrawing it.
+  function drawProgress(host, state, p) {
+    var bar = state.progress;
+    if (!p || !p.show) { if (bar) bar.hidden = true; return; }
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'ff-progress';
+      var track = document.createElement('div');
+      track.className = 'ff-progress-track';
+      track.setAttribute('role', 'progressbar');
+      track.setAttribute('aria-label', 'Form progress');
+      track.setAttribute('aria-valuemin', '0');
+      var fill = document.createElement('span');
+      fill.className = 'ff-progress-fill';
+      track.appendChild(fill);
+      var text = document.createElement('span');
+      text.className = 'ff-progress-text';
+      // The same words the bar carries as its value, so a screen reader
+      // hears them once.
+      text.setAttribute('aria-hidden', 'true');
+      bar.appendChild(track);
+      bar.appendChild(text);
+      host.before(bar);
+      state.progress = bar;
+    }
+    bar.hidden = false;
+    var meter = bar.querySelector('.ff-progress-track');
+    meter.setAttribute('aria-valuemax', String(p.total));
+    meter.setAttribute('aria-valuenow', String(p.done));
+    meter.setAttribute('aria-valuetext', p.label);
+    bar.querySelector('.ff-progress-fill').style.width = p.percent + '%';
+    bar.querySelector('.ff-progress-text').textContent = p.label;
+    bar.classList.toggle('ff-progress--done', p.total > 0 && p.done === p.total);
   }
   function refresh(host, vm) {
     if (!host || !host._fillUI) return;
     var state = host._fillUI;
+    drawProgress(host, state, vm.progress);
     state.rows.forEach(function(row) {
       var field = vm.fields.find(function(f) { return f.key === row.dataset.ffKey; });
       if (!field) return;
@@ -6686,6 +6798,15 @@ function readSession(){
     if(s.expires_at&&s.expires_at*1000<Date.now())return null;
     return s;
   }catch(e){return null;}
+}
+/* Pro: app_metadata.plan is 'pro' and app_metadata.pro_until is a real date
+   that has not passed. Same rule as is_pro() on the server and isProPlan in
+   app/src/lib/proFeatures.ts; the server checks again on every AI call. */
+function isProAccount(){
+  var m=SESSION&&SESSION.user&&SESSION.user.app_metadata;
+  if(!m||m.plan!=='pro'||typeof m.pro_until!=='string')return false;
+  var ends=Date.parse(m.pro_until);
+  return isFinite(ends)&&ends>Date.now();
 }
 function clearLocalCaches(){
   try{localStorage.removeItem('sb_mob_cache');}catch(e){}
@@ -10414,12 +10535,13 @@ function pasteCapture(bid){
 }
 /* ── Save to Brain: Read a picture ── */
 /* A screenshot or a photo becomes text in the box, read by the read-picture
-   server function; the person checks it and saves. Pro, and the Pro plan does
-   not exist yet: until it does the row stays where it will live, locked, and
-   the tip under it says how to get the text out of a picture without it.
+   server function; the person checks it and saves. Pro only: for an account
+   that is not Pro the row stays where it lives, locked, and the tip under it
+   says how to get the text out of a picture without it.
    Keep in step with PRO_SOON_LABEL and the 'picture' switch in
    app/src/lib/proFeatures.ts: scripts/check-pro-gate.js. */
-var PICTURE_AVAILABLE=false;
+var PICTURE_AVAILABLE=true;
+function pictureOn(){return PICTURE_AVAILABLE&&isProAccount();}
 var PICTURE_TIP='Text in a screenshot? Copy it with Live Text on iPhone or Google Lens on Android, then paste it here.';
 /* Every AI feature counts against one per-person limit (ai_call_allow).
    Same words as AI_LIMIT_MESSAGE in app/src/lib/api/edgeFunctionError.ts. */
@@ -10450,13 +10572,13 @@ var picReading=false, _picSeq=0;
 
 function syncPictureRow(){
   var row=document.getElementById('sb-cap-pic');
-  row.classList.toggle('locked',!PICTURE_AVAILABLE);
-  row.setAttribute('aria-disabled',PICTURE_AVAILABLE&&!picReading?'false':'true');
+  row.classList.toggle('locked',!pictureOn());
+  row.setAttribute('aria-disabled',pictureOn()&&!picReading?'false':'true');
   row.setAttribute('aria-busy',picReading?'true':'false');
   /* A phone has no hover, so a locked row says why in plain sight. */
-  document.getElementById('sb-cap-pic-d').textContent=!PICTURE_AVAILABLE?PRO_SOON_LABEL
+  document.getElementById('sb-cap-pic-d').textContent=!pictureOn()?PRO_SOON_LABEL
     :picReading?'Reading the picture…':'A screenshot or a photo becomes text to check';
-  document.getElementById('sb-cap-tip').textContent=PICTURE_AVAILABLE?'':PICTURE_TIP;
+  document.getElementById('sb-cap-tip').textContent=pictureOn()?'':PICTURE_TIP;
   // Saving in the middle of a reading would leave its text behind.
   if(!capSaving)document.getElementById('sb-cap-save').disabled=picReading;
 }
@@ -10516,7 +10638,7 @@ function capAddPicture(b){
     :'Picture read ✓ Check the text, then Save');
 }
 function readPicture(file){
-  if(!PICTURE_AVAILABLE||picReading||capSaving)return;
+  if(!pictureOn()||picReading||capSaving)return;
   var seq=++_picSeq;
   picReading=true;
   capError('');
@@ -10620,7 +10742,7 @@ function saveCapture(){
   });
   /* Read a picture: locked, a tap only says why. */
   document.getElementById('sb-cap-pic').addEventListener('click',function(){
-    if(!PICTURE_AVAILABLE){showToast(PRO_SOON_LABEL);return;}
+    if(!pictureOn()){showToast(PRO_SOON_LABEL);return;}
     if(picReading||capSaving)return;
     document.getElementById('sb-cap-file').click();
   });
@@ -12024,12 +12146,13 @@ var ASK_VERDICTS=[
   {value:'conflicting',label:'Conflicts with policy'}
 ];
 var ASK_MIN=3, ASK_MAX=1000;
-/* FiboChat needs Pro, and the Pro plan does not exist yet. Until it does
-   the row stays where it will live, locked, and nothing here can send a
-   request. Keep in step with PRO_SOON_LABEL and the 'ask' switch in
-   app/src/lib/proFeatures.ts: scripts/check-pro-gate.js. */
+/* FiboChat needs Pro. For an account that is not Pro the row stays where it
+   lives, locked, and nothing here can send a request. Keep in step with
+   PRO_SOON_LABEL and the 'ask' switch in app/src/lib/proFeatures.ts:
+   scripts/check-pro-gate.js. */
 var PRO_SOON_LABEL='Available to Pro users soon';
-var ASK_AVAILABLE=false;
+var ASK_AVAILABLE=true;
+function askOn(){return ASK_AVAILABLE&&isProAccount();}
 var ASK_ERRORS={
   pro_required:AI_PRO_TEXT,
   pro_check_failed:AI_PRO_CHECK_TEXT,
@@ -12051,12 +12174,12 @@ function syncAskRow(inputId){
   if(!input||!row)return;
   var q=input.value.trim();
   row.classList.toggle('sb-hidden',q.length<ASK_MIN);
-  row.classList.toggle('locked',!ASK_AVAILABLE);
-  row.setAttribute('aria-disabled',ASK_AVAILABLE?'false':'true');
-  if(ASK_AVAILABLE)row.removeAttribute('title');
+  row.classList.toggle('locked',!askOn());
+  row.setAttribute('aria-disabled',askOn()?'false':'true');
+  if(askOn())row.removeAttribute('title');
   else row.setAttribute('title',PRO_SOON_LABEL);
   /* A phone has no hover, so a locked row says why in plain sight. */
-  row.querySelector('.ask-row-q').textContent=ASK_AVAILABLE
+  row.querySelector('.ask-row-q').textContent=askOn()
     ?'Answer “'+q.slice(0,ASK_MAX)+'” from your snippets and Brains'
     :PRO_SOON_LABEL;
 }
@@ -12161,7 +12284,7 @@ function runAsk(){
   });
 }
 function openAsk(question){
-  if(!ASK_AVAILABLE)return;
+  if(!askOn())return;
   var q=String(question||'').trim().slice(0,ASK_MAX);
   if(q.length<ASK_MIN)return;
   clearTimeout(_askSheetTimer);
@@ -12262,7 +12385,7 @@ function askOpenSource(ref){
   });
   document.querySelectorAll('.ask-row').forEach(function(row){
     row.addEventListener('click',function(){
-      if(!ASK_AVAILABLE){showToast(PRO_SOON_LABEL);return;}
+      if(!askOn()){showToast(PRO_SOON_LABEL);return;}
       var input=document.getElementById(row.getAttribute('data-ask-for'));
       if(input){input.blur();openAsk(input.value);}
     });
@@ -12797,13 +12920,13 @@ document.getElementById('sb-modal-save').addEventListener('click',function(e){
 
 /* ── QUICK ACTIONS ──────────────────────────────── */
 /* One bar, written once and mounted on every page that has a [data-mqa] slot,
-   so the three pages cannot drift apart. Prompts · Snippets · Brains act as a
+   so the three pages cannot drift apart. Snippets · Prompts · Brains act as a
    segmented page switch: the current page's tile stays pushed. The third
    section is called Brains wherever someone reads it, as on the dashboard;
    "memory" is only its name inside the code. */
 var QUICK_ACTIONS=[
-  {qa:'prompts',label:'Prompts',svg:PROMPT_SVG},
   {qa:'snippets',label:'Snippets',svg:SNIPPET_SVG},
+  {qa:'prompts',label:'Prompts',svg:PROMPT_SVG},
   {qa:'memory',label:'Brains',svg:BRAIN_SVG}
 ];
 function mountQuickActions(){
@@ -13888,7 +14011,8 @@ function renderAnalytics(){
   });
   var paretoTarget=(anParetoKind==='prompt'&&pareto.prompts?'prompts':'snippets');
   html+=anSection('What does most of your work','Ranked by uses in this period. Your key '+paretoTarget
-    +' are the top ones that together reach '+UA.PARETO_TARGET+'% of them.',anParetoHtml(pareto));
+    +' are the top ones that together reach '+UA.PARETO_TARGET+'% of them. This is the Pareto principle,'
+    +' the 80/20 rule: a few things do most of the work.',anParetoHtml(pareto));
 
   html+=anSection('Top snippets','Your ten most-inserted snippets, each with its share of all your inserts.',
     report.top.length?anRows(report.top,{rank:true,bar:true,tap:true,trend:true})
