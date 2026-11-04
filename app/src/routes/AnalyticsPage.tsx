@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { LoadErrorCard } from '@/components/shared/LoadErrorCard';
 import { Card } from '@/components/ui/card';
 import { Segmented } from '@/components/ui/segmented';
 import { ActivityHeatmap } from '@/features/analytics/ActivityHeatmap';
@@ -179,19 +180,11 @@ export function AnalyticsPage() {
     return (
       <>
         {header}
-        <Card className="flex items-center justify-between gap-4 p-6">
-          <div>
-            <p className="font-medium text-ink">Your figures could not load.</p>
-            <p className="mt-1 text-sm text-ink-muted">{usageError} Check your connection and try again.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void loadUsage()}
-            className="shrink-0 rounded-[8px] bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            Try again
-          </button>
-        </Card>
+        <LoadErrorCard
+          title="Your figures could not load."
+          message={`${usageError} Check your connection and try again.`}
+          onRetry={() => void loadUsage()}
+        />
       </>
     );
   }
