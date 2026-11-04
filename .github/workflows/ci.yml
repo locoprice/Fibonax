@@ -113,6 +113,9 @@ jobs:
       - name: Phone Analytics reads the shared figures
         run: node scripts/sync-usage-analytics.js --check
 
+      - name: Monthly recap email
+        run: node scripts/check-monthly-recap.js
+
       - name: Industry-neutral wording check
         run: node scripts/check-industry-neutral.js
 

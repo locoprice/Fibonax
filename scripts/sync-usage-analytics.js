@@ -4,7 +4,8 @@
 // loads. The mobile companion is a single file and cannot load extension/, so
 // it carries the module between markers; this writes that copy, and with
 // --check asserts it matches (a CI gate, the same shape as
-// scripts/sync-snippet-stats.js).
+// scripts/sync-snippet-stats.js). The monthly recap server function keeps a
+// third copy (SERVER_TARGET below), written and checked the same way.
 //
 // It also pins that the phone's Analytics page reads its figures THROUGH the
 // module (SBUsageAnalytics.compute, .pareto and .team), so the two pages cannot drift
@@ -22,6 +23,11 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const SOURCE = path.join(ROOT, 'extension', 'shared', 'usage-analytics.js');
 const TARGET = path.join(ROOT, 'app', 'public', 'mobile', 'index.html');
+// The monthly recap email (services/supabase/functions/monthly-recap) runs the
+// same module on the server, which can only load files beside it. This is its
+// copy, whole, under one header.
+const SERVER_TARGET = path.join(ROOT, 'services', 'supabase', 'functions', '_shared', 'usage-analytics.js');
+const SERVER_HEADER = '// GENERATED from extension/shared/usage-analytics.js by scripts/sync-usage-analytics.js. Do not edit: change the source and run the script.\n';
 const BEGIN = '<!-- SB_USAGE_ANALYTICS:BEGIN (generated from extension/shared/usage-analytics.js by scripts/sync-usage-analytics.js, do not edit) -->';
 const END = '<!-- SB_USAGE_ANALYTICS:END -->';
 const ANCHOR = '<!-- SB_INTERACTIVE_STEPS:BEGIN';
@@ -68,6 +74,18 @@ function main() {
     html = html.slice(0, at) + desired + '\n' + html.slice(at);
     fs.writeFileSync(TARGET, html);
     console.log('SYNC ' + rel(TARGET) + ' usage-analytics written');
+  }
+
+  const server = SERVER_HEADER + readText(SOURCE);
+  const current = fs.existsSync(SERVER_TARGET) ? readText(SERVER_TARGET) : null;
+  if (current === server) {
+    console.log('OK   ' + rel(SERVER_TARGET) + ' in sync');
+  } else if (check) {
+    console.error('X    ' + rel(SERVER_TARGET) + ' has drifted -> run: node scripts/sync-usage-analytics.js');
+    failed = true;
+  } else {
+    fs.writeFileSync(SERVER_TARGET, server);
+    console.log('SYNC ' + rel(SERVER_TARGET) + ' written');
   }
 
   const page = readText(TARGET);

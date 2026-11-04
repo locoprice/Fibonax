@@ -10,6 +10,7 @@ import { DeleteAccountPanel } from '@/features/settings/DeleteAccountPanel';
 import { InactivityPanel } from '@/features/settings/InactivityPanel';
 import { InlineTriggerPanel } from '@/features/settings/InlineTriggerPanel';
 import { IntegrationsPanel } from '@/features/settings/IntegrationsPanel';
+import { MonthlyRecapPanel } from '@/features/settings/MonthlyRecapPanel';
 import { PasswordPanel } from '@/features/settings/PasswordPanel';
 import { SaintOfDayPanel } from '@/features/settings/SaintOfDayPanel';
 import { SecurityPanel } from '@/features/settings/SecurityPanel';
@@ -72,6 +73,7 @@ export function SettingsPage() {
               <div className="grid gap-5">
                 <AccountPanel />
                 <BrandingPanel />
+                <MonthlyRecapPanel />
                 <SaintOfDayPanel />
               </div>
               <div className="grid gap-5">

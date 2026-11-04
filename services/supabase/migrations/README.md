@@ -142,6 +142,12 @@ From the 2026-10-26 global audit. Rules, one new table of timestamps and indexes
 | `20261030120000_usage_device_and_prompt_events.sql` | ✅ applied 2026-10-30 (MCP `apply_migration`, after a rolled-back trial on live) | `snippet_events.device`, `public.prompt_events`, `increment_prompt_usage(uuid, text)` (the one-argument form is dropped; the default keeps old callers working), and 59 prompt uses moved out of `snippet_events`. Live check after: 59 rows in `prompt_events`, the two-argument signature, the device column. |
 | `20261031120000_team_prompt_last_use_and_activity.sql` | ✅ applied 2026-10-30 (MCP `apply_migration`, same trial) | `shared_prompt_last_use()` for the "Last used by" line on team prompts, and `team_usage_by_member()` re-created with a `prompts` column, `uses` now counting shared snippets and shared prompts. Trial as a real team account: the prompt it used showed it as last user, nobody saw another person's events, a backwards window returned nothing. Undo: `rollbacks/20261031120000_team_prompt_last_use_and_activity.undo.sql`. |
 
+## Monthly recap email (MONTHLY-RECAP)
+
+| File | Status | Notes |
+|---|---|---|
+| `20261104120000_monthly_recap.sql` | ✅ applied 2026-11-04 (MCP `apply_migration`, recorded as `monthly_recap`, after a rolled-back trial on live) | Enables `pg_cron` and `pg_net`. `public.monthly_recap` (the per-account switch, the one-click stop token, the last month sent), `public.monthly_recap_runs` (one row per scheduled run, claimed once by the `monthly-recap` edge function), `monthly_recap_setting()` / `set_monthly_recap(boolean)` for the dashboard switch, `monthly_recap_recipients(month, user)` and `monthly_recap_library(user)` for the function (service_role only), `monthly_recap_kick()` for the cron job, scheduled as `monthly-recap` at 07:00 UTC on the 1st. Trial on live, rolled back: 3 recipients for 2026-10 with the right all-time counts, the one-person lookup, a 96-snippet library read under the person's own access, the switch off and back on. `monthly-recap` deployed (v1, `verify_jwt` off: the stop link and the cron job carry no JWT; the function checks each caller itself). Needs the `RESEND_API_KEY` function secret. Undo: `rollbacks/20261104120000_monthly_recap.undo.sql`. |
+
 ## Adding a new migration
 
 ```sh

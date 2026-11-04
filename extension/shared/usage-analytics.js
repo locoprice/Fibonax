@@ -16,6 +16,9 @@
 //              the team for a shared snippet. It is what "never used" and "not
 //              used for 90 days" read, because the event window is finite.
 //   period     7, 30, 90 or 365 days, ending today
+//   month      'YYYY-MM' instead of a period: that calendar month, compared
+//              with the calendar month before it (the monthly recap email).
+//              Pass a finished month: an unfinished one is cut at today.
 //   now        a timestamp, passed in so the gate can pin the clock
 //
 // pareto() reads the same inputs, plus the prompt log (public.prompt_events)
@@ -50,6 +53,7 @@
   var WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   var WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   var MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var LANG_NAMES = { EN: 'English', IT: 'Italian', ES: 'Spanish', FR: 'French', DE: 'German', PT: 'Portuguese', MULTI: 'Several languages' };
 
   function pad(n) { return n < 10 ? '0' + n : String(n); }
@@ -80,14 +84,55 @@
     return n === 365 ? 'Last 12 months' : 'Last ' + n + ' days';
   }
 
-  /** The two windows a period compares, as Dates (start inclusive, end exclusive). */
-  function range(period, now) {
-    var p = normalizePeriod(period);
+  /** 'YYYY-MM' as { year, month (1-12) }, or null for anything else. */
+  function monthKey(value) {
+    var m = /^(\d{4})-(\d{2})$/.exec(String(value || ''));
+    if (!m) return null;
+    var month = Number(m[2]);
+    if (month < 1 || month > 12) return null;
+    return { year: Number(m[1]), month: month };
+  }
+
+  /** Calendar days from one local midnight to another, whatever the clock change does in between. */
+  function daysBetween(from, to) {
+    return Math.round((to.getTime() - from.getTime()) / 86400000);
+  }
+
+  /**
+   * The two windows compared, as Dates (start inclusive, end exclusive).
+   * A period is the last N days ending today; a month is that calendar month
+   * against the calendar month before it, which may be a different length
+   * (`prevDays`). `today` is the last day inside the window.
+   */
+  function range(period, now, month) {
+    var key = monthKey(month);
     var today = startOfDay(now);
+    if (key) {
+      var mStart = new Date(key.year, key.month - 1, 1);
+      var mEnd = new Date(key.year, key.month, 1);
+      var mPrev = new Date(key.year, key.month - 2, 1);
+      var last = addDays(mEnd, -1);
+      return {
+        period: daysBetween(mStart, mEnd),
+        prevDays: daysBetween(mPrev, mStart),
+        start: mStart,
+        end: mEnd,
+        prevStart: mPrev,
+        prevEnd: mStart,
+        today: last < today ? last : today,
+        month: key.year + '-' + pad(key.month)
+      };
+    }
+    var p = normalizePeriod(period);
     var end = addDays(today, 1);
     var start = addDays(today, -(p - 1));
     var prevStart = addDays(start, -p);
-    return { period: p, start: start, end: end, prevStart: prevStart, prevEnd: start, today: today };
+    return { period: p, prevDays: p, start: start, end: end, prevStart: prevStart, prevEnd: start, today: today, month: null };
+  }
+
+  /** "Last 30 days" for a period, "October 2026" for a month. */
+  function windowLabel(r) {
+    return r.month ? MONTHS_LONG[r.start.getMonth()] + ' ' + r.start.getFullYear() : periodLabel(r.period);
   }
 
   /** Where the event read has to start for every figure to be complete. */
@@ -263,7 +308,7 @@
   function compute(input) {
     var inp = input || {};
     var now = Number(inp.now) || Date.now();
-    var r = range(inp.period, now);
+    var r = range(inp.period, now, inp.month);
     var p = r.period;
     var snippets = Array.isArray(inp.snippets) ? inp.snippets : [];
     var folders = Array.isArray(inp.folders) ? inp.folders : [];
@@ -297,7 +342,7 @@
 
     function known(id) { return !!snipById[id]; }
     var totals = windowTotals(cur, p, r.start, known);
-    var prevTotals = windowTotals(prev, p, r.prevStart, known);
+    var prevTotals = windowTotals(prev, r.prevDays, r.prevStart, known);
 
     // Daily series, with the previous period's same day beside it and a
     // trailing 7-day average once a period is long enough for one to mean
@@ -464,7 +509,7 @@
 
     return {
       period: p,
-      label: periodLabel(p),
+      label: windowLabel(r),
       rangeLabel: rangeLabel(r.start, r.end),
       prevRangeLabel: rangeLabel(r.prevStart, r.prevEnd),
       start: dayKey(r.start),
@@ -678,7 +723,7 @@
   function pareto(input) {
     var inp = input || {};
     var now = Number(inp.now) || Date.now();
-    var r = range(inp.period, now);
+    var r = range(inp.period, now, inp.month);
     var startMs = r.start.getTime();
     var endMs = r.end.getTime();
 
@@ -720,7 +765,7 @@
 
     return {
       period: r.period,
-      label: periodLabel(r.period),
+      label: windowLabel(r),
       rangeLabel: rangeLabel(r.start, r.end),
       snippets: snippetReport,
       prompts: promptReport

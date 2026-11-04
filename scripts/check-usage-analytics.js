@@ -188,6 +188,27 @@ check('pareto empty', [pEmpty.snippets.empty, pEmpty.snippets.headline, pEmpty.p
   [true, 'No snippets used in this period', 'No prompts used in this period', 0]);
 check('device labels', UA.DEVICE_LABELS, { computer: 'Computer', phone: 'Phone', unknown: 'Before tracking' });
 
+// A calendar month (the monthly recap email): October against September, which
+// is a day shorter. The month's last day is "today" for the streak, and a
+// month still running is cut at the real today.
+const monthEvents = [
+  ev('a', at(2026, 10, 2, 9), 1), ev('b', at(2026, 10, 3, 9)), ev('a', at(2026, 10, 31, 23, 30)),
+  ev('a', at(2026, 9, 30, 23, 59)), ev('c', at(2026, 9, 1, 0, 0)),
+  ev('a', at(2026, 8, 31, 23, 59)),
+];
+const mo = UA.compute({ now: new Date(2026, 11, 1, 9).getTime(), month: '2026-10', events: monthEvents, snippets, folders });
+check('month window', [mo.period, mo.label, mo.rangeLabel, mo.prevRangeLabel, mo.start, mo.prevStart, mo.series.length],
+  [31, 'October 2026', 'Oct 1 – Oct 31, 2026', 'Sep 1 – Sep 30, 2026', '2026-10-01', '2026-09-01', 31]);
+check('month totals against the month before', [mo.totals.uses.cur, mo.totals.uses.prev, mo.totals.uses.text, mo.totals.activeDays.cur, mo.totals.activeDays.prev, mo.totals.days],
+  [3, 2, '+50%', 3, 2, 31]);
+check('month streak runs to the month end', mo.patterns.streak.longestInPeriod, 2);
+check('month series ends on the 31st', [mo.series[30].date, mo.series[30].count, mo.series[0].prev], ['2026-10-31', 1, 1]);
+const running = UA.compute({ now: NOW, month: '2026-10', events: monthEvents, snippets, folders });
+check('an unfinished month is cut at today', [running.totals.uses.cur, running.patterns.streak.current], [2, 0]);
+check('a bad month falls back to the period', UA.compute({ now: NOW, month: '2026-13', period: 7, events: [], snippets, folders }).label, 'Last 7 days');
+const moP = UA.pareto({ now: new Date(2026, 11, 1, 9).getTime(), month: '2026-10', events: monthEvents, snippets, folders });
+check('pareto by month', [moP.label, moP.snippets.uses, moP.snippets.headline], ['October 2026', 3, '2 snippets did all of your work']);
+
 if (failed) {
   console.error('\n' + failed + ' usage analytics check(s) failed');
   process.exit(1);
