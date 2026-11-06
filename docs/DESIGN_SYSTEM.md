@@ -174,6 +174,8 @@ No strategy set means no chip.
 | `warning-bg`   | `#FFFBEB` | Amber tint ground. Mirrors `--sb-warn-bg` |
 | `danger`       | `#D70015` | Destructive (Apple SF system red — AA-safe as text on `card`) |
 | `danger-bg`    | `#FEF2F2` | Red tint ground. Mirrors `--sb-danger-bg` |
+| `sand`         | `#F2E6D3` | Beige fill of the **Beta** tag on a sidebar section still being built |
+| `sand-ink`     | `#7A5A2B` | Text on `sand` (5:1) |
 
 **Known divergence:** the extension's `--sb-danger` is `#DC2626`, not the canonical `#D70015` above. It predates this table and is used by every danger element in the popup, so status badges inherit it — the wrench reads marginally warmer in the extension than in the dashboard. Aligning the token is a follow-up (below), not a per-component override: hard-coded hexes in component files stay forbidden.
 
@@ -567,3 +569,7 @@ The extension's Pomodoro timer ("focus" inside the code). **Popup:** the clock i
 ### Settings page in the Analytics shell (v3.115.0)
 
 Settings wears the Analytics page's shell. The section switch (**Account**, **Security**, **Integrations**) is the same `Segmented` control as the Analytics period picker, in the `PageHeader` action slot; the header's description names what the open section holds. `?tab=security` still opens on Security. From `xl` the Account section is two columns on the golden ratio (`minmax(0,1.618fr) minmax(0,1fr)`, `items-start`, `gap-5`): who you are and what the dashboard shows on the left (Account, Company branding, Santo del Giorno), how snippets are inserted on the right (Triggers & Prefix, Insert automatically, Unused snippets and prompts), chosen so the two columns end within about 80 px of each other. Delete account stays last, full width, `mt-6` below, and is the one card in the danger tint: `danger-bg` fill, `danger` border at 30%, footer rule at 20%, and its button a white `card` pill with `danger` text. Security puts Password full width, then Your devices and Recent login activity on the same golden columns. Below `xl` every section is one column in the same order. Card titles carry no icon, like the Analytics section cards. While the profile loads, the Account section shows two `animate-pulse` blocks in the column grid; when it cannot load, `LoadErrorCard` (shared with Analytics) says so with **Try again**. No new tokens.
+
+### Business Intelligence: keyword sphere and Beta tag (v3.117.0)
+
+The Business Intelligence page shows the topics it will cover as a sphere of words above the chess board (`components/shared/KeywordSphere.tsx`). The words sit on a Fibonacci sphere (golden angle spacing) of 180 px radius inside a `1.618/1` box 700 px wide, tilted forward 0.35 rad, and turn once every 34 seconds. Sizes step on the golden ratio through Fibonacci numbers: 13 px medium `ink-muted`, 21 px semibold `ink`, 34 px bold `primary`. Depth scales a word from 0.62 to 1 and fades it from 28% to full opacity, transform and opacity only. Visual only, nothing is clickable; the words stay a labelled list for screen readers. Under `prefers-reduced-motion` the sphere stays still in the same box. In the sidebar the entry carries a **Beta** tag: a `r-pill` in `sand` with `sand-ink` text, 10 px semibold uppercase, pushed to the row's right edge.

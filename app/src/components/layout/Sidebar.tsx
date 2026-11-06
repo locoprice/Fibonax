@@ -52,6 +52,8 @@ interface NavItem {
   countLabel?: string;
   /** Renders a hairline above this item, splitting the content trio from the rest. */
   dividerBefore?: boolean;
+  /** A beige tag after the label, for a section still being built. */
+  beta?: boolean;
 }
 
 function navClass({ isActive, collapsed }: { isActive: boolean; collapsed: boolean }): string {
@@ -145,7 +147,7 @@ export function Sidebar() {
     { to: '/review', label: 'Review', icon: ShieldCheck, count: waitingCount },
     { to: '/analytics', label: 'Analytics', icon: BarChart3 },
     // A Pro section, not built yet: its page says "Coming soon".
-    { to: '/business-intelligence', label: 'Business Intelligence', icon: LineChart },
+    { to: '/business-intelligence', label: 'Business Intelligence', icon: LineChart, beta: true },
   ];
 
   // One small read per session, for the Review count. Status changes made in
@@ -233,6 +235,11 @@ export function Sidebar() {
                     <>
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.label}</span>
+                      {item.beta && (
+                        <span className="ml-auto shrink-0 rounded-full bg-sand px-1.5 py-1 text-[10px] font-semibold leading-none uppercase tracking-wide text-sand-ink">
+                          Beta
+                        </span>
+                      )}
                       {typeof item.count === 'number' && item.count > 0 ? (
                         <NavCountPill
                           count={item.count}
