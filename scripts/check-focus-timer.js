@@ -282,6 +282,9 @@ check('the break screen hands Left and Right to the carousel, and stops it when 
 check('the carousel draws only with the design tokens, in words a screen reader can use',
   !/#[0-9a-fA-F]{3,8}\b/.test(CAROUSEL) && !/rgba?\(/.test(CAROUSEL) && /aria-roledescription/.test(CAROUSEL) && /'Pause slideshow'/.test(CAROUSEL) &&
   /prefers-reduced-motion/.test(CAROUSEL) && !/[–—]/.test(CAROUSEL), true);
+check('the carousel shows every picture whole, over a blurred fill, and never crops it',
+  /\.sbc-pic\{object-fit:contain\}/.test(CAROUSEL) && /\.sbc-fill\{object-fit:cover;filter:blur\(/.test(CAROUSEL) &&
+  /fill\.alt = ''/.test(CAROUSEL) && !/\.sbc-slide\{[^}]*object-fit/.test(CAROUSEL), true);
 check('the settings carry the Detox day, its days named by the module',
   POPUP_HTML.indexOf('<label for="fo-detox">Detox day</label>') !== -1 && /data-key="detoxDay"/.test(POPUP_HTML) && /SBFocus\.DAY_NAMES\[n\]/.test(POPUP_JS), true);
 

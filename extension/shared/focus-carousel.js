@@ -13,6 +13,10 @@
 // with sbc-. Colours come from the design tokens, which reach into a shadow
 // root through inheritance.
 //
+// Every picture shows whole, never cropped: a tall family photo keeps every
+// head. What the picture does not cover is filled with a soft, blurred copy of
+// it, so the frame never shows bare bands.
+//
 // One picture is just a picture: no arrows, no dots, nothing moving. With more,
 // the gallery advances by itself every 7 seconds. It stops while the controls
 // are in use, when the person presses Pause, and always when their system asks
@@ -26,8 +30,11 @@
   var CSS =
     '.sbc{position:relative;width:100%;height:100%;overflow:hidden;background:var(--sb-ink)}' +
     '.sbc[hidden]{display:none}' +
-    '.sbc-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 600ms var(--sb-ease)}' +
+    '.sbc-slide{position:absolute;inset:0;overflow:hidden;opacity:0;transition:opacity 600ms var(--sb-ease)}' +
     '.sbc-slide.on{opacity:1}' +
+    '.sbc-fill,.sbc-pic{position:absolute;inset:0;width:100%;height:100%}' +
+    '.sbc-fill{object-fit:cover;filter:blur(34px);transform:scale(1.2);opacity:.55}' +
+    '.sbc-pic{object-fit:contain}' +
     '.sbc-bar{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;padding:4px;' +
       'max-width:calc(100% - 32px);border-radius:var(--sb-r-pill);background:var(--sb-toast-bg)}' +
     '.sbc-btn{width:36px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0;border:0;' +
@@ -109,9 +116,18 @@
     stage.style.cssText = 'position:absolute;inset:0';
     el.appendChild(stage);
 
+    // Each slide is the blurred fill behind the whole picture. Only the picture
+    // is read aloud, and only its failure to load counts.
     var slides = list.map(function(url, i) {
+      var slide = doc.createElement('div');
+      slide.className = 'sbc-slide';
+      var fill = doc.createElement('img');
+      fill.className = 'sbc-fill';
+      fill.alt = '';
+      fill.src = url;
+      slide.appendChild(fill);
       var img = doc.createElement('img');
-      img.className = 'sbc-slide';
+      img.className = 'sbc-pic';
       img.alt = slideLabel(i, n);
       img.addEventListener('error', function() {
         failed++;
@@ -122,8 +138,9 @@
         }
       });
       img.src = url;
-      stage.appendChild(img);
-      return img;
+      slide.appendChild(img);
+      stage.appendChild(slide);
+      return slide;
     });
 
     var dots = [];
@@ -148,9 +165,9 @@
 
     function show(i) {
       index = i;
-      slides.forEach(function(img, k) {
-        img.classList.toggle('on', k === i);
-        if (k === i) img.removeAttribute('aria-hidden'); else img.setAttribute('aria-hidden', 'true');
+      slides.forEach(function(slide, k) {
+        slide.classList.toggle('on', k === i);
+        if (k === i) slide.removeAttribute('aria-hidden'); else slide.setAttribute('aria-hidden', 'true');
       });
       dots.forEach(function(d, k) { d.setAttribute('aria-current', k === i ? 'true' : 'false'); });
     }
