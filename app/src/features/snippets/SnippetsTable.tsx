@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { SearchDetails } from '@/components/shared/SearchDetails';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
+import { LibraryEmptyActions } from '@/features/library/LibraryDialog';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
 import { DND_SNIPPET } from '@/features/org/FolderTree';
@@ -210,6 +212,7 @@ export function SnippetsTable() {
   const selectedIds = useSnippetStore((s) => s.selectedIds);
   const setSnippetsSelected = useSnippetStore((s) => s.setSnippetsSelected);
   const openEditSnippet = useUiStore((s) => s.openEditSnippet);
+  const openNewSnippet = useUiStore((s) => s.openNewSnippet);
   // Labels are per row, like every other per-language column here: switching a
   // grouped row's language switches which variant's labels it shows.
   const labelCatalog = useLabelStore((s) => s.labels);
@@ -273,6 +276,17 @@ export function SnippetsTable() {
           />
         ))}
       </div>
+    );
+  }
+
+  if (library.length === 0) {
+    return (
+      <EmptyState
+        icon={SnippetIcon}
+        title="No snippets yet"
+        description="A snippet holds text you type often. Create one, or start from the library."
+        action={<LibraryEmptyActions section="snippets" newLabel="New snippet" onNew={openNewSnippet} />}
+      />
     );
   }
 

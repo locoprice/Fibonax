@@ -9373,7 +9373,7 @@ function renderPromptList(){
         });
       });
     }else{
-      el.innerHTML='<div class="empty"><div class="emo">🤖</div><p>No prompts yet</p></div>';
+      el.innerHTML=memEmptyHtml('🤖','No prompts yet',LIBRARY_PHONE_HINT);
     }
     return;
   }
@@ -9881,6 +9881,9 @@ function memItemCardHtml(it,withBrain){
     +'<button type="button" class="prompt-menu" data-mem-menu="item" data-id="'+esc(it.id)+'" aria-label="More actions">⋮</button>'
   +'</div>';
 }
+/* The starter library lives on the dashboard (the phone carries no add-many
+   screen), so an empty list points there in words. Shared by all three lists. */
+var LIBRARY_PHONE_HINT='Add ready-made ones from the starter library on your computer.';
 function memEmptyHtml(emo,title,hint){
   return '<div class="empty"><div class="emo">'+emo+'</div><p>'+esc(title)+'</p>'
     +(hint?'<p class="empty-hint">'+esc(hint)+'</p>':'')+'</div>';
@@ -9940,7 +9943,7 @@ function renderMemory(){
     return;
   }
   if(!n){
-    list.innerHTML=memEmptyHtml(BRAIN_SVG,'No Brains yet','Create one in the dashboard and it shows up here.');
+    list.innerHTML=memEmptyHtml(BRAIN_SVG,'No Brains yet','Create one in the dashboard, or add a ready-made one from the starter library there.');
     return;
   }
   var q=memSearch.trim().toLowerCase();
@@ -11099,7 +11102,9 @@ function renderList(){
   groups=pinnedGroups.concat(restGroups);
   document.getElementById('cnt').textContent=groupCount(allSnips);
   if(!groups.length){
-    el.innerHTML='<div class="empty"><div class="emo">🔍</div><p>No snippets found</p></div>';
+    el.innerHTML=allSnips.length
+      ?'<div class="empty"><div class="emo">🔍</div><p>No snippets found</p></div>'
+      :memEmptyHtml('✍️','No snippets yet',LIBRARY_PHONE_HINT);
     return;
   }
   // A new search, folder or language is a new list, so it starts at page one.

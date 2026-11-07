@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { applyTheme, getStoredTheme, type ThemePreference } from '@/lib/theme';
 import { loadSaintEnabled, saveSaintEnabled } from '@/lib/saintOfDay';
+import type { LibrarySection } from '@/features/library/catalogue';
 
 // Cross-cutting UI state. Kept separate from feature stores to avoid coupling
 // the snippet panel state with global modals or theme toggles in the future.
@@ -56,6 +57,12 @@ interface UiStore {
   onboardingOpen: boolean;
   openOnboarding: () => void;
   closeOnboarding: () => void;
+
+  // Starter library window, opened for one section from its page header or
+  // its empty state. Each page mounts one window, so this holds which asked.
+  libraryOpen: LibrarySection | null;
+  openLibrary: (section: LibrarySection) => void;
+  closeLibrary: () => void;
 
   // Transient toast notification (auto-dismissed by the Toast component).
   // `action` adds one button, such as Undo, and keeps the toast up longer.
@@ -200,6 +207,10 @@ export const useUiStore = create<UiStore>((set) => ({
   onboardingOpen: false,
   openOnboarding: () => set({ onboardingOpen: true }),
   closeOnboarding: () => set({ onboardingOpen: false }),
+
+  libraryOpen: null,
+  openLibrary: (section) => set({ libraryOpen: section }),
+  closeLibrary: () => set({ libraryOpen: null }),
 
   toast: null,
   showToast: (message, type = 'success', action) => set({ toast: { message, type, action } }),

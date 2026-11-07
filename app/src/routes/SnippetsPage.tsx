@@ -6,6 +6,7 @@ import { InactiveAssetBanner } from '@/components/shared/InactiveAssetBanner';
 import { useTeamLastUseRefresh } from '@/components/shared/TeamLastUseLine';
 import { FolderBreadcrumb } from '@/features/org/FolderBreadcrumb';
 import { LabelManagerDialog } from '@/features/labels/LabelManagerDialog';
+import { LibraryButton, LibraryDialog } from '@/features/library/LibraryDialog';
 import { BulkActionsBar } from '@/features/snippets/BulkActionsBar';
 import { FilterToolbar } from '@/features/snippets/FilterToolbar';
 import { ImportExportButtons, type ImportResult } from '@/features/snippets/ImportExportButtons';
@@ -103,6 +104,7 @@ export function SnippetsPage() {
     <>
       <VersionHistoryPanel />
       <LabelManagerDialog />
+      <LibraryDialog section="snippets" />
       <PageHeader
         breadcrumb={
           selectedFolder ? (
@@ -122,6 +124,7 @@ export function SnippetsPage() {
         }
         action={
           <>
+            <LibraryButton section="snippets" />
             <ImportExportButtons onResult={setImportResult} />
             <NewSnippetDialog />
           </>

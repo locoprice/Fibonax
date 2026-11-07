@@ -1838,7 +1838,8 @@ function renderList(q){
         return;
       }
     }
-    el.innerHTML='<div class="empty">'+(q?'No matches for &ldquo;'+esc(q)+'&rdquo;.':'No snippets yet.<br><small>Create snippets in the dashboard.</small>')+'</div>';
+    el.innerHTML='<div class="empty">'+(q?'No matches for &ldquo;'+esc(q)+'&rdquo;.':'No snippets yet.<br><small>Create snippets in the dashboard.</small>'+libraryLinkHtml('snippets'))+'</div>';
+    wireLibraryLink(el);
     return;
   }
 
@@ -2397,7 +2398,8 @@ function renderPrompts(q) {
   }
   if (ct) ct.textContent = prompts.length;
   if (!filtered.length) {
-    el.innerHTML = '<div class="p-empty">'+(q?'No prompts match &ldquo;'+esc(q)+'&rdquo;':'No prompts yet.<br>Create and edit prompts in the <strong>dashboard</strong>.')+'</div>';
+    el.innerHTML = '<div class="p-empty">'+(q?'No prompts match &ldquo;'+esc(q)+'&rdquo;':'No prompts yet.<br>Create and edit prompts in the <strong>dashboard</strong>.'+libraryLinkHtml('prompts'))+'</div>';
+    wireLibraryLink(el);
     return;
   }
   // Pinned prompts float to the top (pin is set on the dashboard or mobile);
@@ -2617,7 +2619,8 @@ function renderBrains(q){
   }
   el.setAttribute('aria-busy', 'false');
   if (!brains.length) {
-    el.innerHTML = '<div class="p-empty">No Brains yet.<br>Create one in the <strong>dashboard</strong>.</div>';
+    el.innerHTML = '<div class="p-empty">No Brains yet.<br>Create one in the <strong>dashboard</strong>.'+libraryLinkHtml('brains')+'</div>';
+    wireLibraryLink(el);
     return;
   }
   var lq = String(q || '').trim().toLowerCase();
@@ -3066,6 +3069,23 @@ function openDashboard(){
   } catch(e) {
     try { chrome.tabs.create({ url: SB_DASHBOARD_HOME_URL }); } catch(e2) { window.open(SB_DASHBOARD_HOME_URL, '_blank'); }
   }
+}
+
+// Starter library — the empty Snippets, Prompts and Brains lists offer it.
+// The dashboard page opens its library window when its address carries
+// ?library (LibraryDialog), and sign-in keeps the address.
+var SB_LIBRARY_PATHS = { snippets: '', prompts: 'prompts', brains: 'memory' };
+function libraryLinkHtml(section){
+  return '<br><button class="lib-link" type="button" data-library="'+section+'">Browse the starter library</button>';
+}
+function wireLibraryLink(el){
+  var b = el.querySelector('[data-library]');
+  if (!b) return;
+  b.addEventListener('click', function(){
+    var url = SB_DASHBOARD_HOME_URL + SB_LIBRARY_PATHS[b.getAttribute('data-library')] + '?library';
+    try { chrome.tabs.create({ url: url }); }
+    catch(e) { try { window.open(url, '_blank'); } catch(e2) {} }
+  });
 }
 
 // WIRE EVENTS

@@ -9,6 +9,7 @@ import { InactiveAssetBanner } from '@/components/shared/InactiveAssetBanner';
 import { useTeamLastUseRefresh } from '@/components/shared/TeamLastUseLine';
 import { Button } from '@/components/ui/button';
 import { LabelManagerDialog } from '@/features/labels/LabelManagerDialog';
+import { LibraryButton, LibraryDialog, LibraryEmptyActions } from '@/features/library/LibraryDialog';
 import { PromptCard } from '@/features/prompts/PromptCard';
 import { PromptBlockEditor } from '@/features/prompts/PromptBlockEditor';
 import { PromptFilters } from '@/features/prompts/PromptFilters';
@@ -98,12 +99,16 @@ export function PromptsPage() {
         tag="reasoning assets"
         description="AI reasoning infrastructure. Structured, executable workflows."
         action={
-          <Button onClick={openNewPrompt}>
-            <Plus className="h-4 w-4" />
-            New prompt
-          </Button>
+          <>
+            <LibraryButton section="prompts" />
+            <Button onClick={openNewPrompt}>
+              <Plus className="h-4 w-4" />
+              New prompt
+            </Button>
+          </>
         }
       />
+      <LibraryDialog section="prompts" />
 
       {error && (
         <PageBanner tone="error" onDismiss={clearError}>
@@ -130,15 +135,12 @@ export function PromptsPage() {
             title={prompts.length === 0 ? 'No prompts yet' : 'Nothing matches'}
             description={
               prompts.length === 0
-                ? 'A prompt holds a reusable instruction for your assistant. Create one to get started.'
+                ? 'A prompt holds a reusable instruction for your assistant. Create one, or start from the library.'
                 : 'Try a different search, or clear the filters.'
             }
             action={
               prompts.length === 0 ? (
-                <Button onClick={openNewPrompt}>
-                  <Plus className="h-4 w-4" />
-                  New prompt
-                </Button>
+                <LibraryEmptyActions section="prompts" newLabel="New prompt" onNew={openNewPrompt} />
               ) : (
                 <Button
                   variant="ghost"

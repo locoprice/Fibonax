@@ -29,6 +29,7 @@
             "pages": [
               "introduction",
               "quickstart",
+              "library/overview",
               "install-extension",
               "pomodoro-timer"
             ]
