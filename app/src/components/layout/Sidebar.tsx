@@ -28,6 +28,7 @@ import { RESOURCE_LINKS } from '@/lib/links';
 import { useGettingStartedVisible } from '@/lib/useGettingStartedVisible';
 import { JotFormModal } from '@/components/layout/JotFormModal';
 import { NavCountPill } from '@/components/layout/NavCountPill';
+import { SidebarLine } from '@/components/layout/SidebarLine';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/stores/authStore';
@@ -286,7 +287,10 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* User block — click to open menu */}
+      {/* Too wide for the collapsed rail. */}
+      {!collapsed && <SidebarLine />}
+
+      {/* User block, click to open menu */}
       <div
         ref={menuRef}
         className={cn(
