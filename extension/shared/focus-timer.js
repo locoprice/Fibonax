@@ -1,7 +1,7 @@
 // focus-timer.js: the Pomodoro timer's rules, decided once.
 //
-// A Pomodoro timer in the extension: work sessions, a short break after each,
-// and a long break after the last session of a block. Three places use it:
+// A Pomodoro timer: work sessions, a short break after each, and a long break
+// after the last session of a block. Four places use it:
 //
 //   extension/background/background.js   the only writer: every change goes
 //                                        through reduce(), the alarm sits on
@@ -9,10 +9,14 @@
 //                                        chime plays through offscreen/chime.html
 //   extension/popup/popup.js             the Pomodoro timer pane and the header button
 //   extension/content/focus-break.js     the break screen on every web page
+//   app/public/mobile/index.html         the phone: a generated copy of this
+//                                        file (scripts/sync-focus-timer.js)
 //
 // Everything here is pure: a state and a time go in, a state comes out. The
-// state lives in chrome.storage.local under STORAGE_KEY, on this device only;
-// nothing is sent anywhere. scripts/check-focus-timer.js runs these rules over
+// only exception is playChime, which draws on the AudioContext it is handed.
+// The state lives under STORAGE_KEY, in chrome.storage.local on a computer and
+// localStorage on a phone: each device keeps its own timer and nothing is sent
+// anywhere. scripts/check-focus-timer.js runs these rules over
 // the cases that matter: a whole block, an extra break, a skip, a pause, a
 // computer that slept through a phase, the six-hour and detox day warnings.
 (function(root) {
@@ -73,10 +77,15 @@
   var PHOTO_KEY = 'sb_focus_photos';
   var PHOTO_MAX = 5;
   var PHOTO_MAX_SIDE = 1280;
+  var PHOTO_QUALITY = 0.82;
   var IMAGE_URL = /^data:image\/(jpeg|png|webp);base64,/;
 
   // The call when someone starts the timer on their detox day anyway.
   var DETOX_LINE = 'Your time is precious. Spend it offline, with the people and things you love.';
+
+  // The chime: two soft bell tones made by the browser, [pitch in Hz, seconds
+  // after the first], so no surface ships a sound file.
+  var CHIME_TONES = [[880, 0], [1318.5, 0.18]];
 
   function plain(value) {
     return (value && typeof value === 'object' && !Array.isArray(value)) ? value : {};
@@ -532,6 +541,39 @@
     return parts.join(' ');
   }
 
+  // The buttons a surface offers at this moment, in order. style is 'primary',
+  // 'link' or empty. 'ask' opens the question of how long the break should be.
+  function actions(v) {
+    function a(act, text, style) { return { act: act, text: text, style: style || '' }; }
+    if (v.mode === 'idle') return [a('start', 'Start', 'primary')];
+    if (v.mode === 'paused') return [a('resume', 'Resume', 'primary'), a('stop', 'Stop')];
+    if (v.mode === 'break') return [a('skip', 'Skip this break'), a('stop', 'Stop')];
+    return [a('pause', 'Pause'), a('stop', 'Stop'), a('ask', 'I need a break now', 'link')];
+  }
+
+  // How one choice reads in a settings menu.
+  function optionLabel(key, n) {
+    if (key === 'detoxDay') return DAY_NAMES[n];
+    return n + (key === 'sessions' ? ' sessions' : ' minutes');
+  }
+
+  // Plays the two tones on an AudioContext that is already running.
+  function playChime(ctx) {
+    CHIME_TONES.forEach(function(tone) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      var at = ctx.currentTime + tone[1];
+      osc.type = 'sine';
+      osc.frequency.value = tone[0];
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.25, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.6);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(at);
+      osc.stop(at + 1.7);
+    });
+  }
+
   // The header button's label while the timer runs, empty while it does not.
   function pillText(v) {
     if (v.mode === 'work') return v.clock;
@@ -581,7 +623,12 @@
     PHOTO_KEY: PHOTO_KEY,
     PHOTO_MAX: PHOTO_MAX,
     PHOTO_MAX_SIDE: PHOTO_MAX_SIDE,
+    PHOTO_QUALITY: PHOTO_QUALITY,
     DETOX_LINE: DETOX_LINE,
+    CHIME_TONES: CHIME_TONES,
+    actions: actions,
+    optionLabel: optionLabel,
+    playChime: playChime,
     isDetoxDay: isDetoxDay,
     detoxTitle: detoxTitle,
     photoItems: photoItems,

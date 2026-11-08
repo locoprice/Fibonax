@@ -2852,7 +2852,6 @@ function openCfg(){
 // shared/focus-timer.js holds its rules; the popup draws the stored state and
 // sends the background what was clicked.
 var FOCUS_SELECTS = ['fo-work', 'fo-break', 'fo-sessions', 'fo-long', 'fo-detox'];
-var FOCUS_UNITS = { workMin: ' minutes', breakMin: ' minutes', longMin: ' minutes', sessions: ' sessions' };
 var focusState = null;
 var focusActsKey = '';
 var focusTickFor = 0;
@@ -2882,13 +2881,9 @@ function focusText(id, text) {
 }
 
 function focusButtons(v) {
-  function b(act, text, cls) {
-    return '<button type="button" class="fo-btn' + (cls ? ' ' + cls : '') + '" data-act="' + act + '">' + text + '</button>';
-  }
-  if (v.mode === 'idle') return b('start', 'Start', 'primary');
-  if (v.mode === 'paused') return b('resume', 'Resume', 'primary') + b('stop', 'Stop');
-  if (v.mode === 'break') return b('skip', 'Skip this break') + b('stop', 'Stop');
-  return b('pause', 'Pause') + b('stop', 'Stop') + b('ask', 'I need a break now', 'link');
+  return SBFocus.actions(v).map(function(a) {
+    return '<button type="button" class="fo-btn' + (a.style ? ' ' + a.style : '') + '" data-act="' + a.act + '">' + a.text + '</button>';
+  }).join('');
 }
 
 function renderFocus() {
@@ -2966,8 +2961,7 @@ function focusInit() {
     if (!sel) return;
     var key = sel.getAttribute('data-key');
     sel.innerHTML = SBFocus.OPTIONS[key].map(function(n) {
-      var text = key === 'detoxDay' ? SBFocus.DAY_NAMES[n] : n + FOCUS_UNITS[key];
-      return '<option value="' + n + '">' + text + '</option>';
+      return '<option value="' + n + '">' + SBFocus.optionLabel(key, n) + '</option>';
     }).join('');
     sel.addEventListener('change', function() {
       var patch = {};

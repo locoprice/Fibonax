@@ -86,6 +86,9 @@ jobs:
       - name: Focus timer
         run: node scripts/check-focus-timer.js
 
+      - name: Phone Pomodoro timer parity check
+        run: node scripts/sync-focus-timer.js --check
+
       - name: Ask Fibonax parity check
         run: node scripts/check-ask-knowledge.js
 

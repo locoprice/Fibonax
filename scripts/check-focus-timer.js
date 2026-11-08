@@ -238,6 +238,15 @@ check('the background checks the timer when Chrome starts and after an update',
   (BG.match(/sbFocusApply\(\{ type: 'tick' \}\)/g) || []).length >= 3, true);
 check('the chime plays from the offscreen page', /createDocument\(\{[\s\S]*?url: SB_CHIME_PAGE/.test(BG) && BG.indexOf("var SB_CHIME_PAGE = 'offscreen/chime.html';") !== -1, true);
 check('the offscreen page loads its script', /<script src="chime\.js"><\/script>/.test(readText('extension/offscreen/chime.html')), true);
+check('the offscreen page loads the module first and plays its tones',
+  readText('extension/offscreen/chime.html').indexOf('../shared/focus-timer.js') !== -1 &&
+  readText('extension/offscreen/chime.html').indexOf('../shared/focus-timer.js') < readText('extension/offscreen/chime.html').indexOf('chime.js"') &&
+  /SBFocus\.playChime\(ctx\)/.test(readText('extension/offscreen/chime.js')), true);
+check('the chime is two tones', F.CHIME_TONES, [[880, 0], [1318.5, 0.18]]);
+check('what each moment offers', ['idle', 'paused', 'break', 'work'].map((mode) => F.actions({ mode }).map((a) => a.act)),
+  [['start'], ['resume', 'stop'], ['skip', 'stop'], ['pause', 'stop', 'ask']]);
+check('the first button says what it does', [F.actions({ mode: 'idle' })[0].text, F.actions({ mode: 'break' })[0].text], ['Start', 'Skip this break']);
+check('the settings menus read in words', [F.optionLabel('workMin', 25), F.optionLabel('sessions', 4), F.optionLabel('detoxDay', 0)], ['25 minutes', '4 sessions', 'Sunday']);
 
 const BREAK = readText('extension/content/focus-break.js');
 check('the break screen reads the timer through the module', /F\.view\(/.test(BREAK) && /F\.STORAGE_KEY/.test(BREAK), true);
@@ -286,7 +295,7 @@ check('the carousel shows every picture whole, over a blurred fill, and never cr
   /\.sbc-pic\{object-fit:contain\}/.test(CAROUSEL) && /\.sbc-fill\{object-fit:cover;filter:blur\(/.test(CAROUSEL) &&
   /fill\.alt = ''/.test(CAROUSEL) && !/\.sbc-slide\{[^}]*object-fit/.test(CAROUSEL), true);
 check('the settings carry the Detox day, its days named by the module',
-  POPUP_HTML.indexOf('<label for="fo-detox">Detox day</label>') !== -1 && /data-key="detoxDay"/.test(POPUP_HTML) && /SBFocus\.DAY_NAMES\[n\]/.test(POPUP_JS), true);
+  POPUP_HTML.indexOf('<label for="fo-detox">Detox day</label>') !== -1 && /data-key="detoxDay"/.test(POPUP_HTML) && /SBFocus\.optionLabel\(key, n\)/.test(POPUP_JS), true);
 
 // ── 12. the name and the credit ─────────────────────────────────────
 // The owners' naming (2026-11-01): people read "Pomodoro timer", after the
