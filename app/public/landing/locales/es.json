@@ -982,8 +982,8 @@
       "count": 1
     },
     {
-      "find": "Thresholds and rates will be announced before activation.",
-      "replace": "Los límites y las tarifas se comunicarán antes de la activación.",
+      "find": "See the pricing page for allowances and rates.",
+      "replace": "Consulta la página de precios para ver los límites y las tarifas.",
       "count": 1
     },
     {
@@ -1127,8 +1127,8 @@
       "count": 1
     },
     {
-      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">How much does it cost?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Anyone who signs up by December 31, 2026 keeps Fibonax free for life. From January 1, 2027, new accounts start with a free usage allowance and then pay only for what they use. There is no monthly or yearly subscription. See the <a href=\"pricing/\">pricing page</a>.</p></div>\n      </details>",
-      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">¿Cuánto cuesta?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Quien se registre antes del 31 de diciembre de 2026 conserva Fibonax gratis de por vida. Desde el 1 de enero de 2027, las cuentas nuevas empiezan con un uso gratuito incluido y después pagan solo por lo que usan. No hay suscripción mensual ni anual. Consulta la <a href=\"pricing/\">página de precios</a>.</p></div>\n      </details>",
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">How much does it cost?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Anyone who signs up by December 31, 2026 keeps Fibonax free for life. From January 1, 2027, new accounts get a free daily allowance. Beyond it, buy FiboTokens once, or choose the unlimited monthly plan. No subscription is required. See the <a href=\"pricing/\">pricing page</a>.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">¿Cuánto cuesta?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Quien se registre antes del 31 de diciembre de 2026 conserva Fibonax gratis de por vida. Desde el 1 de enero de 2027, las cuentas nuevas tienen un uso gratuito diario. Si necesitas más, compra FiboTokens una sola vez o elige el plan mensual ilimitado. La suscripción no es obligatoria. Consulta la <a href=\"pricing/\">página de precios</a>.</p></div>\n      </details>",
       "count": 1
     },
     {
@@ -1139,6 +1139,11 @@
     {
       "find": "Still have a question? <a href=\"mailto:fibonaxai@gmail.com\">Write to us</a> or read the <a href=\"https://docs.fibonax.com/\" target=\"_blank\" rel=\"noopener\">user guide</a>.",
       "replace": "¿Todavía tienes una pregunta? <a href=\"mailto:fibonaxai@gmail.com\">Escríbenos</a> o lee la <a href=\"https://docs.fibonax.com/\" target=\"_blank\" rel=\"noopener\">guía de usuario</a>.",
+      "count": 1
+    },
+    {
+      "find": "<a href=\"/ai-info/\">Company facts</a>",
+      "replace": "<a href=\"/ai-info/\">Datos de la empresa</a>",
       "count": 1
     }
   ],

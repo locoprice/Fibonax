@@ -796,6 +796,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   <div class="foot-inner">
     <div class="foot-links">
       <a href="./">Precio</a>
+      <a href="/ai-info/">Datos de la empresa</a>
       <a href="../#faq">FAQ</a>
       <a href="https://app.fibonax.com/mobile/">Mobile</a>
       <a href="https://github.com/locoprice/Fibonax" target="_blank" rel="noopener">GitHub</a>
@@ -976,7 +977,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.118.1';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.119.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.

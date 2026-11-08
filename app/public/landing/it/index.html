@@ -1980,7 +1980,7 @@ body.cm-locked{overflow:hidden}
 
       <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
         <summary class="faq-q"><span itemprop="name">Quanto costa?</span><span class="faq-icon" aria-hidden="true"></span></summary>
-        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">Chi si registra entro il 31 dicembre 2026 mantiene Fibonax gratis per sempre. Dal 1° gennaio 2027 i nuovi account partono con una quota d’uso gratuita e poi pagano solo quello che usano. Nessun abbonamento mensile o annuale. Vedi la <a href="pricing/">pagina dei prezzi</a>.</p></div>
+        <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer"><p itemprop="text">Chi si registra entro il 31 dicembre 2026 mantiene Fibonax gratis per sempre. Dal 1° gennaio 2027 i nuovi account hanno una quota gratuita giornaliera. Oltre quella, puoi acquistare FiboToken una sola volta o scegliere il piano mensile illimitato. Nessun abbonamento obbligatorio. Vedi la <a href="pricing/">pagina dei prezzi</a>.</p></div>
       </details>
 
       <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
@@ -2021,7 +2021,7 @@ body.cm-locked{overflow:hidden}
           <h3>Cosa cambia dal 1° gennaio 2027?</h3>
           <div>
             <p data-pa-expired="L’accesso gratuito a vita resta invariato per chi si è iscritto o ha scaricato Fibonax entro fine 2026. La tariffazione a consumo oltre la soglia gratuita riguarda solo i nuovi utenti dal 1° gennaio 2027."><strong>Il tuo accesso gratuito a vita resta gratuito.</strong> Solo per i nuovi utenti che aderiranno dal 1° gennaio 2027 sarà prevista una soglia di utilizzo gratuita, con tariffazione a consumo oltre il limite definito.</p>
-            <p class="pa-terms"><strong>Soglie e tariffe saranno comunicate prima dell'attivazione.</strong></p>
+            <p class="pa-terms"><strong>Consulta la pagina dei prezzi per quote e tariffe.</strong></p>
           </div>
         </div>
       </div>
@@ -2049,6 +2049,7 @@ body.cm-locked{overflow:hidden}
   <div class="foot-inner">
     <div class="foot-links">
       <a href="pricing/">Prezzo</a>
+      <a href="/ai-info/">Dati aziendali</a>
       <a href="#faq">FAQ</a>
       <a href="https://app.fibonax.com/mobile/">Mobile</a>
       <a href="https://github.com/locoprice/Fibonax" target="_blank" rel="noopener">GitHub</a>
@@ -2555,7 +2556,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.118.1';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.119.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
