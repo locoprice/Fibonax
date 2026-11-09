@@ -15319,15 +15319,13 @@ function applyHeroName(){
     first=e.split('@')[0];
     if(first)first=first.charAt(0).toUpperCase()+first.slice(1);
   }
-  if(first){
-    // Every page's hero carries the same greeting and name.
-    document.querySelectorAll('.mname').forEach(function(n){n.textContent=first;});
-  }
-  var h=new Date().getHours();
-  var greet=h>=5&&h<12?'Good morning,'
-           :h>=12&&h<18?'Good afternoon,'
-           :'Good evening,';
-  document.querySelectorAll('.mgreet').forEach(function(g){g.textContent=greet;});
+  // Every page's hero carries the same greeting and name. The phone greets in
+  // Latin at every hour of the day: "AVE Valentina!". The "!" sits with the
+  // name so a long name shortens before the greeting does. The page's own
+  // default name stands in when the account has neither a name nor an email.
+  document.querySelectorAll('.mname').forEach(function(n){n.textContent=(first||n.textContent.replace(/!+$/,''))+'!';});
+  // The crossed swords (⚔️) come first; a screen reader skips them.
+  document.querySelectorAll('.mgreet').forEach(function(g){g.innerHTML='<span aria-hidden="true">⚔️</span> AVE';});
 }
 /* Company co-brand — reads the same user_metadata keys the dashboard topbar
    renders (Settings → Company branding): company_logo_url (https-only, same
