@@ -374,7 +374,7 @@ refactor: extract field parsing from resolveBody
 chore: bump manifest version to 2.38.0
 ```
 
-> **Version bump rule:** After every feature/fix batch, increment the version in **both** `extension/manifest.json` and `app/package.json` in the same commit.
+> **Version bump rule:** After every feature/fix batch, run `node scripts/bump-version.js <patch|minor>` as the last step before the commit. It checks develop on GitHub first and writes the next free number to every version stamp in the same commit.
 
 ---
 

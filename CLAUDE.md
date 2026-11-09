@@ -351,7 +351,7 @@ At the end of every **successfully completed** task, prepare a push to `develop`
    - `app/`: `npm run lint`, `npm run typecheck`, `npm run build` all green.
    - extension: `node --check` on every changed `.js`, plus `node scripts/check-version.js`, `node scripts/check-snippets.js`, `node scripts/check-expansion.js` and `node scripts/check-memory-parity.js` green.
    - docs: `node scripts/check-docs.js` green; when `user-docs/` changed, `mint validate` and `mint broken-links` green too.
-2. **Version bumped** in `extension/manifest.json` **and** `app/package.json`, kept in parity.
+2. **Version bumped with `node scripts/bump-version.js <patch|minor>`**, as the last step before the commit and never at the start of a task. It checks develop on GitHub first, stops when this copy is behind, and writes the next free number to every stamp (`scripts/version-stamps.js` lists them, `check-version.js` gates them). Never pick or type a number by hand. If the push is refused because develop moved meanwhile, bring this copy up to date and run it again.
 3. **Genuine task completion** — never mid-task, never on a failed or abandoned attempt.
 
 **Workflow (auto-prep + quick confirm):**
