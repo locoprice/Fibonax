@@ -274,21 +274,26 @@ export function Sidebar() {
 
       {/* Company watermark: the user's own logo (Settings → Company branding).
           Wider than the collapsed rail, so it only shows while the sidebar is
-          open. The flex-1 spacer stays either way. */}
-      <div className="flex flex-1 items-center justify-center">
-        {companyLogoUrl && !collapsed && (
-          <img
-            src={companyLogoUrl}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            className="w-24 select-none opacity-[0.10] grayscale"
-          />
-        )}
-      </div>
+          open. The flex-1 spacer stays either way.
+          The wrapping column is what fits the sentence: when the free height
+          is too small for it, it wraps into a second column that is clipped,
+          so it shows whenever it fits and the user block is never pushed off. */}
+      <div className="flex min-h-0 flex-1 flex-col flex-wrap overflow-hidden">
+        <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+          {companyLogoUrl && !collapsed && (
+            <img
+              src={companyLogoUrl}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              className="max-h-full w-24 select-none object-contain opacity-[0.10] grayscale"
+            />
+          )}
+        </div>
 
-      {/* Too wide for the collapsed rail. */}
-      {!collapsed && <SidebarLine />}
+        {/* Too wide for the collapsed rail. */}
+        {!collapsed && <SidebarLine />}
+      </div>
 
       {/* User block, click to open menu */}
       <div

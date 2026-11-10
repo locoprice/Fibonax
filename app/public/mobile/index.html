@@ -479,9 +479,6 @@ body{
 .search-details:active{background:var(--bg-alt)}
 .search-details:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .search-match{font-size:12px;color:var(--text2);overflow-wrap:anywhere;margin-top:4px}
-.sb-info-row.is-list{display:block}
-.sb-info-row.is-list .sb-info-v{display:block;white-space:pre-wrap;text-align:left;
-  overflow-wrap:anywhere;margin-top:8px;line-height:1.6;font-weight:500}
 .sb-info-row.is-multi .sb-info-v{white-space:normal;overflow:visible;text-overflow:clip;
   overflow-wrap:anywhere;line-height:1.6}
 .sb-info-item{white-space:nowrap}
@@ -507,7 +504,8 @@ body{
 .lIT{background:#F0FDF4;color:#15803D}
 .lFR{background:#F0FDFA;color:#0D9488}
 .lMULTI{background:#F5F3FF;color:#7C3AED}
-.sb-info-row.is-list .sb-info-v.sb-info-languages{display:flex;flex-wrap:wrap;gap:8px}
+.sb-info-v.sb-info-languages{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;
+  white-space:normal;overflow:visible}
 .sb-info-languages .lbadge{font-size:12px;font-weight:500;padding:8px 12px;
   border-radius:6px;text-transform:none;letter-spacing:normal}
 
@@ -13745,10 +13743,10 @@ function openSnippetInfo(s){
     ['Characters', String((s.body||'').length)],
     ['Updated', (s.updated_at?timeAgo(s.updated_at):'—')+' · '+updateScope]
   ];
-  rows.unshift(['Languages',Array.from(new Set((variants&&variants.length?variants:[s]).map(function(v){return v.lang||'EN';}))).join('\n')]);
   var labels=assetLabelNames(s.id,snipLabelMap,true);
   if(s.alternative_queries&&s.alternative_queries.length)rows.unshift(['Search keywords',s.alternative_queries.join('\n')]);
   if(labels.length)rows.unshift(['Labels',labels.join('\n')]);
+  rows.unshift(['Languages',Array.from(new Set((variants&&variants.length?variants:[s]).map(function(v){return v.lang||'EN';}))).join('\n')]);
   // ID last: the least glanceable, most technical fact here, kept for support
   // and API use. Tappable — a full id does not fit the row, so read-by-eye is
   // not the point; copy is.
@@ -13772,7 +13770,7 @@ function showInfoSheet(title,rows,foot){
       // The dot stays with the word before it, so a wrapped line never starts with one.
       return '<span class="sb-info-item">'+esc(item)+(i<all.length-1?'<span class="sb-info-sep"> ·</span>':'')+'</span>';
     }).join(' '):esc(r[1]);
-    return '<div class="sb-info-row'+(isLanguages?' is-list':isMulti?' is-multi':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
+    return '<div class="sb-info-row'+(isMulti?' is-multi':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
       +'<span class="sb-info-k">'+esc(r[0])+'</span>'
       +'<span class="sb-info-v'+(isId?' sb-info-mono':isLanguages?' sb-info-languages':'')+'">'+value+'</span></div>';
   }).join('')+(foot?'<div class="sb-info-foot">'+esc(foot)+'</div>':'');
