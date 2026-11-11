@@ -410,6 +410,10 @@ function sbApplyCompanyFavicon(meta) {
 
 // ── CHANGELOG ─────────────────────────────────────────────────────
 var CHANGELOG = [
+  { version:'v3.122.0', date:'2026-11-11', label:'Pomodoro timer starts by itself',
+    changes:[
+      {type:'new', text:'Tick Start automatically in the Pomodoro timer and you never have to press Start again. The timer starts when Chrome opens, when you come back to your computer, and with a new block after the long break. It never starts by itself on your detox day, and after Stop it waits 30 minutes.'}
+    ]},
   { version:'v3.111.0', date:'2026-11-01', label:'Pomodoro timer',
     changes:[
       {type:'new', text:'A Pomodoro timer in the popup, after the technique Francesco Cirillo created in the 1980s. Click the clock at the top right, then Start: work sessions with a short break after each one, and a long break at the end of the block. Pick the lengths and turn the chime on or off in the same place.'},
@@ -2947,6 +2951,8 @@ function renderFocus() {
   });
   var ch = gi('fo-chime');
   if (ch && document.activeElement !== ch) ch.checked = v.settings.chime;
+  var au = gi('fo-auto');
+  if (au && document.activeElement !== au) au.checked = v.settings.autoStart;
 }
 
 function openFocus(){
@@ -2971,6 +2977,9 @@ function focusInit() {
   });
   on('fo-chime', 'change', function() {
     focusSend({ type: 'settings', settings: { chime: gi('fo-chime').checked } });
+  });
+  on('fo-auto', 'change', function() {
+    focusSend({ type: 'settings', settings: { autoStart: gi('fo-auto').checked } });
   });
 
   chrome.storage.local.get(SBFocus.STORAGE_KEY, function(d) {

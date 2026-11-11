@@ -1393,8 +1393,9 @@ chrome.runtime.onStartup.addListener(function() {
   sbMigrateRoamingPrefs();
   initMenus();
   sbRefreshActionIcon();
-  // Chrome may drop alarms on restart, and a phase may have ended while it was closed.
-  sbFocusApply({ type: 'tick' });
+  // Chrome may drop alarms on restart, and a phase may have ended while it was
+  // closed. With "Start automatically" on, a timer that is not running starts.
+  sbFocusApply({ type: 'auto' });
 });
 
 // ── ALARM LISTENER — fires every 5 minutes ──────────────────────
@@ -1487,6 +1488,7 @@ function sbFocusApply(action) {
           }
           sbFocusSchedule(res.state);
           if (res.chime && res.state.settings.chime) sbFocusChime();
+          sbFocusAutoIfHere(res.state, action);
           resolve(res.state);
         });
       });
@@ -1531,6 +1533,27 @@ function sbFocusChime() {
 chrome.alarms.onAlarm.addListener(function(alarm) {
   if (alarm.name === SBFocus.ALARM_NAME) sbFocusApply({ type: 'tick' });
 });
+
+// "Start automatically" (settings.autoStart). Coming back to the computer
+// after a minute or more without a key or the mouse starts a timer that is
+// not running. SBFocus.reduce decides whether it may: never on the detox day,
+// not within half an hour of Stop.
+chrome.idle.setDetectionInterval(SBFocus.AWAY_SEC);
+chrome.idle.onStateChanged.addListener(function(state) {
+  if (state === 'active') sbFocusApply({ type: 'auto' });
+});
+
+// When the timer has just stopped by itself (the block ended, or it found the
+// person had been away), or the switch was just turned on, it starts if
+// someone is at the computer. Stop and other settings are left alone.
+function sbFocusAutoIfHere(state, action) {
+  if (!state || state.run || !state.settings.autoStart || !action) return;
+  var turnedOn = action.type === 'settings' && action.settings && action.settings.autoStart === true;
+  if (action.type !== 'tick' && !turnedOn) return;
+  chrome.idle.queryState(SBFocus.AWAY_SEC, function(idle) {
+    if (idle === 'active') sbFocusApply({ type: 'auto' });
+  });
+}
 
 chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   if (!msg || msg.type !== 'sb_focus') return;

@@ -18,7 +18,8 @@
 // localStorage on a phone: each device keeps its own timer and nothing is sent
 // anywhere. scripts/check-focus-timer.js runs these rules over
 // the cases that matter: a whole block, an extra break, a skip, a pause, a
-// computer that slept through a phase, the six-hour and detox day warnings.
+// computer that slept through a phase, the six-hour and detox day warnings,
+// and starting by itself.
 (function(root) {
   'use strict';
 
@@ -41,7 +42,9 @@
     // is theirs to pick; Sunday until they do.
     detoxDay: [1, 2, 3, 4, 5, 6, 0]
   };
-  var DEFAULTS = { workMin: 25, breakMin: 5, sessions: 4, longMin: 15, detoxDay: 0, chime: true };
+  // autoStart: "Start automatically", off until the person turns it on, so
+  // someone who never opened the timer never meets a break screen.
+  var DEFAULTS = { workMin: 25, breakMin: 5, sessions: 4, longMin: 15, detoxDay: 0, chime: true, autoStart: false };
   var DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   // "I need a break now" offers these lengths, in minutes.
@@ -51,6 +54,7 @@
   var GAP_MS = 30 * MIN_MS;    // a stop or a pause longer than this ends the streak
   var STALE_MS = 30 * MIN_MS;  // a phase overdue by more than this: the person was away
   var KEEP_DAYS = 14;          // daily counts kept, for the "Last 7 days" row
+  var AWAY_SEC = 60;           // no key or mouse for this long: the person is away from the computer
 
   var KINDS = ['work', 'short', 'long', 'extra'];
 
@@ -135,6 +139,7 @@
       out[k] = OPTIONS[k].indexOf(n) >= 0 ? n : DEFAULTS[k];
     });
     out.chime = s.chime !== false;
+    out.autoStart = s.autoStart === true;
     return out;
   }
 
@@ -285,6 +290,7 @@
   //   {type:'extra', minutes}   "I need a break now", during work only
   //   {type:'skip'}             ends the break now, counted
   //   {type:'tick'}             moves on when the current phase is over
+  //   {type:'auto'}             Chrome opened or the person is at the computer
   //   {type:'settings', settings}
   function reduce(raw, action, nowMs) {
     var st = normalize(raw);
@@ -358,6 +364,24 @@
         // just came back with the wrong screen, so the timer stops instead.
         if (nowMs - run.endsAt > STALE_MS) return next(stopped(st, run, run.endsAt, 'away'));
         return next(run.kind === 'work' ? workEnds(st, nowMs) : breakEnds(st, nowMs), true);
+      }
+      case 'auto': {
+        // "Start automatically": a phase that ended meanwhile moves on first,
+        // then a timer that is not running starts. Never on the detox day,
+        // and not within half an hour of Stop, which the person chose. A
+        // pause longer than that counts as a stop from the moment it began.
+        var ticked = reduce(st, { type: 'tick' }, nowMs);
+        var cur = ticked.state;
+        if (!cur.settings.autoStart || new Date(nowMs).getDay() === cur.settings.detoxDay) return ticked;
+        var held = cur.run;
+        if (held && held.paused && held.pausedAt && nowMs - held.pausedAt > GAP_MS) {
+          cur = stopped(cur, held, held.pausedAt, 'stop');
+          held = null;
+        }
+        if (held) return ticked;
+        var lastStop = cur.last;
+        if (lastStop && lastStop.reason === 'stop' && nowMs - lastStop.stoppedAt <= GAP_MS) return ticked;
+        return next(reduce(cur, { type: 'start' }, nowMs).state, ticked.chime);
       }
       case 'settings': {
         var settings = normalizeSettings(Object.assign({}, st.settings, plain(a.settings)));
@@ -615,6 +639,7 @@
     GAP_MS: GAP_MS,
     STALE_MS: STALE_MS,
     KEEP_DAYS: KEEP_DAYS,
+    AWAY_SEC: AWAY_SEC,
     SUGGESTIONS: SUGGESTIONS,
     BREAK_LEAD: BREAK_LEAD,
     PHONE_RULE: PHONE_RULE,

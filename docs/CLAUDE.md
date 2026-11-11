@@ -317,7 +317,7 @@ var SUPA_KEY = 'sb_publishable_...';
 - **Service worker** (`background.js`): no DOM access, no `window`, no persistent state in memory
 - **Content script** (`content.js` + `overlay.css`): injected into all pages via manifest
 - **Popup** (`popup.html` + `popup.js`): instantiated fresh on every icon click
-- **Permissions**: `storage`, `activeTab`, `contextMenus`, `alarms`, `offscreen` (the Pomodoro timer's chime, v3.111.0)
+- **Permissions**: `storage`, `activeTab`, `contextMenus`, `alarms`, `offscreen` (the Pomodoro timer's chime, v3.111.0), `idle` (the Pomodoro timer's Start automatically)
 - **Host permissions**: `<all_urls>` (for content script), Supabase domain
 - **No blocking operations** in popup or service worker
 - **Message passing**: `chrome.runtime.sendMessage` / `chrome.runtime.onMessage` for cross-context communication
