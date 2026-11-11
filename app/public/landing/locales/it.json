@@ -359,7 +359,7 @@
     {
       "find": "<span>No download required</span>",
       "replace": "<span>Nessun download richiesto</span>",
-      "count": 2
+      "count": 1
     },
     {
       "find": "<footer class=\"sb-footer\">One account &nbsp;·&nbsp; Three surfaces &nbsp;·&nbsp; Always in sync</footer>",
@@ -842,54 +842,99 @@
       "count": 1
     },
     {
-      "find": "Interactive screenshot with depth and perspective",
-      "replace": "Schermata interattiva con profondità e prospettiva",
+      "find": "alt=\"The official Chrome Web Store screenshot of the Fibonax extension: its popup with the prompt library, under the headline Type once. Use it everywhere.\"",
+      "replace": "alt=\"La schermata ufficiale del Chrome Web Store dell'estensione Fibonax: il popup con la libreria di prompt, sotto il titolo Type once. Use it everywhere.\"",
       "count": 1
     },
     {
-      "find": "Pause animation",
-      "replace": "Metti in pausa l'animazione",
-      "count": 2
+      "find": "alt=\"The Fibonax web dashboard with the snippets library, each snippet with its shortcut and folder\"",
+      "replace": "alt=\"La dashboard web di Fibonax con la libreria degli snippet, ciascuno con la sua scorciatoia e la sua cartella\"",
+      "count": 1
     },
     {
-      "find": "Resume animation",
-      "replace": "Riprendi l'animazione",
+      "find": "alt=\"The Fibonax mobile website with a search box and the list of snippets\"",
+      "replace": "alt=\"Il sito mobile di Fibonax con la casella di ricerca e l'elenco degli snippet\"",
+      "count": 1
+    },
+    {
+      "find": "alt=\"The Security settings in the Fibonax dashboard, listing the devices signed in to the account\"",
+      "replace": "alt=\"Le impostazioni di sicurezza nella dashboard di Fibonax, con l'elenco dei dispositivi collegati all'account\"",
+      "count": 1
+    },
+    {
+      "find": "data-source-label=\"Fibonax · Web Dashboard\"",
+      "replace": "data-source-label=\"Fibonax · Dashboard web\"",
+      "count": 1
+    },
+    {
+      "find": "data-source-label=\"Fibonax · Security settings\"",
+      "replace": "data-source-label=\"Fibonax · Impostazioni di sicurezza\"",
+      "count": 1
+    },
+    {
+      "find": ">In your browser<",
+      "replace": ">Nel tuo browser<",
+      "count": 1
+    },
+    {
+      "find": "<span>You save</span>",
+      "replace": "<span>Tu salvi</span>",
+      "count": 1
+    },
+    {
+      "find": "<span>Fibonax syncs it</span>",
+      "replace": "<span>Fibonax lo sincronizza</span>",
+      "count": 1
+    },
+    {
+      "find": "<p>Ready in the extension and on your phone.</p>",
+      "replace": "<p>Pronto nell'estensione e sul telefono.</p>",
+      "count": 1
+    },
+    {
+      "find": ">On your phone<",
+      "replace": ">Sul tuo telefono<",
+      "count": 1
+    },
+    {
+      "find": "<span>You tap</span>",
+      "replace": "<span>Tu tocchi</span>",
+      "count": 1
+    },
+    {
+      "find": "<span>Fibonax copies</span>",
+      "replace": "<span>Fibonax copia</span>",
+      "count": 1
+    },
+    {
+      "find": "<p>Hi Sam, the first draft is ready for your review.</p>",
+      "replace": "<p>Ciao Sam, la prima bozza è pronta per la tua revisione.</p>",
+      "count": 1
+    },
+    {
+      "find": ">In Settings<",
+      "replace": ">Nelle Impostazioni<",
+      "count": 1
+    },
+    {
+      "find": "<span>You click</span>",
+      "replace": "<span>Tu clicchi</span>",
+      "count": 1
+    },
+    {
+      "find": "<span>Fibonax signs out</span>",
+      "replace": "<span>Fibonax disconnette</span>",
+      "count": 1
+    },
+    {
+      "find": "<p>Every device, at once.</p>",
+      "replace": "<p>Tutti i dispositivi, in una volta.</p>",
       "count": 1
     },
     {
       "find": "Screenshot:",
       "replace": "Schermata:",
       "count": 1
-    },
-    {
-      "find": "fibonax.com · Security",
-      "replace": "fibonax.com · Sicurezza",
-      "count": 1
-    },
-    {
-      "find": "Fibonax extension and snippet picker, cropped from the official Chrome Web Store screenshot",
-      "replace": "Estensione Fibonax e selettore di snippet, ritagliati dalla schermata ufficiale del Chrome Web Store",
-      "count": 1
-    },
-    {
-      "find": "Fibonax web dashboard prompt library, cropped from the official Chrome Web Store screenshot",
-      "replace": "Libreria di prompt della dashboard web Fibonax, ritagliata dalla schermata ufficiale del Chrome Web Store",
-      "count": 1
-    },
-    {
-      "find": "The four security features captured directly from the live Fibonax website",
-      "replace": "Le quattro funzionalità di sicurezza acquisite direttamente dal sito Fibonax",
-      "count": 1
-    },
-    {
-      "find": "<span>Always in sync</span>",
-      "replace": "<span>Sempre sincronizzati</span>",
-      "count": 1
-    },
-    {
-      "find": "Fibonax mobile snippet form with language selection and copy preview",
-      "replace": "Modulo snippet mobile di Fibonax con selezione della lingua e anteprima da copiare",
-      "count": 2
     },
     {
       "find": "data-source-label=\"Fibonax · Mobile Website\"",

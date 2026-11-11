@@ -34,10 +34,10 @@ const RELATIVE_ASSETS = [
   'supported-aws-startups.png',
   'supported-nvidia-inception.png',
   'supported-google-for-startups.png',
-  'assets/platforms/chrome-extension-2346f49352.webp',
-  'assets/platforms/web-dashboard-f279d50f4a.webp',
-  'assets/platforms/mobile-app-2be08c95f8.jpg',
-  'assets/platforms/security-b15d62fdd2.webp',
+  'assets/platforms/chrome-web-store-028193ae5f.jpg',
+  'assets/platforms/web-dashboard-c2ef8cc808.webp',
+  'assets/platforms/mobile-snippets-5bb508556b.webp',
+  'assets/platforms/security-devices-ff1a2b5a5b.webp',
 ];
 
 const CANONICAL = 'https://fibonax.com/';

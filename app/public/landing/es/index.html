@@ -642,7 +642,7 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 }
 
 /* PLATFORMS + SECURITY */
-#platforms{--sb-blue:var(--primary);--sb-ink:var(--text);--sb-muted:var(--text2);--sb-line:#dde2ef;--sb-paper:var(--card);--sb-bg:#f7f8fc;--sb-radius:24px;--sb-tilt-x:0deg;--sb-tilt-y:0deg;color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;color:var(--sb-ink);background:var(--sb-bg);container-type:inline-size;overflow:hidden;isolation:isolate}
+#platforms{--sb-blue:var(--primary);--sb-ink:var(--text);--sb-muted:var(--text2);--sb-line:#dde2ef;--sb-paper:var(--card);--sb-bg:#f7f8fc;--sb-radius:24px;color-scheme:light;font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;color:var(--sb-ink);background:var(--sb-bg);container-type:inline-size;overflow:hidden;isolation:isolate}
 #platforms *{box-sizing:border-box}
 #platforms button,#platforms a{-webkit-tap-highlight-color:transparent}
 #platforms h2,#platforms h3,#platforms h4,#platforms p,#platforms figure{margin:0}
@@ -657,7 +657,7 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 #platforms .sb-tab[aria-selected="true"]{background:#e9efff;color:var(--sb-blue)}
 #platforms .sb-tab[aria-selected="true"]:after{content:"";position:absolute;left:15px;right:15px;bottom:-10px;height:2px;background:var(--sb-blue);border-radius:2px}
 #platforms .sb-tab svg{width:17px;height:17px;flex:none;stroke-width:1.8}
-#platforms .sb-panel-layout{display:grid;grid-template-columns:minmax(0,.77fr) minmax(0,1.4fr);align-items:center;gap:26px;min-height:365px}
+#platforms .sb-panel-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.618fr);align-items:center;gap:26px;min-height:365px}
 #platforms .sb-copy{padding:10px 0 18px}
 #platforms .sb-index{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:11px;color:var(--sb-blue);font-weight:600;letter-spacing:.06em}
 #platforms .sb-index-line{height:1px;width:32px;background:#b9c9f3}
@@ -665,23 +665,29 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 #platforms .sb-copy p{font-size:14px;line-height:1.78;color:var(--sb-muted)}
 #platforms .sb-badge{display:inline-flex;align-items:center;gap:7px;color:var(--sb-blue);font-size:11px;font-weight:600;margin-top:20px}
 #platforms .sb-badge svg{width:14px;height:14px}
-#platforms .sb-stage{position:relative;min-width:0;aspect-ratio:1.08;border:1px solid #e0e7f8;border-radius:var(--sb-radius);background:radial-gradient(ellipse at 67% 28%,#cfdbff 0,transparent 52%),linear-gradient(140deg,#f0f4ff,#e6ecfb 70%,#e0e9ff);perspective:1200px;overflow:hidden;contain:layout paint}
-#platforms .sb-stage:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#1b4fd805 1px,transparent 1px),linear-gradient(90deg,#1b4fd805 1px,transparent 1px);background-size:30px 30px;mask-image:linear-gradient(135deg,#000,transparent 75%)}
-#platforms .sb-orbit{position:absolute;width:93%;height:42%;border:1px solid #1b4fd813;border-radius:50%;bottom:-6%;left:9%;transform:rotate(-20deg)}
-#platforms .sb-orbit:after{content:"";position:absolute;inset:19px;border:1px solid #1b4fd80d;border-radius:inherit}
-#platforms .sb-motion{position:absolute;z-index:6;right:12px;top:12px;width:30px;height:30px;display:grid;place-items:center;color:var(--sb-blue);background:#ffffffd9;border:1px solid #ffffff;border-radius:50%;padding:7px}
-#platforms .sb-motion svg{width:13px;height:13px;grid-area:1/1}
-#platforms .sb-motion[aria-pressed="true"] .sb-pause,#platforms .sb-motion[aria-pressed="false"] .sb-play{display:none}
-#platforms .sb-assembly{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateX(var(--sb-tilt-x)) rotateY(var(--sb-tilt-y));transition:transform .4s cubic-bezier(.2,.7,.2,1)}
-#platforms .sb-float{position:absolute;inset:0;transform-style:preserve-3d;animation:sb-drift 7s ease-in-out infinite;animation-play-state:paused}
-#platforms .sb-backplate{position:absolute;left:20%;top:19%;width:70%;height:65%;border:1px solid #ffffffbe;border-radius:14px;background:linear-gradient(145deg,#ffffffd9,#cbd9fb);box-shadow:0 18px 25px #193c8a0b;transform:rotateX(8deg) rotateY(-14deg) rotateZ(-9deg) translateZ(-25px)}
-#platforms .sb-backplate.second{left:16%;top:17%;background:#f8fbff;transform:rotateX(8deg) rotateY(-14deg) rotateZ(3deg) translateZ(-13px);opacity:.7}
-#platforms .sb-frame{position:absolute;left:13%;top:15%;width:77%;height:auto;aspect-ratio:1.075;overflow:hidden;border-radius:12px;border:1px solid #ffffff;box-shadow:9px 22px 32px #21428f27,0 2px 4px #21428f10;background:#f4f6ff;transform:rotateX(6deg) rotateY(-13deg) rotateZ(-3deg);transition:transform .5s}
-#platforms .sb-frame img{position:absolute;max-width:none!important;display:block;height:auto;user-select:none;pointer-events:none}
-#platforms .sb-float-label{position:absolute;left:7%;bottom:10%;padding:11px 14px;background:#fff;border:1px solid #e3e8f4;border-radius:10px;box-shadow:0 9px 20px #244c9514;color:var(--sb-ink);font-size:11px;font-weight:600;display:flex;gap:8px;align-items:center;transform:translateZ(45px) rotateZ(-2deg)}
-#platforms .sb-float-label svg{width:15px;height:15px;color:var(--sb-blue)}
-#platforms .sb-cube{position:absolute;right:5%;top:13%;width:47px;height:47px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#5280f4,var(--sb-blue) 68%);border:1px solid #5981e9;color:#fff;box-shadow:4px 6px 0 #173daa,8px 13px 18px #153d9940;transform:translateZ(60px) rotateX(10deg) rotateY(-18deg) rotateZ(10deg)}
-#platforms .sb-cube svg{width:23px;height:23px;stroke-width:1.6}
+#platforms .sb-visual{min-width:0}
+#platforms .sb-stage-wrap{position:relative}
+#platforms .sb-stage{position:relative;min-width:0;aspect-ratio:1.28;border:1px solid var(--sb-line);border-radius:var(--sb-radius);background:var(--primary-lt);overflow:hidden;contain:layout paint}
+#platforms .sb-shot{position:absolute;top:8.6%;left:5.3%;background:var(--sb-paper);border:1px solid var(--sb-line);border-radius:12px;box-shadow:var(--shadow-md);overflow:hidden}
+#platforms .sb-shot img{display:block;width:100%;height:auto;max-width:none;user-select:none;pointer-events:none}
+#platforms .sb-shot-window{width:max(138.2%,620px)}
+#platforms .sb-shot-store{top:0;left:0;width:100%;height:100%;border:0;border-radius:0;box-shadow:none}
+#platforms .sb-shot-store img{height:100%;object-fit:cover}
+#platforms[data-tab="chrome-extension"] .sb-stage{aspect-ratio:1.6}
+#platforms .sb-shot-phone{left:50%;width:max(42.6%,200px);margin-left:min(-21.3%,-100px);border:6px solid var(--sb-ink);border-radius:34px;background:var(--sb-ink)}
+#platforms .sb-shot-phone img{border-radius:28px 28px 0 0}
+#platforms .sb-window-bar{display:flex;align-items:center;gap:13px;height:34px;padding:0 13px;background:var(--bg-alt);border-bottom:1px solid var(--sb-line)}
+#platforms .sb-window-dots{display:flex;gap:5px}
+#platforms .sb-window-dots i{width:8px;height:8px;border-radius:50%;background:var(--border)}
+#platforms .sb-window-url{padding:3px 13px;font:500 11px var(--sb-mono);color:var(--sb-muted);background:var(--sb-paper);border:1px solid var(--sb-line);border-radius:6px}
+#platforms .sb-use{margin-top:13px;padding:13px 16px 16px;background:var(--sb-paper);border:1px solid var(--sb-line);border-radius:16px;box-shadow:var(--shadow-md)}
+#platforms .sb-use-where{font-size:11px;font-weight:600;line-height:1.4;letter-spacing:.02em;color:var(--sb-muted);padding-bottom:8px;margin-bottom:13px;border-bottom:1px solid var(--sb-line)}
+#platforms .sb-use-flow{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+#platforms .sb-use-step>span:first-child{display:block;font-size:11px;line-height:1.4;color:var(--sb-muted);margin-bottom:5px}
+#platforms .sb-use-key{display:inline-block;padding:5px 8px;font:600 13px/1.4 var(--sb-mono);color:var(--sb-blue);background:var(--primary-lt);border-radius:6px;white-space:nowrap}
+#platforms span.sb-use-key{font-family:inherit}
+#platforms .sb-use-arrow{display:none;margin-top:23px;font-size:16px;line-height:1.4;color:var(--text3)}
+#platforms .sb-use-step p{font-size:13px;font-weight:500;line-height:1.45;color:var(--sb-ink);padding-top:3px}
 #platforms .sb-source{font-size:11px;line-height:1.5;margin:10px 0 0;color:#677186;display:flex;justify-content:flex-end;gap:5px;flex-wrap:wrap}
 #platforms .sb-source a{color:#677186;text-decoration:underline;text-decoration-color:#c4ccdc;text-underline-offset:3px}
 #platforms .sb-security-features{display:grid;grid-template-columns:1fr 1fr;gap:0 28px;margin-top:27px;padding-top:7px;border-top:1px solid var(--sb-line)}
@@ -697,66 +703,20 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 #platforms .sb-actions .sb-primary{background:var(--sb-blue);color:white;padding:12px 15px;border-radius:8px;box-shadow:0 3px 7px #1b4fd81c}
 #platforms .sb-footer{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:35px;padding:24px 0 0;background:transparent;border-top:1px solid var(--sb-line);color:#677186;font-size:11px;letter-spacing:.055em;line-height:1.6;text-align:center}
 #platforms [hidden]{display:none!important}
-#platforms[data-tab="web-dashboard"] .sb-frame{left:6%;top:27%;width:92%;aspect-ratio:1.72;transform:rotateX(9deg) rotateY(-13deg) rotateZ(-4deg)}
-#platforms[data-tab="web-dashboard"] .sb-backplate{top:24%;height:50%;width:80%;left:13%}
-#platforms[data-tab="mobile"] .sb-frame{left:8%;top:13%;width:87%;aspect-ratio:1.14;transform:rotateX(4deg) rotateY(-10deg) rotateZ(2deg);border-radius:16px}
-#platforms[data-tab="security"] .sb-frame{left:5%;top:28%;width:92%;aspect-ratio:1.83;transform:rotateX(8deg) rotateY(-12deg) rotateZ(-3deg)}
-#platforms[data-tab="security"] .sb-backplate{top:27%;height:49%}
-#platforms[data-motion="off"] .sb-float{animation-play-state:paused}
-#platforms[data-motion="off"] .sb-assembly{transform:none}
-@keyframes sb-drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-@container (min-width:920px){#platforms .sb-inner{padding:60px 55px 30px}#platforms .sb-panel-layout{grid-template-columns:.8fr 1.4fr;gap:55px}#platforms .sb-copy p{font-size:16px}#platforms .sb-tab{font-size:14px}#platforms .sb-stage{aspect-ratio:1.28}#platforms .sb-frame{width:66%;left:21%;top:10%}#platforms .sb-float-label{font-size:12px}#platforms .sb-cube{width:58px;height:58px}#platforms .sb-header p{font-size:17px}}
-@container (max-width:590px){#platforms .sb-inner{padding:34px 20px 23px}#platforms .sb-header{margin-bottom:27px}#platforms .sb-header p{font-size:14px;line-height:1.65;margin-top:17px}#platforms .sb-tab{flex-direction:column;font-size:11px;gap:7px;padding:10px 3px;min-height:67px}#platforms .sb-tabs{gap:2px;margin-bottom:25px}#platforms .sb-panel-layout{grid-template-columns:1fr;gap:8px;min-height:0}#platforms .sb-copy{padding:0 0 18px}#platforms .sb-copy h3{font-size:27px;margin-bottom:12px}#platforms .sb-copy p{font-size:14px;line-height:1.65}#platforms .sb-index{margin-bottom:12px}#platforms .sb-stage{aspect-ratio:1.12;max-width:430px;margin:auto}#platforms .sb-badge{margin-top:14px}#platforms .sb-security-features{grid-template-columns:1fr;gap:0;margin-top:22px}#platforms .sb-security-item{padding:18px 0 0}#platforms .sb-footer{margin-top:26px;font-size:11px;letter-spacing:.02em}#platforms .sb-trust{font-size:11px}#platforms .sb-source{font-size:11px}}
-@media(prefers-reduced-motion:reduce){#platforms *,#platforms *:before,#platforms *:after{animation:none!important;transition:none!important}#platforms .sb-assembly{transform:none!important}}
+@container (min-width:920px){#platforms .sb-inner{padding:60px 55px 30px}#platforms .sb-panel-layout{gap:55px}#platforms .sb-copy p{font-size:16px}#platforms .sb-tab{font-size:14px}#platforms .sb-stage,#platforms[data-tab="chrome-extension"] .sb-stage{aspect-ratio:1.618}#platforms .sb-header p{font-size:17px}}
+@container (min-width:1100px){#platforms .sb-stage-wrap{padding-bottom:55px}#platforms .sb-shot-phone{left:52%;margin-left:0}#platforms .sb-use{position:absolute;left:-13px;bottom:0;width:377px;margin:0}#platforms .sb-use-flow{grid-template-columns:auto auto minmax(0,1fr);align-items:start;gap:13px}#platforms .sb-use-arrow{display:block}#platforms .sb-source{margin:-45px 0 29px auto;max-width:calc(100% - 377px)}}
+@container (max-width:590px){#platforms .sb-inner{padding:34px 20px 23px}#platforms .sb-header{margin-bottom:27px}#platforms .sb-header p{font-size:14px;line-height:1.65;margin-top:17px}#platforms .sb-tab{flex-direction:column;font-size:11px;gap:7px;padding:10px 3px;min-height:67px}#platforms .sb-tabs{gap:2px;margin-bottom:25px}#platforms .sb-panel-layout{grid-template-columns:1fr;gap:8px;min-height:0}#platforms .sb-copy{padding:0 0 18px}#platforms .sb-copy h3{font-size:27px;margin-bottom:12px}#platforms .sb-copy p{font-size:14px;line-height:1.65}#platforms .sb-index{margin-bottom:12px}#platforms .sb-stage{aspect-ratio:1.12}#platforms .sb-badge{margin-top:14px}#platforms .sb-security-features{grid-template-columns:1fr;gap:0;margin-top:22px}#platforms .sb-security-item{padding:18px 0 0}#platforms .sb-footer{margin-top:26px;font-size:11px;letter-spacing:.02em}#platforms .sb-trust{font-size:11px}#platforms .sb-source{font-size:11px}}
+@media(prefers-reduced-motion:reduce){#platforms *,#platforms *:before,#platforms *:after{animation:none!important;transition:none!important}}
 #platforms{scroll-margin-top:90px}
 #platforms button,#platforms a{cursor:pointer}
-#platforms .sb-motion{width:44px;height:44px}
-#platforms .sb-motion:disabled{cursor:default;opacity:.6}
 #platforms :focus-visible{outline:3px solid var(--sb-blue);outline-offset:4px}
 #platforms .sb-copies{min-width:0}
 #platforms .sb-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
-#platforms .sb-cube{pointer-events:none}
 #platforms .sb-security-item h4>span{min-width:0}
 #platforms .sb-panel-enter{animation:sb-panel-enter .32s ease-out}
 #platforms .sb-shot-enter{animation:sb-shot-enter .42s cubic-bezier(.2,.7,.2,1)}
-#platforms[data-motion="off"] .sb-panel-enter,#platforms[data-motion="off"] .sb-shot-enter{animation:none}
 @keyframes sb-panel-enter{from{opacity:.2;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
 @keyframes sb-shot-enter{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-
-/* Mobile: vector data paths and orbital geometry around the real product capture. */
-#platforms .sb-mobile-scene{position:absolute;inset:0;color:var(--sb-ink);overflow:hidden;container-type:inline-size;background:transparent}
-#platforms[data-tab="mobile"] .sb-stage{aspect-ratio:1.2}
-#platforms[data-tab="mobile"] .sb-stage:before,#platforms[data-tab="mobile"] .sb-orbit{display:none}
-#platforms[data-tab="mobile"] .sb-motion{background:#ffffffd9;border-color:#fff;color:var(--sb-blue)}
-#platforms .sb-mobile-depth{position:absolute;inset:0;transform:rotateX(var(--sb-tilt-x)) rotateY(var(--sb-tilt-y));transition:transform .7s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
-#platforms .sb-mobile-blueprint{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-#platforms .sb-mobile-phone{position:absolute;left:43%;top:16.8%;width:23%;height:57%;transform:translateY(0) rotateZ(-5deg);transform-style:preserve-3d;animation:sb-mobile-device 9s cubic-bezier(.45,0,.55,1) infinite;animation-play-state:var(--sb-animation-state,paused)}
-#platforms .sb-mobile-phone-front{position:absolute;inset:0;padding:5%;border:1px solid #8898b5;border-radius:9% / 4.5%;background:linear-gradient(110deg,#bcc8dc 0,#1d2940 1.5%,#0a101b 8%,#141c2c 86%,#8093b6 99%);box-shadow:inset 1px 0 1px #e7f0ff88,3px 3px 1px #040711,14px 19px 24px #00000055;overflow:hidden}
-#platforms .sb-mobile-phone-edge{position:absolute;inset:0 -3.5% 0 4%;border:1px solid #7186aa;border-radius:10% / 5%;background:linear-gradient(90deg,#050a12,#465a7b 94%,#121b2d);transform:translateZ(-6px)}
-#platforms .sb-mobile-screen{position:absolute;inset:4.8% 5.5%;border-radius:7% / 3%;overflow:hidden;background:#f7f8fc}
-#platforms .sb-mobile-screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;pointer-events:none;user-select:none}
-#platforms .sb-mobile-glass{position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg,#fff0 30%,#d6e4ff12 48%,#fff0 49%,#fff0 70%,#cbdfff0a);pointer-events:none}
-#platforms .sb-mobile-speaker{position:absolute;width:21%;height:1%;left:39.5%;top:2%;border-radius:10px;background:#060a12;box-shadow:0 1px #a4b8d82e}
-#platforms .sb-mobile-node{position:absolute;display:flex;align-items:center;gap:8px;font:500 clamp(7px,1.55cqi,11px)/1.3 var(--sb-mono,monospace);letter-spacing:-.025em;color:#405579;background:linear-gradient(125deg,#ffffffed,#f1f5ffed);border:1px solid #b8c9ec;box-shadow:0 10px 25px #1b4fd812,inset 0 1px #fff;border-radius:8px;padding:2.4% 2.7%;animation:sb-mobile-node 9s ease-in-out infinite;animation-play-state:var(--sb-animation-state,paused)}
-#platforms .sb-mobile-node svg{width:clamp(13px,3cqi,22px);height:clamp(13px,3cqi,22px);flex:none;color:var(--sb-blue)}
-#platforms .sb-mobile-node-library{left:9%;top:40%;display:grid;grid-template-columns:auto 1fr;gap:5px 9px;transform:perspective(600px) rotateY(12deg) rotateZ(-4deg);animation-delay:-3s}
-#platforms .sb-mobile-node-glyph{font:400 clamp(14px,4cqi,26px)/1.1 var(--sb-mono,monospace);color:var(--sb-blue);grid-row:span 2}
-#platforms .sb-mobile-node-glyph svg{display:block;width:1em;height:1em}
-#platforms .sb-mobile-node-code{font-size:.8em;color:#6b7e9e}
-#platforms .sb-mobile-node-browser{left:72%;top:30%;padding:2.2%;flex-direction:column;gap:7px;animation-delay:-5s}
-#platforms .sb-mobile-node-sync{right:7%;max-width:30%;top:62%;padding:2%;font-size:clamp(6px,1.4cqi,10px);gap:5px;animation-delay:-7s}
-#platforms .sb-mobile-caption{position:absolute;left:6%;right:6%;bottom:6%;display:flex;align-items:center;gap:10px;color:#687a9b;font:400 clamp(7px,1.4cqi,10px)/1.3 var(--sb-mono,monospace);letter-spacing:.03em}
-#platforms .sb-mobile-caption-line{height:1px;flex:1;background:linear-gradient(90deg,#b2c3e7,#b2c3e720)}
-#platforms .sb-mobile-orbit{animation:sb-mobile-orbit 18s linear infinite;animation-play-state:var(--sb-animation-state,paused)}
-#platforms .sb-mobile-rise{animation:sb-mobile-rise 8s ease-in-out infinite;animation-play-state:var(--sb-animation-state,paused)}
-#platforms .sb-mobile-data path{animation:sb-mobile-packet 6s linear infinite;animation-play-state:var(--sb-animation-state,paused)}
-#platforms[data-motion="off"] .sb-mobile-depth{transform:none}
-@keyframes sb-mobile-device{0%,100%{transform:translateY(0) rotateZ(-5deg)}50%{transform:translateY(-2.5%) rotateZ(-3deg)}}
-@keyframes sb-mobile-node{0%,100%{translate:0 0}50%{translate:0 -6px}}
-@keyframes sb-mobile-orbit{from{stroke-dashoffset:0}to{stroke-dashoffset:-1300}}
-@keyframes sb-mobile-rise{0%,100%{transform:translateY(8px);opacity:.35}50%{transform:translateY(-30px);opacity:.8}}
-@keyframes sb-mobile-packet{from{stroke-dashoffset:300}to{stroke-dashoffset:0}}
 
 /* ── FEATURE MODAL ───────────────────────────────────────── */
 .fm-backdrop{
@@ -1731,7 +1691,7 @@ body.cm-locked{overflow:hidden}
 </section>
 
 <!-- Platforms and security: approved four-tab design. All copy remains readable without JavaScript. -->
-<section id="platforms" aria-labelledby="sb-platforms-heading" data-tab="chrome-extension" data-motion="off">
+<section id="platforms" aria-labelledby="sb-platforms-heading" data-tab="chrome-extension">
   <div class="sb-inner">
     <header class="sb-header">
       <h2 id="sb-platforms-heading">Una cuenta. <span>Tres tecnologías distintas.</span></h2>
@@ -1772,83 +1732,25 @@ body.cm-locked{overflow:hidden}
           </div>
         </div>
         <figure class="sb-visual">
-          <div class="sb-stage" aria-label="Captura interactiva con profundidad y perspectiva">
-            <div class="sb-orbit" aria-hidden="true"></div>
-            <button class="sb-motion" type="button" aria-label="Pausar animación" aria-pressed="false" data-pause-label="Pausar animación" data-resume-label="Reanudar animación" hidden><svg width="20" height="20" aria-hidden="true" focusable="false" class="sb-pause" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="3" width="5" height="18" rx="1"></rect><rect x="5" y="3" width="5" height="18" rx="1"></rect></svg><svg width="20" height="20" aria-hidden="true" focusable="false" class="sb-play" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg></button>
-            <div class="sb-mobile-scene" hidden>
-              <div class="sb-mobile-depth">
-                <svg class="sb-mobile-blueprint" viewBox="0 0 720 600" fill="none" aria-hidden="true" focusable="false">
-                  <defs>
-                    <radialGradient id="sb-mobile-halo"><stop stop-color="#1b4fd8" stop-opacity=".12"/><stop offset="1" stop-color="#1b4fd8" stop-opacity="0"/></radialGradient>
-                    <linearGradient id="sb-mobile-wire" x1="100" y1="100" x2="600" y2="560" gradientUnits="userSpaceOnUse"><stop stop-color="#436bb9" stop-opacity=".5"/><stop offset=".5" stop-color="#4267ac" stop-opacity=".22"/><stop offset="1" stop-color="#315db5" stop-opacity=".6"/></linearGradient>
-                    <linearGradient id="sb-mobile-light" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#517fdf"/><stop offset=".5" stop-color="#4267ac"/><stop offset="1" stop-color="#1b4fd8"/></linearGradient>
-                    <linearGradient id="sb-mobile-base" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#edf3ff"/><stop offset="1" stop-color="#cfddfa"/></linearGradient>
-                    <pattern id="sb-mobile-grid" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="#315db5" fill-opacity=".2"/></pattern>
-                  </defs>
-                  <rect width="720" height="600" fill="url(#sb-mobile-grid)"/>
-                  <ellipse cx="390" cy="323" rx="320" ry="277" fill="url(#sb-mobile-halo)"/>
-                  <g stroke="url(#sb-mobile-wire)" stroke-width=".8">
-                    <path d="M72 458 365 568 650 448M113 399 369 493 610 405M153 351 371 431 567 361M196 304 373 369 525 317" opacity=".45"/>
-                    <path d="m72 458 124-154m17 207 70-198m82 255 8-254m141 194-64-191m200 131L525 317" opacity=".4"/>
-                    <ellipse cx="371" cy="437" rx="265" ry="100" stroke-dasharray="3 7"/>
-                    <ellipse cx="371" cy="416" rx="221" ry="84"/>
-                    <ellipse cx="371" cy="416" rx="189" ry="71" opacity=".45"/>
-                    <path d="M149 416 208 186M592 416 534 186M221 478 256 219M523 478 486 219" opacity=".55"/>
-                    <ellipse cx="371" cy="183" rx="164" ry="57" stroke-dasharray="2 7"/>
-                    <ellipse cx="371" cy="227" rx="179" ry="64" opacity=".3"/>
-                    <path d="M206 183c0-59 330-59 330 0" stroke="#5176bd" opacity=".58"/>
-                  </g>
-                  <g class="sb-mobile-orbit" style="transform-origin:371px 416px">
-                    <ellipse cx="371" cy="416" rx="265" ry="100" stroke="#426bcc" stroke-opacity=".55" stroke-dasharray="80 1220" stroke-width="1.3"/>
-                    <circle cx="109" cy="401" r="3" fill="#1b4fd8"/><circle cx="109" cy="401" r="8" stroke="#426bcc" stroke-opacity=".45"/>
-                  </g>
-                  <g class="sb-mobile-rise" stroke="#4872c2" stroke-opacity=".34" stroke-width=".7">
-                    <ellipse cx="371" cy="300" rx="204" ry="74"/>
-                    <ellipse cx="371" cy="335" rx="212" ry="78" opacity=".4"/>
-                  </g>
-                  <ellipse cx="387" cy="448" rx="109" ry="29" fill="#1b4fd8" fill-opacity=".1"/>
-                  <path d="M277 452v9c0 35 222 35 222 0v-9" fill="url(#sb-mobile-base)" stroke="#c4d3f1" stroke-width=".7"/>
-                  <ellipse cx="388" cy="452" rx="111" ry="29" fill="url(#sb-mobile-base)" stroke="#91abdc" stroke-width=".7"/>
-                  <ellipse cx="388" cy="452" rx="91" ry="22" stroke="#88a5dd" stroke-opacity=".34"/>
-                  <g stroke="#6084cf" stroke-opacity=".32" stroke-width="1">
-                    <path d="M167 273C215 273 198 354 311 354"/>
-                    <path d="M553 231C475 231 508 284 456 284"/>
-                    <path d="M584 384C524 384 513 394 458 394"/>
-                  </g>
-                  <g class="sb-mobile-data" stroke="url(#sb-mobile-light)" stroke-width="2" stroke-linecap="round" stroke-dasharray="20 280">
-                    <path d="M167 273C215 273 198 354 311 354"/>
-                    <path d="M553 231C475 231 508 284 456 284" style="animation-delay:-2s"/>
-                    <path d="M584 384C524 384 513 394 458 394" style="animation-delay:-4s"/>
-                  </g>
-                  <g fill="#1b4fd8"><circle cx="311" cy="354" r="2"/><circle cx="456" cy="284" r="2"/><circle cx="458" cy="394" r="2"/></g>
-                </svg>
-                <div class="sb-mobile-phone">
-                  <div class="sb-mobile-phone-edge"></div>
-                  <div class="sb-mobile-phone-front">
-                    <div class="sb-mobile-screen">
-                      <img src="../assets/platforms/mobile-app-2be08c95f8.jpg" width="1080" height="2316" loading="lazy" decoding="async" draggable="false" alt="Formulario de fragmento móvil de Fibonax con selección de idioma y vista previa para copiar">
-                    </div>
-                    <div class="sb-mobile-glass" aria-hidden="true"></div>
-                    <div class="sb-mobile-speaker" aria-hidden="true"></div>
-                  </div>
-                </div>
-                <div class="sb-mobile-node sb-mobile-node-library" aria-hidden="true"><span class="sb-mobile-node-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></span><span>Snippets</span><span class="sb-mobile-node-code">::time</span></div>
-                <div class="sb-mobile-node sb-mobile-node-browser" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6 6-2Z"/><path d="m10 14 4-4"/></svg><span>Safari / Chrome</span></div>
-                <div class="sb-mobile-node sb-mobile-node-sync" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="m3 12 5 5L20 5"/></svg><span>Siempre sincronizado</span></div>
-              </div>
-              <div class="sb-mobile-caption" aria-hidden="true"><span>iOS / Android</span><span class="sb-mobile-caption-line"></span><span>Sin descargas</span></div>
+          <div class="sb-stage-wrap">
+            <div class="sb-stage">
+              <div class="sb-shot sb-shot-store" data-platform="chrome-extension"><img src="../assets/platforms/chrome-web-store-028193ae5f.jpg" width="1280" height="800" alt="La captura oficial de Chrome Web Store de la extensión Fibonax: su ventana con la biblioteca de prompts, bajo el titular Type once. Use it everywhere." loading="lazy" decoding="async" draggable="false" data-source="https://chromewebstore.google.com/detail/fibonax/khdpimdpkgmmaimpbfjgglnpaemmopoo" data-source-label="Fibonax · Chrome Web Store"></div>
+              <div class="sb-shot sb-shot-window" data-platform="web-dashboard" hidden><div class="sb-window-bar" aria-hidden="true"><span class="sb-window-dots"><i></i><i></i><i></i></span><span class="sb-window-url">app.fibonax.com</span></div><img src="../assets/platforms/web-dashboard-c2ef8cc808.webp" width="2200" height="1040" alt="El dashboard web de Fibonax con la biblioteca de snippets, cada uno con su atajo y su carpeta" loading="lazy" decoding="async" draggable="false" data-source="https://app.fibonax.com/" data-source-label="Fibonax · Dashboard web"></div>
+              <div class="sb-shot sb-shot-phone" data-platform="mobile" hidden><img src="../assets/platforms/mobile-snippets-5bb508556b.webp" width="780" height="1400" alt="El sitio móvil de Fibonax con el buscador y la lista de snippets" loading="lazy" decoding="async" draggable="false" data-source="https://app.fibonax.com/mobile/" data-source-label="Fibonax · Sitio móvil"></div>
+              <div class="sb-shot sb-shot-window" data-platform="security" hidden><div class="sb-window-bar" aria-hidden="true"><span class="sb-window-dots"><i></i><i></i><i></i></span><span class="sb-window-url">app.fibonax.com</span></div><img src="../assets/platforms/security-devices-ff1a2b5a5b.webp" width="2200" height="1040" alt="Los ajustes de seguridad en el dashboard de Fibonax, con la lista de dispositivos conectados a la cuenta" loading="lazy" decoding="async" draggable="false" data-source="https://app.fibonax.com/settings?tab=security" data-source-label="Fibonax · Ajustes de seguridad"></div>
             </div>
-            <div class="sb-assembly"><div class="sb-float">
-              <div class="sb-backplate" aria-hidden="true"></div><div class="sb-backplate second" aria-hidden="true"></div>
-              <div class="sb-frame" style="aspect-ratio:750/594">
-                <img data-platform="chrome-extension" src="../assets/platforms/chrome-extension-2346f49352.webp" width="1280" height="800" alt="Extensión Fibonax y selector de snippets, recortados de la captura oficial de Chrome Web Store" loading="lazy" decoding="async" draggable="false" data-aspect="750/594" data-source="https://chromewebstore.google.com/detail/fibonax/khdpimdpkgmmaimpbfjgglnpaemmopoo" data-source-label="Fibonax · Chrome Web Store" style="width:170.666667%;left:-69.333333%;top:-17.676768%">
-                <img data-platform="web-dashboard" src="../assets/platforms/web-dashboard-f279d50f4a.webp" width="1280" height="800" alt="Biblioteca de prompts del dashboard web de Fibonax, recortada de la captura oficial de Chrome Web Store" loading="lazy" decoding="async" draggable="false" data-aspect="795/465" data-source="https://chromewebstore.google.com/detail/fibonax/khdpimdpkgmmaimpbfjgglnpaemmopoo" data-source-label="Fibonax · Chrome Web Store" style="width:161.006289%;left:-60.000000%;top:-30.107527%" hidden>
-                <img data-platform="mobile" src="../assets/platforms/mobile-app-2be08c95f8.jpg" width="1080" height="2316" alt="Formulario de fragmento móvil de Fibonax con selección de idioma y vista previa para copiar" loading="lazy" decoding="async" draggable="false" data-aspect="1080/2316" data-source="https://app.fibonax.com/mobile/" data-source-label="Fibonax · Sitio móvil" style="width:100%;left:0;top:0" hidden>
-                <img data-platform="security" src="../assets/platforms/security-b15d62fdd2.webp" width="833" height="684" alt="Las cuatro funciones de seguridad capturadas directamente del sitio de Fibonax" loading="lazy" decoding="async" draggable="false" data-aspect="800/440" data-source="https://fibonax.com/" data-source-label="fibonax.com · Seguridad" style="width:104.125000%;left:-2.250000%;top:-52.272727%" hidden>
-              </div>
-              <div class="sb-cube" aria-hidden="true"><svg width="20" height="20" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"></path><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path></svg></div>
-              <div class="sb-float-label" aria-hidden="true"><svg width="20" height="20" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"></path><path d="m22 10-7.5 7.5L13 16"></path></svg><span id="sb-floating-caption"></span></div>
-            </div></div>
+            <div class="sb-use" data-platform="web-dashboard" hidden>
+              <p class="sb-use-where">En tu navegador</p>
+              <div class="sb-use-flow"><div class="sb-use-step"><span>Tú guardas</span><span class="sb-use-key">Follow-up</span></div><span class="sb-use-arrow" aria-hidden="true">→</span><div class="sb-use-step"><span>Fibonax lo sincroniza</span><p>Listo en la extensión y en tu teléfono.</p></div></div>
+            </div>
+            <div class="sb-use" data-platform="mobile" hidden>
+              <p class="sb-use-where">En tu teléfono</p>
+              <div class="sb-use-flow"><div class="sb-use-step"><span>Tú tocas</span><span class="sb-use-key">Copy</span></div><span class="sb-use-arrow" aria-hidden="true">→</span><div class="sb-use-step"><span>Fibonax copia</span><p>Hola Sam, el primer borrador está listo para que lo revises.</p></div></div>
+            </div>
+            <div class="sb-use" data-platform="security" hidden>
+              <p class="sb-use-where">En Ajustes</p>
+              <div class="sb-use-flow"><div class="sb-use-step"><span>Tú haces clic</span><span class="sb-use-key">Sign out from all devices</span></div><span class="sb-use-arrow" aria-hidden="true">→</span><div class="sb-use-step"><span>Fibonax cierra la sesión</span><p>En todos los dispositivos, a la vez.</p></div></div>
+            </div>
           </div>
           <figcaption class="sb-source"><span>Captura:</span><a id="sb-source-link" href="https://chromewebstore.google.com/detail/fibonax/khdpimdpkgmmaimpbfjgglnpaemmopoo" target="_blank" rel="noopener">Fibonax · Chrome Web Store <span aria-hidden="true">↗</span></a></figcaption>
         </figure>
@@ -2392,77 +2294,41 @@ body.cm-locked{overflow:hidden}
   var tabs=Array.from(tabList.querySelectorAll('[role="tab"]'));
   var panel=root.querySelector('#sb-platform-panel');
   var copies=Array.from(root.querySelectorAll('.sb-copy'));
-  var images=Array.from(root.querySelectorAll('.sb-frame img'));
-  var stage=root.querySelector('.sb-stage');
-  var frame=root.querySelector('.sb-frame');
-  var float=root.querySelector('.sb-float');
-  var assembly=root.querySelector('.sb-assembly');
-  var mobileScene=root.querySelector('.sb-mobile-scene');
-  var motionButton=root.querySelector('.sb-motion');
+  var shots=Array.from(root.querySelectorAll('.sb-shot'));
+  var uses=Array.from(root.querySelectorAll('.sb-use'));
   var reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
-  var paused=false;
-  var inView=false;
-  var pendingFrame=0;
 
-  function resetTilt(){
-    cancelAnimationFrame(pendingFrame);
-    root.style.setProperty('--sb-tilt-x','0deg');
-    root.style.setProperty('--sb-tilt-y','0deg');
-  }
-
-  function updateMotion(){
-    var enabled=!paused&&!reduced.matches;
-    root.dataset.motion=enabled?'on':'off';
-    motionButton.setAttribute('aria-pressed',String(!enabled));
-    motionButton.setAttribute('aria-label',enabled?motionButton.dataset.pauseLabel:motionButton.dataset.resumeLabel);
-    motionButton.disabled=reduced.matches;
-    var running=enabled&&inView&&!document.hidden;
-    root.style.setProperty('--sb-animation-state',running?'running':'paused');
-    float.style.animationPlayState=running?'running':'paused';
-    if(!enabled||!inView||document.hidden)resetTilt();
+  /* Shows the item of a set that belongs to the tab, if it has one, and returns it. */
+  function show(items,key,enterClass,animate){
+    var active;
+    items.forEach(function(item){
+      item.hidden=item.dataset.platform!==key;
+      item.classList.remove(enterClass);
+      if(!item.hidden)active=item;
+    });
+    if(animate&&active)active.classList.add(enterClass);
+    return active;
   }
 
   function selectTab(key,announce){
     var activeTab=tabs.find(function(tab){return tab.dataset.key===key;});
     if(!activeTab)return;
     root.dataset.tab=key;
-    mobileScene.hidden=key!=='mobile';
-    mobileScene.classList.remove('sb-shot-enter');
-    assembly.hidden=key==='mobile';
     tabs.forEach(function(tab){
       var active=tab===activeTab;
       tab.setAttribute('aria-selected',String(active));
       tab.tabIndex=active?0:-1;
     });
-    var activeCopy;
-    copies.forEach(function(copy){
-      copy.hidden=copy.dataset.platform!==key;
-      copy.classList.remove('sb-panel-enter');
-      if(!copy.hidden)activeCopy=copy;
-    });
-    var activeImage;
-    images.forEach(function(image){
-      image.hidden=image.dataset.platform!==key;
-      image.classList.remove('sb-shot-enter');
-      if(!image.hidden)activeImage=image;
-    });
-    frame.style.aspectRatio=activeImage.dataset.aspect;
+    var animate=announce&&!reduced.matches&&!document.hidden;
+    var activeCopy=show(copies,key,'sb-panel-enter',animate);
+    var image=show(shots,key,'sb-shot-enter',animate).querySelector('img');
+    show(uses,key,'sb-panel-enter',animate);
     var link=root.querySelector('#sb-source-link');
-    link.href=activeImage.dataset.source;
-    link.textContent=activeImage.dataset.sourceLabel+' ↗';
+    link.href=image.dataset.source;
+    link.textContent=image.dataset.sourceLabel+' ↗';
     root.querySelector('#sb-security-detail').hidden=key!=='security';
-    var badge=activeCopy.querySelector('.sb-badge span');
-    root.querySelector('#sb-floating-caption').textContent=badge?badge.textContent:root.querySelector('.sb-trust span:last-child').textContent;
     panel.setAttribute('aria-labelledby',activeTab.id);
-    resetTilt();
-    if(announce){
-      root.querySelector('#sb-announcement').textContent=activeCopy.querySelector('h3').textContent;
-      if(!paused&&!reduced.matches&&inView&&!document.hidden){
-        activeCopy.classList.add('sb-panel-enter');
-        (key==='mobile'?mobileScene:activeImage).classList.add('sb-shot-enter');
-      }
-    }
-    updateMotion();
+    if(announce)root.querySelector('#sb-announcement').textContent=activeCopy.querySelector('h3').textContent;
   }
 
   tabs.forEach(function(tab,index){
@@ -2479,35 +2345,15 @@ body.cm-locked{overflow:hidden}
       tabs[next].focus();
     });
     function preload(){
-      images.find(function(image){return image.dataset.platform===tab.dataset.key;}).loading='eager';
+      shots.find(function(shot){return shot.dataset.platform===tab.dataset.key;}).querySelector('img').loading='eager';
     }
     tab.addEventListener('pointerenter',preload,{once:true});
     tab.addEventListener('focus',preload,{once:true});
   });
-  motionButton.addEventListener('click',function(){paused=!paused;updateMotion();});
-  stage.addEventListener('pointermove',function(event){
-    if(paused||reduced.matches||event.pointerType==='touch'||!inView||document.hidden)return;
-    var bounds=stage.getBoundingClientRect();
-    var x=(event.clientX-bounds.left)/bounds.width-.5;
-    var y=(event.clientY-bounds.top)/bounds.height-.5;
-    cancelAnimationFrame(pendingFrame);
-    pendingFrame=requestAnimationFrame(function(){
-      root.style.setProperty('--sb-tilt-x',(-y*7)+'deg');
-      root.style.setProperty('--sb-tilt-y',(x*10)+'deg');
-    });
-  });
-  stage.addEventListener('pointerleave',resetTilt);
-  reduced.addEventListener('change',updateMotion);
-  document.addEventListener('visibilitychange',updateMotion);
-  if('IntersectionObserver' in window){
-    new IntersectionObserver(function(entries){inView=entries[0].isIntersecting;updateMotion();},{threshold:.05}).observe(stage);
-  }else{inView=true;}
   panel.setAttribute('role','tabpanel');
   panel.tabIndex=0;
   tabList.hidden=false;
-  motionButton.hidden=false;
   selectTab('chrome-extension',false);
-  updateMotion();
 })();
 
 
@@ -2556,7 +2402,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.123.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.124.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
