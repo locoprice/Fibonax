@@ -65,10 +65,11 @@
   // ── PROGRESS ────────────────────────────────────────────────────
   // The line above a long form that says how far along it is. What it counts
   // and when it shows come from the view model (SBFillForm.progress); this
-  // only draws it, right before the form, so each surface's stylesheet can
-  // place it (the overlay and the phone keep it in view while the form
-  // scrolls). Made the first time it is needed and then updated in place, so
-  // a keystroke moves the line rather than redrawing it.
+  // only draws it, right before the form, or right before cfg.progressBefore
+  // when a surface names a place of its own (the overlay sets it above its
+  // footer; the phone keeps it in view while the form scrolls). Made the
+  // first time it is needed and then updated in place, so a keystroke moves
+  // the line rather than redrawing it.
   function drawProgress(host, state, p) {
     var bar = state.progress;
     if (!p || !p.show) { if (bar) bar.hidden = true; return; }
@@ -90,7 +91,7 @@
       text.setAttribute('aria-hidden', 'true');
       bar.appendChild(track);
       bar.appendChild(text);
-      host.before(bar);
+      (state.cfg.progressBefore || host).before(bar);
       state.progress = bar;
     }
     bar.hidden = false;
@@ -99,6 +100,21 @@
     meter.setAttribute('aria-valuenow', String(p.done));
     meter.setAttribute('aria-valuetext', p.label);
     bar.querySelector('.ff-progress-fill').style.width = p.percent + '%';
+    // One dot per field, each at the middle of its share of the line, made
+    // again only when the number of fields changes (a field shown or hidden).
+    var dots = meter.querySelectorAll('.ff-progress-dot');
+    if (dots.length !== p.filled.length) {
+      Array.prototype.forEach.call(dots, function(d) { d.remove(); });
+      p.filled.forEach(function(_, i) {
+        var dot = document.createElement('span');
+        dot.className = 'ff-progress-dot';
+        dot.setAttribute('aria-hidden', 'true');
+        dot.style.left = ((i + 0.5) / p.filled.length * 100) + '%';
+        meter.appendChild(dot);
+      });
+      dots = meter.querySelectorAll('.ff-progress-dot');
+    }
+    p.filled.forEach(function(on, i) { dots[i].classList.toggle('ff-progress-dot--on', on); });
     bar.querySelector('.ff-progress-text').textContent = p.label;
     bar.classList.toggle('ff-progress--done', p.total > 0 && p.done === p.total);
   }

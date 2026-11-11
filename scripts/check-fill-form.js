@@ -262,6 +262,9 @@ if (partWay.progress.done !== 2 || partWay.progress.total !== 6 || partWay.progr
     partWay.progress.label !== '2 of 6 filled in') {
   fail('progress counted ' + JSON.stringify(partWay.progress) + ': expected the typed name and the date on today, not spaces or a bad number');
 }
+if (JSON.stringify(partWay.progress.filled) !== '[true,false,false,false,false,true]') {
+  fail('the dots on the progress line read ' + JSON.stringify(partWay.progress.filled) + ', expected one per field, on for the name and the date');
+}
 const allDone = ff.fillForm('{F1}{F2}{F3}{F4}{F5}', { F1: 'a', F2: 'b', F3: 'c', F4: 'd', F5: 'e' }, opt());
 if (allDone.progress.percent !== 100 || allDone.progress.label !== 'All 5 filled in') {
   fail('a finished form reads ' + JSON.stringify(allDone.progress) + ', expected "All 5 filled in"');

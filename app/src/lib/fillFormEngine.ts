@@ -165,6 +165,8 @@ export interface SbFillProgress {
   percent: number;
   /** "3 of 8 filled in": the words beside the line, the same on every surface. */
   label: string;
+  /** One entry per counted field, in form order: true once it holds a usable answer. Draws the dots on the line. */
+  filled: boolean[];
 }
 
 /** The view model every fill surface renders. Mirrors SHAPE in the gate. */

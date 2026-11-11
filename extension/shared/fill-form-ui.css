@@ -15,15 +15,18 @@
 .ff-form .ff-warn{font-size:12px;line-height:1.5;color:var(--ff-ink);margin:4px 0 0;padding:4px 8px;border-left:3px solid var(--ff-warn);border-radius:4px;background:var(--ff-warn-bg);overflow-wrap:anywhere;}
 #sb-overlay .ff-form p.ff-warn{margin:4px 0 0;padding:4px 8px;font-size:12px;color:var(--ff-ink);}
 /* The line above a long form (SBFillForm.progress): a 3px track, the filled
-   share in Azure, and "3 of 8 filled in" beside it. It sits before the form,
-   outside .ff-form, so it carries its own tokens. */
+   share in Azure, and "3 of 8 filled in" beside it. It sits outside .ff-form
+   (before it, or above the overlay's footer), so it carries its own tokens. */
 .ff-progress{--ff-line:var(--sb-line,#E5E5EA);--ff-muted:var(--sb-ink-muted,#6E6E73);--ff-primary:var(--sb-azure,#1B4FD8);--ff-bg:var(--sb-bg,#fff);display:flex;align-items:center;gap:12px;margin:0 0 16px;}
 .ff-progress[hidden]{display:none;}
-.ff-progress .ff-progress-track{flex:1;min-width:0;height:3px;border-radius:9999px;background:var(--ff-line);overflow:hidden;}
+.ff-progress .ff-progress-track{position:relative;flex:1;min-width:0;height:3px;border-radius:9999px;background:var(--ff-line);}
 .ff-progress .ff-progress-fill{display:block;height:100%;width:0;border-radius:inherit;background:var(--ff-primary);transition:width 300ms cubic-bezier(.4,0,.2,1);}
+/* One 8px dot per field on the line: hollow while empty, Azure once filled. */
+.ff-progress .ff-progress-dot{position:absolute;top:50%;box-sizing:border-box;width:8px;height:8px;border:1.5px solid var(--ff-muted);border-radius:9999px;background:var(--ff-bg);transform:translate(-50%,-50%);transition:background-color 300ms cubic-bezier(.4,0,.2,1),border-color 300ms cubic-bezier(.4,0,.2,1);}
+.ff-progress .ff-progress-dot--on{border-color:var(--ff-primary);background:var(--ff-primary);}
 .ff-progress .ff-progress-text{flex:none;margin:0;font-size:12px;line-height:1.5;font-weight:500;color:var(--ff-muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
 .ff-progress.ff-progress--done .ff-progress-text{color:var(--ff-primary);}
-@media(prefers-reduced-motion:reduce){.ff-progress .ff-progress-fill{transition:none;}}
+@media(prefers-reduced-motion:reduce){.ff-progress .ff-progress-fill,.ff-progress .ff-progress-dot{transition:none;}}
 #ff-unf-bd{position:fixed;inset:0;z-index:2147483647;background:var(--sb-scrim,rgba(0,0,0,.5));}
 #ff-unf{all:initial;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483647;box-sizing:border-box;display:flex;flex-direction:column;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:var(--sb-bg,#fff);border:1px solid var(--sb-line,#E5E5EA);border-radius:16px;box-shadow:var(--sb-shadow-md,0 4px 20px rgba(27,79,216,.12),0 1px 3px rgba(0,0,0,.06));font-family:var(--sb-font,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif);font-size:14px;line-height:1.5;color:var(--sb-ink,#1C1C1E);text-align:left;color-scheme:light;-webkit-font-smoothing:antialiased;}
 #ff-unf,#ff-unf *{box-sizing:border-box;}
@@ -59,10 +62,10 @@
 @media(min-width:900px){#sb-overlay[role=dialog] .ff-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 #sb-overlay[role=dialog] .sb-form-content{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);padding:0;overflow:hidden;}
 #sb-overlay[role=dialog] .sb-input-pane{--ff-pane-pad:24px;min-width:0;overflow-y:auto;padding:var(--ff-pane-pad);overscroll-behavior:contain;}
-/* Kept in view while the fields scroll under it, on the pane's own background
-   and across its full width. A sticky box stops short of a scroll pane's top
-   by the pane's padding, so the inset is taken back to sit flush. */
-#sb-overlay[role=dialog] .ff-progress{position:sticky;top:calc(var(--ff-pane-pad) * -1);z-index:1;margin:0 calc(var(--ff-pane-pad) * -1) 16px;padding:10px var(--ff-pane-pad);background:var(--ff-bg);}
+/* A white strip across the whole window, right above the blue footer: its own
+   thin line on top, the footer's line below, the footer's side padding. */
+#sb-overlay[role=dialog] .ff-progress{flex:none;margin:0;padding:var(--sb-s-3,12px) var(--sb-s-6,24px);border-top:1px solid var(--ff-line);background:var(--ff-bg);}
+@media(max-width:480px){#sb-overlay[role=dialog] .ff-progress{padding:var(--sb-s-3,12px) var(--sb-s-5,20px);}}
 #sb-overlay[role=dialog] .sb-preview{min-width:0;min-height:0;display:flex;flex-direction:column;margin:0;padding:24px;border-left:1px solid var(--sb-line);border-radius:0;}
 #sb-overlay[role=dialog] .sb-preview-heading{flex:none;margin-bottom:16px;}
 #sb-overlay[role=dialog] .sb-prev{overflow-y:auto;min-height:0;flex:1;color:var(--sb-ink);padding:16px;border:1px solid var(--sb-line);border-radius:12px;background:var(--sb-bg);}

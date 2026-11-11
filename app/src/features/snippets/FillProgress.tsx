@@ -23,12 +23,25 @@ export function FillProgress({ progress }: { progress: SbFillProgress | undefine
         aria-valuemax={progress.total}
         aria-valuenow={progress.done}
         aria-valuetext={progress.label}
-        className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full bg-line"
+        className="relative h-[3px] min-w-0 flex-1 rounded-full bg-line"
       >
         <div
           className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out motion-reduce:transition-none"
           style={{ width: `${progress.percent}%` }}
         />
+        {/* One dot per field, at the middle of its share of the line:
+            hollow while empty, filled once it holds an answer. */}
+        {progress.filled.map((on, i) => (
+          <span
+            key={i}
+            aria-hidden="true"
+            className={cn(
+              'absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] transition-colors duration-300 ease-out motion-reduce:transition-none',
+              on ? 'border-primary bg-primary' : 'border-ink-muted bg-card',
+            )}
+            style={{ left: `${((i + 0.5) / progress.filled.length) * 100}%` }}
+          />
+        ))}
       </div>
       {/* The same words the bar carries as its value, so a screen reader
           hears them once. */}

@@ -2188,7 +2188,8 @@ function showOverlay(targetEl, snip, scLen, done) {
     });
   });
   if (window.SBFillFormUI) window.SBFillFormUI.enhance(el.querySelector('.sb-fields'), vm, {
-    prefix: 'overlay', row: '.sb-field', caption: '.sb-lbl,.sb-ctx,.sb-ctxline', menu: '.sb-multi', control: '.sb-inp'
+    prefix: 'overlay', row: '.sb-field', caption: '.sb-lbl,.sb-ctx,.sb-ctxline', menu: '.sb-multi', control: '.sb-inp',
+    progressBefore: el.querySelector('.sb-foot')
   });
 
   setTimeout(function() {
