@@ -1139,7 +1139,7 @@
     {
       "find": "<span class=\"sr-only\"> (opens in a new tab)</span>",
       "replace": "<span class=\"sr-only\"> (si apre in una nuova scheda)</span>",
-      "count": 2
+      "count": 3
     },
     {
       "find": "content=\"Fibonax: Your context. Every AI. One direction.\"",
@@ -1149,6 +1149,31 @@
     {
       "find": "\"description\": \"One place for your Snippets, Prompts and Brains. Built to give every AI the context it needs to work better.\"",
       "replace": "\"description\": \"Un unico spazio per i tuoi Snippet, Prompt e Brains. Pensato per dare a ogni AI il contesto di cui ha bisogno per lavorare meglio.\"",
+      "count": 1
+    },
+    {
+      "find": "data-loading=\"Loading the chart from Google.\" data-failed=\"The chart didn't load. A content blocker or a weak connection may be stopping it. Try again, or open it in Google Trends.\" data-retry=\"Try again\" data-chart-label=\"Google Trends chart of searches for prompt manager and prompt library\"",
+      "replace": "data-loading=\"Caricamento del grafico da Google.\" data-failed=\"Il grafico non si è caricato. Forse lo blocca un ad blocker o la connessione è debole. Riprova, oppure aprilo in Google Trends.\" data-retry=\"Riprova\" data-chart-label=\"Grafico di Google Trends con le ricerche di prompt manager e prompt library\"",
+      "count": 1
+    },
+    {
+      "find": "      <h2 id=\"trends-title\">How often people search for prompt tools.</h2>\n      <p>Live from Google Trends: worldwide searches for \"prompt manager\" and \"prompt library\" over the past five years. 100 marks the busiest week.</p>",
+      "replace": "      <h2 id=\"trends-title\">Quanto si cercano gli strumenti per i prompt.</h2>\n      <p>In diretta da Google Trends: le ricerche di \"prompt manager\" e \"prompt library\" nel mondo negli ultimi cinque anni. 100 indica la settimana con più ricerche.</p>",
+      "count": 1
+    },
+    {
+      "find": "<p>The chart loads from Google, and Google may set cookies when it does, so it waits for you. See the <a href=\"/legal/cookie-policy.html#third-party-cookies\">cookie policy</a>.</p>",
+      "replace": "<p>Il grafico arriva da Google, che al caricamento può impostare dei cookie: per questo parte solo quando lo chiedi. Leggi la <a href=\"/legal/cookie-policy.html#third-party-cookies\">cookie policy</a>.</p>",
+      "count": 1
+    },
+    {
+      "find": "data-trends-load>Show live chart</button>",
+      "replace": "data-trends-load>Mostra il grafico in diretta</button>",
+      "count": 1
+    },
+    {
+      "find": "rel=\"noopener\">Open in Google Trends<svg",
+      "replace": "rel=\"noopener\">Apri in Google Trends<svg",
       "count": 1
     },
     {

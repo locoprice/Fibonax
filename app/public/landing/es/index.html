@@ -416,7 +416,7 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 .foot-ext{display:inline-flex;align-items:center;gap:4px}
 .foot-ext svg{flex-shrink:0;opacity:.75;transition:transform .15s,opacity .15s}
 .foot-ext:hover svg{opacity:1;transform:translate(1px,-1px)}
-.foot-ext .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.foot-ext .sr-only,.trends .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* LANGUAGE PICKER
    Lives in the footer rather than the nav: the bar has no room left for it
    once a primary CTA and an account menu are in there, and every language
@@ -939,14 +939,42 @@ body.cm-locked{overflow:hidden}
   .ps-card{padding:28px 24px 26px}
   .ps-head{margin-bottom:44px}}
 
+/* ── SEARCH TRENDS ─────────────────────────────────────────── */
+/* A live Google Trends chart. Google's chart sets its own cookies, so nothing
+   is requested from Google until the visitor presses Show live chart. The
+   waiting card is a golden rectangle on a dotted ground, like .context-map. */
+.trends{padding:100px 24px 112px;background:var(--bg);border-top:1px solid var(--border);scroll-margin-top:80px}
+.trends-inner{max-width:760px;margin:0 auto}
+.trends-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  box-shadow:var(--shadow-sm);overflow:hidden}
+.trends-card:focus{outline:none}
+.trends-card:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.trends-gate{aspect-ratio:1.618/1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:var(--space-4);padding:var(--space-8) var(--space-6);text-align:center;
+  background-color:var(--bg);
+  background-image:radial-gradient(var(--border) .75px,transparent .75px);background-size:var(--space-3) var(--space-3)}
+.trends-icon{display:grid;place-items:center;width:40px;height:40px;
+  color:var(--primary);background:var(--primary-lt);border-radius:var(--r-btn)}
+.trends-gate p{font-size:15px;line-height:1.6;color:var(--text2);max-width:420px}
+.trends-gate p a{color:var(--primary);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.trends-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.trends-actions .btn[disabled]{opacity:.6;cursor:progress;transform:none}
+.trends-gate .trends-status{font-size:14px;color:var(--text);font-weight:500}
+.trends-gate .trends-status:empty{display:none}
+.trends-chart iframe{display:block;width:100%;border:0}
+@media(max-width:720px){
+  .trends{padding:72px 20px 80px}
+  .trends-gate{aspect-ratio:auto;min-height:320px}
+  .trends-actions{flex-direction:column;align-items:stretch;width:100%;max-width:320px}}
+
 /* ── FAQ ───────────────────────────────────────────────────── */
 .faq{padding:100px 24px 112px;background:var(--bg-alt);border-top:1px solid var(--border);scroll-margin-top:80px}
 .faq-inner{max-width:760px;margin:0 auto}
-.faq-head{text-align:center;margin-bottom:48px}
-.faq-head h2{
+.faq-head,.trends-head{text-align:center;margin-bottom:48px}
+.faq-head h2,.trends-head h2{
   font-size:clamp(32px,4vw,44px);font-weight:800;letter-spacing:-1.4px;
   line-height:1.08;color:var(--text);margin-bottom:14px}
-.faq-head p{
+.faq-head p,.trends-head p{
   font-size:17px;color:var(--text2);max-width:480px;
   margin:0 auto;line-height:1.55}
 .faq-list{display:flex;flex-direction:column;gap:12px}
@@ -978,7 +1006,7 @@ body.cm-locked{overflow:hidden}
 @media(prefers-reduced-motion:reduce){.faq-icon{transition:none}}
 @media(max-width:720px){
   .faq{padding:72px 20px 80px}
-  .faq-head{margin-bottom:36px}
+  .faq-head,.trends-head{margin-bottom:36px}
   .faq-q{padding:18px;font-size:16px}
   .faq-a{padding:0 18px 20px;font-size:15px}}
 
@@ -1896,6 +1924,29 @@ body.cm-locked{overflow:hidden}
   </div>
 </section>
 
+<section class="trends" id="search-trends" aria-labelledby="trends-title" data-loading="Cargando el gráfico de Google." data-failed="El gráfico no se ha cargado. Puede que lo bloquee un bloqueador de anuncios o que la conexión sea débil. Vuelve a intentarlo o ábrelo en Google Trends." data-retry="Reintentar" data-chart-label="Gráfico de Google Trends con las búsquedas de prompt manager y prompt library">
+  <div class="trends-inner">
+
+    <header class="trends-head">
+      <h2 id="trends-title">Cuánto se buscan las herramientas de prompts.</h2>
+      <p>En directo desde Google Trends: búsquedas de "prompt manager" y "prompt library" en todo el mundo en los últimos cinco años. 100 marca la semana con más búsquedas.</p>
+    </header>
+
+    <div class="trends-card" tabindex="-1">
+      <div class="trends-gate">
+        <span class="trends-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
+        <p>El gráfico viene de Google, que puede instalar cookies al cargarlo: por eso solo se abre cuando tú lo pides. Consulta la <a href="/legal/cookie-policy.html#third-party-cookies">política de cookies</a>.</p>
+        <div class="trends-actions">
+          <button type="button" class="btn btn-primary" data-trends-load>Ver el gráfico en directo</button>
+          <a class="btn btn-ghost" href="https://trends.google.com/trends/explore?date=today%205-y&amp;q=prompt%20manager,prompt%20library" target="_blank" rel="noopener">Abrir en Google Trends<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg><span class="sr-only"> (se abre en una pestaña nueva)</span></a>
+        </div>
+        <p class="trends-status" role="status"></p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 
 <section class="faq" id="faq" aria-labelledby="faq-title" itemscope itemtype="https://schema.org/FAQPage">
   <div class="faq-inner">
@@ -2142,6 +2193,82 @@ body.cm-locked{overflow:hidden}
   window.addEventListener('pageshow', tick);
   window.addEventListener('pagehide', function () { clearTimeout(timeout); });
   tick();
+})();
+</script>
+
+<script id="search-trends-chart">
+(function () {
+  var root = document.getElementById('search-trends');
+  if (!root) return;
+  // Google's own embed loader, requested only after the visitor asks for the
+  // chart because the chart sets Google cookies. If it ever stops loading,
+  // copy the build number from a fresh embed code in Google Trends (the <>
+  // button on a chart).
+  var LOADER = 'https://ssl.gstatic.com/trends_nrtr/4640_RC01/embed_loader.js';
+  var TIME = 'today 5-y';
+  var TERMS = ['prompt manager', 'prompt library'];
+  var card = root.querySelector('.trends-card');
+  var gate = root.querySelector('.trends-gate');
+  var button = root.querySelector('[data-trends-load]');
+  var status = root.querySelector('.trends-status');
+  var loader = null;
+
+  function loadScript() {
+    if (!loader) {
+      loader = new Promise(function (resolve, reject) {
+        var script = document.createElement('script');
+        script.src = LOADER;
+        script.async = true;
+        script.onload = function () {
+          if (window.trends && window.trends.embed) resolve();
+          else reject(new Error('the loader ran but trends.embed is missing'));
+        };
+        script.onerror = function () {
+          script.remove();
+          reject(new Error('the loader could not be downloaded from ' + LOADER));
+        };
+        document.head.appendChild(script);
+      });
+      loader.catch(function () { loader = null; });
+    }
+    return loader;
+  }
+
+  function render() {
+    var chart = document.createElement('div');
+    chart.className = 'trends-chart';
+    card.appendChild(chart);
+    try {
+      window.trends.embed.renderExploreWidgetTo(chart, 'TIMESERIES', {
+        comparisonItem: TERMS.map(function (keyword) { return {keyword: keyword, geo: '', time: TIME}; }),
+        category: 0,
+        property: ''
+      }, {
+        exploreQuery: 'date=' + encodeURIComponent(TIME) + '&q=' + TERMS.map(encodeURIComponent).join(',') +
+          '&hl=' + (document.documentElement.lang || 'en'),
+        guestPath: 'https://trends.google.com:443/trends/embed/'
+      });
+    } catch (error) {
+      chart.remove();
+      throw error;
+    }
+    var frame = chart.querySelector('iframe');
+    if (frame) frame.title = root.dataset.chartLabel;
+    card.setAttribute('aria-label', root.dataset.chartLabel);
+    gate.remove();
+    card.focus({preventScroll: true});
+  }
+
+  button.addEventListener('click', function () {
+    button.disabled = true;
+    status.textContent = root.dataset.loading;
+    loadScript().then(render).catch(function (error) {
+      console.error('Search trends chart: ' + error.message);
+      button.disabled = false;
+      button.textContent = root.dataset.retry;
+      status.textContent = root.dataset.failed;
+    });
+  });
 })();
 </script>
 
@@ -2481,7 +2608,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.126.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.127.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
