@@ -107,6 +107,9 @@ jobs:
       - name: Pricing page numbers match PRICING
         run: node scripts/check-pricing-config.js
 
+      - name: FiboToken rate is the same on every surface
+        run: node scripts/sync-fibotoken-rate.js --check
+
       - name: Landing FAQ structured data
         run: node scripts/check-landing-faq.js
 

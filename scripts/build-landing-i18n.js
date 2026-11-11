@@ -167,14 +167,19 @@ function pricingShell(home, lang) {
       const href = (path.posix.relative(currentDir, target) || '.') + '/';
       return `href="${href}" hreflang="${code}"`;
     }));
+  // The exchange rate window's button leads to the packs: one page away from
+  // the homepage, an anchor on this one.
+  const packsLink = 'href="pricing/#plans"';
+  const rate = sharedPart(home, 'rate');
+  if (rate.split(packsLink).length !== 2) throw new Error(`Expected one ${packsLink} in the shared rate window`);
   return {
     SITE_HEADER: header,
     SITE_FOOTER: rebase(footer),
-    SITE_CONTACT: sharedPart(home, 'contact'),
-    SITE_CSS: ['base-css', 'hero-css', 'footer-css', 'contact-css', 'mobile-nav-css']
+    SITE_CONTACT: sharedPart(home, 'contact') + '\n' + rate.replace(packsLink, 'href="#plans"'),
+    SITE_CSS: ['base-css', 'hero-css', 'footer-css', 'contact-css', 'rate-css', 'mobile-nav-css']
       .map(name => sharedPart(home, name)).join('\n\n') +
       '\n@media(max-width:640px){\n' + sharedPart(home, 'mobile-hero-css') + '\n' + sharedPart(home, 'mobile-footer-css') + '\n}',
-    SITE_JS: sharedPart(home, 'controls-js') + '\n\n' + sharedPart(home, 'footer-js'),
+    SITE_JS: ['controls-js', 'footer-js', 'rate-js'].map(name => sharedPart(home, name)).join('\n\n'),
   };
 }
 

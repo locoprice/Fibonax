@@ -284,7 +284,7 @@
     {
       "find": "aria-label=\"Close\"",
       "replace": "aria-label=\"Cerrar\"",
-      "count": 3
+      "count": 4
     },
     {
       "find": "aria-label=\"Menu\"",
@@ -1189,6 +1189,71 @@
     {
       "find": "<a href=\"/ai-info/\">Company facts</a>",
       "replace": "<a href=\"/ai-info/\">Datos de la empresa</a>",
+      "count": 1
+    },
+    {
+      "find": ">FiboToken exchange rate<",
+      "replace": ">Tipo de cambio del FiboToken<",
+      "count": 1
+    },
+    {
+      "find": ">Current exchange rate<",
+      "replace": ">Tipo de cambio actual<",
+      "count": 1
+    },
+    {
+      "find": "> Variable rate<",
+      "replace": "> Tipo variable<",
+      "count": 2
+    },
+    {
+      "find": ">is worth<",
+      "replace": ">vale<",
+      "count": 1
+    },
+    {
+      "find": "</strong> FiboTokens · Rate set on <span",
+      "replace": "</strong> FiboTokens · Tipo fijado el <span",
+      "count": 1
+    },
+    {
+      "find": "Like a currency, the FiboToken rate is variable: it can change over time and move with the market. A new rate applies to new packs only. FiboTokens you already own keep their value: one FiboToken, one use.",
+      "replace": "Como una divisa, el tipo del FiboToken es variable: puede cambiar con el tiempo y oscilar con el mercado. Un nuevo tipo solo se aplica a los paquetes nuevos. Los FiboTokens que ya tienes conservan su valor: un FiboToken, un uso.",
+      "count": 1
+    },
+    {
+      "find": "FiboToken packs go on sale on <span",
+      "replace": "Los paquetes de FiboTokens estarán a la venta a partir del <span",
+      "count": 1
+    },
+    {
+      "find": ">See the packs<",
+      "replace": ">Ver los paquetes<",
+      "count": 1
+    },
+    {
+      "find": ">Show the exchange rate details<",
+      "replace": ">Mostrar los detalles del tipo de cambio<",
+      "count": 1
+    },
+    {
+      "find": "data-rate=\"rate\">€0.01<",
+      "replace": "data-rate=\"rate\">€0,01<",
+      "count": 2
+    },
+    {
+      "find": "data-rate=\"exampleTokens\">2,500<",
+      "replace": "data-rate=\"exampleTokens\">2500<",
+      "count": 1
+    },
+    {
+      "find": "data-rate=\"setOn\">October 28, 2026<",
+      "replace": "data-rate=\"setOn\">28 de octubre de 2026<",
+      "count": 1
+    },
+    {
+      "find": "data-rate=\"packsFrom\" data-iso=\"2027-01-01\">January 1, 2027<",
+      "replace": "data-rate=\"packsFrom\" data-iso=\"2027-01-01\">1 de enero de 2027<",
       "count": 1
     }
   ],
@@ -2117,6 +2182,11 @@
       "find": ">2,500<",
       "replace": ">2500<",
       "count": 3
+    },
+    {
+      "find": "</svg>Rate details<",
+      "replace": "</svg>Detalles del tipo<",
+      "count": 1
     }
   ]
 }

@@ -823,6 +823,62 @@ body.cm-locked{overflow:hidden}
   .cm-frame{height:min(88vh,620px)}}
 /* SHARED:contact-css:END */
 
+/* SHARED:rate-css:BEGIN */
+/* ── FIBOTOKEN EXCHANGE RATE ─────────────────────────────
+   The pill and the window it opens. Shared with the pricing page, where the
+   rate card opens the same window. The numbers sit in [data-rate] slots,
+   written by scripts/sync-fibotoken-rate.js from the one rate file,
+   app/src/config/fiboTokenRate.json. */
+.rate-pill{display:inline-flex;align-items:center;gap:var(--space-2);min-height:44px;padding:6px 14px 6px 16px;
+  font:inherit;font-size:14px;font-weight:600;color:var(--text);background:var(--card);
+  border:1px solid var(--border);border-radius:var(--r-pill);box-shadow:var(--shadow-sm);cursor:pointer;
+  transition:border-color .15s,box-shadow .15s}
+.rate-pill:hover{border-color:var(--primary);box-shadow:var(--shadow-md)}
+.rate-pill:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.rate-pill-sum{font-variant-numeric:tabular-nums;white-space:nowrap}
+.rate-pill-value{font-weight:700;color:var(--primary)}
+.rate-pill-chip,.rd-chip{display:inline-flex;align-items:center;gap:var(--space-1);padding:4px 10px;font-size:12px;font-weight:700;
+  color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill);white-space:nowrap}
+.rate-pill svg{flex:none;color:var(--text2)}
+.rate-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.rd-backdrop{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;padding:var(--space-6);
+  opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s ease}
+.rd-backdrop.rd-open{opacity:1;visibility:visible}
+.rd-dialog{position:relative;width:100%;max-width:520px;max-height:calc(100vh - var(--space-8));overflow:auto;
+  padding:var(--space-8);background:var(--card);color:var(--text);
+  border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:var(--r);
+  box-shadow:0 24px 60px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.06);text-align:center;
+  transform:translateY(12px) scale(.98);transition:transform .22s cubic-bezier(.23,1,.32,1)}
+.rd-backdrop.rd-open .rd-dialog{transform:none}
+.rd-close{position:absolute;top:var(--space-3);right:var(--space-3);width:44px;height:44px;
+  display:grid;place-items:center;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-btn);color:var(--text2);cursor:pointer}
+.rd-close:hover{background:var(--bg-alt);color:var(--text)}
+.rd-close:focus-visible,.rd-dialog .btn:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.rd-title{font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.2;color:var(--text);
+  margin:0 var(--space-12) var(--space-3)}
+.rd-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--space-2) var(--space-3)}
+.rd-label{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.rd-main{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:var(--space-3);
+  margin-top:var(--space-4);font-family:var(--sb-mono);font-variant-numeric:tabular-nums;color:var(--text)}
+.rd-unit{font-size:22px;font-weight:700}
+.rd-eq{font-size:22px;color:var(--text3)}
+.rd-value{font-size:clamp(44px,12vw,64px);font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--primary)}
+.rd-sub{margin-top:var(--space-3);font-size:15px;line-height:1.6;color:var(--text2)}
+.rd-sub strong{font-family:var(--sb-mono);font-weight:700;color:var(--text)}
+.rd-note{margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--border);
+  font-size:14px;line-height:1.6;color:var(--text2);text-align:left}
+.rd-packs{margin-top:var(--space-3);font-size:14px;font-weight:600;line-height:1.5;color:var(--text);text-align:left}
+.rd-actions{margin-top:var(--space-6)}
+.rd-actions .btn{width:100%;min-height:44px}
+@media(max-width:600px){
+  .rd-backdrop{padding:var(--space-3);align-items:flex-end}
+  .rd-dialog{padding:var(--space-6)}}
+@media(prefers-reduced-motion:reduce){.rd-backdrop,.rd-dialog,.rate-pill{transition:none}}
+/* SHARED:rate-css:END */
+
 /* ── PARTNER SPOTLIGHT ─────────────────────────────────────── */
 .ps{
   padding:100px 24px 112px;
@@ -946,6 +1002,7 @@ body.cm-locked{overflow:hidden}
 #prompt-access .pa-policy p{color:#b9bdc8;font-size:14px;line-height:1.7;margin:0}
 #prompt-access .pa-policy strong{font-weight:600;color:#f6f7fa}
 #prompt-access .pa-policy .pa-terms{margin-top:8px}
+#prompt-access .pa-rate{margin-top:var(--space-3)}
 #prompt-access noscript{display:block;font-size:12px;color:#a9aeba;margin-top:12px}
 @media(max-width:800px){#prompt-access .pa-card{grid-template-columns:1fr;gap:30px}#prompt-access .pa-clock{max-width:480px;width:100%}#prompt-access .pa-policy{grid-template-columns:1fr;gap:8px}}
 @media(max-width:440px){#prompt-access{margin-top:32px;padding-top:32px}#prompt-access .pa-digits{gap:6px}#prompt-access .pa-unit{padding:16px 2px 12px;border-radius:10px}#prompt-access .pa-number{font-size:28px}#prompt-access .pa-unit-label{font-size:10px}#prompt-access .pa-cta{width:100%}}
@@ -1924,6 +1981,7 @@ body.cm-locked{overflow:hidden}
           <div>
             <p data-pa-expired="Lifetime free access remains unchanged for users who joined or downloaded Fibonax by the end of 2026. Pay-per-use pricing beyond the free allowance applies only to new users joining from January 1, 2027."><strong>Your lifetime free access stays free.</strong> Only new users joining from January 1, 2027 will have a free usage allowance followed by pay-per-use pricing beyond the defined limit.</p>
             <p class="pa-terms"><strong>See the pricing page for allowances and rates.</strong></p>
+            <div class="pa-rate"><button type="button" class="rate-pill" data-rate-open aria-haspopup="dialog"><span class="rate-pill-sum">1 FiboToken = <span class="rate-pill-value" data-rate="rate">€0.01</span></span><span class="rate-pill-chip"><span aria-hidden="true">↕</span> Variable rate</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg><span class="rate-sr">Show the exchange rate details</span></button></div>
           </div>
         </div>
       </div>
@@ -2019,6 +2077,27 @@ body.cm-locked{overflow:hidden}
   </div>
 </div>
 <!-- SHARED:contact:END -->
+
+<!-- FiboToken exchange rate window, opened by the pill above and by the rate
+     card on the pricing page. Every number is a [data-rate] slot written by
+     scripts/sync-fibotoken-rate.js; change the rate in
+     app/src/config/fiboTokenRate.json, never here. -->
+<!-- SHARED:rate:BEGIN -->
+<div class="rd-backdrop" id="rd-backdrop" aria-hidden="true">
+  <div class="rd-dialog" role="dialog" aria-modal="true" aria-labelledby="rd-title">
+    <button type="button" class="rd-close" id="rd-close" aria-label="Close">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <h2 class="rd-title" id="rd-title">FiboToken exchange rate</h2>
+    <div class="rd-head"><span class="rd-label">Current exchange rate</span><span class="rd-chip"><span aria-hidden="true">↕</span> Variable rate</span></div>
+    <p class="rd-main"><span class="rd-unit">1 FiboToken</span><span class="rd-eq" aria-hidden="true">=</span><span class="rate-sr">is worth</span><span class="rd-value" data-rate="rate">€0.01</span></p>
+    <p class="rd-sub"><strong data-rate="exampleEuros">€25</strong> = <strong data-rate="exampleTokens">2,500</strong> FiboTokens · Rate set on <span data-rate="setOn">October 28, 2026</span></p>
+    <p class="rd-note">Like a currency, the FiboToken rate is variable: it can change over time and move with the market. A new rate applies to new packs only. FiboTokens you already own keep their value: one FiboToken, one use.</p>
+    <p class="rd-packs" id="rd-packs">FiboToken packs go on sale on <span data-rate="packsFrom" data-iso="2027-01-01">January 1, 2027</span>.</p>
+    <div class="rd-actions"><a class="btn btn-primary" href="pricing/#plans">See the packs</a></div>
+  </div>
+</div>
+<!-- SHARED:rate:END -->
 
 <script id="prompt-access-countdown">
 (function () {
@@ -2402,7 +2481,7 @@ body.cm-locked{overflow:hidden}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.124.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.125.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
@@ -2413,6 +2492,63 @@ body.cm-locked{overflow:hidden}
   if(updEl&&updEl.textContent.indexOf('{{')>-1)updEl.textContent=' · Updated '+FALLBACK_MONTH;
 })();
 // SHARED:footer-js:END
+
+// SHARED:rate-js:BEGIN
+/* FiboToken exchange rate window: opened by any [data-rate-open] control (the
+   pill here, the rate card on the pricing page). Escape and a click outside
+   close it, Tab stays inside it, and focus returns to the control that
+   opened it. */
+(function(){
+  var backdrop=document.getElementById('rd-backdrop');
+  var closeBtn=document.getElementById('rd-close');
+  var triggers=document.querySelectorAll('[data-rate-open]');
+  if(!backdrop||!closeBtn||!triggers.length)return;
+  var dialog=backdrop.querySelector('.rd-dialog');
+  var opener=null;
+
+  // Packs have a first day on sale. From that day in Italy (UTC+01:00 in
+  // winter) the line announcing it goes.
+  var packs=document.getElementById('rd-packs');
+  var day=packs&&packs.querySelector('[data-iso]');
+  if(day&&Date.now()>=Date.parse(day.getAttribute('data-iso')+'T00:00:00+01:00'))packs.hidden=true;
+
+  function isOpen(){return backdrop.classList.contains('rd-open');}
+  function setOpen(open){
+    backdrop.classList.toggle('rd-open',open);
+    backdrop.setAttribute('aria-hidden',String(!open));
+    document.body.classList.toggle('cm-locked',open);
+  }
+  function openFrom(control){
+    opener=control;
+    setOpen(true);
+    // A click's own focus default lands after one frame and would take focus back.
+    requestAnimationFrame(function(){requestAnimationFrame(function(){closeBtn.focus();});});
+  }
+  function close(){
+    setOpen(false);
+    if(opener)opener.focus();
+  }
+
+  Array.prototype.forEach.call(triggers,function(control){
+    control.addEventListener('click',function(){openFrom(control);});
+  });
+  closeBtn.addEventListener('click',close);
+  backdrop.addEventListener('click',function(e){if(e.target===backdrop)close();});
+  // A link in the window leads to the packs: the window steps aside first.
+  Array.prototype.forEach.call(dialog.querySelectorAll('a'),function(link){
+    link.addEventListener('click',function(){setOpen(false);});
+  });
+  document.addEventListener('keydown',function(e){
+    if(!isOpen())return;
+    if(e.key==='Escape'){close();return;}
+    if(e.key!=='Tab')return;
+    var stops=dialog.querySelectorAll('button,a[href]');
+    var first=stops[0],last=stops[stops.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  });
+})();
+// SHARED:rate-js:END
 
 </script>
 <!-- SB_TOOLTIP:BEGIN (generated from extension/shared/tooltip.js by scripts/sync-tooltip.js, do not edit) -->

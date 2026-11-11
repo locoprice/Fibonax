@@ -148,6 +148,35 @@ body{
 .home-brains strong{display:block;font-size:15px;font-weight:700}
 .home-brains small{display:block;margin-top:3px;font-size:12px;color:var(--text2)}
 .home-brains .home-brains-arrow{width:18px;height:18px;margin-left:auto}
+/* FiboToken exchange rate: a pill at the foot of the home page that opens in
+   place. Its numbers come from the generated FIBOTOKEN_RATE block. */
+.home-rate{margin-top:18px;border:1px solid var(--border);border-radius:24px;background:var(--card);box-shadow:var(--shadow-sm);overflow:hidden;
+  scroll-margin:16px 0 104px}
+.home-rate-pill{display:flex;align-items:center;gap:8px;width:100%;min-height:48px;padding:8px 16px;border:0;background:none;
+  color:var(--text);font-family:inherit;text-align:left;cursor:pointer}
+.home-rate-pill:focus-visible{outline-offset:-2px;border-radius:24px}
+.home-rate-sum{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.home-rate-sum span{color:var(--primary)}
+.home-rate-chip{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:4px 8px;border-radius:9999px;
+  background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:700;white-space:nowrap}
+.home-rate-caret{width:18px;height:18px;flex:none;stroke:var(--text2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
+  transition:transform .3s ease}
+.home-rate.open .home-rate-caret{transform:rotate(180deg)}
+.home-rate-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
+.home-rate.open .home-rate-panel{grid-template-rows:1fr}
+.home-rate-in{min-height:0;overflow:hidden;visibility:hidden;transition:visibility 0s .3s}
+.home-rate.open .home-rate-in{visibility:visible;transition-delay:0s}
+.home-rate-body{padding:13px 16px 16px;border-top:1px solid var(--border);text-align:center}
+.home-rate-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.home-rate-main{margin-top:8px;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--text)}
+.home-rate-main small{display:block;font-size:15px;font-weight:700}
+.home-rate-main strong{display:block;margin-top:5px;font-size:55px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--primary)}
+.home-rate-facts{margin-top:13px;font-size:14px;line-height:1.6;color:var(--text2)}
+.home-rate-facts strong{font-family:var(--mono);color:var(--text)}
+.home-rate-note{margin-top:13px;padding-top:13px;border-top:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--text2);text-align:left}
+.home-rate-packs{margin-top:8px;font-size:13px;line-height:1.5;font-weight:600;color:var(--text);text-align:left}
+.home-rate-link{display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:13px;border-radius:var(--r-btn);
+  background:var(--primary);color:#fff;font-size:15px;font-weight:700;text-decoration:none}
 @media(min-width:700px){
   .home-band{padding-left:40px;padding-right:40px}
   .home-title{font-size:44px}
@@ -163,8 +192,12 @@ body{
   .home-title{font-size:34px}
   .home-task{padding:12px;gap:9px}
   .home-task-copy strong{font-size:15px}
+  .home-rate-pill{flex-wrap:wrap}
+  .home-rate-sum{flex:1}
+  .home-rate-chip{order:3;margin-left:0}
 }
-@media(prefers-reduced-motion:reduce){.home-task{transition:none}.home-task:active{transform:none}}
+@media(prefers-reduced-motion:reduce){.home-task{transition:none}.home-task:active{transform:none}
+  .home-rate-panel,.home-rate-in,.home-rate-caret{transition:none}}
 
 /* ── LIBRARY BAND (snippets, prompts, Brains) ── */
 /* The home band's frame on the three library pages: navy, the greeting and
@@ -1605,6 +1638,28 @@ svg.brain-type-icon{stroke-width:1.8}
         <span><strong>Your Brains</strong><small>Read, copy, or add to your context</small></span>
         <svg class="home-brains-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
       </button>
+
+      <!-- FiboToken exchange rate: the pill opens in place. The numbers are
+           written by the script from the generated FIBOTOKEN_RATE block. -->
+      <section class="home-rate" id="home-rate" aria-label="FiboToken exchange rate">
+        <button class="home-rate-pill" type="button" id="home-rate-pill" aria-expanded="false" aria-controls="home-rate-panel">
+          <span class="home-rate-sum">1 FiboToken = <span data-rate="rate"></span></span>
+          <span class="home-rate-chip"><span aria-hidden="true">↕</span> Variable rate</span>
+          <svg class="home-rate-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="home-rate-panel" id="home-rate-panel">
+          <div class="home-rate-in">
+            <div class="home-rate-body">
+              <p class="home-rate-label">Current exchange rate</p>
+              <p class="home-rate-main"><small>1 FiboToken is worth</small><strong data-rate="rate"></strong></p>
+              <p class="home-rate-facts"><strong data-rate="example"></strong><br>Rate set on <span data-rate="setOn"></span></p>
+              <p class="home-rate-note">Like a currency, the FiboToken rate is variable: it can change over time and move with the market. A new rate applies to new packs only. FiboTokens you already own keep their value: one FiboToken, one use.</p>
+              <p class="home-rate-packs" id="home-rate-packs">FiboToken packs go on sale on <span data-rate="packsFrom"></span>.</p>
+              <a class="home-rate-link" href="https://fibonax.com/pricing/" target="_blank" rel="noopener">See the packs</a>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -8010,6 +8065,11 @@ svg.brain-type-icon{stroke-width:1.8}
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
 </script>
 <!-- SB_INTERACTIVE_STEPS:END -->
+<!-- FIBOTOKEN_RATE:BEGIN (generated from app/src/config/fiboTokenRate.json by scripts/sync-fibotoken-rate.js, do not edit) -->
+<script>
+var FIBOTOKEN_RATE = {"euroPerFiboToken":0.01,"exampleEuros":25,"rateSetOn":"2026-10-28","packsFrom":"2027-01-01"};
+</script>
+<!-- FIBOTOKEN_RATE:END -->
 <script>
 var SUPA = 'https://eyowustlbqujaimaxggt.supabase.co';
 var KEY  = 'sb_publishable_F_8LSMkr9ZK-9v50sPzXbQ_zjA0D_O0';
@@ -14815,6 +14875,53 @@ document.addEventListener('click',function(e){
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape')closeMobileMore(true);
 });
+/* ── FiboToken exchange rate (home pill) ─────────────
+   The numbers come from the FIBOTOKEN_RATE block, a generated copy of
+   app/src/config/fiboTokenRate.json (scripts/sync-fibotoken-rate.js). The
+   wording matches app/src/lib/fiboTokenRate.ts on the dashboard. */
+(function(){
+  var root=document.getElementById('home-rate');
+  var rate=window.FIBOTOKEN_RATE;
+  if(!rate){root.hidden=true;return;}
+  function longDate(iso){
+    return new Date(iso+'T12:00:00Z').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric',timeZone:'UTC'});
+  }
+  var tokens=Math.round(rate.exampleEuros/rate.euroPerFiboToken);
+  var text={
+    rate:'€'+rate.euroPerFiboToken.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4}),
+    example:'€'+rate.exampleEuros.toLocaleString('en-US')+' = '+tokens.toLocaleString('en-US')+' FiboTokens',
+    setOn:longDate(rate.rateSetOn),
+    packsFrom:longDate(rate.packsFrom)
+  };
+  Array.prototype.forEach.call(root.querySelectorAll('[data-rate]'),function(node){
+    node.textContent=text[node.getAttribute('data-rate')];
+  });
+  // Italy is UTC+01:00 on a winter sale day, whatever the phone's zone.
+  if(Date.now()>=Date.parse(rate.packsFrom+'T00:00:00+01:00'))document.getElementById('home-rate-packs').hidden=true;
+  var pill=document.getElementById('home-rate-pill');
+  var panel=document.getElementById('home-rate-panel');
+  pill.addEventListener('click',function(){
+    var open=!root.classList.contains('open');
+    root.classList.toggle('open',open);
+    pill.setAttribute('aria-expanded',String(open));
+    if(!open)return;
+    // Bring what just opened into view, clear of the bottom bar, once it has
+    // its full height: when the opening ends, or at once when motion is off.
+    // The timer covers a browser that opens the panel without a transition.
+    var still=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var shown=false;
+    function reveal(){
+      panel.removeEventListener('transitionend',onEnd);
+      if(shown||!root.classList.contains('open'))return;
+      shown=true;
+      root.scrollIntoView({block:'nearest',behavior:still?'auto':'smooth'});
+    }
+    function onEnd(e){if(e.target===panel)reveal();}
+    if(still){reveal();return;}
+    panel.addEventListener('transitionend',onEnd);
+    setTimeout(reveal,600);
+  });
+})();
 (function(){
   document.getElementById('view-home').addEventListener('click',function(e){
     var action=e.target.closest('[data-home-action]');
