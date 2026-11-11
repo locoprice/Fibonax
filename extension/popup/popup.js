@@ -2848,7 +2848,37 @@ function setMode(m) {
 // dashboard; the pane only mirrors state and hosts the two local prefs.
 function openCfg(){
   applyTriggerCfgToInputs();
+  renderRate();
   show('pane-cfg');
+}
+
+// FIBOTOKEN EXCHANGE RATE in Settings: read-only, drawn from
+// shared/fibotoken-rate.js each time the pane opens, so the "on sale" line
+// follows the clock. Rate details opens the rest in place.
+function renderRate(){
+  var root = gi('cfg-rate');
+  if (!root) return;
+  if (typeof SBFiboTokenRate === 'undefined') { root.style.display = 'none'; return; }
+  var v = SBFiboTokenRate.view(Date.now());
+  root.querySelectorAll('[data-rate]').forEach(function(n){ n.textContent = v[n.getAttribute('data-rate')]; });
+  gi('rate-worth').textContent = v.worth;
+  gi('rate-note').textContent = SBFiboTokenRate.DISCLAIMER;
+  var packs = gi('rate-packs');
+  packs.textContent = v.packsNote || '';
+  packs.hidden = !v.packsNote;
+}
+function toggleRate(){
+  var tog = gi('rate-tog');
+  var more = gi('rate-more');
+  var open = tog.getAttribute('aria-expanded') !== 'true';
+  tog.setAttribute('aria-expanded', open ? 'true' : 'false');
+  more.hidden = !open;
+  if (open) more.scrollIntoView({ block: 'nearest' });
+}
+function openPricing(){
+  var url = SBFiboTokenRate.PRICING_URL;
+  try { chrome.tabs.create({ url: url }); }
+  catch(e) { try { window.open(url, '_blank'); } catch(e2) {} }
 }
 
 // POMODORO TIMER: the pane and the header button ("focus" is its name inside
@@ -3096,6 +3126,8 @@ function on(id,ev,fn){ var e=gi(id); if(e) e.addEventListener(ev,fn); }
 on('bcfg','click',    openCfg);
 on('bdash','click',   openDashboard);
 on('bmanage','click', openDashboard);
+on('rate-tog','click', toggleRate);
+on('rate-go','click',  openPricing);
 on('bbcfg','click',   function(){ show('pane-list'); refreshUI(); });
 on('bfocus','click',  openFocus);
 on('bbfocus','click', function(){ show('pane-list'); refreshUI(); });

@@ -7,6 +7,7 @@
 // that this script writes:
 //
 //   app/public/mobile/index.html     a generated FIBOTOKEN_RATE block
+//   extension/shared/fibotoken-rate.js  the same block, for the popup's Settings
 //   app/public/landing/index.html    [data-rate] slots in the pill and its window
 //   scripts/templates/pricing.html   the PRICING object and its [data-pricing] slots
 //
@@ -28,6 +29,7 @@ const { execFileSync } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const SOURCE = path.join(ROOT, 'app', 'src', 'config', 'fiboTokenRate.json');
 const MOBILE = path.join(ROOT, 'app', 'public', 'mobile', 'index.html');
+const EXTENSION = path.join(ROOT, 'extension', 'shared', 'fibotoken-rate.js');
 const LANDING = path.join(ROOT, 'app', 'public', 'landing', 'index.html');
 const PRICING = path.join(ROOT, 'scripts', 'templates', 'pricing.html');
 const LOCALES = path.join(ROOT, 'app', 'public', 'landing', 'locales');
@@ -104,6 +106,25 @@ function syncMobile(rate, check, report) {
   if (check) return report(MOBILE, 'FIBOTOKEN_RATE block has drifted');
   fs.writeFileSync(MOBILE, html.slice(0, start) + desired + html.slice(stop + END.length));
   report(MOBILE, null, true);
+}
+
+// ── Extension popup ──────────────────────────────────────────────────────
+// The same data as the phone's block, between JavaScript comment markers.
+const JS_BEGIN = '  // FIBOTOKEN_RATE:BEGIN (generated from app/src/config/fiboTokenRate.json by scripts/sync-fibotoken-rate.js, do not edit)';
+const JS_END = '  // FIBOTOKEN_RATE:END';
+
+function syncExtension(rate, check, report) {
+  const js = readText(EXTENSION);
+  const desired = `${JS_BEGIN}
+  var RATE = ${JSON.stringify(rate)};
+${JS_END}`;
+  const start = js.indexOf(JS_BEGIN);
+  const stop = js.indexOf(JS_END);
+  if (start === -1 || stop === -1) return report(EXTENSION, 'has no FIBOTOKEN_RATE block');
+  if (js.slice(start, stop + JS_END.length) === desired) return report(EXTENSION);
+  if (check) return report(EXTENSION, 'FIBOTOKEN_RATE block has drifted');
+  fs.writeFileSync(EXTENSION, js.slice(0, start) + desired + js.slice(stop + JS_END.length));
+  report(EXTENSION, null, true);
 }
 
 // ── Landing homepage ─────────────────────────────────────────────────────
@@ -246,7 +267,7 @@ function syncLocale(lang, rate, landingHtml, moves, check, report) {
 function checkDisclaimer(report) {
   const match = readText(DASHBOARD_TEXT).match(/disclaimer:\s*'([^']+)'/);
   if (!match) return report(DASHBOARD_TEXT, 'disclaimer text not found');
-  for (const file of [MOBILE, LANDING, PRICING]) {
+  for (const file of [MOBILE, EXTENSION, LANDING, PRICING]) {
     if (!readText(file).includes(match[1])) report(file, 'does not carry the disclaimer as the dashboard words it');
   }
 }
@@ -269,6 +290,7 @@ function main() {
 
   const rate = loadRate();
   syncMobile(rate, check, report);
+  syncExtension(rate, check, report);
   syncLanding(rate, check, report);
 
   const template = readText(PRICING);

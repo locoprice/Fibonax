@@ -493,6 +493,23 @@ html,body{
 .set-row{display:flex;align-items:center;gap:8px}
 .ic{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex-shrink:0}
 .ic svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* FiboToken exchange rate: read-only. The numbers come from
+   shared/fibotoken-rate.js; Rate details opens the rest in place. */
+.rate-chip{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:var(--sb-r-pill);background:var(--sb-azure-bg);color:var(--sb-azure);font-size:var(--sb-fs-10);font-weight:700;white-space:nowrap}
+.rate-box{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:8px 12px;background:var(--sb-bg-muted);border:1px solid var(--sb-line);border-top:3px solid var(--sb-azure);border-radius:var(--sb-r-md)}
+.rate-sum{font-family:var(--sb-mono);font-size:var(--sb-fs-12);font-weight:600;color:var(--sb-ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rate-val{font-size:var(--sb-fs-20);font-weight:800;letter-spacing:-.02em;color:var(--sb-azure)}
+.rate-tog{flex-shrink:0;height:32px;padding:0 10px;display:inline-flex;align-items:center;gap:4px;border:1px solid var(--sb-line);border-radius:var(--sb-r-sm);background:var(--sb-bg);color:var(--sb-ink-muted);font-family:inherit;font-size:var(--sb-fs-11);font-weight:600;cursor:pointer;transition:border-color var(--sb-dur-base),color var(--sb-dur-base)}
+.rate-tog:hover{border-color:var(--sb-azure-bdr);color:var(--sb-azure)}
+.rate-tog:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px}
+.rate-tog svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform var(--sb-dur-base)}
+.rate-tog[aria-expanded="true"] svg{transform:rotate(180deg)}
+.rate-more{margin-top:8px}
+.rate-facts{font-size:var(--sb-fs-11);color:var(--sb-ink-muted);line-height:1.6}
+.rate-facts strong{font-family:var(--sb-mono);color:var(--sb-ink)}
+.rate-packs{font-size:var(--sb-fs-11);font-weight:600;color:var(--sb-ink);line-height:1.5;margin-top:6px}
+.rate-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (prefers-reduced-motion: reduce){.rate-tog,.rate-tog svg{transition:none}}
 
 /* ── POMODORO TIMER PANE ──
    Two columns on the golden ratio (1.618fr 1fr): the timer on the left, the
@@ -848,6 +865,27 @@ html,body{
       <div class="set-note">Pre-selects this language at trigger time.</div>
     </div>
 
+    <!-- FIBOTOKEN EXCHANGE RATE: read-only. renderRate() in popup.js fills it
+         from shared/fibotoken-rate.js, a generated copy of the one rate file. -->
+    <div class="set-sec" id="cfg-rate">
+      <div class="set-row">
+        <span style="font-size:11px;font-weight:600;color:var(--sb-ink);flex:1;display:flex;align-items:center;gap:4px">
+          <span class="ic" style="color:var(--sb-azure)"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg></span> FiboToken exchange rate
+        </span>
+        <span class="rate-chip"><span aria-hidden="true">&#8597;</span> Variable rate</span>
+      </div>
+      <div class="rate-box">
+        <span class="rate-sum"><span class="rate-sr" id="rate-worth"></span><span aria-hidden="true">1 FiboToken = <span class="rate-val" data-rate="rate"></span></span></span>
+        <button type="button" class="rate-tog" id="rate-tog" aria-expanded="false" aria-controls="rate-more">Rate details <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+      </div>
+      <div class="rate-more" id="rate-more" hidden>
+        <div class="rate-facts"><strong data-rate="example"></strong> &middot; Rate set on <span data-rate="setOnDate"></span></div>
+        <div class="set-note" id="rate-note"></div>
+        <div class="rate-packs" id="rate-packs" hidden></div>
+        <button class="btn" id="rate-go" type="button" style="width:100%;margin-top:10px;color:var(--sb-azure)">See the packs <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></button>
+      </div>
+    </div>
+
     <!-- Sign out -->
     <div class="set-sec" style="margin-top:24px;padding-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
       <div style="font-size:11px;color:var(--sb-ink-subtle);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sb-signed-as">Signed in</div>
@@ -965,6 +1003,7 @@ html,body{
 <script src="../shared/usage-analytics.js"></script>
 <script src="../shared/focus-timer.js"></script>
 <script src="../shared/focus-carousel.js"></script>
+<script src="../shared/fibotoken-rate.js"></script>
 <script src="popup.js"></script>
 
 <!-- ═══ CHANGELOG MODAL ═══ -->
