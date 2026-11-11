@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Globe, Share2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Globe, Network, Pencil, Share2 } from 'lucide-react';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { LoadingBlock } from '@/components/layout/LoadingBlock';
+import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { CreateTeamPanel } from '@/features/org/CreateTeamPanel';
+import { DepartmentsDialog } from '@/features/org/DepartmentsDialog';
 import { FolderShareModal } from '@/features/org/FolderShareModal';
 import {
   canInvite,
@@ -11,6 +14,7 @@ import {
   ROLE_LABEL,
   useInvitations,
 } from '@/features/org/InviteMemberPanel';
+import { MemberPlacementDialog } from '@/features/org/MemberPlacementDialog';
 import { TeamCover } from '@/features/org/TeamCover';
 import { Avatar } from '@/components/shared/Avatar';
 import { AvatarStack, type StackMember } from '@/components/shared/AvatarStack';
@@ -20,11 +24,13 @@ import { useOrgStore } from '@/stores/orgStore';
 import { useAuthStore } from '@/stores/authStore';
 import { permissionsApi } from '@/lib/api/permissionsApi';
 import { FolderIcon } from '@/lib/folderIcons';
+import { groupByDepartment, hasOwnName } from '@/lib/orgChart';
 import { describeFolderContents } from '@/lib/teamFolders';
 import type {
   Folder,
   FolderPermission,
   FolderShareScope,
+  OrgDepartment,
   OrgMember,
   OrganizationSummary,
 } from '@/types/database';
@@ -39,7 +45,8 @@ const NO_ITEMS: FolderCounts = { snippets: 0, prompts: 0 };
 
 /**
  * The Team page: who is in the team, and which folders are shared. One calm
- * screen. The People list carries the one action, Invite people, and the
+ * screen. The People list is the team's org chart (people grouped by
+ * department once the team has departments), with Invite people and the
  * invitations already sent; the folder list says who has each folder and
  * what it holds, with Manage sharing beside it. Sharing itself stays
  * folder-level (Phase B org ACL) and is managed through FolderShareModal;
@@ -56,6 +63,7 @@ export function TeamPage() {
   const loadPrompts = usePromptStore((s) => s.load);
 
   const members = useOrgStore((s) => s.members);
+  const departments = useOrgStore((s) => s.departments);
   const activeOrg = useOrgStore((s) => s.activeOrg);
   const orgLoaded = useOrgStore((s) => s.loaded);
   const loadOrg = useOrgStore((s) => s.load);
@@ -193,7 +201,12 @@ export function TeamPage() {
         <CreateTeamPanel />
       ) : (
         <div className="flex flex-col gap-4">
-          <PeopleCard org={activeOrg} members={members} currentUserId={currentUserId} />
+          <PeopleCard
+            org={activeOrg}
+            members={members}
+            departments={departments}
+            currentUserId={currentUserId}
+          />
 
           {foldersLoading ? (
             <LoadingBlock what="shared folders" />
@@ -251,25 +264,97 @@ function CardHeading({
   );
 }
 
+/** The tile grid every group of people uses, grouped by department or not. */
+const PEOPLE_GRID = 'grid grid-cols-2 gap-x-2 gap-y-1 p-3 xl:grid-cols-3 2xl:grid-cols-4';
+
 function PeopleCard({
   org,
   members,
+  departments,
   currentUserId,
 }: {
   org: OrganizationSummary;
   members: OrgMember[];
+  departments: OrgDepartment[];
   currentUserId: string | null;
 }) {
   const inviter = canInvite(org.myRole);
+  const isAdmin = org.myRole === 'admin';
   const { invitations, refresh } = useInvitations(inviter ? org.id : null);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [departmentsOpen, setDepartmentsOpen] = useState(false);
+  // Where the keyboard focus goes back to when a window closes: the button
+  // that opened it. A person may have moved to another group meanwhile, so
+  // their pencil is looked up again rather than remembered.
+  const cardRef = useRef<HTMLElement>(null);
+  const departmentsButtonRef = useRef<HTMLButtonElement>(null);
+  const lastEditedId = useRef<string | null>(null);
+
+  const groups = useMemo(() => groupByDepartment(members, departments), [members, departments]);
+  // A department nobody sits in is an admin's to fill; everyone else sees
+  // only the ones with people in them.
+  const shownGroups = groups.filter((g) => g.members.length > 0 || isAdmin);
+  // The how-to is said once, on the first empty department, not on each.
+  const firstEmpty = shownGroups.find((g) => g.members.length === 0) ?? null;
+  const editing = members.find((m) => m.user_id === editingId) ?? null;
+
+  function renderTile(m: OrgMember) {
+    const isYou = m.user_id === currentUserId;
+    return (
+      <MemberTile
+        key={m.user_id}
+        member={m}
+        isYou={isYou}
+        // Admins place anyone; everyone else sets their own department and title.
+        onEdit={
+          isAdmin || isYou
+            ? () => {
+                lastEditedId.current = m.user_id;
+                setEditingId(m.user_id);
+              }
+            : undefined
+        }
+      />
+    );
+  }
+
+  function focusLastEdited() {
+    const id = lastEditedId.current;
+    if (id === null) return;
+    cardRef.current
+      ?.querySelector<HTMLButtonElement>(`button[data-edit-member="${id}"]`)
+      ?.focus();
+  }
+
   return (
-    <section className="rounded-[16px] border border-line bg-card" aria-labelledby="team-people-title">
+    <section
+      ref={cardRef}
+      className="rounded-[16px] border border-line bg-card"
+      aria-labelledby="team-people-title"
+    >
       <CardHeading
         id="team-people-title"
         title="People"
         count={members.length}
-        action={inviter ? <InvitePeopleButton org={org} onSent={refresh} /> : undefined}
+        action={
+          (isAdmin || inviter) && (
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Button
+                  ref={departmentsButtonRef}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDepartmentsOpen(true)}
+                >
+                  <Network className="h-4 w-4" aria-hidden="true" />
+                  Departments
+                </Button>
+              )}
+              {inviter && <InvitePeopleButton org={org} onSent={refresh} />}
+            </div>
+          )
+        }
       />
 
       {members.length === 0 ? (
@@ -278,47 +363,119 @@ function PeopleCard({
         <p className="px-5 py-3 text-sm text-ink-subtle" role="status">
           Loading people…
         </p>
+      ) : departments.length === 0 ? (
+        // No departments yet: one grid of faces, in the directory's own order.
+        <ul className={PEOPLE_GRID}>{members.map(renderTile)}</ul>
       ) : (
-        // Faces first: a grid of tiles, each the person's photo (or initial),
-        // name, then role and email on one muted line. Three tiles share the
-        // width a single row used to take, so a team fits in a glance.
-        <ul className="grid grid-cols-2 gap-x-2 gap-y-1 p-3 xl:grid-cols-3 2xl:grid-cols-4">
-          {members.map((m) => {
-            const isYou = m.user_id === currentUserId;
-            // The directory falls back to the email as the display name, so
-            // only a real name earns the email a place on the second line.
-            const name = m.display_name.trim();
-            const hasName = name !== '' && name.toLowerCase() !== m.email.toLowerCase();
+        // The org chart: one block per department, its lead first, then the
+        // people who have no department yet.
+        <div className="divide-y divide-line">
+          {shownGroups.map((group) => {
+            const headingId = `team-department-${group.department?.id ?? 'none'}`;
             return (
-              <li key={m.user_id} className="flex min-w-0 items-center gap-3 rounded-[12px] px-2 py-2">
-                <Avatar
-                  src={m.avatar_url}
-                  name={m.display_name}
-                  email={m.email}
-                  highlight={isYou}
-                  size="lg"
-                />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-sm font-medium text-ink">
-                    {hasName ? name : m.email}
-                    {isYou && <span className="font-normal text-ink-subtle"> (you)</span>}
-                  </span>
-                  <span
-                    className="truncate text-xs text-ink-subtle"
-                    title={hasName ? m.email : undefined}
-                  >
-                    {ROLE_LABEL[m.role]}
-                    {hasName && ` · ${m.email}`}
-                  </span>
-                </span>
-              </li>
+              <section key={headingId} aria-labelledby={headingId}>
+                <h3 id={headingId} className="px-5 pt-3.5 text-[13px] font-semibold text-ink">
+                  {group.department?.name ?? 'No department yet'}{' '}
+                  <span className="font-normal text-ink-subtle">· {group.members.length}</span>
+                </h3>
+                {group.members.length === 0 ? (
+                  <p className="px-5 pb-3.5 pt-1 text-sm text-ink-subtle">
+                    Nobody here yet.
+                    {group === firstEmpty &&
+                      ' Click the pencil beside a person to choose their department.'}
+                  </p>
+                ) : (
+                  <ul className={`${PEOPLE_GRID} pt-1.5`}>{group.members.map(renderTile)}</ul>
+                )}
+              </section>
             );
           })}
-        </ul>
+        </div>
       )}
 
       {inviter && <InvitationRows org={org} invitations={invitations} onChanged={refresh} />}
+
+      <MemberPlacementDialog
+        member={editing}
+        isSelf={editing !== null && editing.user_id === currentUserId}
+        isAdmin={isAdmin}
+        onClose={() => setEditingId(null)}
+        onRestoreFocus={focusLastEdited}
+      />
+      {isAdmin && (
+        <DepartmentsDialog
+          open={departmentsOpen}
+          onOpenChange={setDepartmentsOpen}
+          onRestoreFocus={() => departmentsButtonRef.current?.focus()}
+        />
+      )}
     </section>
+  );
+}
+
+/**
+ * One person: their photo (or initial), name, job title when they have one,
+ * then role and email on one muted line. The pencil opens their department
+ * and job title, and shows only to whoever may change them.
+ */
+function MemberTile({
+  member,
+  isYou,
+  onEdit,
+}: {
+  member: OrgMember;
+  isYou: boolean;
+  onEdit?: () => void;
+}) {
+  // The directory falls back to the email as the display name, so only a
+  // real name earns the email a place on the last line.
+  const named = hasOwnName(member);
+  const name = named ? member.display_name.trim() : member.email;
+  return (
+    <li className="flex min-w-0 items-center gap-3 rounded-[12px] px-2 py-2">
+      <Avatar
+        src={member.avatar_url}
+        name={member.display_name}
+        email={member.email}
+        highlight={isYou}
+        size="lg"
+      />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-sm font-medium text-ink">
+            {name}
+            {isYou && <span className="font-normal text-ink-subtle"> (you)</span>}
+          </span>
+          {member.is_department_lead && (
+            <span className="shrink-0 rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-semibold text-primary">
+              Lead
+            </span>
+          )}
+        </span>
+        {member.job_title && (
+          <span className="truncate text-xs text-ink-muted" title={member.job_title}>
+            {member.job_title}
+          </span>
+        )}
+        <span className="truncate text-xs text-ink-subtle" title={named ? member.email : undefined}>
+          {ROLE_LABEL[member.role]}
+          {named && ` · ${member.email}`}
+        </span>
+      </span>
+      {onEdit && (
+        <Tooltip label="Department and job title" className="shrink-0">
+          <button
+            type="button"
+            onClick={onEdit}
+            data-edit-member={member.user_id}
+            aria-label={isYou ? 'Edit your department and job title' : `Edit ${name}`}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-subtle transition-colors hover:bg-bg-alt hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </Tooltip>
+      )}
+    </li>
   );
 }
 

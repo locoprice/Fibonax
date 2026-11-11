@@ -410,6 +410,29 @@ export interface OrgMember {
   role: OrgRole;
   /** Profile photo set in Settings → Account (https), or null for the initial. */
   avatar_url: string | null;
+  /** The department this person sits in within this team, or null for none. */
+  department_id: Uuid | null;
+  /** What this person does in this team, in their own or an admin's words. */
+  job_title: string | null;
+  /** True when this person is the lead of the department they sit in. */
+  is_department_lead: boolean;
+}
+
+/** A department of a team (`org_departments`), for the org chart on the Team page. */
+export interface OrgDepartment {
+  id: Uuid;
+  name: string;
+}
+
+/**
+ * Where a person sits in a team. `lead` is admin-only: true makes them the
+ * lead of the department, false takes the mark away, and leaving it out keeps
+ * whatever is saved (what a person editing their own place sends).
+ */
+export interface MemberPlacement {
+  departmentId: Uuid | null;
+  jobTitle: string | null;
+  lead?: boolean;
 }
 
 /** Lifecycle of an `organization_invitations` row. */
