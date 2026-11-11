@@ -1249,6 +1249,30 @@ chrome.runtime.onMessage.addListener(function(msg) {
   if (msg && msg.type === 'auth_changed') { initMenus(); sbRefreshActionIcon(); }
 });
 
+// ── SIGNED-OUT BADGE: a "!" on the toolbar icon until someone signs in ──
+// The toolbar icon is the one part of the extension always in view, so a
+// signed-out install says so there: a "!" on the popup's danger red
+// (--sb-danger, white text) and a tooltip that names the next step. It follows
+// sb_session through storage.onChanged, which fires here whoever writes the
+// key: the popup's sign-in and Sign out, a refresh the server turns down, a
+// sign-out from the dashboard. The call at load covers install, update and a
+// browser restart, which resets the badge.
+var SB_SIGNED_OUT_TITLE = "Fibonax: you're signed out. Click to sign in.";
+function sbUpdateSignInBadge() {
+  chrome.storage.local.get('sb_session', function(d) {
+    var signedIn = !!(d && d.sb_session && d.sb_session.user_id);
+    chrome.action.setBadgeText({ text: signedIn ? '' : '!' });
+    chrome.action.setTitle({ title: signedIn ? 'Fibonax' : SB_SIGNED_OUT_TITLE });
+    if (signedIn) return;
+    chrome.action.setBadgeBackgroundColor({ color: '#DC2626' });
+    if (chrome.action.setBadgeTextColor) chrome.action.setBadgeTextColor({ color: '#FFFFFF' });
+  });
+}
+sbUpdateSignInBadge();
+chrome.storage.onChanged.addListener(function(changes, area) {
+  if (area === 'local' && changes.sb_session) sbUpdateSignInBadge();
+});
+
 // ── MEMORY-002 I1: the keyboard shortcut ──────────────────────────
 //
 // The command fires here, in the service worker, so it has to be relayed to the
