@@ -8,6 +8,7 @@ import { AutoInsertPanel } from '@/features/settings/AutoInsertPanel';
 import { BrandingPanel } from '@/features/settings/BrandingPanel';
 import { DeleteAccountPanel } from '@/features/settings/DeleteAccountPanel';
 import { FiboTokenRatePanel } from '@/features/settings/FiboTokenRatePanel';
+import { ImportExportPanel } from '@/features/settings/ImportExportPanel';
 import { InactivityPanel } from '@/features/settings/InactivityPanel';
 import { InlineTriggerPanel } from '@/features/settings/InlineTriggerPanel';
 import { IntegrationsPanel } from '@/features/settings/IntegrationsPanel';
@@ -26,7 +27,8 @@ const SECTION_OPTIONS = [
 type SectionKey = (typeof SECTION_OPTIONS)[number]['value'];
 
 const SECTION_DESCRIPTIONS: Record<SectionKey, string> = {
-  account: 'Your profile, your company brand, how snippets are inserted and the FiboToken rate.',
+  account:
+    'Your profile, your company brand, how snippets are inserted, the FiboToken rate, and your import and export files.',
   security: 'Your password, the devices signed in and your recent sign-ins.',
   integrations: 'The other places where you use Fibonax.',
 };
@@ -76,6 +78,7 @@ export function SettingsPage() {
                 <BrandingPanel />
                 <MonthlyRecapPanel />
                 <SaintOfDayPanel />
+                <ImportExportPanel />
               </div>
               <div className="grid gap-5">
                 <InlineTriggerPanel />
