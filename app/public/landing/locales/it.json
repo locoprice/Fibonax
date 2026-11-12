@@ -1459,8 +1459,8 @@
       "count": 3
     },
     {
-      "find": ">€4.90<",
-      "replace": ">€4,90<",
+      "find": ">€9.90<",
+      "replace": ">€9,90<",
       "count": 2
     },
     {
@@ -1494,13 +1494,13 @@
       "count": 1
     },
     {
-      "find": ">per month<",
-      "replace": ">al mese<",
+      "find": ">/month<",
+      "replace": ">/mese<",
       "count": 1
     },
     {
-      "find": "Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.",
-      "replace": "Snippet, prompt e Brain illimitati a un piccolo prezzo mensile. Nessun FiboToken da contare.",
+      "find": "<p class=\"plan-tagline\">No FiboTokens to count.</p>",
+      "replace": "<p class=\"plan-tagline\">Nessun FiboToken da contare.</p>",
       "count": 1
     },
     {

@@ -108,7 +108,7 @@
 .plan-name{font-size:22px;font-weight:700;color:var(--text)}
 .plan-price{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
 .plan-amount{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--text)}
-.plan-per{font-size:14px;color:var(--text2)}
+.plan-per{font-size:14px;color:var(--text2);white-space:nowrap}
 .plan-tagline{font-size:15px;line-height:1.55;color:var(--text2)}
 .plan-from{font-size:14px;color:var(--text2)}
 .plan-flag{display:inline-flex;align-items:center;padding:4px 10px;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill)}
@@ -316,8 +316,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <article class="plan" aria-labelledby="plan-monthly">
         <p class="plan-kind">Monthly subscription</p>
         <h3 class="plan-name" id="plan-monthly">PRO</h3>
-        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€4.90</span><span class="plan-per">per month</span></p>
-        <p class="plan-tagline">Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.</p>
+        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€9.90</span><span class="plan-per">/month</span></p>
+        <p class="plan-tagline">No FiboTokens to count.</p>
         <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Compare plans</a>
         <ul class="plan-list">
           <li><span>Unlimited snippet, prompt and Brain uses</span></li>
@@ -343,7 +343,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <tr><th scope="col">What you get</th><th scope="col">Free</th><th scope="col" class="is-featured">Pay as you go</th><th scope="col">Monthly subscription</th></tr>
       </thead>
       <tbody>
-        <tr><th scope="row">Price</th><td data-label="Free"><strong>€0</strong></td><td data-label="Pay as you go"><strong>From <span data-pricing="topUpEuros">€25</span>, once</strong></td><td data-label="Monthly subscription"><strong><span data-pricing="monthlyEuros">€4.90</span> per month</strong></td></tr>
+        <tr><th scope="row">Price</th><td data-label="Free"><strong>€0</strong></td><td data-label="Pay as you go"><strong>From <span data-pricing="topUpEuros">€25</span>, once</strong></td><td data-label="Monthly subscription"><strong><span data-pricing="monthlyEuros">€9.90</span> per month</strong></td></tr>
         <tr><th scope="row">Recurring payment</th><td data-label="Free">No</td><td data-label="Pay as you go">No, a one-time purchase</td><td data-label="Monthly subscription">Yes, monthly</td></tr>
         <tr><th scope="row">FiboTokens</th><td data-label="Free">Not needed</td><td data-label="Pay as you go"><strong data-pricing="fiboTokensPerTopUp">2,500</strong> for <span data-pricing="topUpEuros">€25</span>, <strong data-pricing="pack50Tokens">5,250</strong> for <span data-pricing="pack50Euros">€50</span>, <strong data-pricing="pack100Tokens">11,000</strong> for <span data-pricing="pack100Euros">€100</span></td><td data-label="Monthly subscription">Not needed</td></tr>
         <tr><th scope="row">Expiry</th><td data-label="Free">The allowance renews every day</td><td data-label="Pay as you go"><strong>Never</strong></td><td data-label="Monthly subscription">Unlimited while you are subscribed</td></tr>
@@ -487,7 +487,7 @@ var PRICING = {
   foundingTopUpEuros: 20,
   foundingPack50Euros: 40,
   foundingPack100Euros: 80,
-  monthlyEuros: 4.9,
+  monthlyEuros: 9.9,
   // Madrid is UTC+01:00 at this winter deadline, whatever the visitor's zone.
   // The day the current exchange rate was set; shown on the rate card.
   rateSetOn: '2026-10-28',

@@ -416,7 +416,7 @@ footer{padding:28px 20px}
 .plan-name{font-size:22px;font-weight:700;color:var(--text)}
 .plan-price{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
 .plan-amount{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--text)}
-.plan-per{font-size:14px;color:var(--text2)}
+.plan-per{font-size:14px;color:var(--text2);white-space:nowrap}
 .plan-tagline{font-size:15px;line-height:1.55;color:var(--text2)}
 .plan-from{font-size:14px;color:var(--text2)}
 .plan-flag{display:inline-flex;align-items:center;padding:4px 10px;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill)}
@@ -697,8 +697,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <article class="plan" aria-labelledby="plan-monthly">
         <p class="plan-kind">Abbonamento mensile</p>
         <h3 class="plan-name" id="plan-monthly">PRO</h3>
-        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€4,90</span><span class="plan-per">al mese</span></p>
-        <p class="plan-tagline">Snippet, prompt e Brain illimitati a un piccolo prezzo mensile. Nessun FiboToken da contare.</p>
+        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€9,90</span><span class="plan-per">/mese</span></p>
+        <p class="plan-tagline">Nessun FiboToken da contare.</p>
         <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Confronta i piani</a>
         <ul class="plan-list">
           <li><span>Usi illimitati di snippet, prompt e Brain</span></li>
@@ -724,7 +724,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <tr><th scope="col">Cosa ottieni</th><th scope="col">Gratis</th><th scope="col" class="is-featured">A consumo</th><th scope="col">Abbonamento mensile</th></tr>
       </thead>
       <tbody>
-        <tr><th scope="row">Prezzo</th><td data-label="Gratis"><strong>€0</strong></td><td data-label="A consumo"><strong>Da <span data-pricing="topUpEuros">€25</span>, una tantum</strong></td><td data-label="Abbonamento mensile"><strong><span data-pricing="monthlyEuros">€4,90</span> al mese</strong></td></tr>
+        <tr><th scope="row">Prezzo</th><td data-label="Gratis"><strong>€0</strong></td><td data-label="A consumo"><strong>Da <span data-pricing="topUpEuros">€25</span>, una tantum</strong></td><td data-label="Abbonamento mensile"><strong><span data-pricing="monthlyEuros">€9,90</span> al mese</strong></td></tr>
         <tr><th scope="row">Pagamento ricorrente</th><td data-label="Gratis">No</td><td data-label="A consumo">No, un acquisto una tantum</td><td data-label="Abbonamento mensile">Sì, ogni mese</td></tr>
         <tr><th scope="row">FiboToken</th><td data-label="Gratis">Non servono</td><td data-label="A consumo"><strong data-pricing="fiboTokensPerTopUp">2.500</strong> per <span data-pricing="topUpEuros">€25</span>, <strong data-pricing="pack50Tokens">5.250</strong> per <span data-pricing="pack50Euros">€50</span>, <strong data-pricing="pack100Tokens">11.000</strong> per <span data-pricing="pack100Euros">€100</span></td><td data-label="Abbonamento mensile">Non servono</td></tr>
         <tr><th scope="row">Scadenza</th><td data-label="Gratis">La quota si rinnova ogni giorno</td><td data-label="A consumo"><strong>Mai</strong></td><td data-label="Abbonamento mensile">Illimitato finché sei abbonato</td></tr>
@@ -1052,7 +1052,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.130.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.130.1';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
@@ -1142,7 +1142,7 @@ var PRICING = {
   foundingTopUpEuros: 20,
   foundingPack50Euros: 40,
   foundingPack100Euros: 80,
-  monthlyEuros: 4.9,
+  monthlyEuros: 9.9,
   // Madrid is UTC+01:00 at this winter deadline, whatever the visitor's zone.
   // The day the current exchange rate was set; shown on the rate card.
   rateSetOn: '2026-10-28',
