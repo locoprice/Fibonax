@@ -598,18 +598,21 @@ export function PromptBlockEditor() {
         setDraftNotice({ mode: 'update', changes: handed.changes, text: '', similar: [] });
       }
     } else {
-      setName('');
+      // A prompt joined from the Suggestions on Analytics opens here, unsaved.
+      // Closing the editor clears the seed, so the next New prompt starts empty.
+      const seed = useUiStore.getState().newPromptSeed;
+      setName(seed ? seed.name : '');
       setShortcut('');
-      setBlocks(DEFAULT_BLOCKS);
+      setBlocks(seed ? seed.blocks : DEFAULT_BLOCKS);
       setStrategyType(null);
       setThinkingMode(null);
       setPreferredModel(null);
       setComplexityLevel(null);
       setIntentCategory(null);
       setOutputType(null);
-      setFolderId(null);
+      setFolderId(seed ? seed.folder_id : null);
       setLabelIds([]);
-      setAskUserQuestions(true);
+      setAskUserQuestions(seed ? seed.ask_user_questions : true);
     }
   }, [isOpen, editingPromptId]);
 

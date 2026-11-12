@@ -56,12 +56,12 @@ function byId(id: string): LibrarySnippet {
 }
 
 describe('library snippets', () => {
-  it('ships 24, each in a known topic, with unique ids and triggers', () => {
-    expect(LIBRARY_SNIPPETS).toHaveLength(24);
+  it('ships 25, each in a known topic, with unique ids and triggers', () => {
+    expect(LIBRARY_SNIPPETS).toHaveLength(25);
     const topics = new Set(SNIPPET_TOPICS.map((t) => t.id));
     for (const s of LIBRARY_SNIPPETS) expect(topics.has(s.topic), s.id).toBe(true);
-    expect(new Set(LIBRARY_SNIPPETS.map((s) => s.id)).size).toBe(24);
-    expect(new Set(LIBRARY_SNIPPETS.map((s) => s.trigger)).size).toBe(24);
+    expect(new Set(LIBRARY_SNIPPETS.map((s) => s.id)).size).toBe(25);
+    expect(new Set(LIBRARY_SNIPPETS.map((s) => s.trigger)).size).toBe(25);
   });
 
   it.each(LIBRARY_SNIPPETS.map((s) => [s.id, s] as const))('%s saves as a valid snippet', (_id, s) => {

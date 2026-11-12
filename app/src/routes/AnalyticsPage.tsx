@@ -10,6 +10,7 @@ import { ContributionActivity } from '@/features/analytics/ContributionActivity'
 import { LibraryHealth } from '@/features/analytics/LibraryHealth';
 import { ParetoCard, type ParetoKind } from '@/features/analytics/ParetoCard';
 import { SnippetRanking } from '@/features/analytics/SnippetRanking';
+import { SuggestionsCard } from '@/features/analytics/SuggestionsCard';
 import { TeamUsage } from '@/features/analytics/TeamUsage';
 import { TimePatterns } from '@/features/analytics/TimePatterns';
 import { UsageMix } from '@/features/analytics/UsageMix';
@@ -208,6 +209,12 @@ export function AnalyticsPage() {
       {header}
 
       <UsageSummary report={report} engine={engine} />
+
+      {usage && usageAt !== null ? (
+        <div className="mt-6">
+          <SuggestionsCard engine={engine} usage={usage} now={usageAt} />
+        </div>
+      ) : null}
 
       <div className="mt-6">
         <UsageTrendChart report={report} />

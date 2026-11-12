@@ -186,6 +186,16 @@ Thank you,`,
     example: { CLIENT: 'anna rossi', TOTAL: '1200', DUE_DATE: '2026-12-15' },
   },
   {
+    id: 'terms',
+    topic: 'sales',
+    name: 'Terms and conditions link',
+    trigger: 'terms',
+    body: `You can read our terms and conditions here: https://example.com/terms
+
+If anything is unclear, reply to this email and I'll explain.`,
+    example: {},
+  },
+  {
     id: 'plans',
     topic: 'sales',
     name: 'Plan options',

@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { applyTheme, getStoredTheme, type ThemePreference } from '@/lib/theme';
 import { loadSaintEnabled, saveSaintEnabled } from '@/lib/saintOfDay';
 import type { LibrarySection } from '@/features/library/catalogue';
+import type { PromptSeed } from '@/lib/joinItems';
+import type { SnippetFormValues } from '@/types/schemas';
 
 // Cross-cutting UI state. Kept separate from feature stores to avoid coupling
 // the snippet panel state with global modals or theme toggles in the future.
@@ -17,6 +19,12 @@ interface UiStore {
   newSnippetOpen: boolean;
   openNewSnippet: () => void;
   closeNewSnippet: () => void;
+  /**
+   * What the create dialog opens with instead of an empty form, unsaved: a
+   * joined snippet from the Suggestions on Analytics. The dialog takes it once.
+   */
+  newSnippetSeed: SnippetFormValues | null;
+  openNewSnippetFrom: (seed: SnippetFormValues) => void;
 
   // Edit-snippet dialog (triggered by clicking a table row)
   editSnippetId: string | null;
@@ -27,6 +35,9 @@ interface UiStore {
   newPromptOpen: boolean;
   openNewPrompt: () => void;
   closeNewPrompt: () => void;
+  /** The prompt twin of `newSnippetSeed`. */
+  newPromptSeed: PromptSeed | null;
+  openNewPromptFrom: (seed: PromptSeed) => void;
 
   // Edit-prompt dialog (triggered by clicking a prompt card)
   editPromptId: string | null;
@@ -173,16 +184,20 @@ function storeSidebarCollapsed(collapsed: boolean): void {
 
 export const useUiStore = create<UiStore>((set) => ({
   newSnippetOpen: false,
-  openNewSnippet: () => set({ newSnippetOpen: true }),
-  closeNewSnippet: () => set({ newSnippetOpen: false }),
+  openNewSnippet: () => set({ newSnippetOpen: true, newSnippetSeed: null }),
+  closeNewSnippet: () => set({ newSnippetOpen: false, newSnippetSeed: null }),
+  newSnippetSeed: null,
+  openNewSnippetFrom: (seed) => set({ newSnippetOpen: true, newSnippetSeed: seed }),
 
   editSnippetId: null,
   openEditSnippet: (id) => set({ editSnippetId: id }),
   closeEditSnippet: () => set({ editSnippetId: null }),
 
   newPromptOpen: false,
-  openNewPrompt: () => set({ newPromptOpen: true }),
-  closeNewPrompt: () => set({ newPromptOpen: false }),
+  openNewPrompt: () => set({ newPromptOpen: true, newPromptSeed: null }),
+  closeNewPrompt: () => set({ newPromptOpen: false, newPromptSeed: null }),
+  newPromptSeed: null,
+  openNewPromptFrom: (seed) => set({ newPromptOpen: true, newPromptSeed: seed }),
 
   editPromptId: null,
   openEditPrompt: (id) => set({ editPromptId: id }),

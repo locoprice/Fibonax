@@ -1434,6 +1434,19 @@ svg.brain-type-icon{stroke-width:1.8}
 .an-retry{margin-top:10px;min-height:40px;padding:0 16px;border-radius:var(--r-btn);border:1px solid var(--border);
   background:var(--card);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .an-more{font-size:11.5px;color:var(--text3);padding:8px 0}
+/* Suggestions: snippets or prompts used together, and pieces the library
+   lacks. Joining and adding happen on the computer; here only Not now. */
+.an-sg{padding:14px 0;border-bottom:1px solid var(--bg-alt)}
+.an-sg:last-child{border-bottom:none}
+.an-sg-k{font-size:11.5px;font-weight:600;color:var(--text3)}
+.an-sg-t{font-size:14px;font-weight:600;color:var(--text);margin-top:2px}
+.an-sg-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 0;padding:0;list-style:none}
+.an-sg-chips li{display:flex;align-items:center;gap:6px}
+.an-sg-chip{padding:3px 10px;border-radius:999px;background:var(--primary-lt);color:var(--primary);font-size:12.5px;font-weight:600}
+.an-sg-arrow{color:var(--text3);font-size:12px}
+.an-sg-p{font-size:13px;line-height:1.45;color:var(--text2);margin:6px 0 0}
+.an-sg-btn{margin-top:10px;min-height:44px;padding:0 16px;border-radius:var(--r-btn);border:1px solid var(--border);
+  background:var(--card);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
 /* What does most of your work (80/20): a Snippets / Prompts switch, the
    headline, where the uses happened, then the key group and the rest. Phone
    share in the azure the heatmap's second step uses; uses logged before
@@ -6952,6 +6965,303 @@ svg.brain-type-icon{stroke-width:1.8}
     };
   }
 
+  // ── Suggestions ────────────────────────────────────────────────────────
+  // What Fibonax notices on its own, from what the person already has. Nothing
+  // new is collected and nothing leaves the device: the inputs are the same use
+  // logs and library the rest of this file reads.
+  //
+  //   together  snippets (and, apart, prompts) used one after the other, again
+  //             and again: a run is uses at most TOGETHER_GAP_MIN minutes
+  //             apart, and a sequence must appear in TOGETHER_MIN runs within
+  //             the last SUGGEST_DAYS days. A sequence is counted once per run.
+  //   missing   a piece the library lacks, read from the words of its own
+  //             items (MISSING_RULES). Each one names a starter library item,
+  //             which is what the dashboard offers to add.
+  //
+  // "Not now" is passed in as `dismissed` ({ key: iso }), so a suggestion stays
+  // hidden for DISMISS_DAYS on every surface that reads this.
+  var SUGGEST_DAYS = 90;
+  var TOGETHER_GAP_MIN = 10;
+  var TOGETHER_MIN = 3;
+  var TOGETHER_LIMIT = 3;
+  var MISSING_LIMIT = 3;
+  var DISMISS_DAYS = 30;
+
+  // Words in English, Italian and Spanish, written without accents. A trailing
+  // * matches the start of a word ("payment*" finds "payments").
+  var W = {
+    price: ['price*', 'pricing', 'cost', 'costs', 'payment*', 'pay', 'paying', 'paid', 'invoice*', 'quote*', 'fee', 'fees', 'deposit*', 'refund*', 'total',
+      'prezz*', 'pagament*', 'fattur*', 'preventiv*', 'costo', 'costi', 'tariff*', 'rimbors*', 'acconto',
+      'precio*', 'pago', 'pagos', 'pagar', 'factura*', 'presupuesto*', 'reembolso*', 'senal', 'anticipo'],
+    terms: ['terms', 'conditions', 't&c', 'policy', 'policies', 'termini', 'condizioni', 'informativa', 'terminos', 'condiciones', 'politica*'],
+    quote: ['quote', 'quotes', 'quotation*', 'estimate*', 'proposal*', 'offer', 'offers', 'preventiv*', 'offerta', 'offerte', 'proposta', 'presupuesto*', 'oferta*', 'propuesta*'],
+    followup: ['follow up', 'following up', 'followup', 'checking in', 'any news', 'had a chance', 'ti ricontatto', 'hai avuto modo', 'novita', 'seguimiento', 'has podido', 'alguna novedad'],
+    invoice: ['invoice*', 'fattur*', 'factura*'],
+    reminder: ['reminder*', 'overdue', 'outstanding', 'unpaid', 'past due', 'sollecit*', 'scadut*', 'promemoria', 'recordatorio*', 'vencid*', 'pendiente*'],
+    away: ['out of office', 'away until', 'on holiday', 'on vacation', 'on leave', 'back on', 'fuori ufficio', 'assente', 'in ferie', 'fuera de la oficina', 'ausente', 'de vacaciones'],
+    answer: ['thank you for your message', 'thanks for your message', 'thank you for contacting', 'thanks for reaching out', 'your request', 'your question',
+      'grazie per il tuo messaggio', 'grazie per averci', 'la tua richiesta', 'gracias por tu mensaje', 'gracias por contactar', 'tu solicitud', 'tu consulta'],
+    reply: ['reply', 'replies', 'respond*', 'response', 'answer*', 'rispond*', 'rispost*', 'respuesta*', 'contesta*'],
+    translate: ['translat*', 'tradu*'],
+    facts: ['price*', 'opening hours', 'hours', 'address', 'phone', 'payment*', 'policy', 'policies', 'cancel*', 'refund*',
+      'prezz*', 'orari*', 'indirizzo', 'telefono', 'pagament*', 'precio*', 'horario*', 'direccion'],
+    factsBrain: ['facts', 'company', 'about us', 'business', 'azienda', 'chi siamo', 'empresa', 'quienes somos'],
+    write: ['write', 'rewrite', 'draft', 'email', 'reply', 'scrivi', 'riscrivi', 'escribe', 'redacta', 'reescribe'],
+    tone: ['tone', 'voice', 'style', 'brand', 'tono', 'stile', 'voce', 'estilo']
+  };
+
+  // In priority order, kinds mixed so the first few are not all snippets.
+  // `found` returns the number the sentence prints, or 0 when the rule does not
+  // apply. Every `libraryId` is a starter library item of that kind with that
+  // exact `title` (src/__tests__/suggestions.test.ts pins it).
+  var MISSING_RULES = [
+    {
+      key: 'terms', kind: 'snippet', libraryId: 'terms', title: 'Terms and conditions link',
+      found: function (L) { var n = L.count('snippets', W.price); return n >= 2 && !L.any('snippets', W.terms) ? n : 0; },
+      text: function (n) { return n + ' of your snippets talk about prices or payments, but none links to your terms and conditions.'; }
+    },
+    {
+      key: 'company', kind: 'brain', libraryId: 'company', title: 'Company facts',
+      found: function (L) { var n = L.count('snippets', W.facts); return n >= 3 && !L.any('brains', W.factsBrain) ? n : 0; },
+      text: function (n) { return n + ' of your snippets hold prices, hours or policies. A Brain of company facts lets an AI answer with them.'; }
+    },
+    {
+      key: 'reply', kind: 'prompt', libraryId: 'reply', title: 'Reply to a customer',
+      found: function (L) { var n = L.count('snippets', W.answer); return n >= 3 && !L.any('prompts', W.reply) ? n : 0; },
+      text: function (n) { return n + ' of your snippets answer messages. A prompt can draft a reply when none of them fits.'; }
+    },
+    {
+      key: 'followquote', kind: 'snippet', libraryId: 'followquote', title: 'Follow-up on a quote',
+      found: function (L) { var n = L.count('snippets', W.quote); return n >= 1 && !L.any('snippets', W.followup) ? n : 0; },
+      text: function (n) {
+        return n === 1 ? 'You have a snippet for quotes, but none to follow up on one.'
+          : n + ' of your snippets are about quotes, but none follows up on one.';
+      }
+    },
+    {
+      key: 'translate', kind: 'prompt', libraryId: 'translate', title: 'Translate, keep the tone',
+      found: function (L) { var n = L.languages(); return n >= 2 && !L.any('prompts', W.translate) ? n : 0; },
+      text: function (n) { return 'Your snippets are in ' + n + ' languages. A prompt can translate a message and keep its tone.'; }
+    },
+    {
+      key: 'overdue', kind: 'snippet', libraryId: 'overdue', title: 'Payment reminder',
+      found: function (L) { var n = L.count('snippets', W.invoice); return n >= 1 && !L.any('snippets', W.reminder) ? n : 0; },
+      text: function () { return 'You send invoices, but have no snippet to remind someone who has not paid.'; }
+    },
+    {
+      key: 'tone', kind: 'brain', libraryId: 'tone', title: 'Tone of voice',
+      found: function (L) { var n = L.count('prompts', W.write); return n >= 2 && !L.any('brains', W.tone) ? n : 0; },
+      text: function (n) { return n + ' of your prompts write for you. A Tone of voice Brain helps the AI sound like you.'; }
+    },
+    {
+      key: 'away', kind: 'snippet', libraryId: 'away', title: 'Out of office',
+      found: function (L) { var n = L.size('snippets'); return n >= 10 && !L.any('snippets', W.away) ? n : 0; },
+      text: function (n) { return 'You have ' + n + ' snippets, but none for the days you are away.'; }
+    }
+  ];
+
+  /**
+   * An item's words, ready to search: fields and formulas, markup, accents and
+   * punctuation removed, lower case, one space between words and one at each end.
+   */
+  function plainWords(text) {
+    var s = String(text || '').replace(/<[^>]*>/g, ' ');
+    // Innermost tokens first, so a formula holding a field goes too.
+    for (var i = 0; i < 4 && /\{[^{}]*\}/.test(s); i++) s = s.replace(/\{[^{}]*\}/g, ' ');
+    if (typeof s.normalize === 'function') s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    s = s.toLowerCase().replace(/[^a-z0-9&]+/g, ' ').trim();
+    return s ? ' ' + s + ' ' : ' ';
+  }
+
+  function hasAny(words, list) {
+    for (var i = 0; i < list.length; i++) {
+      var w = list[i];
+      if (w.charAt(w.length - 1) === '*') {
+        if (words.indexOf(' ' + w.slice(0, -1)) !== -1) return true;
+      } else if (words.indexOf(' ' + w + ' ') !== -1) return true;
+    }
+    return false;
+  }
+
+  function isDismissed(dismissed, key, now) {
+    var at = dismissed && dismissed[key] ? new Date(dismissed[key]).getTime() : NaN;
+    return !isNaN(at) && now - at < DISMISS_DAYS * 86400000;
+  }
+
+  // One kind's "used together": `items` are { id, title, words, body }, where
+  // `body` is the text alone, without the title.
+  function togetherOf(kind, events, idField, items, startMs, now) {
+    var byId = {};
+    for (var i = 0; i < items.length; i++) byId[items[i].id] = items[i];
+    var uses = [];
+    for (var e = 0; e < events.length; e++) {
+      var t = eventTime(events[e]);
+      if (t === null || t < startMs || t > now) continue;
+      var id = events[e][idField];
+      // An item no longer in the library still breaks a run: it sat between.
+      uses.push({ id: id && byId[id] ? id : null, t: t });
+    }
+    uses.sort(function (a, b) { return a.t - b.t; });
+
+    var gap = TOGETHER_GAP_MIN * 60000;
+    var counts = {};
+    var run = [];
+    function flush() {
+      var seen = {};
+      for (var a = 0; a < run.length - 1; a++) {
+        for (var len = 2; len <= 3 && a + len <= run.length; len++) {
+          var ids = run.slice(a, a + len);
+          if (len === 3 && ids[0] === ids[2]) continue;
+          var k = ids.join('>');
+          if (seen[k]) continue;
+          seen[k] = true;
+          counts[k] = (counts[k] || 0) + 1;
+        }
+      }
+      run = [];
+    }
+    var lastT = null;
+    for (var u = 0; u < uses.length; u++) {
+      var use = uses[u];
+      if (lastT !== null && use.t - lastT > gap) flush();
+      lastT = use.t;
+      if (use.id === null) { flush(); continue; }
+      // The same item twice in a row is one step.
+      if (run.length && run[run.length - 1] === use.id) continue;
+      run.push(use.id);
+    }
+    flush();
+
+    function setKey(ids) { return ids.slice().sort().join('|'); }
+    var cands = Object.keys(counts)
+      .filter(function (k) { return counts[k] >= TOGETHER_MIN; })
+      .map(function (k) { return { ids: k.split('>'), count: counts[k] }; });
+    function byStrength(a, b) {
+      return b.count - a.count || b.ids.length - a.ids.length || a.ids.join('>').localeCompare(b.ids.join('>'));
+    }
+    cands.sort(byStrength);
+
+    // Three in a row first, then pairs. A pair is folded into a chosen chain of
+    // three that holds it when the three go together at least half as often as
+    // the two do; otherwise the pair is the stronger habit and stays.
+    var picked = [];
+    var pickedSets = {};
+    [3, 2].forEach(function (len) {
+      for (var c = 0; c < cands.length; c++) {
+        var cand = cands[c];
+        if (cand.ids.length !== len) continue;
+        var sk = setKey(cand.ids);
+        if (pickedSets[sk]) continue;
+        var folded = picked.some(function (p) {
+          return p.ids.length === 3 && cand.ids.every(function (x) { return p.ids.indexOf(x) !== -1; }) && p.count * 2 >= cand.count;
+        });
+        if (folded) continue;
+        picked.push(cand);
+        pickedSets[sk] = true;
+      }
+    });
+
+    // Already joined: another item's text holds the text of every one of them.
+    function joined(ids) {
+      var parts = ids.map(function (x) { return byId[x].body; });
+      if (parts.some(function (w) { return w.trim() === ''; })) return false;
+      return items.some(function (it) {
+        if (ids.indexOf(it.id) !== -1) return false;
+        return parts.every(function (w) { return it.body.indexOf(w.trim()) !== -1; });
+      });
+    }
+
+    return picked.filter(function (p) { return !joined(p.ids); }).map(function (p) {
+      return {
+        key: kind + ':' + p.ids.join('>'),
+        kind: kind,
+        ids: p.ids,
+        titles: p.ids.map(function (x) { return byId[x].title; }),
+        count: p.count,
+        text: 'You used these one after the other ' + p.count + ' times in the last ' + SUGGEST_DAYS + ' days.'
+      };
+    });
+  }
+
+  /**
+   * Suggestions for one person. Pure, like compute():
+   *   events        snippet uses { snippet_id, created_at }
+   *   promptEvents  prompt uses { prompt_id, created_at }
+   *   snippets      { id, title, text, lang }   text: the body, any form;
+   *                 `langs` (a list) in place of `lang` for a snippet that
+   *                 holds several languages
+   *   prompts       { id, name, text }
+   *   brains        { name, description }
+   *   dismissed     { key: iso } from "Not now"
+   *   now           a timestamp
+   */
+  function suggest(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var startMs = addDays(startOfDay(now), -(SUGGEST_DAYS - 1)).getTime();
+    var dismissed = inp.dismissed || {};
+
+    function list(v) { return Array.isArray(v) ? v.filter(function (x) { return x && x.id; }) : []; }
+    var snippets = list(inp.snippets).map(function (s) {
+      return {
+        id: s.id, title: s.title || s.shortcut || 'Untitled snippet', langs: Array.isArray(s.langs) ? s.langs : [s.lang],
+        words: plainWords((s.title || '') + ' ' + (s.text || '')), body: plainWords(s.text)
+      };
+    });
+    var prompts = list(inp.prompts).map(function (p) {
+      return {
+        id: p.id, title: p.name || p.shortcut || 'Untitled prompt',
+        words: plainWords((p.name || '') + ' ' + (p.text || '')), body: plainWords(p.text)
+      };
+    });
+    var brains = (Array.isArray(inp.brains) ? inp.brains : []).filter(Boolean).map(function (b) {
+      return { title: b.name || '', words: plainWords((b.name || '') + ' ' + (b.description || '')) };
+    });
+    var lib = { snippets: snippets, prompts: prompts, brains: brains };
+
+    var together = togetherOf('snippet', Array.isArray(inp.events) ? inp.events : [], 'snippet_id', snippets, startMs, now)
+      .concat(togetherOf('prompt', Array.isArray(inp.promptEvents) ? inp.promptEvents : [], 'prompt_id', prompts, startMs, now))
+      .filter(function (s) { return !isDismissed(dismissed, s.key, now); })
+      .sort(function (a, b) { return b.count - a.count || b.ids.length - a.ids.length || a.key.localeCompare(b.key); })
+      .slice(0, TOGETHER_LIMIT);
+
+    var L = {
+      count: function (kind, words) { return lib[kind].filter(function (x) { return hasAny(x.words, words); }).length; },
+      any: function (kind, words) { return lib[kind].some(function (x) { return hasAny(x.words, words); }); },
+      size: function (kind) { return lib[kind].length; },
+      languages: function () {
+        var seen = {};
+        snippets.forEach(function (s) {
+          s.langs.forEach(function (l) {
+            var c = String(l || '').toUpperCase();
+            if (c && c !== 'MULTI') seen[c] = true;
+          });
+        });
+        return Object.keys(seen).length;
+      }
+    };
+    var KIND_LIST = { snippet: 'snippets', prompt: 'prompts', brain: 'brains' };
+    var missing = [];
+    for (var m = 0; m < MISSING_RULES.length && missing.length < MISSING_LIMIT; m++) {
+      var rule = MISSING_RULES[m];
+      var key = 'missing:' + rule.key;
+      if (isDismissed(dismissed, key, now)) continue;
+      // Already there under the library's own name: added before, kept.
+      var named = rule.title.toLowerCase();
+      if (lib[KIND_LIST[rule.kind]].some(function (x) { return String(x.title).trim().toLowerCase() === named; })) continue;
+      var n = rule.found(L);
+      if (!n) continue;
+      missing.push({ key: key, kind: rule.kind, libraryId: rule.libraryId, title: rule.title, text: rule.text(n) });
+    }
+
+    return {
+      days: SUGGEST_DAYS,
+      together: together,
+      missing: missing,
+      empty: together.length === 0 && missing.length === 0
+    };
+  }
+
   var API = {
     PERIODS: PERIODS,
     DEFAULT_PERIOD: DEFAULT_PERIOD,
@@ -6970,6 +7280,10 @@ svg.brain-type-icon{stroke-width:1.8}
     DEVICE_LABELS: DEVICE_LABELS,
     compute: compute,
     pareto: pareto,
+    SUGGEST_DAYS: SUGGEST_DAYS,
+    DISMISS_DAYS: DISMISS_DAYS,
+    MISSING_RULES: MISSING_RULES.map(function (r) { return { key: r.key, kind: r.kind, libraryId: r.libraryId, title: r.title }; }),
+    suggest: suggest,
     team: team,
     lastUseLine: lastUseLine
   };
@@ -14980,7 +15294,9 @@ document.addEventListener('keydown',function(e){
        you belong to a team. When the server has no such function the Team
        section is left out instead of showing an error;
      - your own prompt uses (prompt_events is select-own) and the prompts you
-       can read, for the 80/20 section (SBUsageAnalytics.pareto). */
+       can read, for the 80/20 section (SBUsageAnalytics.pareto);
+     - the same, plus the prompts' text and your Brains' names, for the
+       Suggestions (SBUsageAnalytics.suggest). */
 var AN_PAGE=1000;
 var AN_PERIOD_KEY='sb_mob_an_period';
 var anPeriod=(function(){
@@ -15034,8 +15350,14 @@ function loadAnalyticsUsage(){
     +'&user_id=eq.'+encodeURIComponent(USER_ID)
     +'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc';
   // The prompts you can read, archived ones left out as the dashboard leaves them out.
-  var prUrl=SUPA+'/rest/v1/prompts?select=id,name,shortcut'
+  var prUrl=SUPA+'/rest/v1/prompts?select=id,name,shortcut,content'
     +'&or=(review_status.is.null,review_status.neq.archived)&order=id.asc';
+  // Your Brains' names and descriptions, for the Suggestions. Fails open to
+  // null: then no Brain ideas are offered, rather than wrong ones.
+  var brFetch=fetch(SUPA+'/rest/v1/memory_spaces?select=name,description&deleted_at=is.null',{headers:authHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(rows){return Array.isArray(rows)?rows:null;})
+    .catch(function(){return null;});
   var luFetch=anRpc('snippet_last_used').then(function(r){
     if(handle401(r))throw new Error('Your session has ended.');
     if(!r.ok)throw new Error('The server answered '+r.status+'.');
@@ -15046,10 +15368,10 @@ function loadAnalyticsUsage(){
       .then(function(r){return r.ok?r.json():[];})
       .then(function(rows){return Array.isArray(rows)&&rows.length>0;})
       .catch(function(){return false;});
-  Promise.all([anFetchPages(evUrl),luFetch,memberFetch,anFetchPages(pevUrl),anFetchPages(prUrl)]).then(function(res){
+  Promise.all([anFetchPages(evUrl),luFetch,memberFetch,anFetchPages(pevUrl),anFetchPages(prUrl),brFetch]).then(function(res){
     var lastUsed={};
     (Array.isArray(res[1])?res[1]:[]).forEach(function(r){if(r&&r.snippet_id&&r.last_used_at)lastUsed[r.snippet_id]=r.last_used_at;});
-    anUsage={events:res[0],lastUsed:lastUsed,loadedFrom:from,at:now,promptEvents:res[3],prompts:res[4]};
+    anUsage={events:res[0],lastUsed:lastUsed,loadedFrom:from,at:now,promptEvents:res[3],prompts:res[4],brains:res[5]};
     anInTeam=!!res[2];
     anTeam={};anTeamError=null;
     anLoading=false;
@@ -15309,6 +15631,54 @@ function anParetoHtml(pareto){
   return html;
 }
 
+/* Suggestions, decided by SBUsageAnalytics.suggest() as on the dashboard.
+   "Not now" is kept on this phone and hides one for DISMISS_DAYS. */
+var AN_DISMISS_KEY='sb_mob_an_dismissed';
+var AN_KIND_NOUN={snippet:'snippet',prompt:'prompt',brain:'Brain'};
+function anDismissed(){
+  try{var o=JSON.parse(localStorage.getItem(AN_DISMISS_KEY)||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{};}
+  catch(e){return {};}
+}
+function anDismiss(key){
+  var cutoff=Date.now()-SBUsageAnalytics.DISMISS_DAYS*86400000, was=anDismissed(), next={};
+  Object.keys(was).forEach(function(k){if(k!==key&&Date.parse(was[k])>cutoff)next[k]=was[k];});
+  next[key]=new Date().toISOString();
+  try{localStorage.setItem(AN_DISMISS_KEY,JSON.stringify(next));}catch(e){}
+}
+function anSuggestHtml(){
+  var UA=SBUsageAnalytics;
+  var res=UA.suggest({
+    now:anUsage.at, events:anUsage.events, promptEvents:anUsage.promptEvents,
+    // Every language a row holds: its own body and its bodies map, empty ones left out.
+    snippets:allSnips.map(function(s){
+      var map=Object.assign({},(s.bodies&&typeof s.bodies==='object')?s.bodies:{});
+      if(s.lang&&!map[s.lang]&&s.body)map[s.lang]=s.body;
+      var langs=Object.keys(map).filter(function(k){return typeof map[k]==='string'&&map[k].trim();});
+      return {id:s.id,title:s.title,text:langs.map(function(k){return map[k];}).join('\n\n'),langs:langs};
+    }),
+    prompts:(anUsage.prompts||[]).map(function(p){return {id:p.id,name:p.name,text:p.content||''};}),
+    brains:anUsage.brains||[],
+    dismissed:anDismissed()
+  });
+  // Brains that could not be read would look like no Brains at all.
+  var missing=anUsage.brains?res.missing:res.missing.filter(function(m){return m.kind!=='brain';});
+  var notNow=function(key){return '<button type="button" class="an-sg-btn" data-an-dismiss="'+esc(key)+'">Not now</button>';};
+  var inner='';
+  res.together.forEach(function(s){
+    inner+='<div class="an-sg"><div class="an-sg-k">'+(s.kind==='snippet'?'Snippets':'Prompts')+' often used together</div>'
+      +'<ol class="an-sg-chips" aria-label="In the order you used them">'
+      +s.titles.map(function(t,i){return '<li>'+(i?'<span class="an-sg-arrow" aria-hidden="true">→</span>':'')+'<span class="an-sg-chip">'+esc(t)+'</span></li>';}).join('')
+      +'</ol><p class="an-sg-p">'+esc(s.text)+'</p>'+notNow(s.key)+'</div>';
+  });
+  missing.forEach(function(s){
+    inner+='<div class="an-sg"><div class="an-sg-k">A '+AN_KIND_NOUN[s.kind]+' you may need</div>'
+      +'<div class="an-sg-t">'+esc(s.title)+'</div><p class="an-sg-p">'+esc(s.text)+'</p>'+notNow(s.key)+'</div>';
+  });
+  if(!inner)inner='<div class="an-msg">Nothing to suggest yet. As you use your snippets and prompts, Fibonax spots the ones you use together.</div>';
+  return anSection('Suggestions','What Fibonax noticed in your last '+UA.SUGGEST_DAYS+' days of use and in your library.'
+    +' To join or add one, open Analytics on your computer.',inner);
+}
+
 function renderAnalytics(){
   var body=document.getElementById('an-body');
   var sub=document.getElementById('an-hdr-sub');
@@ -15350,6 +15720,8 @@ function renderAnalytics(){
     +'<div class="an-fact"><dt>Fields filled per insert</dt><dd>'+t.avgFieldsPerUse+'</dd><dd class="an-fact-hint">'+t.usesWithFieldsShare+'% of inserts had a form</dd></div>'
     +'<div class="an-fact"><dt>Weekdays</dt><dd>'+p.workdayShare+'%</dd><dd class="an-fact-hint">of inserts from Monday to Friday</dd></div>'
   +'</dl></div></div>';
+
+  html+=anSuggestHtml();
 
   html+=anSection('Inserts per day',report.rangeLabel+', with '+report.prevRangeLabel+' dashed for comparison.',anChart(report),true);
 
@@ -15422,6 +15794,12 @@ document.getElementById('view-analytics').addEventListener('click',function(e){
     anParetoKind=kb.getAttribute('data-an-kind')==='prompt'?'prompt':'snippet';
     anParetoRestOpen=false;
     try{localStorage.setItem(AN_PARETO_KEY,anParetoKind);}catch(err){}
+    renderAnalytics();
+    return;
+  }
+  var dm=e.target.closest('[data-an-dismiss]');
+  if(dm){
+    anDismiss(dm.getAttribute('data-an-dismiss'));
     renderAnalytics();
     return;
   }

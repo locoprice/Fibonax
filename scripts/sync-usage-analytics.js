@@ -8,7 +8,7 @@
 // third copy (SERVER_TARGET below), written and checked the same way.
 //
 // It also pins that the phone's Analytics page reads its figures THROUGH the
-// module (SBUsageAnalytics.compute, .pareto and .team), so the two pages cannot drift
+// module (SBUsageAnalytics.compute, .pareto, .suggest and .team), so the two pages cannot drift
 // back to counting on their own.
 //
 // The block goes in just BEFORE the interactive-steps block, never at the first
@@ -31,7 +31,7 @@ const SERVER_HEADER = '// GENERATED from extension/shared/usage-analytics.js by 
 const BEGIN = '<!-- SB_USAGE_ANALYTICS:BEGIN (generated from extension/shared/usage-analytics.js by scripts/sync-usage-analytics.js, do not edit) -->';
 const END = '<!-- SB_USAGE_ANALYTICS:END -->';
 const ANCHOR = '<!-- SB_INTERACTIVE_STEPS:BEGIN';
-const MUST_USE = ['SBUsageAnalytics.compute(', 'SBUsageAnalytics.pareto(', 'SBUsageAnalytics.team(', 'SBUsageAnalytics.loadFrom('];
+const MUST_USE = ['SBUsageAnalytics.compute(', 'SBUsageAnalytics.pareto(', 'SBUsageAnalytics.team(', 'SBUsageAnalytics.loadFrom(', 'SBUsageAnalytics.suggest('];
 
 function rel(p) {
   return path.relative(ROOT, p).split(path.sep).join('/');

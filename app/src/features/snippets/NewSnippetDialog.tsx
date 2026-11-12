@@ -750,7 +750,12 @@ export function NewSnippetDialog() {
         setDraftNotice({ mode: 'update', changes: handed.changes, text: '', similar: [] });
       }
     } else {
-      setForm(EMPTY_FORM);
+      // A snippet joined from the Suggestions on Analytics opens here, unsaved.
+      // The trigger follows the name until the person types their own. Closing
+      // the dialog clears the seed, so the next New snippet starts empty.
+      const seed = useUiStore.getState().newSnippetSeed;
+      setForm(seed ?? EMPTY_FORM);
+      autoTriggerRef.current = seed ? seed.trigger : '';
       setLabelIds([]);
     }
     // Every opening is a new body on screen: the box reloads from its layout.
