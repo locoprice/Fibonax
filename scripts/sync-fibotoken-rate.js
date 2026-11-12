@@ -96,6 +96,9 @@ function loadRate() {
 }
 
 // ── Phone ────────────────────────────────────────────────────────────────
+// The block sits just before the interactive-steps block, never after it:
+// scripts/check-interactive-steps.js pins the app's own <script> right after
+// that block's END marker. This rewrites the block where it stands.
 function syncMobile(rate, check, report) {
   const html = readText(MOBILE);
   const desired = `${BEGIN}\n<script>\nvar FIBOTOKEN_RATE = ${JSON.stringify(rate)};\n</script>\n${END}`;
