@@ -1426,6 +1426,55 @@ function updateDetailPreview(id){
   }
   if(wrap) window.SBFillFormUI.pictureNote(wrap.querySelector('.ff-picnote'), vm, 'copy');
 }
+// ── OFTEN SENT NEXT ────────────────────────────────────────────────
+// "Add Firma after it" above the Copy buttons of the open snippet: the snippet
+// usually sent right after it, the offer the page's fill window shows. What
+// comes next is background.js's sb_next, read from the use history; whether to
+// offer it, and its words, come from fill-form-ui.js. Ticked, Copy puts it
+// after the text, a blank line between, and counts a use of each.
+var nextMap={}, nextHidden={}, detailNext=null;
+try{
+  chrome.storage.local.get(['sb_next','sb_next_hidden'], function(d){
+    nextMap=d&&d.sb_next&&d.sb_next.map?d.sb_next.map:{};
+    nextHidden=(d&&d.sb_next_hidden)||{};
+  });
+  chrome.storage.onChanged.addListener(function(changes, area){
+    if(area!=='local') return;
+    if(changes.sb_next) nextMap=changes.sb_next.newValue&&changes.sb_next.newValue.map?changes.sb_next.newValue.map:{};
+    if(changes.sb_next_hidden) nextHidden=changes.sb_next_hidden.newValue||{};
+  });
+}catch(e){ console.error('[Fibonax] could not read what usually comes next:', e); }
+
+function mountDetailNext(wrap){
+  detailNext=null;
+  var ui=window.SBFillFormUI;
+  var s=findSnip(wrap.getAttribute('data-detail'));
+  var acts=wrap.querySelector('.d-acts');
+  if(!s||!ui||!acts) return;
+  var next=ui.nextFor(nextMap, s.id, snips, nextHidden);
+  if(!next) return;
+  var offer=ui.nextOffer(document, next, function(){
+    nextHidden=ui.hideNext(nextHidden, s.id, next.id);
+    detailNext=null;
+    try{ chrome.storage.local.set({ sb_next_hidden: nextHidden }); }
+    catch(e){ console.error('[Fibonax] could not remember the hidden suggestion:', e); }
+  });
+  wrap.insertBefore(offer.el, acts);
+  detailNext={ id:s.id, snip:next, offer:offer };
+}
+
+// The text (and its formatted copy) with the next snippet after it, when ticked.
+function withDetailNext(s, text, html){
+  var n=detailNext&&detailNext.id===s.id&&detailNext.offer.checked()?detailNext.snip:null;
+  if(!n) return { text:text, html:html||null, next:null };
+  var t=window.SBFillFormUI.nextText(n);
+  return {
+    text: text+window.SBFillFormUI.NEXT_SEPARATOR+t.text,
+    html: html?html+'<br><br>'+(t.formatted||esc(t.text).replace(/\n/g,'<br>')):null,
+    next: n
+  };
+}
+
 function copyFilled(id){
   var s=findSnip(id); if(!s) return;
   var body=detailActiveBody(s);
@@ -1434,9 +1483,11 @@ function copyFilled(id){
   if(!window.SBFillFormUI.validate(form,vm)) return;
   var out=vm.preview;
   checkThenCopy(s, out, vm, form, function(){
-    copyWithPictures(out, vm.formatted);
+    var all=withDetailNext(s, out, vm.formatted);
+    copyWithPictures(all.text, all.html);
     logSnippetCopy(s, vm.fields.length);
-    showToast('Copied filled text');
+    if(all.next) logSnippetCopy(all.next, 0);
+    showToast(all.next?'Copied with '+all.next.title:'Copied filled text');
   });
 }
 // The text, and with a text that has pictures its formatted copy too: an email
@@ -1981,6 +2032,7 @@ function wireListRows(el){
   // The open snippet's pictures are drawn into its preview once it is on screen.
   el.querySelectorAll('.detail[data-detail]').forEach(function(wrap){
     if(wrap.querySelector('.ff-picnote')) updateDetailPreview(wrap.getAttribute('data-detail'));
+    mountDetailNext(wrap);
   });
 }
 
@@ -2373,9 +2425,11 @@ function copyFinishedBody(id){
   var lang=(detailLang && vars[detailLang]) ? detailLang : (s.lang||'EN');
   var body=detailBody(s, lang, vars);
   checkThenCopy(s, body, null, null, function(){
-    try{ navigator.clipboard.writeText(body||''); }catch(e){}
+    var all=withDetailNext(s, body||'', null);
+    try{ navigator.clipboard.writeText(all.text); }catch(e){ console.error('[Fibonax] copy refused:', e); }
     logSnippetCopy(s, 0);
-    showToast('Copied '+lang+' body');
+    if(all.next) logSnippetCopy(all.next, 0);
+    showToast(all.next?'Copied with '+all.next.title:'Copied '+lang+' body');
   });
 }
 

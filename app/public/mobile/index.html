@@ -829,7 +829,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 
 /* Copy footer — sticky with safe-area inset. Share sits beside Copy where the
    phone has a Share menu, and Copy takes the whole row where it has none. */
-.copy-foot{position:fixed;bottom:0;left:0;right:0;display:flex;gap:8px;
+.copy-foot{position:fixed;bottom:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:8px;
   padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
   background:rgba(248,249,252,.92);backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:40}
@@ -4399,6 +4399,30 @@ svg.brain-type-icon{stroke-width:1.8}
 .detail:has(.d-fields) .ff-progress{margin:0;}
 #view-detail #prev-text{max-height:none;overflow:visible;}
 
+/* "Add Firma after it": the snippet usually sent next, offered in the fill
+   window's footer between the keyboard hint and Insert. Azure tint, a 44px
+   tick target, the cross to hide the pair. Words carry the meaning, never the
+   colour alone. */
+.ff-next{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);--ffn-muted:var(--sb-ink-muted,var(--text2,#6E6E73));display:flex!important;align-items:center;gap:4px;min-width:0;margin:0 auto;padding:2px 4px 2px 12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);box-sizing:border-box;font-family:inherit;text-align:left;}
+.ff-next .ff-next-tick{display:flex!important;flex:1 1 auto;align-items:center;gap:10px;min-height:44px;min-width:0;margin:0;padding:0;cursor:pointer;font:inherit;color:var(--ffn-primary);}
+.ff-next .ff-next-tick input{all:revert;width:18px;height:18px;margin:0;flex:none;accent-color:var(--ffn-primary);cursor:pointer;}
+.ff-next .ff-next-tick input:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
+.ff-next .ff-next-tick>span{display:flex;flex-direction:column;min-width:0;}
+.ff-next .ff-next-title{font-size:14px;line-height:1.3;font-weight:600;color:var(--ffn-primary);overflow-wrap:anywhere;}
+.ff-next .ff-next-why{font-size:12px;line-height:1.3;color:var(--ffn-muted);}
+.ff-next .ff-next-hide{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;border-radius:10px;color:var(--ffn-muted);cursor:pointer;}
+.ff-next .ff-next-hide:hover{background:var(--sb-bg,var(--card,#fff));color:var(--ffn-primary);}
+.ff-next .ff-next-hide:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
+.ff-next svg{display:block;}
+@media(max-width:480px){#sb-overlay .ff-next{width:100%;margin:0;}}
+/* The phone: a row of its own above Copy and Share, and the page below it
+   scrolls far enough to clear the taller footer. */
+.copy-foot>.ff-next{flex:1 1 100%;margin:0;background:var(--card,#fff);}
+#view-detail:has(.copy-foot>.ff-next) .det-body{padding-bottom:calc(170px + env(safe-area-inset-bottom));}
+/* The popup: a row of its own above the Copy buttons, across both columns. */
+.detail>.ff-next{margin:8px 0 0;}
+.detail:has(.d-fields)>.ff-next{grid-column:1/-1;margin:0;}
+
 /* Pictures in a preview, and the line that says where they go. Host pages style
    img freely, so the sizes hold with !important. */
 .ff-pic{display:inline-block!important;vertical-align:bottom!important;max-width:100%!important;height:auto!important;margin:4px 0!important;border:0!important;border-radius:4px;}
@@ -4950,8 +4974,111 @@ svg.brain-type-icon{stroke-width:1.8}
     el.textContent = text;
   }
 
+  // ── OFTEN SENT NEXT ─────────────────────────────────────────────
+  // The snippet a person usually sends right after this one, offered where
+  // the snippet is used: in the fill window's footer, between the keyboard
+  // hint and Insert, and on the page's card after a snippet without a form.
+  // Which one comes next is decided from the use history by
+  // SBUsageAnalytics.nextAfter ({ fromId: { id, count } }); this decides
+  // whether to offer it and draws the offer, for the page, the popup and the
+  // phone alike. Only a snippet with nothing to fill is offered: it goes in as
+  // it is, a blank line after the first. The cross hides that pair for
+  // NEXT_HIDE_DAYS on the device.
+  var NEXT_HIDE_DAYS = 30;
+  var NEXT_SEPARATOR = '\n\n';
+
+  function nextWords(key, title) {
+    var t = String(title || 'it');
+    switch (key) {
+      case 'tick': return 'Add ' + t + ' after it';
+      case 'why': return 'Often sent next';
+      case 'card': return 'Often sent with ' + t;
+      case 'card-hint': return 'Add it right after this text.';
+      case 'add': return 'Add ' + t;
+      case 'hide': return 'Don’t suggest ' + t + ' after this snippet';
+      default: return '';
+    }
+  }
+
+  /**
+   * The snippet to offer after `fromId`, or null. `map` is nextAfter's answer,
+   * `library` the snippets this surface can expand ({ id, body, fieldCfg or
+   * field_cfg, lang }), `hidden` the pairs the cross hid ({ 'from>to': iso }).
+   */
+  function nextFor(map, fromId, library, hidden, now) {
+    var hit = map && fromId ? map[fromId] : null;
+    if (!hit || !hit.id || hit.id === fromId) return null;
+    var at = hidden && hidden[fromId + '>' + hit.id] ? Date.parse(hidden[fromId + '>' + hit.id]) : NaN;
+    if (!isNaN(at) && (now || Date.now()) - at < NEXT_HIDE_DAYS * 86400000) return null;
+    var next = null;
+    for (var i = 0; library && i < library.length; i++) { if (library[i] && library[i].id === hit.id) { next = library[i]; break; } }
+    if (!next || !root.SBFillForm) return null;
+    var vm = root.SBFillForm.fillForm(next.body || '', {}, { fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang });
+    return vm.fields.length || vm.buttons.length ? null : next;
+  }
+
+  /** The hidden pairs with this one added and the ones past NEXT_HIDE_DAYS dropped. */
+  function hideNext(hidden, fromId, toId, now) {
+    var t = now || Date.now();
+    var out = {};
+    Object.keys(hidden || {}).forEach(function(k) {
+      var at = Date.parse(hidden[k]);
+      if (!isNaN(at) && t - at < NEXT_HIDE_DAYS * 86400000) out[k] = hidden[k];
+    });
+    out[fromId + '>' + toId] = new Date(t).toISOString();
+    return out;
+  }
+
+  /**
+   * The offer in a fill window's footer: a tick box "Add Firma after it", the
+   * line "Often sent next" and a cross that hides the pair (onHide). Returns
+   * { el, checked } where checked() says whether the box is ticked. It starts
+   * unticked: nothing extra goes in unless the person asks.
+   */
+  function nextOffer(doc, next, onHide) {
+    var box = doc.createElement('div');
+    box.className = 'ff-next';
+    var label = doc.createElement('label');
+    label.className = 'ff-next-tick';
+    var tick = doc.createElement('input');
+    tick.type = 'checkbox';
+    var words = doc.createElement('span');
+    var strong = doc.createElement('span');
+    strong.className = 'ff-next-title';
+    strong.textContent = nextWords('tick', next.title);
+    var why = doc.createElement('span');
+    why.className = 'ff-next-why';
+    why.textContent = nextWords('why');
+    words.appendChild(strong); words.appendChild(why);
+    label.appendChild(tick); label.appendChild(words);
+    var hide = doc.createElement('button');
+    hide.type = 'button';
+    hide.className = 'ff-next-hide';
+    hide.setAttribute('aria-label', nextWords('hide', next.title));
+    hide.title = nextWords('hide', next.title);
+    hide.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+    hide.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      tick.checked = false;
+      box.remove();
+      if (typeof onHide === 'function') onHide();
+    });
+    box.appendChild(label); box.appendChild(hide);
+    return { el: box, checked: function() { return box.isConnected && tick.checked; } };
+  }
+
+  /** The next snippet's text as it goes in, and its formatted form when it has one. */
+  function nextText(next) {
+    var vm = root.SBFillForm.fillForm(next.body || '', {}, {
+      fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang, formatted: next.bodyHtml || next.body_html || null
+    });
+    return { text: vm.preview, formatted: vm.formatted || null };
+  }
+
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
-    unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote };
+    unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
+    NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
+    nextWords: nextWords, nextFor: nextFor, hideNext: hideNext, nextOffer: nextOffer, nextText: nextText };
 })(typeof window !== 'undefined' ? window : this);
 </script>
 <!-- SB_FILL_FORM_UI:END -->
@@ -7088,25 +7215,43 @@ svg.brain-type-icon{stroke-width:1.8}
     return !isNaN(at) && now - at < DISMISS_DAYS * 86400000;
   }
 
-  // One kind's "used together": `items` are { id, title, words, body }, where
-  // `body` is the text alone, without the title.
-  function togetherOf(kind, events, idField, items, startMs, now) {
-    var byId = {};
-    for (var i = 0; i < items.length; i++) byId[items[i].id] = items[i];
+  // Uses of one kind cut into runs: the ids used one after the other, at most
+  // TOGETHER_GAP_MIN minutes apart, between startMs and now. The same item
+  // twice in a row is one step. An item `known` does not hold (one no longer in
+  // the library) still ends a run: it sat between. Only runs of two or more.
+  function runsOf(events, idField, known, startMs, now) {
     var uses = [];
     for (var e = 0; e < events.length; e++) {
       var t = eventTime(events[e]);
       if (t === null || t < startMs || t > now) continue;
       var id = events[e][idField];
-      // An item no longer in the library still breaks a run: it sat between.
-      uses.push({ id: id && byId[id] ? id : null, t: t });
+      uses.push({ id: id && known(id) ? id : null, t: t });
     }
     uses.sort(function (a, b) { return a.t - b.t; });
-
     var gap = TOGETHER_GAP_MIN * 60000;
-    var counts = {};
+    var runs = [];
     var run = [];
-    function flush() {
+    function cut() { if (run.length > 1) runs.push(run); run = []; }
+    var lastT = null;
+    for (var u = 0; u < uses.length; u++) {
+      var use = uses[u];
+      if (lastT !== null && use.t - lastT > gap) cut();
+      lastT = use.t;
+      if (use.id === null) { cut(); continue; }
+      if (run.length && run[run.length - 1] === use.id) continue;
+      run.push(use.id);
+    }
+    cut();
+    return runs;
+  }
+
+  // One kind's "used together": `items` are { id, title, words, body }, where
+  // `body` is the text alone, without the title.
+  function togetherOf(kind, events, idField, items, startMs, now) {
+    var byId = {};
+    for (var i = 0; i < items.length; i++) byId[items[i].id] = items[i];
+    var counts = {};
+    runsOf(events, idField, function (id) { return !!byId[id]; }, startMs, now).forEach(function (run) {
       var seen = {};
       for (var a = 0; a < run.length - 1; a++) {
         for (var len = 2; len <= 3 && a + len <= run.length; len++) {
@@ -7118,19 +7263,7 @@ svg.brain-type-icon{stroke-width:1.8}
           counts[k] = (counts[k] || 0) + 1;
         }
       }
-      run = [];
-    }
-    var lastT = null;
-    for (var u = 0; u < uses.length; u++) {
-      var use = uses[u];
-      if (lastT !== null && use.t - lastT > gap) flush();
-      lastT = use.t;
-      if (use.id === null) { flush(); continue; }
-      // The same item twice in a row is one step.
-      if (run.length && run[run.length - 1] === use.id) continue;
-      run.push(use.id);
-    }
-    flush();
+    });
 
     function setKey(ids) { return ids.slice().sort().join('|'); }
     var cands = Object.keys(counts)
@@ -7181,6 +7314,48 @@ svg.brain-type-icon{stroke-width:1.8}
         text: 'You used these one after the other ' + p.count + ' times in the last ' + SUGGEST_DAYS + ' days.'
       };
     });
+  }
+
+  /**
+   * What usually comes next after each snippet, for "Add Firma after it" in
+   * the fill windows: the snippet used right after it in the most runs (the
+   * same runs as "used together"), at least TOGETHER_MIN of them in the last
+   * SUGGEST_DAYS days. A tie goes to the id that sorts first, so every surface
+   * picks the same one. Pure:
+   *   events   uses { snippet_id, created_at }
+   *   ids      the snippets still in the library; leave out to take every id
+   *   idField  'snippet_id' unless given
+   *   now      a timestamp
+   * Returns { fromId: { id: nextId, count } }.
+   */
+  function nextAfter(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var startMs = addDays(startOfDay(now), -(SUGGEST_DAYS - 1)).getTime();
+    var known = function () { return true; };
+    if (Array.isArray(inp.ids)) {
+      var set = {};
+      inp.ids.forEach(function (id) { set[id] = true; });
+      known = function (id) { return !!set[id]; };
+    }
+    var counts = {};
+    runsOf(Array.isArray(inp.events) ? inp.events : [], inp.idField || 'snippet_id', known, startMs, now).forEach(function (run) {
+      var seen = {};
+      for (var i = 0; i < run.length - 1; i++) {
+        var k = run[i] + '>' + run[i + 1];
+        if (seen[k]) continue;
+        seen[k] = true;
+        counts[k] = (counts[k] || 0) + 1;
+      }
+    });
+    var best = {};
+    Object.keys(counts).sort().forEach(function (k) {
+      var n = counts[k];
+      if (n < TOGETHER_MIN) return;
+      var pair = k.split('>');
+      if (!best[pair[0]] || n > best[pair[0]].count) best[pair[0]] = { id: pair[1], count: n };
+    });
+    return best;
   }
 
   /**
@@ -7284,6 +7459,7 @@ svg.brain-type-icon{stroke-width:1.8}
     DISMISS_DAYS: DISMISS_DAYS,
     MISSING_RULES: MISSING_RULES.map(function (r) { return { key: r.key, kind: r.kind, libraryId: r.libraryId, title: r.title }; }),
     suggest: suggest,
+    nextAfter: nextAfter,
     team: team,
     lastUseLine: lastUseLine
   };
@@ -10365,6 +10541,7 @@ function loadSnips(){
     if(curView==='home'){renderHome();}
     else if(curView==='analytics'){renderFolderChips();renderList();renderAnalytics();}
     else if(!otherPageActive()){showList();renderFolderChips();renderList();}
+    loadMobNext();
   })
   .catch(function(){
     snipsLoaded=true;
@@ -12943,6 +13120,7 @@ function renderDetail(snip,keepVals){
   window.SBFillFormUI.enhance(form, _vm, {prefix: 'mobile', row: '.field-row', caption: '.field-lbl,.field-ctx,.field-ctxline', menu: '.field-opts', control: '.field-in,.field-othertxt'});
   setDetailPane('fields');
   updatePrev();
+  mountMobNext();
   document.getElementById('det-body').scrollTop=0;
 }
 
@@ -13368,21 +13546,95 @@ function fillFromLink(){
   });
 })();
 
+/* ── OFTEN SENT NEXT ────────────────────────────── */
+/* "Add Firma after it" above Copy and Share: the snippet usually sent right
+   after this one, the offer the extension's fill window shows. What comes next
+   is SBUsageAnalytics.nextAfter over your own uses on every device, read at
+   most every 6 hours and kept on this phone; whether to offer it, and its
+   words, come from the shared fill-form-ui module. Ticked, Copy and Share put
+   it after the text, a blank line between, and count a use of each. */
+var MOB_NEXT_KEY='sb_mob_next', MOB_NEXT_HIDDEN_KEY='sb_mob_next_hidden', MOB_NEXT_MS=6*60*60*1000;
+var mobNextMap={}, mobNext=null, mobNextLoading=false;
+function mobNextHidden(){
+  try{var o=JSON.parse(localStorage.getItem(MOB_NEXT_HIDDEN_KEY)||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{};}
+  catch(e){return {};}
+}
+function loadMobNext(){
+  if(mobNextLoading||!USER_ID)return;
+  try{
+    var have=JSON.parse(localStorage.getItem(MOB_NEXT_KEY)||'null');
+    if(have&&have.uid===USER_ID&&have.map){
+      mobNextMap=have.map;
+      if(Date.now()-have.at<MOB_NEXT_MS){mountMobNext();return;}
+    }
+  }catch(e){console.error('Could not read what usually comes next',e);}
+  mobNextLoading=true;
+  var now=Date.now();
+  var from=new Date(now-SBUsageAnalytics.SUGGEST_DAYS*86400000).toISOString();
+  anFetchPages(SUPA+'/rest/v1/snippet_events?select=snippet_id,created_at'
+    +'&user_id=eq.'+encodeURIComponent(USER_ID)+'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc')
+    .then(function(events){
+      mobNextMap=SBUsageAnalytics.nextAfter({events:events,ids:allSnips.map(function(s){return s.id;}),now:now});
+      try{localStorage.setItem(MOB_NEXT_KEY,JSON.stringify({uid:USER_ID,at:now,map:mobNextMap}));}
+      catch(e){console.error('Could not keep what usually comes next',e);}
+      mobNextLoading=false;
+      mountMobNext();
+    })
+    .catch(function(err){
+      mobNextLoading=false;
+      console.error('Could not read the use history for what usually comes next',err);
+    });
+}
+/* Draws the offer for the snippet on screen, or takes it away. */
+function mountMobNext(){
+  var foot=document.querySelector('#view-detail .copy-foot');
+  if(!foot)return;
+  var old=foot.querySelector('.ff-next');
+  if(old)old.remove();
+  mobNext=null;
+  if(!curSnip||!detailOpen()||!window.SBFillFormUI)return;
+  var UI=window.SBFillFormUI, s=curSnip;
+  var next=UI.nextFor(mobNextMap,s.id,allSnips,mobNextHidden());
+  if(!next)return;
+  var offer=UI.nextOffer(document,next,function(){
+    try{localStorage.setItem(MOB_NEXT_HIDDEN_KEY,JSON.stringify(UI.hideNext(mobNextHidden(),s.id,next.id)));}
+    catch(e){console.error('Could not remember the hidden suggestion',e);}
+    mobNext=null;
+  });
+  foot.insertBefore(offer.el,foot.firstChild);
+  mobNext={id:s.id,snip:next,offer:offer};
+}
+/* The text, and its formatted copy, with the next snippet after it when ticked. */
+function withMobNext(s,text,html){
+  var n=mobNext&&mobNext.id===s.id&&mobNext.offer.checked()?mobNext.snip:null;
+  if(!n)return {text:text,html:html||null,next:null};
+  var t=window.SBFillFormUI.nextText(n);
+  return {
+    text:text+window.SBFillFormUI.NEXT_SEPARATOR+t.text,
+    html:html?html+'<br><br>'+(t.formatted||esc(t.text).replace(/\n/g,'<br>')):null,
+    next:n
+  };
+}
+
 /* ── COPY & SHARE ───────────────────────────────── */
 document.getElementById('copy-btn').addEventListener('click',function(){
   if(!curSnip||!validateDetail())return;
   var btn=this,s=curSnip,vm=currentForm();
   checkThenGo(s,vm.preview,vm,document.getElementById('fform'),'copy-anyway',function(){
+    var all=withMobNext(s,vm.preview,vm.formatted);
     logSnipUse(s,detailFilled());
-    copyWithPictures(vm.preview,vm.formatted,function(){flashFootBtn(btn,'Copied!');});
+    if(all.next)logSnipUse(all.next,0);
+    copyWithPictures(all.text,all.html,function(){flashFootBtn(btn,'Copied!');});
   });
 });
 document.getElementById('share-btn').addEventListener('click',function(){
   if(!curSnip||!validateDetail())return;
   var btn=this,s=curSnip,filled=detailFilled(),vm=currentForm();
   checkThenGo(s,vm.preview,vm,document.getElementById('fform'),'share-anyway',function(){
-    shareOut(s.title||'Snippet',vm.preview,function(){
+    var all=withMobNext(s,vm.preview,null);
+    shareOut(s.title||'Snippet',all.text,function(){
       logSnipUse(s,filled);
+      if(all.next)logSnipUse(all.next,0);
       flashFootBtn(btn,'Shared!');
     });
   });

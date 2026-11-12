@@ -526,6 +526,109 @@
     el.textContent = text;
   }
 
+  // ── OFTEN SENT NEXT ─────────────────────────────────────────────
+  // The snippet a person usually sends right after this one, offered where
+  // the snippet is used: in the fill window's footer, between the keyboard
+  // hint and Insert, and on the page's card after a snippet without a form.
+  // Which one comes next is decided from the use history by
+  // SBUsageAnalytics.nextAfter ({ fromId: { id, count } }); this decides
+  // whether to offer it and draws the offer, for the page, the popup and the
+  // phone alike. Only a snippet with nothing to fill is offered: it goes in as
+  // it is, a blank line after the first. The cross hides that pair for
+  // NEXT_HIDE_DAYS on the device.
+  var NEXT_HIDE_DAYS = 30;
+  var NEXT_SEPARATOR = '\n\n';
+
+  function nextWords(key, title) {
+    var t = String(title || 'it');
+    switch (key) {
+      case 'tick': return 'Add ' + t + ' after it';
+      case 'why': return 'Often sent next';
+      case 'card': return 'Often sent with ' + t;
+      case 'card-hint': return 'Add it right after this text.';
+      case 'add': return 'Add ' + t;
+      case 'hide': return 'Don’t suggest ' + t + ' after this snippet';
+      default: return '';
+    }
+  }
+
+  /**
+   * The snippet to offer after `fromId`, or null. `map` is nextAfter's answer,
+   * `library` the snippets this surface can expand ({ id, body, fieldCfg or
+   * field_cfg, lang }), `hidden` the pairs the cross hid ({ 'from>to': iso }).
+   */
+  function nextFor(map, fromId, library, hidden, now) {
+    var hit = map && fromId ? map[fromId] : null;
+    if (!hit || !hit.id || hit.id === fromId) return null;
+    var at = hidden && hidden[fromId + '>' + hit.id] ? Date.parse(hidden[fromId + '>' + hit.id]) : NaN;
+    if (!isNaN(at) && (now || Date.now()) - at < NEXT_HIDE_DAYS * 86400000) return null;
+    var next = null;
+    for (var i = 0; library && i < library.length; i++) { if (library[i] && library[i].id === hit.id) { next = library[i]; break; } }
+    if (!next || !root.SBFillForm) return null;
+    var vm = root.SBFillForm.fillForm(next.body || '', {}, { fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang });
+    return vm.fields.length || vm.buttons.length ? null : next;
+  }
+
+  /** The hidden pairs with this one added and the ones past NEXT_HIDE_DAYS dropped. */
+  function hideNext(hidden, fromId, toId, now) {
+    var t = now || Date.now();
+    var out = {};
+    Object.keys(hidden || {}).forEach(function(k) {
+      var at = Date.parse(hidden[k]);
+      if (!isNaN(at) && t - at < NEXT_HIDE_DAYS * 86400000) out[k] = hidden[k];
+    });
+    out[fromId + '>' + toId] = new Date(t).toISOString();
+    return out;
+  }
+
+  /**
+   * The offer in a fill window's footer: a tick box "Add Firma after it", the
+   * line "Often sent next" and a cross that hides the pair (onHide). Returns
+   * { el, checked } where checked() says whether the box is ticked. It starts
+   * unticked: nothing extra goes in unless the person asks.
+   */
+  function nextOffer(doc, next, onHide) {
+    var box = doc.createElement('div');
+    box.className = 'ff-next';
+    var label = doc.createElement('label');
+    label.className = 'ff-next-tick';
+    var tick = doc.createElement('input');
+    tick.type = 'checkbox';
+    var words = doc.createElement('span');
+    var strong = doc.createElement('span');
+    strong.className = 'ff-next-title';
+    strong.textContent = nextWords('tick', next.title);
+    var why = doc.createElement('span');
+    why.className = 'ff-next-why';
+    why.textContent = nextWords('why');
+    words.appendChild(strong); words.appendChild(why);
+    label.appendChild(tick); label.appendChild(words);
+    var hide = doc.createElement('button');
+    hide.type = 'button';
+    hide.className = 'ff-next-hide';
+    hide.setAttribute('aria-label', nextWords('hide', next.title));
+    hide.title = nextWords('hide', next.title);
+    hide.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+    hide.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      tick.checked = false;
+      box.remove();
+      if (typeof onHide === 'function') onHide();
+    });
+    box.appendChild(label); box.appendChild(hide);
+    return { el: box, checked: function() { return box.isConnected && tick.checked; } };
+  }
+
+  /** The next snippet's text as it goes in, and its formatted form when it has one. */
+  function nextText(next) {
+    var vm = root.SBFillForm.fillForm(next.body || '', {}, {
+      fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang, formatted: next.bodyHtml || next.body_html || null
+    });
+    return { text: vm.preview, formatted: vm.formatted || null };
+  }
+
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
-    unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote };
+    unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
+    NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
+    nextWords: nextWords, nextFor: nextFor, hideNext: hideNext, nextOffer: nextOffer, nextText: nextText };
 })(typeof window !== 'undefined' ? window : this);

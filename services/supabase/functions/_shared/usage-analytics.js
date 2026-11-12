@@ -896,25 +896,43 @@
     return !isNaN(at) && now - at < DISMISS_DAYS * 86400000;
   }
 
-  // One kind's "used together": `items` are { id, title, words, body }, where
-  // `body` is the text alone, without the title.
-  function togetherOf(kind, events, idField, items, startMs, now) {
-    var byId = {};
-    for (var i = 0; i < items.length; i++) byId[items[i].id] = items[i];
+  // Uses of one kind cut into runs: the ids used one after the other, at most
+  // TOGETHER_GAP_MIN minutes apart, between startMs and now. The same item
+  // twice in a row is one step. An item `known` does not hold (one no longer in
+  // the library) still ends a run: it sat between. Only runs of two or more.
+  function runsOf(events, idField, known, startMs, now) {
     var uses = [];
     for (var e = 0; e < events.length; e++) {
       var t = eventTime(events[e]);
       if (t === null || t < startMs || t > now) continue;
       var id = events[e][idField];
-      // An item no longer in the library still breaks a run: it sat between.
-      uses.push({ id: id && byId[id] ? id : null, t: t });
+      uses.push({ id: id && known(id) ? id : null, t: t });
     }
     uses.sort(function (a, b) { return a.t - b.t; });
-
     var gap = TOGETHER_GAP_MIN * 60000;
-    var counts = {};
+    var runs = [];
     var run = [];
-    function flush() {
+    function cut() { if (run.length > 1) runs.push(run); run = []; }
+    var lastT = null;
+    for (var u = 0; u < uses.length; u++) {
+      var use = uses[u];
+      if (lastT !== null && use.t - lastT > gap) cut();
+      lastT = use.t;
+      if (use.id === null) { cut(); continue; }
+      if (run.length && run[run.length - 1] === use.id) continue;
+      run.push(use.id);
+    }
+    cut();
+    return runs;
+  }
+
+  // One kind's "used together": `items` are { id, title, words, body }, where
+  // `body` is the text alone, without the title.
+  function togetherOf(kind, events, idField, items, startMs, now) {
+    var byId = {};
+    for (var i = 0; i < items.length; i++) byId[items[i].id] = items[i];
+    var counts = {};
+    runsOf(events, idField, function (id) { return !!byId[id]; }, startMs, now).forEach(function (run) {
       var seen = {};
       for (var a = 0; a < run.length - 1; a++) {
         for (var len = 2; len <= 3 && a + len <= run.length; len++) {
@@ -926,19 +944,7 @@
           counts[k] = (counts[k] || 0) + 1;
         }
       }
-      run = [];
-    }
-    var lastT = null;
-    for (var u = 0; u < uses.length; u++) {
-      var use = uses[u];
-      if (lastT !== null && use.t - lastT > gap) flush();
-      lastT = use.t;
-      if (use.id === null) { flush(); continue; }
-      // The same item twice in a row is one step.
-      if (run.length && run[run.length - 1] === use.id) continue;
-      run.push(use.id);
-    }
-    flush();
+    });
 
     function setKey(ids) { return ids.slice().sort().join('|'); }
     var cands = Object.keys(counts)
@@ -989,6 +995,48 @@
         text: 'You used these one after the other ' + p.count + ' times in the last ' + SUGGEST_DAYS + ' days.'
       };
     });
+  }
+
+  /**
+   * What usually comes next after each snippet, for "Add Firma after it" in
+   * the fill windows: the snippet used right after it in the most runs (the
+   * same runs as "used together"), at least TOGETHER_MIN of them in the last
+   * SUGGEST_DAYS days. A tie goes to the id that sorts first, so every surface
+   * picks the same one. Pure:
+   *   events   uses { snippet_id, created_at }
+   *   ids      the snippets still in the library; leave out to take every id
+   *   idField  'snippet_id' unless given
+   *   now      a timestamp
+   * Returns { fromId: { id: nextId, count } }.
+   */
+  function nextAfter(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var startMs = addDays(startOfDay(now), -(SUGGEST_DAYS - 1)).getTime();
+    var known = function () { return true; };
+    if (Array.isArray(inp.ids)) {
+      var set = {};
+      inp.ids.forEach(function (id) { set[id] = true; });
+      known = function (id) { return !!set[id]; };
+    }
+    var counts = {};
+    runsOf(Array.isArray(inp.events) ? inp.events : [], inp.idField || 'snippet_id', known, startMs, now).forEach(function (run) {
+      var seen = {};
+      for (var i = 0; i < run.length - 1; i++) {
+        var k = run[i] + '>' + run[i + 1];
+        if (seen[k]) continue;
+        seen[k] = true;
+        counts[k] = (counts[k] || 0) + 1;
+      }
+    });
+    var best = {};
+    Object.keys(counts).sort().forEach(function (k) {
+      var n = counts[k];
+      if (n < TOGETHER_MIN) return;
+      var pair = k.split('>');
+      if (!best[pair[0]] || n > best[pair[0]].count) best[pair[0]] = { id: pair[1], count: n };
+    });
+    return best;
   }
 
   /**
@@ -1092,6 +1140,7 @@
     DISMISS_DAYS: DISMISS_DAYS,
     MISSING_RULES: MISSING_RULES.map(function (r) { return { key: r.key, kind: r.kind, libraryId: r.libraryId, title: r.title }; }),
     suggest: suggest,
+    nextAfter: nextAfter,
     team: team,
     lastUseLine: lastUseLine
   };

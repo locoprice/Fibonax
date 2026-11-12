@@ -677,3 +677,35 @@ assert.equal(fmt.preview, 'Hi Ana & <b>, your order is confirmed:\n1. We pack it
 assert.equal(fmt.formatted, '<div>Hi Ana &amp; &lt;b&gt;, your order is <b>confirmed</b>:</div><ol><li>We pack it <u>today</u></li><li>You get a link</li></ol>');
 assert.equal(fmt.parts, null);
 console.log('OK A formatted text is filled from the same form, its plain copy keeping list lines');
+
+// ── OFTEN SENT NEXT (fill-form-ui.js) ───────────────────────────────
+// Whether the fill windows offer "Add Firma after it", decided once for the
+// page, the popup and the phone: only a snippet with nothing to fill, never
+// the same one, never a pair hidden in the last NEXT_HIDE_DAYS days.
+{
+  const uiRoot = { SBFillForm: ff };
+  new Function('window', require('fs').readFileSync(path.join(__dirname, '..', 'extension', 'shared', 'fill-form-ui.js'), 'utf8'))(uiRoot);
+  const UI = uiRoot.SBFillFormUI;
+  const lib = [
+    { id: 'q', title: 'Quote', body: 'Total: {formtext: name=T; type=number}' },
+    { id: 'f', title: 'Firma', body: 'Valentina\nFibonax' },
+    { id: 'c', title: 'Card', body: 'Hi {formtext: name=N}' },
+    { id: 'b', title: 'Button', body: 'Hi{button label="Go"}X = 1{/button}' },
+  ];
+  const map = { q: { id: 'f', count: 4 }, f: { id: 'c', count: 3 }, c: { id: 'b', count: 3 }, b: { id: 'b', count: 3 }, x: { id: 'gone', count: 5 } };
+  const NOW = Date.parse('2026-11-12T10:00:00Z');
+  assert.equal(UI.nextFor(map, 'q', lib, {}, NOW).id, 'f');
+  assert.equal(UI.nextFor(map, 'f', lib, {}, NOW), null, 'a next snippet with a form is not offered');
+  assert.equal(UI.nextFor(map, 'c', lib, {}, NOW), null, 'a next snippet with a button is not offered');
+  assert.equal(UI.nextFor(map, 'b', lib, {}, NOW), null, 'never the same snippet');
+  assert.equal(UI.nextFor(map, 'x', lib, {}, NOW), null, 'a next snippet no longer in the library is not offered');
+  const hidden = UI.hideNext({ 'old>one': '2026-09-01T00:00:00Z' }, 'q', 'f', NOW);
+  assert.deepEqual(Object.keys(hidden), ['q>f'], 'hiding drops pairs older than NEXT_HIDE_DAYS');
+  assert.equal(UI.nextFor(map, 'q', lib, hidden, NOW), null, 'a hidden pair stays hidden');
+  assert.equal(UI.nextFor(map, 'q', lib, hidden, NOW + 31 * 86400000).id, 'f', 'and comes back after NEXT_HIDE_DAYS');
+  assert.equal(UI.nextText(lib[1]).text, 'Valentina\nFibonax');
+  assert.equal(UI.NEXT_SEPARATOR, '\n\n');
+  assert.deepEqual(['tick', 'why', 'card', 'card-hint', 'add', 'hide'].map((k) => UI.nextWords(k, 'Firma')),
+    ['Add Firma after it', 'Often sent next', 'Often sent with Firma', 'Add it right after this text.', 'Add Firma', 'Don’t suggest Firma after this snippet']);
+  console.log('OK Often sent next: only a snippet with nothing to fill, never a hidden pair, the same words everywhere');
+}

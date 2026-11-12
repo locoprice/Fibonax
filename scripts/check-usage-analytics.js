@@ -283,6 +283,18 @@ check('a library with nothing to suggest is empty', [UA.suggest({ now: NOW }).em
 check('every rule names a library item', UA.MISSING_RULES.map((r) => r.key + ':' + r.kind),
   ['terms:snippet', 'company:brain', 'reply:prompt', 'followquote:snippet', 'translate:prompt', 'overdue:snippet', 'tone:brain', 'away:snippet']);
 
+// What usually comes next, for "Add Firma after it" in the fill windows.
+const nx = UA.nextAfter({ now: NOW, events: runs });
+check('next after each snippet, from the same runs', nx, { s1: { id: 's2', count: 4 }, s2: { id: 's3', count: 3 } });
+check('a pair seen twice is not enough', UA.nextAfter({ now: NOW, events: runs }).s4, undefined);
+check('a snippet no longer in the library breaks the run',
+  UA.nextAfter({ now: NOW, events: runs, ids: ['s1', 's3'] }), {});
+const tie = [];
+[10, 11, 12].forEach((d) => tie.push(sev('a', d, 9, 0), sev('c', d, 9, 1)));
+[13, 14, 15].forEach((d) => tie.push(sev('a', d, 9, 0), sev('b', d, 9, 1)));
+check('a tie goes to the id that sorts first', UA.nextAfter({ now: NOW, events: tie }).a, { id: 'b', count: 3 });
+check('prompts read through idField', UA.nextAfter({ now: NOW, events: pRuns, idField: 'prompt_id' }), { p1: { id: 'p2', count: 3 } });
+
 if (failed) {
   console.error('\n' + failed + ' usage analytics check(s) failed');
   process.exit(1);

@@ -110,6 +110,90 @@ var triggerCfg = { snippetTrigger: '::', promptTrigger: '"""', snippetActivation
 var lastInputTime = 0; // debounce: prevents keydown + input event double-fire on desktop
 var isPasting = false; // guards against paste events feeding the trigger buffer
 
+// ── OFTEN SENT NEXT ────────────────────────────────────────────────
+// What usually comes right after each snippet (chrome.storage.local.sb_next,
+// written by background.js from the use history), and the pairs the person
+// hid with the cross (sb_next_hidden). Whether to offer one, and the words,
+// come from fill-form-ui.js (SBFillFormUI.nextFor), as on the popup and the
+// phone.
+var nextMap = {};
+var nextHidden = {};
+function _nextMapOf(stored) { return stored && stored.map && typeof stored.map === 'object' ? stored.map : {}; }
+
+// The snippet to offer after this one, or null.
+function _nextFor(snip) {
+  var ui = window.SBFillFormUI;
+  return ui && ui.nextFor && snip ? ui.nextFor(nextMap, snip.id, snippets, nextHidden) : null;
+}
+
+// The cross: this pair stays hidden on this browser for NEXT_HIDE_DAYS.
+function _hideNext(snip, next) {
+  nextHidden = window.SBFillFormUI.hideNext(nextHidden, snip.id, next.id);
+  try {
+    chrome.storage.local.set({ sb_next_hidden: nextHidden });
+  } catch (e) { console.error('[Fibonax] could not remember the hidden suggestion:', e); }
+}
+
+// The text the next snippet adds after the first, a blank line between them,
+// and the same in formatted form when `formatted` asks for it: the first part
+// went in formatted, so the second must too.
+function _nextAddition(next, formatted) {
+  var ui = window.SBFillFormUI;
+  var t = ui.nextText(next);
+  var html = null;
+  if (formatted) {
+    html = '<br><br>' + (t.formatted || xesc(t.text).replace(/\n/g, '<br>'));
+  }
+  return { text: ui.NEXT_SEPARATOR + t.text, html: html };
+}
+
+// Puts the caret at a character offset in a rich editor, as Undo counts them.
+function _ceCaretAt(el, offset) {
+  var host = _ceHost(el);
+  if (!host || !(offset >= 0)) return false;
+  try {
+    var p = _ceCharOffsetToPoint(host, offset);
+    var r = document.createRange();
+    r.setStart(p.node, p.offset);
+    r.collapse(true);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+    return true;
+  } catch (e) {
+    console.error('[Fibonax] could not place the caret after the snippet:', e);
+    return false;
+  }
+}
+
+// "Add Firma" on the card after a snippet without a form, the same whichever
+// way it came in: a typed trigger, the picker or the right-click menu.
+// `inField` says the first text is already in the field (a rich editor, or the
+// right-click menu in a plain box); otherwise it waits for the card, and Add
+// puts both in at once. `snapshot` is the field state Undo would use: in a
+// rich editor its end offset is where the first text ends. `finish` runs once
+// both are in (the caller's processing flag). Null when nothing is offered.
+function _cardNext(el, snip, text, inField, snapshot, finish) {
+  var next = _nextFor(snip);
+  if (!next) return null;
+  return {
+    title: next.title,
+    onHide: function() { _hideNext(snip, next); },
+    onAdd: function() {
+      var add = _nextAddition(next, _takesFormatting(el) && !!window.SBFillFormUI.nextText(next).formatted);
+      if (inField) {
+        if (snapshot && snapshot.type === 'ce' && typeof snapshot.endCharOffset === 'number') _ceCaretAt(el, snapshot.endCharOffset);
+        insertText(el, add.text, add.html);
+      } else {
+        insertText(el, text + add.text);
+      }
+      logEvent(snip, 0);
+      logEvent(next, 0);
+      if (typeof finish === 'function') finish();
+    }
+  };
+}
+
 // ── PROMPT TEMPLATES ──────────────────────────────────────────────
 // The """ picker draws from two merged sources:
 //   - BASE_PROMPTS: built-in defaults ("Base Prompts"), always available even
@@ -339,6 +423,11 @@ try {
     try { hasSession = !!(data && data.sb_session && data.sb_session.user_id); } catch(e) {}
   });
 
+  chrome.storage.local.get(['sb_next', 'sb_next_hidden'], function(data) {
+    nextMap = _nextMapOf(data && data.sb_next);
+    nextHidden = (data && data.sb_next_hidden) || {};
+  });
+
   chrome.storage.local.get('sb_prompts', function(data) {
     try {
       if (data && Array.isArray(data.sb_prompts)) userPrompts = data.sb_prompts;
@@ -352,6 +441,8 @@ try {
       // in-memory list, otherwise the picker keeps serving the signed-out user
       // the library from the session that just ended.
       if (changes.snippets) snippets = Array.isArray(changes.snippets.newValue) ? changes.snippets.newValue : [];
+      if (changes.sb_next) nextMap = _nextMapOf(changes.sb_next.newValue);
+      if (changes.sb_next_hidden) nextHidden = changes.sb_next_hidden.newValue || {};
       if (changes.sb_session) hasSession = !!(changes.sb_session.newValue && changes.sb_session.newValue.user_id);
       if (changes.sb_prompts && Array.isArray(changes.sb_prompts.newValue)) userPrompts = changes.sb_prompts.newValue;
       if (changes.trigger  && changes.trigger.newValue)  trigger  = changes.trigger.newValue;
@@ -1152,7 +1243,8 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
             restoreFieldState(fieldSnapshot);
             processing = false;
           },
-          { inserted: true, target: el, warning: reviewWarning(snip), note: note }
+          { inserted: true, target: el, warning: reviewWarning(snip), note: note,
+            next: _cardNext(el, snip, text, true, fieldSnapshot, function() { processing = false; }) }
         );
       } else {
         // Non-CE (textarea / input): deleteChars already stripped the trigger.
@@ -1168,7 +1260,8 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
             restoreFieldState(fieldSnapshot);
             processing = false;
           },
-          { inserted: false, target: el, warning: reviewWarning(snip), note: note }
+          { inserted: false, target: el, warning: reviewWarning(snip), note: note,
+            next: _cardNext(el, snip, text, false, null, function() { processing = false; }) }
         );
       }
     }, function() {
@@ -2177,6 +2270,18 @@ function showOverlay(targetEl, snip, scLen, done) {
   bd.id = 'sb-bd';
   bd.style.cssText = 'position:fixed;inset:0;background:var(--sb-scrim);z-index:2147483646;';
 
+  // The snippet usually sent next, offered in the middle of the footer,
+  // between the keyboard hint and Insert. Unticked: nothing extra goes in
+  // unless the person ticks it.
+  var next = _nextFor(snip);
+  el._sbNext = null;
+  if (next) {
+    var offer = window.SBFillFormUI.nextOffer(document, next, function() { _hideNext(snip, next); });
+    var foot = el.querySelector('.sb-foot');
+    foot.insertBefore(offer.el, foot.querySelector('.sb-insert'));
+    el._sbNext = { snip: next, offer: offer };
+  }
+
   document.body.appendChild(bd);
   document.body.appendChild(el);
   overlayEl = el;
@@ -2613,6 +2718,18 @@ function doInsert(targetEl, snip, checked) {
   var html = vm.formatted && _takesFormatting(targetEl) ? vm.formatted : null;
   note = _pictureNote(note, vm, html);
   var fillCount = Object.keys(vals).length;
+  // "Add Firma after it", when ticked: the next snippet goes in right after,
+  // a blank line between, in the same insert, and counts as a use of its own.
+  var nextSnip = overlayEl && overlayEl._sbNext && overlayEl._sbNext.offer.checked() ? overlayEl._sbNext.snip : null;
+  if (nextSnip) {
+    var addition = _nextAddition(nextSnip, !!html);
+    text += addition.text;
+    if (html) html += addition.html;
+  }
+  function logUses() {
+    logEvent(snip, fillCount);
+    if (nextSnip) logEvent(nextSnip, 0);
+  }
   closeOverlay();
   if (!targetEl) return;
   var isCE = targetEl.isContentEditable || (targetEl.getAttribute &&
@@ -2628,7 +2745,7 @@ function doInsert(targetEl, snip, checked) {
     _markSyncInserted(snapshot, targetEl, before, text, html ? vm : null);
     showCelebration(
       text,
-      function onConfirm() { logEvent(snip, fillCount); },
+      function onConfirm() { logUses(); },
       function onUndo()    { restoreFieldState(snapshot); },
       { inserted: true, target: targetEl, warning: reviewWarning(snip), note: note }
     );
@@ -2665,7 +2782,7 @@ function doInsert(targetEl, snip, checked) {
     var snapshot = captureFieldState(targetEl, overlayTriggerLen);
     showCelebration(
       text,
-      function onConfirm() { insertText(targetEl, text); logEvent(snip, fillCount); },
+      function onConfirm() { insertText(targetEl, text); logUses(); },
       function onUndo()    { restoreFieldState(snapshot); },
       { inserted: false, target: targetEl, warning: reviewWarning(snip), note: note }
     );
@@ -3288,6 +3405,11 @@ function showCelebration(text, onConfirm, onUndo, options) {
   var warning = typeof options.warning === 'string' ? options.warning : '';
   // What came of "Don't warn me about this snippet again", when it was ticked.
   var note = typeof options.note === 'string' ? options.note : '';
+  // The snippet usually sent next (_cardNext): "Often sent with Firma" and
+  // Add Firma. While it shows, the card waits for the person instead of
+  // counting down: the choice is theirs to make.
+  var next = options.next && window.SBFillFormUI ? options.next : null;
+  var nw = next ? window.SBFillFormUI.nextWords : null;
   var summary = _expansionSummary(text);
   var returnFocus = options.target || document.activeElement;
   var savedStart = returnFocus && typeof returnFocus.selectionStart === 'number' ? returnFocus.selectionStart : null;
@@ -3339,12 +3461,21 @@ function showCelebration(text, onConfirm, onUndo, options) {
       '</dl>' +
     '</div>' +
     '<div class="sb-cel-footer">' +
+      (next
+        ? '<div class="sb-cel-next" id="sb-cel-next-row">' +
+            '<div class="sb-cel-next-words"><strong>' + _celEsc(nw('card', next.title)) + '</strong><span>' + _celEsc(nw('card-hint')) + '</span></div>' +
+            '<button type="button" id="sb-cel-next" class="sb-cel-primary">' + _celEsc(nw('add', next.title)) + '</button>' +
+            '<button type="button" id="sb-cel-next-hide" class="sb-cel-close" aria-label="' + _celEsc(nw('hide', next.title)) + '" title="' + _celEsc(nw('hide', next.title)) + '">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>' +
+            '</button>' +
+          '</div>'
+        : '') +
       '<div class="sb-cel-actions">' +
         (canUndo ? '<button type="button" id="sb-cel-undo" class="sb-cel-secondary">' + (inserted ? 'Undo insertion' : 'Cancel') + '</button>' : '') +
-        '<button type="button" id="sb-cel-ok" class="sb-cel-primary">' + (inserted ? 'Done' : 'Insert text') + '</button>' +
+        '<button type="button" id="sb-cel-ok" class="' + (next ? 'sb-cel-secondary' : 'sb-cel-primary') + '">' + (inserted ? 'Done' : 'Insert text') + '</button>' +
       '</div>' +
-      '<div class="sb-cel-timer"><span id="sb-cel-cd">' + (inserted ? 'Closes' : 'Inserts') + ' in 5s</span><span>Esc to ' + (inserted ? 'close' : 'cancel') + '</span></div>' +
-      '<div class="sb-cel-track" aria-hidden="true"><div id="sb-cel-bar"></div></div>' +
+      '<div class="sb-cel-timer"><span id="sb-cel-cd">' + (next ? 'Waits while you choose' : (inserted ? 'Closes' : 'Inserts') + ' in 5s') + '</span><span>Esc to ' + (inserted ? 'close' : 'cancel') + '</span></div>' +
+      '<div class="sb-cel-track" aria-hidden="true"' + (next ? ' hidden' : '') + '><div id="sb-cel-bar"></div></div>' +
     '</div>';
 
   document.body.appendChild(bd);
@@ -3458,21 +3589,43 @@ function showCelebration(text, onConfirm, onUndo, options) {
   card.querySelector('#sb-cel-ok').addEventListener('click', confirm);
   card.querySelector('#sb-cel-skip').addEventListener('click', close);
   if (canUndo) card.querySelector('#sb-cel-undo').addEventListener('click', undo);
+  if (next) {
+    // Nothing counts down while the offer shows, so nothing is there to pause.
+    paused = true;
+    // Add Firma: the card goes, and the caller puts the first text (when it
+    // is not in yet) and the next one in the field.
+    card.querySelector('#sb-cel-next').addEventListener('click', function() { settle(next.onAdd); });
+    // The cross hides this pair from now on, and the card counts down as usual.
+    card.querySelector('#sb-cel-next-hide').addEventListener('click', function() {
+      if (settled) return;
+      next.onHide();
+      var row = card.querySelector('#sb-cel-next-row');
+      if (row) row.remove();
+      card.querySelector('#sb-cel-ok').className = 'sb-cel-primary';
+      card.querySelector('.sb-cel-track').hidden = false;
+      card.querySelector('#sb-cel-ok').focus();
+      paused = false;
+      countDown();
+    });
+  }
   bd.addEventListener('click', close);
   card.addEventListener('pointermove', pauseOnPointerMove);
   document.addEventListener('keydown', onKey, true);
   document.addEventListener('focusin', pauseOnFocus, true);
   card.focus({ preventScroll: true });
 
-  var started = Date.now();
-  countdownIv = setInterval(function() {
-    var remaining = Math.max(0, 5000 - (Date.now() - started));
-    // Reduced motion keeps a visible bar, updated in discrete one-second steps.
-    var progress = reducedMotion ? Math.ceil(remaining / 1000) / 5 : remaining / 5000;
-    barEl.style.transform = 'scaleX(' + progress + ')';
-    cdEl.textContent = (inserted ? 'Closes' : 'Inserts') + ' in ' + Math.ceil(remaining / 1000) + 's';
-  }, 100);
-  autoCloseTimer = setTimeout(confirm, 5000);
+  function countDown() {
+    var started = Date.now();
+    countdownIv = setInterval(function() {
+      var remaining = Math.max(0, 5000 - (Date.now() - started));
+      // Reduced motion keeps a visible bar, updated in discrete one-second steps.
+      var progress = reducedMotion ? Math.ceil(remaining / 1000) / 5 : remaining / 5000;
+      barEl.style.transform = 'scaleX(' + progress + ')';
+      cdEl.textContent = (inserted ? 'Closes' : 'Inserts') + ' in ' + Math.ceil(remaining / 1000) + 's';
+    }, 100);
+    autoCloseTimer = setTimeout(confirm, 5000);
+  }
+  if (!next) countDown();
   if (!warning && summary.characters > 0) _celebrationBurst(card);
 }
 
@@ -3801,7 +3954,8 @@ function selectTriggerItem(idx) {
                 restoreFieldState(fieldSnapshot);
                 processing = false;
               },
-              { inserted: true, target: el, warning: reviewWarning(item), note: note }
+              { inserted: true, target: el, warning: reviewWarning(item), note: note,
+                next: _cardNext(el, item, text, true, fieldSnapshot, function() { processing = false; }) }
             );
           } else {
             // Non-CE: trigger already stripped; defer insertion to onConfirm.
@@ -3816,7 +3970,8 @@ function selectTriggerItem(idx) {
                 restoreFieldState(fieldSnapshot);
                 processing = false;
               },
-              { inserted: false, target: el, warning: reviewWarning(item), note: note }
+              { inserted: false, target: el, warning: reviewWarning(item), note: note,
+                next: _cardNext(el, item, text, false, null, function() { processing = false; }) }
             );
           }
         }, function() {
@@ -4199,6 +4354,13 @@ document.addEventListener('input', function(e) {
     '#sb-celebrate .sb-cel-primary{min-width:calc(var(--sb-s-12) * 2);background:var(--sb-azure);color:var(--sb-bg);}' +
     '#sb-celebrate .sb-cel-primary:hover{background:var(--sb-azure-dark);}' +
     '#sb-celebrate .sb-cel-timer{display:flex;justify-content:space-between;gap:var(--sb-s-2);margin-top:var(--sb-s-3);font-size:var(--sb-fs-11);color:var(--sb-ink-muted);}' +
+    '#sb-celebrate .sb-cel-next{display:flex;align-items:center;gap:var(--sb-s-2);margin-bottom:var(--sb-s-4);padding:var(--sb-s-3) var(--sb-s-2) var(--sb-s-3) var(--sb-s-4);background:var(--sb-azure-bg);border:1px solid var(--sb-azure-bdr);border-radius:var(--sb-r-xl);}' +
+    '#sb-celebrate .sb-cel-next-words{display:flex;flex-direction:column;flex:1;min-width:0;}' +
+    '#sb-celebrate .sb-cel-next-words strong{font-size:var(--sb-fs-14);font-weight:600;color:var(--sb-azure);overflow-wrap:anywhere;}' +
+    '#sb-celebrate .sb-cel-next-words span{font-size:var(--sb-fs-12);color:var(--sb-ink-muted);}' +
+    '#sb-celebrate .sb-cel-next .sb-cel-primary{min-width:0;}' +
+    '#sb-celebrate .sb-cel-secondary+.sb-cel-secondary{margin-right:0;}' +
+    '#sb-celebrate .sb-cel-track[hidden]{display:none;}' +
     '#sb-celebrate .sb-cel-track{height:var(--sb-s-1);margin-top:var(--sb-s-2);background:var(--sb-line);border-radius:var(--sb-r-pill);overflow:hidden;}' +
     '#sb-celebrate #sb-cel-bar{height:100%;background:var(--sb-azure);transform-origin:left;}' +
     '@media(max-width:480px){#sb-celebrate .sb-cel-header{padding:var(--sb-s-3) var(--sb-s-6);}#sb-celebrate .sb-cel-body{padding:var(--sb-s-6);}#sb-celebrate .sb-cel-time{padding:var(--sb-s-4) var(--sb-s-5);}#sb-celebrate .sb-cel-footer{padding:var(--sb-s-4) var(--sb-s-6);}}' +
@@ -4390,7 +4552,8 @@ function _proceedContextInsert(el, snip) {
           text,
           function onConfirm() { logEvent(snip, 0); processing = false; },
           function onUndo()    { restoreFieldState(snapCE); processing = false; },
-          { inserted: true, target: el, warning: reviewWarning(snip), note: note }
+          { inserted: true, target: el, warning: reviewWarning(snip), note: note,
+            next: _cardNext(el, snip, text, true, snapCE, function() { processing = false; }) }
         );
       } else if (isValueField) {
         // Textarea/input: the context menu inserts synchronously (no trigger to
@@ -4406,7 +4569,8 @@ function _proceedContextInsert(el, snip) {
           text,
           function onConfirm() { logEvent(snip, 0); processing = false; },
           function onUndo()    { restoreFieldState(snapVal); processing = false; },
-          { inserted: true, target: el, warning: reviewWarning(snip), note: note }
+          { inserted: true, target: el, warning: reviewWarning(snip), note: note,
+            next: _cardNext(el, snip, text, true, snapVal, function() { processing = false; }) }
         );
       } else {
         // No editable target: do not claim that text was inserted.
