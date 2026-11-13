@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { ActionMenu, ActionMenuItem, ActionMenuSeparator } from '@/components/ui/action-menu';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { LibraryButton, LibraryDialog, LibraryEmptyActions } from '@/features/library/LibraryDialog';
 import { BrainFilters } from '@/features/memory/BrainFilters';
 import { SpaceDialog } from '@/features/memory/SpaceDialog';
 import { SpaceIcon } from '@/features/memory/spaceIcon';
@@ -227,12 +228,16 @@ export function MemoryPage() {
         tag="context assets"
         description="Facts, notes and documents your assistant can read."
         action={
-          <Button onClick={() => setDialogTarget('new')}>
-            <Plus className="h-4 w-4" />
-            New Brain
-          </Button>
+          <>
+            <LibraryButton section="brains" />
+            <Button onClick={() => setDialogTarget('new')}>
+              <Plus className="h-4 w-4" />
+              New Brain
+            </Button>
+          </>
         }
       />
+      <LibraryDialog section="brains" />
 
       {error ? (
         <PageBanner tone="error" onDismiss={clearError}>
@@ -255,15 +260,12 @@ export function MemoryPage() {
             title={spaces.length === 0 ? 'No Brains yet' : 'Nothing matches'}
             description={
               spaces.length === 0
-                ? 'A Brain holds the facts one kind of work needs. Create one and add your first note.'
+                ? 'A Brain holds the facts one kind of work needs. Create one, or start from the library.'
                 : 'Try a different search, or clear the filters.'
             }
             action={
               spaces.length === 0 ? (
-                <Button onClick={() => setDialogTarget('new')}>
-                  <Plus className="h-4 w-4" />
-                  New Brain
-                </Button>
+                <LibraryEmptyActions section="brains" newLabel="New Brain" onNew={() => setDialogTarget('new')} />
               ) : (
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
                   Clear filters

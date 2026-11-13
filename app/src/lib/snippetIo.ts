@@ -1,3 +1,4 @@
+import { downloadJson, readJsonFile } from '@/lib/fileIo';
 import { docFromNode, docToHtml, hasFormatting, syncDoc } from '@/lib/formattedBody';
 import type { SnippetRow } from '@/types/database';
 import type { SnippetFormValues } from '@/types/schemas';
@@ -40,17 +41,7 @@ export function exportSnippets(snippets: SnippetRow[]): void {
     })),
   };
 
-  const blob = new Blob([JSON.stringify(envelope, null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = `fibonax-snippets-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
+  downloadJson('snippets', envelope);
 }
 
 // ─── Import ───────────────────────────────────────────────────────────────────
@@ -58,7 +49,7 @@ export function exportSnippets(snippets: SnippetRow[]): void {
 const VALID_LANGS = new Set<string>(['EN', 'IT', 'ES', 'FR', 'MULTI']);
 
 // Strip common prefix markers (/, //, ::, ;;) and replace invalid chars.
-function sanitizeTrigger(raw: string): string {
+export function sanitizeTrigger(raw: string): string {
   let t = raw.replace(/^[/:;]+/, '').trim();
   t = t.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '');
   return t.slice(0, 60) || 'imported';
@@ -130,13 +121,7 @@ export interface ParseResult {
 //   • Text Blaze grouped:  { groups: [{ snippets: [...] }] }
 //   • Flat array:          [{ name, shortcut/trigger, snippet/content, ... }]
 export async function parseImportFile(file: File): Promise<ParseResult> {
-  const text = await file.text();
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    throw new Error('Invalid JSON file — could not parse.');
-  }
+  const parsed = await readJsonFile(file);
 
   const rawItems: unknown[] = [];
 

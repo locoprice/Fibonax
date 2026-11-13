@@ -172,7 +172,7 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
 .foot-ext{display:inline-flex;align-items:center;gap:4px}
 .foot-ext svg{flex-shrink:0;opacity:.75;transition:transform .15s,opacity .15s}
 .foot-ext:hover svg{opacity:1;transform:translate(1px,-1px)}
-.foot-ext .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.foot-ext .sr-only,.trends .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* LANGUAGE PICKER
    Lives in the footer rather than the nav: the bar has no room left for it
    once a primary CTA and an account menu are in there, and every language
@@ -232,6 +232,60 @@ body.cm-locked{overflow:hidden}
 @media(max-width:600px){
   .cm-backdrop{padding:12px}
   .cm-frame{height:min(88vh,620px)}}
+
+/* ── FIBOTOKEN EXCHANGE RATE ─────────────────────────────
+   The pill and the window it opens. Shared with the pricing page, where the
+   rate card opens the same window. The numbers sit in [data-rate] slots,
+   written by scripts/sync-fibotoken-rate.js from the one rate file,
+   app/src/config/fiboTokenRate.json. */
+.rate-pill{display:inline-flex;align-items:center;gap:var(--space-2);min-height:44px;padding:6px 14px 6px 16px;
+  font:inherit;font-size:14px;font-weight:600;color:var(--text);background:var(--card);
+  border:1px solid var(--border);border-radius:var(--r-pill);box-shadow:var(--shadow-sm);cursor:pointer;
+  transition:border-color .15s,box-shadow .15s}
+.rate-pill:hover{border-color:var(--primary);box-shadow:var(--shadow-md)}
+.rate-pill:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.rate-pill-sum{font-variant-numeric:tabular-nums;white-space:nowrap}
+.rate-pill-value{font-weight:700;color:var(--primary)}
+.rate-pill-chip,.rd-chip{display:inline-flex;align-items:center;gap:var(--space-1);padding:4px 10px;font-size:12px;font-weight:700;
+  color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill);white-space:nowrap}
+.rate-pill svg{flex:none;color:var(--text2)}
+.rate-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.rd-backdrop{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;padding:var(--space-6);
+  opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s ease}
+.rd-backdrop.rd-open{opacity:1;visibility:visible}
+.rd-dialog{position:relative;width:100%;max-width:520px;max-height:calc(100vh - var(--space-8));overflow:auto;
+  padding:var(--space-8);background:var(--card);color:var(--text);
+  border:1px solid var(--border);border-top:4px solid var(--primary);border-radius:var(--r);
+  box-shadow:0 24px 60px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.06);text-align:center;
+  transform:translateY(12px) scale(.98);transition:transform .22s cubic-bezier(.23,1,.32,1)}
+.rd-backdrop.rd-open .rd-dialog{transform:none}
+.rd-close{position:absolute;top:var(--space-3);right:var(--space-3);width:44px;height:44px;
+  display:grid;place-items:center;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-btn);color:var(--text2);cursor:pointer}
+.rd-close:hover{background:var(--bg-alt);color:var(--text)}
+.rd-close:focus-visible,.rd-dialog .btn:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.rd-title{font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.2;color:var(--text);
+  margin:0 var(--space-12) var(--space-3)}
+.rd-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--space-2) var(--space-3)}
+.rd-label{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.rd-main{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:var(--space-3);
+  margin-top:var(--space-4);font-family:var(--sb-mono);font-variant-numeric:tabular-nums;color:var(--text)}
+.rd-unit{font-size:22px;font-weight:700}
+.rd-eq{font-size:22px;color:var(--text3)}
+.rd-value{font-size:clamp(44px,12vw,64px);font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--primary)}
+.rd-sub{margin-top:var(--space-3);font-size:15px;line-height:1.6;color:var(--text2)}
+.rd-sub strong{font-family:var(--sb-mono);font-weight:700;color:var(--text)}
+.rd-note{margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--border);
+  font-size:14px;line-height:1.6;color:var(--text2);text-align:left}
+.rd-packs{margin-top:var(--space-3);font-size:14px;font-weight:600;line-height:1.5;color:var(--text);text-align:left}
+.rd-actions{margin-top:var(--space-6)}
+.rd-actions .btn{width:100%;min-height:44px}
+@media(max-width:600px){
+  .rd-backdrop{padding:var(--space-3);align-items:flex-end}
+  .rd-dialog{padding:var(--space-6)}}
+@media(prefers-reduced-motion:reduce){.rd-backdrop,.rd-dialog,.rate-pill{transition:none}}
 
 /* Use the existing mobile menu before the expanded navigation becomes crowded. */
 @media(max-width:1000px){
@@ -306,6 +360,12 @@ footer{padding:28px 20px}
 .rate-sub{margin-top:var(--space-3);font-size:15px;color:var(--text2)}
 .rate-sub strong{font-family:var(--sb-mono);font-weight:700;color:var(--text)}
 .rate-note{max-width:520px;margin:var(--space-4) auto 0;padding-top:var(--space-4);border-top:1px solid var(--border);font-size:14px;line-height:1.6;color:var(--text2)}
+/* The card opens the exchange rate window shared with the homepage. A click
+   anywhere on it counts; the Rate details button is what a keyboard reaches. */
+.rate-board.is-live{cursor:pointer}
+.rate-more{margin-top:var(--space-4)}
+.rate-more button{display:inline-flex;align-items:center;gap:var(--space-2);min-height:44px;padding:0 var(--space-4);font:inherit;font-size:14px;font-weight:600;color:var(--primary);background:transparent;border:1px solid var(--border);border-radius:var(--r-pill);cursor:pointer;transition:background .15s,border-color .15s}
+.rate-more button:hover{background:var(--primary-lt);border-color:var(--primary)}
 .pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.618fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
 .pricing-artwork{margin:0;min-width:0;aspect-ratio:1}
 .pricing-artwork canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .6s ease}
@@ -356,7 +416,7 @@ footer{padding:28px 20px}
 .plan-name{font-size:22px;font-weight:700;color:var(--text)}
 .plan-price{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
 .plan-amount{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--text)}
-.plan-per{font-size:14px;color:var(--text2)}
+.plan-per{font-size:14px;color:var(--text2);white-space:nowrap}
 .plan-tagline{font-size:15px;line-height:1.55;color:var(--text2)}
 .plan-from{font-size:14px;color:var(--text2)}
 .plan-flag{display:inline-flex;align-items:center;padding:4px 10px;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill)}
@@ -468,7 +528,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   .compare td{padding:var(--space-3) 0 0;border:0}
   .compare td::before{display:block}
   .pm-dialog{padding:var(--space-6)}}
-@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.pm-tab,.pr-faq summary::after{transition:none}}
+@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.pm-tab,.pr-faq summary::after,.rate-more button{transition:none}}
 </style>
 </head>
 <body class="pricing-layout">
@@ -561,6 +621,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <p class="rate-main"><span class="rate-unit">1 FiboToken</span><span class="rate-eq" aria-hidden="true">=</span><span class="sr-only">vale</span><span class="rate-value" data-pricing="euroPerFiboToken">€0,01</span></p>
     <p class="rate-sub"><strong data-pricing="topUpEuros">€25</strong> = <strong data-pricing="fiboTokensPerTopUp">2500</strong> FiboTokens · Tipo fijado el <span data-pricing="rateSetOn">28 de octubre de 2026</span></p>
     <p class="rate-note">Como una divisa, el tipo del FiboToken es variable: puede cambiar con el tiempo y oscilar con el mercado. Un nuevo tipo solo se aplica a los paquetes nuevos. Los FiboTokens que ya tienes conservan su valor: un FiboToken, un uso.</p>
+    <p class="rate-more"><button type="button" id="rate-more" data-rate-open aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>Detalles del tipo</button></p>
   </section>
   </div>
 
@@ -636,8 +697,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <article class="plan" aria-labelledby="plan-monthly">
         <p class="plan-kind">Suscripción mensual</p>
         <h3 class="plan-name" id="plan-monthly">PRO</h3>
-        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€4,90</span><span class="plan-per">al mes</span></p>
-        <p class="plan-tagline">Snippets, prompts y Brains ilimitados por un pequeño precio mensual. Sin FiboTokens que contar.</p>
+        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€9,90</span><span class="plan-per">/mes</span></p>
+        <p class="plan-tagline">Sin FiboTokens que contar.</p>
         <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Comparar planes</a>
         <ul class="plan-list">
           <li><span>Usos ilimitados de snippets, prompts y Brains</span></li>
@@ -663,7 +724,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <tr><th scope="col">Qué obtienes</th><th scope="col">Gratis</th><th scope="col" class="is-featured">Pago por uso</th><th scope="col">Suscripción mensual</th></tr>
       </thead>
       <tbody>
-        <tr><th scope="row">Precio</th><td data-label="Gratis"><strong>€0</strong></td><td data-label="Pago por uso"><strong>Desde <span data-pricing="topUpEuros">€25</span>, una vez</strong></td><td data-label="Suscripción mensual"><strong><span data-pricing="monthlyEuros">€4,90</span> al mes</strong></td></tr>
+        <tr><th scope="row">Precio</th><td data-label="Gratis"><strong>€0</strong></td><td data-label="Pago por uso"><strong>Desde <span data-pricing="topUpEuros">€25</span>, una vez</strong></td><td data-label="Suscripción mensual"><strong><span data-pricing="monthlyEuros">€9,90</span> al mes</strong></td></tr>
         <tr><th scope="row">Pago recurrente</th><td data-label="Gratis">No</td><td data-label="Pago por uso">No, una compra única</td><td data-label="Suscripción mensual">Sí, cada mes</td></tr>
         <tr><th scope="row">FiboTokens</th><td data-label="Gratis">No hacen falta</td><td data-label="Pago por uso"><strong data-pricing="fiboTokensPerTopUp">2500</strong> por <span data-pricing="topUpEuros">€25</span>, <strong data-pricing="pack50Tokens">5250</strong> por <span data-pricing="pack50Euros">€50</span>, <strong data-pricing="pack100Tokens">11.000</strong> por <span data-pricing="pack100Euros">€100</span></td><td data-label="Suscripción mensual">No hacen falta</td></tr>
         <tr><th scope="row">Caducidad</th><td data-label="Gratis">La cuota se renueva cada día</td><td data-label="Pago por uso"><strong>Nunca</strong></td><td data-label="Suscripción mensual">Ilimitado mientras estés suscrito</td></tr>
@@ -796,6 +857,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   <div class="foot-inner">
     <div class="foot-links">
       <a href="./">Precio</a>
+      <a href="/ai-info/">Datos de la empresa</a>
       <a href="../#faq">FAQ</a>
       <a href="https://app.fibonax.com/mobile/">Mobile</a>
       <a href="https://github.com/locoprice/Fibonax" target="_blank" rel="noopener">GitHub</a>
@@ -836,6 +898,20 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
     <iframe class="cm-frame" id="cm-frame" loading="lazy" allow="geolocation; microphone; camera; fullscreen"></iframe>
+  </div>
+</div>
+<div class="rd-backdrop" id="rd-backdrop" aria-hidden="true">
+  <div class="rd-dialog" role="dialog" aria-modal="true" aria-labelledby="rd-title">
+    <button type="button" class="rd-close" id="rd-close" aria-label="Cerrar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <h2 class="rd-title" id="rd-title">Tipo de cambio del FiboToken</h2>
+    <div class="rd-head"><span class="rd-label">Tipo de cambio actual</span><span class="rd-chip"><span aria-hidden="true">↕</span> Tipo variable</span></div>
+    <p class="rd-main"><span class="rd-unit">1 FiboToken</span><span class="rd-eq" aria-hidden="true">=</span><span class="rate-sr">vale</span><span class="rd-value" data-rate="rate">€0,01</span></p>
+    <p class="rd-sub"><strong data-rate="exampleEuros">€25</strong> = <strong data-rate="exampleTokens">2500</strong> FiboTokens · Tipo fijado el <span data-rate="setOn">28 de octubre de 2026</span></p>
+    <p class="rd-note">Como una divisa, el tipo del FiboToken es variable: puede cambiar con el tiempo y oscilar con el mercado. Un nuevo tipo solo se aplica a los paquetes nuevos. Los FiboTokens que ya tienes conservan su valor: un FiboToken, un uso.</p>
+    <p class="rd-packs" id="rd-packs">Los paquetes de FiboTokens estarán a la venta a partir del <span data-rate="packsFrom" data-iso="2027-01-01">1 de enero de 2027</span>.</p>
+    <div class="rd-actions"><a class="btn btn-primary" href="#plans">Ver los paquetes</a></div>
   </div>
 </div>
 <script>
@@ -976,7 +1052,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.114.1';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.131.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
@@ -985,6 +1061,61 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   if(verEl&&verEl.textContent.indexOf('{{')>-1)verEl.textContent=' · '+FALLBACK_VERSION;
   var updEl=document.getElementById('foot-updated');
   if(updEl&&updEl.textContent.indexOf('{{')>-1)updEl.textContent=' · Actualizado '+FALLBACK_MONTH;
+})();
+
+/* FiboToken exchange rate window: opened by any [data-rate-open] control (the
+   pill here, the rate card on the pricing page). Escape and a click outside
+   close it, Tab stays inside it, and focus returns to the control that
+   opened it. */
+(function(){
+  var backdrop=document.getElementById('rd-backdrop');
+  var closeBtn=document.getElementById('rd-close');
+  var triggers=document.querySelectorAll('[data-rate-open]');
+  if(!backdrop||!closeBtn||!triggers.length)return;
+  var dialog=backdrop.querySelector('.rd-dialog');
+  var opener=null;
+
+  // Packs have a first day on sale. From that day in Italy (UTC+01:00 in
+  // winter) the line announcing it goes.
+  var packs=document.getElementById('rd-packs');
+  var day=packs&&packs.querySelector('[data-iso]');
+  if(day&&Date.now()>=Date.parse(day.getAttribute('data-iso')+'T00:00:00+01:00'))packs.hidden=true;
+
+  function isOpen(){return backdrop.classList.contains('rd-open');}
+  function setOpen(open){
+    backdrop.classList.toggle('rd-open',open);
+    backdrop.setAttribute('aria-hidden',String(!open));
+    document.body.classList.toggle('cm-locked',open);
+  }
+  function openFrom(control){
+    opener=control;
+    setOpen(true);
+    // A click's own focus default lands after one frame and would take focus back.
+    requestAnimationFrame(function(){requestAnimationFrame(function(){closeBtn.focus();});});
+  }
+  function close(){
+    setOpen(false);
+    if(opener)opener.focus();
+  }
+
+  Array.prototype.forEach.call(triggers,function(control){
+    control.addEventListener('click',function(){openFrom(control);});
+  });
+  closeBtn.addEventListener('click',close);
+  backdrop.addEventListener('click',function(e){if(e.target===backdrop)close();});
+  // A link in the window leads to the packs: the window steps aside first.
+  Array.prototype.forEach.call(dialog.querySelectorAll('a'),function(link){
+    link.addEventListener('click',function(){setOpen(false);});
+  });
+  document.addEventListener('keydown',function(e){
+    if(!isOpen())return;
+    if(e.key==='Escape'){close();return;}
+    if(e.key!=='Tab')return;
+    var stops=dialog.querySelectorAll('button,a[href]');
+    var first=stops[0],last=stops[stops.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  });
 })();
 </script>
 <script>
@@ -1011,7 +1142,7 @@ var PRICING = {
   foundingTopUpEuros: 20,
   foundingPack50Euros: 40,
   foundingPack100Euros: 80,
-  monthlyEuros: 4.9,
+  monthlyEuros: 9.9,
   // Madrid is UTC+01:00 at this winter deadline, whatever the visitor's zone.
   // The day the current exchange rate was set; shown on the rate card.
   rateSetOn: '2026-10-28',
@@ -1080,6 +1211,19 @@ var PRICING = {
   });
   set(location.hash === '#compare');
   window.addEventListener('hashchange', function () { if (location.hash === '#compare') set(true); });
+})();
+
+// The rate card opens the exchange rate window, shared with the homepage: a
+// click anywhere on the card counts as a click on its Rate details button.
+// Selecting the card's text does not open it.
+(function () {
+  var card = document.querySelector('.rate-board');
+  var button = document.getElementById('rate-more');
+  card.classList.add('is-live');
+  card.addEventListener('click', function (e) {
+    if (button.contains(e.target) || String(window.getSelection())) return;
+    button.click();
+  });
 })();
 
 // Condiciones y contacto dialog: two tabs, Escape closes, focus returns to the

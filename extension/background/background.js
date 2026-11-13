@@ -4,6 +4,8 @@ importScripts('../auth/auth.js');
 importScripts('../shared/memory-pack.js');
 // The Pomodoro timer's rules (sbFocusApply below).
 importScripts('../shared/focus-timer.js');
+// What usually comes next after a snippet (sbRefreshNext below).
+importScripts('../shared/usage-analytics.js');
 
 var SUPA_URL = SB_SUPA_URL;
 
@@ -1103,7 +1105,10 @@ function initMenus() {
     }
     loadData().then(function(data) {
       buildContextMenus(data);
-      if (data.ok) writeExpansionCache(data.snippets);
+      if (data.ok) {
+        writeExpansionCache(data.snippets);
+        sbRefreshNext(data.snippets);
+      }
     });
   });
 }
@@ -1163,6 +1168,37 @@ function writeExpansionCache(rows) {
   } catch (e) {
     console.warn('[Fibonax] expansion cache:', e);
   }
+}
+
+// ── OFTEN SENT NEXT ────────────────────────────────────────────────
+// The snippet usually sent right after each one, for "Add Firma after it" in
+// the fill window and on the card after a snippet without a form. Read from
+// the person's own uses on every device (snippet_events is select-own) over
+// the window SBUsageAnalytics.nextAfter reads, the same rule the phone runs.
+// Kept in chrome.storage.local.sb_next as { uid, at, map }, where content.js
+// and the popup read it, and read again at most every NEXT_REFRESH_MS: the
+// habit moves over days, not minutes, and the 5-minute sync must not pull 90
+// days of uses each time. A failed read keeps the last answer.
+var NEXT_REFRESH_MS = 6 * 60 * 60 * 1000;
+function sbRefreshNext(rows) {
+  if (typeof SBUsageAnalytics === 'undefined' || !Array.isArray(rows)) return;
+  sbCurrentUserId(function(uid) {
+    if (!uid) return;
+    chrome.storage.local.get('sb_next', function(d) {
+      var have = d && d.sb_next;
+      if (have && have.uid === uid && Date.now() - have.at < NEXT_REFRESH_MS) return;
+      var now = Date.now();
+      var from = new Date(now - SBUsageAnalytics.SUGGEST_DAYS * 86400000).toISOString();
+      supaFetchAll('snippet_events', 'select=snippet_id,created_at&created_at=gte.' + encodeURIComponent(from) + '&order=id.asc')
+        .then(function(events) {
+          var map = SBUsageAnalytics.nextAfter({ events: events, ids: rows.map(function(s) { return s.id; }), now: now });
+          chrome.storage.local.set({ sb_next: { uid: uid, at: now, map: map } }, function() {
+            if (chrome.runtime.lastError) console.error('[Fibonax] could not keep what usually comes next:', chrome.runtime.lastError.message);
+          });
+        })
+        .catch(function(err) { console.error('[Fibonax] could not read the use history for what usually comes next:', err && err.message); });
+    });
+  });
 }
 
 // ── TOOLBAR ACTION ICON — brand mark by default, company logo when set ──
@@ -1249,6 +1285,30 @@ chrome.runtime.onMessage.addListener(function(msg) {
   if (msg && msg.type === 'auth_changed') { initMenus(); sbRefreshActionIcon(); }
 });
 
+// ── SIGNED-OUT BADGE: a "!" on the toolbar icon until someone signs in ──
+// The toolbar icon is the one part of the extension always in view, so a
+// signed-out install says so there: a "!" on the popup's danger red
+// (--sb-danger, white text) and a tooltip that names the next step. It follows
+// sb_session through storage.onChanged, which fires here whoever writes the
+// key: the popup's sign-in and Sign out, a refresh the server turns down, a
+// sign-out from the dashboard. The call at load covers install, update and a
+// browser restart, which resets the badge.
+var SB_SIGNED_OUT_TITLE = "Fibonax: you're signed out. Click to sign in.";
+function sbUpdateSignInBadge() {
+  chrome.storage.local.get('sb_session', function(d) {
+    var signedIn = !!(d && d.sb_session && d.sb_session.user_id);
+    chrome.action.setBadgeText({ text: signedIn ? '' : '!' });
+    chrome.action.setTitle({ title: signedIn ? 'Fibonax' : SB_SIGNED_OUT_TITLE });
+    if (signedIn) return;
+    chrome.action.setBadgeBackgroundColor({ color: '#DC2626' });
+    if (chrome.action.setBadgeTextColor) chrome.action.setBadgeTextColor({ color: '#FFFFFF' });
+  });
+}
+sbUpdateSignInBadge();
+chrome.storage.onChanged.addListener(function(changes, area) {
+  if (area === 'local' && changes.sb_session) sbUpdateSignInBadge();
+});
+
 // ── MEMORY-002 I1: the keyboard shortcut ──────────────────────────
 //
 // The command fires here, in the service worker, so it has to be relayed to the
@@ -1295,7 +1355,7 @@ function sbPurgeLegacyLocalData() {
     chrome.storage.local.get('sb_session', function(d) {
       var signedIn = !!(d && d.sb_session && d.sb_session.user_id);
       if (signedIn) return;
-      chrome.storage.local.remove(['snippets', 'sb_prompts'], function() {
+      chrome.storage.local.remove(['snippets', 'sb_prompts', 'sb_next'], function() {
         if (chrome.runtime.lastError) { /* key may not exist */ }
       });
     });
@@ -1393,8 +1453,9 @@ chrome.runtime.onStartup.addListener(function() {
   sbMigrateRoamingPrefs();
   initMenus();
   sbRefreshActionIcon();
-  // Chrome may drop alarms on restart, and a phase may have ended while it was closed.
-  sbFocusApply({ type: 'tick' });
+  // Chrome may drop alarms on restart, and a phase may have ended while it was
+  // closed. With "Start automatically" on, a timer that is not running starts.
+  sbFocusApply({ type: 'auto' });
 });
 
 // ── ALARM LISTENER — fires every 5 minutes ──────────────────────
@@ -1487,6 +1548,7 @@ function sbFocusApply(action) {
           }
           sbFocusSchedule(res.state);
           if (res.chime && res.state.settings.chime) sbFocusChime();
+          sbFocusAutoIfHere(res.state, action);
           resolve(res.state);
         });
       });
@@ -1531,6 +1593,27 @@ function sbFocusChime() {
 chrome.alarms.onAlarm.addListener(function(alarm) {
   if (alarm.name === SBFocus.ALARM_NAME) sbFocusApply({ type: 'tick' });
 });
+
+// "Start automatically" (settings.autoStart). Coming back to the computer
+// after a minute or more without a key or the mouse starts a timer that is
+// not running. SBFocus.reduce decides whether it may: never on the detox day,
+// not within half an hour of Stop.
+chrome.idle.setDetectionInterval(SBFocus.AWAY_SEC);
+chrome.idle.onStateChanged.addListener(function(state) {
+  if (state === 'active') sbFocusApply({ type: 'auto' });
+});
+
+// When the timer has just stopped by itself (the block ended, or it found the
+// person had been away), or the switch was just turned on, it starts if
+// someone is at the computer. Stop and other settings are left alone.
+function sbFocusAutoIfHere(state, action) {
+  if (!state || state.run || !state.settings.autoStart || !action) return;
+  var turnedOn = action.type === 'settings' && action.settings && action.settings.autoStart === true;
+  if (action.type !== 'tick' && !turnedOn) return;
+  chrome.idle.queryState(SBFocus.AWAY_SEC, function(idle) {
+    if (idle === 'active') sbFocusApply({ type: 'auto' });
+  });
+}
 
 chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   if (!msg || msg.type !== 'sb_focus') return;

@@ -1,0 +1,67 @@
+---
+title: "Import and export"
+sidebarTitle: "Import and export"
+description: "Save your snippets, prompts and Brains to a JSON file, or bring them in from a file."
+---
+
+Open **Settings** from the account menu at the bottom of the dashboard sidebar. The **Import and export** card is under **Account**. It has one row each for Snippets, Prompts and Brains. Each row shows how many you have, with an **Import :)** and an **Export :(** button.
+
+## Export
+
+Click **Export :(** on the row you want. Fibonax downloads a `.json` file named `fibonax-snippets-`, `fibonax-prompts-` or `fibonax-brains-` followed by today's date, and a message says how many went into it. **Export :(** is greyed out while you have none.
+
+What each file holds:
+
+- **Snippets**: every snippet you can see, with its name, trigger, body in every language, folder name and pin.
+- **Prompts**: every prompt you can see, with its name, text, blocks, shortcut, settings (strategy, thinking mode, model, complexity, intent and output) and the Ask User Questions switch.
+- **Brains**: every Brain with its description and its items. Each item keeps its name, summary, text, kind and pin. Text only: uploaded files, version history and the trash stay behind.
+
+## Import
+
+<Steps>
+  <Step title="Click Import :)">
+    On the row you want, click **Import :)** and choose a `.json` file.
+  </Step>
+  <Step title="Read the message">
+    A message says how many came in, and how many were skipped.
+  </Step>
+</Steps>
+
+What happens on the way in, for all three:
+
+- Anything with no name or no text is skipped.
+- Imported snippets and prompts arrive without a folder. Importing the same file twice adds them twice.
+
+### Snippets
+
+Fibonax reads three kinds of file:
+
+- A Fibonax export.
+- A Text Blaze export.
+- A plain list of snippets, each with a name, a trigger (or `shortcut`) and a body (or `snippet`, `content`, `text`).
+
+Also:
+
+- A snippet with no trigger is skipped.
+- Triggers are cleaned: a leading `/`, `::` or `;;` is removed and characters a trigger can't hold become `_`.
+- Languages other than EN, IT, ES, FR and Multi become EN.
+
+### Prompts
+
+Fibonax reads a Fibonax export, or a plain list of prompts, each with a name and its text (`content`, `prompt` or `text`).
+
+- A setting the editor doesn't offer is left empty. The prompt still comes in.
+- Shortcuts are cleaned the way snippet triggers are.
+- A prompt that uses a Brain keeps the link. It works while that Brain is in your account. When it isn't, the prompt says the Brain isn't available.
+
+### Brains
+
+Fibonax reads a Fibonax export, or a plain list of Brains, each with a name and its items.
+
+- A Brain name is up to 64 characters, a description and a summary up to 280, and an item's text up to 20,000. An item over the limit is skipped.
+- A Brain or item name you already use gets a number, like `Company facts (2)`. Importing the same file twice adds every Brain again.
+- An item cut from an uploaded file comes back as a plain fact. Files are not part of the export.
+
+## Coming from Text Blaze
+
+Text Blaze fields and conditions keep working: `{formtext: ...}`, `{formdate: ...}`, `{formmenu: ...}`, `{time: ...}`, `{if: ...}`, `{elseif: ...}` and `{else}`. See [Fields](/text-snippets/dynamic-fields) and [Formulas](/text-snippets/formulas).

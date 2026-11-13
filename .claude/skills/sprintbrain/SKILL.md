@@ -288,13 +288,9 @@ Edge functions: `notion-snippet-push`, `notion-prompt-push`.
 
 Versions must stay synchronized after every feature, bug fix, enhancement, refactor and parity update. The version bump is the FINAL step of the batch.
 
-**`node scripts/check-version.js` is the authority.** It reads:
+**Bump with `node scripts/bump-version.js <patch|minor>`, never by hand.** It fetches develop from GitHub, stops when this copy is behind, counts up from the highest committed release and writes the number to every stamp. `--dry-run` shows the number without writing it.
 
-* `extension/manifest.json`
-* `app/package.json`
-* `app/public/landing/index.html`
-* `services/mcp-memory/package.json`
-* `services/mcp-memory/src/index.ts` (`SERVER_VERSION`)
+**`node scripts/check-version.js` is the authority.** Both scripts take the stamp list from `scripts/version-stamps.js`: `extension/manifest.json`, `app/package.json` and its lock file, `services/mcp-memory` (`package.json`, its lock file, `SERVER_VERSION` in `src/index.ts`) and `FALLBACK_VERSION` in the six landing pages (`app/public/landing/{,it/,es/}index.html` and their `pricing/` pages).
 
 `popup.html` is **not** a version target — do not stamp it. `app/public/mobile/index.html` is not stamped either. Run the script rather than trusting memory; if it fails, it names the file that drifted.
 

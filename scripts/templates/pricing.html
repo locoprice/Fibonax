@@ -52,6 +52,12 @@
 .rate-sub{margin-top:var(--space-3);font-size:15px;color:var(--text2)}
 .rate-sub strong{font-family:var(--sb-mono);font-weight:700;color:var(--text)}
 .rate-note{max-width:520px;margin:var(--space-4) auto 0;padding-top:var(--space-4);border-top:1px solid var(--border);font-size:14px;line-height:1.6;color:var(--text2)}
+/* The card opens the exchange rate window shared with the homepage. A click
+   anywhere on it counts; the Rate details button is what a keyboard reaches. */
+.rate-board.is-live{cursor:pointer}
+.rate-more{margin-top:var(--space-4)}
+.rate-more button{display:inline-flex;align-items:center;gap:var(--space-2);min-height:44px;padding:0 var(--space-4);font:inherit;font-size:14px;font-weight:600;color:var(--primary);background:transparent;border:1px solid var(--border);border-radius:var(--r-pill);cursor:pointer;transition:background .15s,border-color .15s}
+.rate-more button:hover{background:var(--primary-lt);border-color:var(--primary)}
 .pricing-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.618fr);gap:var(--space-12);align-items:center;margin-top:var(--space-12)}
 .pricing-artwork{margin:0;min-width:0;aspect-ratio:1}
 .pricing-artwork canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .6s ease}
@@ -102,7 +108,7 @@
 .plan-name{font-size:22px;font-weight:700;color:var(--text)}
 .plan-price{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
 .plan-amount{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--text)}
-.plan-per{font-size:14px;color:var(--text2)}
+.plan-per{font-size:14px;color:var(--text2);white-space:nowrap}
 .plan-tagline{font-size:15px;line-height:1.55;color:var(--text2)}
 .plan-from{font-size:14px;color:var(--text2)}
 .plan-flag{display:inline-flex;align-items:center;padding:4px 10px;font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);border-radius:var(--r-pill)}
@@ -214,7 +220,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   .compare td{padding:var(--space-3) 0 0;border:0}
   .compare td::before{display:block}
   .pm-dialog{padding:var(--space-6)}}
-@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.pm-tab,.pr-faq summary::after{transition:none}}
+@media(prefers-reduced-motion:reduce){.pricing-artwork canvas{transition:none}.pm-tab,.pr-faq summary::after,.rate-more button{transition:none}}
 </style>
 </head>
 <body class="pricing-layout">
@@ -234,6 +240,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     <p class="rate-main"><span class="rate-unit">1 FiboToken</span><span class="rate-eq" aria-hidden="true">=</span><span class="sr-only">is worth</span><span class="rate-value" data-pricing="euroPerFiboToken">€0.01</span></p>
     <p class="rate-sub"><strong data-pricing="topUpEuros">€25</strong> = <strong data-pricing="fiboTokensPerTopUp">2,500</strong> FiboTokens · Rate set on <span data-pricing="rateSetOn">October 28, 2026</span></p>
     <p class="rate-note">Like a currency, the FiboToken rate is variable: it can change over time and move with the market. A new rate applies to new packs only. FiboTokens you already own keep their value: one FiboToken, one use.</p>
+    <p class="rate-more"><button type="button" id="rate-more" data-rate-open aria-haspopup="dialog"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>Rate details</button></p>
   </section>
   </div>
 
@@ -309,8 +316,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <article class="plan" aria-labelledby="plan-monthly">
         <p class="plan-kind">Monthly subscription</p>
         <h3 class="plan-name" id="plan-monthly">PRO</h3>
-        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€4.90</span><span class="plan-per">per month</span></p>
-        <p class="plan-tagline">Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.</p>
+        <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€9.90</span><span class="plan-per">/month</span></p>
+        <p class="plan-tagline">No FiboTokens to count.</p>
         <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Compare plans</a>
         <ul class="plan-list">
           <li><span>Unlimited snippet, prompt and Brain uses</span></li>
@@ -336,7 +343,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <tr><th scope="col">What you get</th><th scope="col">Free</th><th scope="col" class="is-featured">Pay as you go</th><th scope="col">Monthly subscription</th></tr>
       </thead>
       <tbody>
-        <tr><th scope="row">Price</th><td data-label="Free"><strong>€0</strong></td><td data-label="Pay as you go"><strong>From <span data-pricing="topUpEuros">€25</span>, once</strong></td><td data-label="Monthly subscription"><strong><span data-pricing="monthlyEuros">€4.90</span> per month</strong></td></tr>
+        <tr><th scope="row">Price</th><td data-label="Free"><strong>€0</strong></td><td data-label="Pay as you go"><strong>From <span data-pricing="topUpEuros">€25</span>, once</strong></td><td data-label="Monthly subscription"><strong><span data-pricing="monthlyEuros">€9.90</span> per month</strong></td></tr>
         <tr><th scope="row">Recurring payment</th><td data-label="Free">No</td><td data-label="Pay as you go">No, a one-time purchase</td><td data-label="Monthly subscription">Yes, monthly</td></tr>
         <tr><th scope="row">FiboTokens</th><td data-label="Free">Not needed</td><td data-label="Pay as you go"><strong data-pricing="fiboTokensPerTopUp">2,500</strong> for <span data-pricing="topUpEuros">€25</span>, <strong data-pricing="pack50Tokens">5,250</strong> for <span data-pricing="pack50Euros">€50</span>, <strong data-pricing="pack100Tokens">11,000</strong> for <span data-pricing="pack100Euros">€100</span></td><td data-label="Monthly subscription">Not needed</td></tr>
         <tr><th scope="row">Expiry</th><td data-label="Free">The allowance renews every day</td><td data-label="Pay as you go"><strong>Never</strong></td><td data-label="Monthly subscription">Unlimited while you are subscribed</td></tr>
@@ -480,7 +487,7 @@ var PRICING = {
   foundingTopUpEuros: 20,
   foundingPack50Euros: 40,
   foundingPack100Euros: 80,
-  monthlyEuros: 4.9,
+  monthlyEuros: 9.9,
   // Madrid is UTC+01:00 at this winter deadline, whatever the visitor's zone.
   // The day the current exchange rate was set; shown on the rate card.
   rateSetOn: '2026-10-28',
@@ -549,6 +556,19 @@ var PRICING = {
   });
   set(location.hash === '#compare');
   window.addEventListener('hashchange', function () { if (location.hash === '#compare') set(true); });
+})();
+
+// The rate card opens the exchange rate window, shared with the homepage: a
+// click anywhere on the card counts as a click on its Rate details button.
+// Selecting the card's text does not open it.
+(function () {
+  var card = document.querySelector('.rate-board');
+  var button = document.getElementById('rate-more');
+  card.classList.add('is-live');
+  card.addEventListener('click', function (e) {
+    if (button.contains(e.target) || String(window.getSelection())) return;
+    button.click();
+  });
 })();
 
 // Terms and contact dialog: two tabs, Escape closes, focus returns to the

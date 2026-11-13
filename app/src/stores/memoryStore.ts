@@ -13,6 +13,9 @@ import {
   type SaveMemoryItemInput,
 } from '@/lib/api/memoryApi';
 import { reviewApi } from '@/lib/api/reviewApi';
+import { uniqueName } from '@/lib/aiDraft';
+import type { BrainFileEntry } from '@/lib/brainIo';
+import type { ImportBatchResult } from '@/lib/fileIo';
 import type { ReviewStatus } from '@/lib/reviewStatus';
 import type { SpaceSortColumn } from '@/lib/spaceSort';
 import { NO_SPACE_FILTERS, type SpaceFilters } from '@/lib/spaceFilter';
@@ -87,6 +90,11 @@ interface MemoryStore {
   clearError: () => void;
 
   createSpace: (name: string, description?: string) => Promise<MemorySpace>;
+  /**
+   * Adds the Brains of an imported file with their items, the twin of
+   * `importSnippets`. A name already taken gets a number, as in the library.
+   */
+  importBrains: (entries: BrainFileEntry[]) => Promise<ImportBatchResult>;
   renameSpace: (id: string, patch: { name?: string; description?: string }) => Promise<void>;
   trashSpace: (id: string) => Promise<void>;
   restoreSpace: (id: string) => Promise<void>;
@@ -302,6 +310,44 @@ export const useMemoryStore = create<MemoryStore>((set, get) => ({
     const space = await memoryApi.createSpace(name, description);
     set((state) => ({ spaces: [...state.spaces, space].sort(bySpaceOrder) }));
     return space;
+  },
+
+  importBrains: async (entries) => {
+    // Read fresh: Brain names stay taken while a Brain sits in the trash, and
+    // item names are unique across every Brain, so both lists come from the server.
+    const [spaces, items] = await Promise.all([memoryApi.listSpaces(true), memoryApi.listAllItems()]);
+    const spaceNames = spaces.map((s) => s.name);
+    const itemNames = items.map((i) => i.name);
+    let imported = 0;
+    let failed = 0;
+    try {
+      for (const entry of entries) {
+        let space: MemorySpace;
+        try {
+          space = await memoryApi.createSpace(uniqueName(entry.name, spaceNames), entry.description);
+        } catch {
+          failed += 1 + entry.items.length;
+          continue;
+        }
+        spaceNames.push(space.name);
+        imported++;
+        for (const item of entry.items) {
+          const name = uniqueName(item.name, itemNames);
+          try {
+            await memoryApi.saveItem({ ...item, name, space_id: space.id });
+            itemNames.push(name);
+          } catch {
+            failed++;
+          }
+        }
+      }
+    } finally {
+      // Counts and sizes come from the server's totals, and the search index no
+      // longer matches what is stored.
+      await get().loadSpaces();
+      set({ allItemsLoaded: false });
+    }
+    return { imported, failed };
   },
 
   renameSpace: async (id, patch) => {

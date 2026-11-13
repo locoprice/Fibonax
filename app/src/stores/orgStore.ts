@@ -1,8 +1,14 @@
 import { create } from 'zustand';
-import type { OrgMember, OrganizationSummary } from '@/types/database';
+import type {
+  MemberPlacement,
+  OrgDepartment,
+  OrgMember,
+  OrganizationSummary,
+} from '@/types/database';
 import { orgApi } from '@/lib/api/orgApi';
 import { supabase } from '@/lib/supabase';
 import { pickActiveOrg, readStoredOrgId, writeStoredOrgId } from '@/lib/activeOrg';
+import { sortDepartments } from '@/lib/orgChart';
 
 /**
  * Organization store: every team the signed-in user belongs to, which one is
@@ -23,6 +29,8 @@ interface OrgStore {
   activeOrg: OrganizationSummary | null;
   /** Directory for `activeOrg` only. Re-fetched whenever the active team changes. */
   members: OrgMember[];
+  /** Departments of `activeOrg` only, by name. Travels with `members`. */
+  departments: OrgDepartment[];
   loaded: boolean;
   loading: boolean;
   error: string | null;
@@ -40,6 +48,28 @@ interface OrgStore {
   setCover: (cover: string | null) => Promise<void>;
   /** Upload a cover image for the active org; updates activeOrg in place. */
   uploadCover: (file: File) => Promise<void>;
+  /** Add a department to the active team (admins). */
+  addDepartment: (name: string) => Promise<OrgDepartment>;
+  /** Rename a department of the active team (admins). */
+  renameDepartment: (departmentId: string, name: string) => Promise<void>;
+  /** Remove a department; its people stay in the team with no department (admins). */
+  removeDepartment: (departmentId: string) => Promise<void>;
+  /**
+   * Set a person's department, job title and, for admins, lead mark, then
+   * re-read the directory: choosing a lead changes someone else's row too.
+   */
+  setMemberPlacement: (userId: string, placement: MemberPlacement) => Promise<void>;
+}
+
+/** The directory and the departments of one team, read together. */
+async function loadDirectory(
+  orgId: string,
+): Promise<{ members: OrgMember[]; departments: OrgDepartment[] }> {
+  const [members, departments] = await Promise.all([
+    orgApi.listMembers(orgId),
+    orgApi.listDepartments(orgId),
+  ]);
+  return { members, departments };
 }
 
 /** The signed-in user's id, used to namespace the remembered team choice. */
@@ -63,6 +93,7 @@ export const useOrgStore = create<OrgStore>((set, get) => ({
   orgs: [],
   activeOrg: null,
   members: [],
+  departments: [],
   loaded: false,
   loading: false,
   error: null,
@@ -78,8 +109,10 @@ export const useOrgStore = create<OrgStore>((set, get) => ({
       const userId = await currentUserId();
       const orgs = await orgApi.listMyOrgs();
       const active = reconcile(orgs, userId ? readStoredOrgId(userId) : null);
-      const members = active ? await orgApi.listMembers(active.id) : [];
-      set({ orgs, activeOrg: active, members, loaded: true, loading: false });
+      const { members, departments } = active
+        ? await loadDirectory(active.id)
+        : { members: [], departments: [] };
+      set({ orgs, activeOrg: active, members, departments, loaded: true, loading: false });
     } catch (err) {
       set({
         loading: false,
@@ -96,14 +129,14 @@ export const useOrgStore = create<OrgStore>((set, get) => ({
     if (!next || next.id === get().activeOrg?.id) return;
 
     // Swap first so the header renames immediately, then pull the directory.
-    set({ activeOrg: next, members: [], error: null });
+    set({ activeOrg: next, members: [], departments: [], error: null });
     const userId = await currentUserId();
     if (userId) writeStoredOrgId(userId, orgId);
 
     try {
-      const members = await orgApi.listMembers(orgId);
+      const directory = await loadDirectory(orgId);
       // Guard against a slower earlier switch landing after a later one.
-      if (get().activeOrg?.id === orgId) set({ members });
+      if (get().activeOrg?.id === orgId) set(directory);
     } catch (err) {
       if (get().activeOrg?.id === orgId) {
         set({ error: err instanceof Error ? err.message : 'Failed to load the team directory' });
@@ -123,6 +156,7 @@ export const useOrgStore = create<OrgStore>((set, get) => ({
       orgs: [...s.orgs, org],
       activeOrg: org,
       members: [],
+      departments: [],
       loaded: true,
       error: null,
     }));
@@ -149,5 +183,48 @@ export const useOrgStore = create<OrgStore>((set, get) => ({
       activeOrg: s.activeOrg ? { ...s.activeOrg, cover: url } : null,
       orgs: s.orgs.map((o) => (o.id === org.id ? { ...o, cover: url } : o)),
     }));
+  },
+
+  addDepartment: async (name) => {
+    const org = get().activeOrg;
+    if (!org) throw new Error('No active team');
+    const department = await orgApi.addDepartment(org.id, name);
+    if (get().activeOrg?.id === org.id) {
+      set((s) => ({ departments: sortDepartments([...s.departments, department]) }));
+    }
+    return department;
+  },
+
+  renameDepartment: async (departmentId, name) => {
+    const org = get().activeOrg;
+    if (!org) throw new Error('No active team');
+    await orgApi.renameDepartment(departmentId, name);
+    // Re-read rather than patch: the stored name is the normalised one.
+    const departments = await orgApi.listDepartments(org.id);
+    if (get().activeOrg?.id === org.id) set({ departments });
+  },
+
+  removeDepartment: async (departmentId) => {
+    const org = get().activeOrg;
+    if (!org) throw new Error('No active team');
+    await orgApi.removeDepartment(departmentId);
+    if (get().activeOrg?.id !== org.id) return;
+    // The database cleared the link on every member who sat there.
+    set((s) => ({
+      departments: s.departments.filter((d) => d.id !== departmentId),
+      members: s.members.map((m) =>
+        m.department_id === departmentId
+          ? { ...m, department_id: null, is_department_lead: false }
+          : m,
+      ),
+    }));
+  },
+
+  setMemberPlacement: async (userId, placement) => {
+    const org = get().activeOrg;
+    if (!org) throw new Error('No active team');
+    await orgApi.setMemberPlacement(org.id, userId, placement);
+    const directory = await loadDirectory(org.id);
+    if (get().activeOrg?.id === org.id) set(directory);
   },
 }));

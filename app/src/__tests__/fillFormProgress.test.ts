@@ -58,6 +58,7 @@ describe('progress, as fill-form.js counts it', () => {
     expect(api.fillForm(SHORT, {}, { now: NOW }).progress.show).toBe(false);
     expect(api.fillForm(LONG, {}, { now: NOW }).progress).toEqual({
       show: true, done: 0, total: 8, percent: 0, label: '0 of 8 filled in',
+      filled: [false, false, false, false, false, false, false, false],
     });
   });
 
@@ -65,6 +66,7 @@ describe('progress, as fill-form.js counts it', () => {
     const body = '{F1}{F2}{F3}{F4}{formtext: name=N; type=number}{formdate: name=D}';
     const p = api.fillForm(body, { F1: 'Ada', F2: '  ', N: 'abc' }, { now: NOW }).progress;
     expect([p.done, p.total, p.percent, p.label]).toEqual([2, 6, 33, '2 of 6 filled in']);
+    expect(p.filled).toEqual([true, false, false, false, false, true]);
   });
 
   it('says so when every field is filled', () => {
@@ -75,7 +77,9 @@ describe('progress, as fill-form.js counts it', () => {
   it('leaves a hidden field out of the count', () => {
     const fields = api.fillForm(LONG, { F1: 'a' }, { now: NOW }).fields;
     const hidden = fields.map((f, i) => (i === 0 ? { ...f, visible: false } : f));
-    expect(api.progress(hidden)).toEqual({ show: true, done: 0, total: 7, percent: 0, label: '0 of 7 filled in' });
+    expect(api.progress(hidden)).toEqual({
+      show: true, done: 0, total: 7, percent: 0, label: '0 of 7 filled in', filled: Array(7).fill(false),
+    });
   });
 });
 
@@ -107,11 +111,34 @@ describe('the line fill-form-ui.js draws', () => {
     expect(first?.querySelector('[role=progressbar]')?.getAttribute('aria-valuenow')).toBe('3');
     expect(first?.querySelector('.ff-progress-text')?.textContent).toBe('3 of 8 filled in');
     expect(first?.classList.contains('ff-progress--done')).toBe(false);
+    const dots = [...(first?.querySelectorAll('.ff-progress-dot') ?? [])];
+    expect(dots).toHaveLength(8);
+    expect(dots.map((d) => d.classList.contains('ff-progress-dot--on'))).toEqual(
+      [true, true, true, false, false, false, false, false],
+    );
+    expect((dots[0] as HTMLElement).style.left).toBe('6.25%');
+    expect(dots.every((d) => d.getAttribute('aria-hidden') === 'true')).toBe(true);
     const vals = { F1: 'a', F2: 'b', F3: 'c', F4: 'd', F5: 'e', F6: 'f', F7: 'g', F8: 'h' };
     ui.refresh(host, api.fillForm(LONG, vals, { now: NOW }));
     expect(first?.querySelector<HTMLElement>('.ff-progress-fill')?.style.width).toBe('100%');
     expect(first?.classList.contains('ff-progress--done')).toBe(true);
     expect(first?.querySelector('.ff-progress-text')?.textContent).toBe('All 8 filled in');
+  });
+
+  it('goes where the surface asks, as the overlay puts it above its footer', () => {
+    const vm = api.fillForm(LONG, {}, { now: NOW });
+    const host = hostFor(vm);
+    const foot = document.createElement('div');
+    host.after(foot);
+    (ui.enhance as (h: HTMLElement, v: SbFillFormViewModel, c: Record<string, unknown>) => void)(
+      host, vm, { ...CFG, progressBefore: foot },
+    );
+    expect(bar(host)).toBeNull();
+    const line = foot.previousElementSibling;
+    expect(line?.classList.contains('ff-progress')).toBe(true);
+    ui.refresh(host, api.fillForm(LONG, { F1: 'a' }, { now: NOW }));
+    expect(foot.previousElementSibling).toBe(line);
+    expect(line?.querySelector('.ff-progress-text')?.textContent).toBe('1 of 8 filled in');
   });
 
   it('draws nothing for a short form', () => {

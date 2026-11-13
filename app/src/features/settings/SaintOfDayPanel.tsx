@@ -1,4 +1,3 @@
-import { Church } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { useUiStore } from '@/stores/uiStore';
@@ -20,10 +19,7 @@ export function SaintOfDayPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Church className="h-4 w-4 text-primary" aria-hidden />
-          Santo del Giorno
-        </CardTitle>
+        <CardTitle>Santo del Giorno</CardTitle>
         <CardDescription>
           Shows the saint of the day in the footer, read from Vatican News. This applies to this
           device only.

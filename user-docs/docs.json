@@ -29,6 +29,7 @@
             "pages": [
               "introduction",
               "quickstart",
+              "library/overview",
               "install-extension",
               "pomodoro-timer"
             ]
@@ -44,8 +45,7 @@
               "text-snippets/fill-from-link",
               "text-snippets/formulas",
               "text-snippets/multilanguage",
-              "text-snippets/version-history",
-              "text-snippets/import-export"
+              "text-snippets/version-history"
             ]
           },
           {
@@ -91,7 +91,8 @@
               "settings/account",
               "settings/triggers",
               "settings/security",
-              "settings/analytics"
+              "settings/analytics",
+              "settings/import-export"
             ]
           }
         ]
@@ -99,6 +100,14 @@
     ]
   },
   "redirects": [
+    {
+      "source": "/snippets/import-export",
+      "destination": "/settings/import-export"
+    },
+    {
+      "source": "/text-snippets/import-export",
+      "destination": "/settings/import-export"
+    },
     {
       "source": "/snippets/:slug*",
       "destination": "/text-snippets/:slug*"

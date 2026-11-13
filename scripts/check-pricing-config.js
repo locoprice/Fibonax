@@ -8,6 +8,9 @@
 
 const fs = require('fs');
 const path = require('path');
+// The rate itself comes from app/src/config/fiboTokenRate.json; the script
+// that copies it here writes it the same way this gate reads it.
+const { formatRate } = require('./sync-fibotoken-rate.js');
 
 const FILE = path.join(__dirname, 'templates', 'pricing.html');
 const html = fs.readFileSync(FILE, 'utf8');
@@ -24,7 +27,7 @@ const FORMAT = {
   freeSnippetsPerDay: (v) => String(v),
   freePromptsPerDay: (v) => String(v),
   freeBrainsPerDay: (v) => String(v),
-  euroPerFiboToken: (v) => `€${v.toFixed(2)}`,
+  euroPerFiboToken: (v) => formatRate(v),
   topUpEuros: (v) => `€${v}`,
   fiboTokensPerTopUp: (v) => v.toLocaleString('en-US'),
   fiboTokensPerSnippet: (v) => String(v),

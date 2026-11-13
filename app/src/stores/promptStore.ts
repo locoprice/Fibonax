@@ -14,6 +14,7 @@ import type {
 import { promptsApi } from '@/lib/api/promptsApi';
 import { foldersApi } from '@/lib/api/foldersApi';
 import { permissionsApi } from '@/lib/api/permissionsApi';
+import type { ImportBatchResult } from '@/lib/fileIo';
 import { buildFolderShares } from '@/lib/folderShares';
 import { matchesLabelFilter } from '@/lib/labelUtils';
 import { expandWithDescendants } from '@/lib/labelTree';
@@ -74,6 +75,8 @@ interface PromptStore {
   clearError: () => void;
   setSelectedFolder: (id: string | null) => void;
   addPrompt: (payload: PromptFormValues, options?: NewItemOptions) => Promise<Prompt>;
+  /** Adds the prompts of an imported file, the twin of `importSnippets`. */
+  importPrompts: (items: PromptFormValues[]) => Promise<ImportBatchResult>;
   editPrompt: (id: string, patch: Partial<PromptFormValues>) => Promise<Prompt>;
   /**
    * The editor's save: writes the prompt and records what it said, in one
@@ -179,6 +182,21 @@ export const usePromptStore = create<PromptStore>((set, get) => ({
       set({ error: err instanceof Error ? err.message : 'Failed to create prompt' });
       throw err;
     }
+  },
+
+  importPrompts: async (items) => {
+    const created: Prompt[] = [];
+    let failed = 0;
+    // One at a time: a prompt that cannot be saved is counted, the rest still go in.
+    for (const item of items) {
+      try {
+        created.push(await promptsApi.createPrompt(item));
+      } catch {
+        failed++;
+      }
+    }
+    if (created.length > 0) set((s) => ({ prompts: [...created.reverse(), ...s.prompts] }));
+    return { imported: created.length, failed };
   },
 
   editPromptWithVersion: async (id, values, editNote) => {

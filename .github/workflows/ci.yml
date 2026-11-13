@@ -86,6 +86,9 @@ jobs:
       - name: Focus timer
         run: node scripts/check-focus-timer.js
 
+      - name: Phone Pomodoro timer parity check
+        run: node scripts/sync-focus-timer.js --check
+
       - name: Ask Fibonax parity check
         run: node scripts/check-ask-knowledge.js
 
@@ -104,6 +107,9 @@ jobs:
       - name: Pricing page numbers match PRICING
         run: node scripts/check-pricing-config.js
 
+      - name: FiboToken rate is the same on every surface
+        run: node scripts/sync-fibotoken-rate.js --check
+
       - name: Landing FAQ structured data
         run: node scripts/check-landing-faq.js
 
@@ -112,6 +118,9 @@ jobs:
 
       - name: Phone Analytics reads the shared figures
         run: node scripts/sync-usage-analytics.js --check
+
+      - name: Monthly recap email
+        run: node scripts/check-monthly-recap.js
 
       - name: Industry-neutral wording check
         run: node scripts/check-industry-neutral.js

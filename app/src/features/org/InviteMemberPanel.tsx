@@ -491,7 +491,8 @@ export function InvitationRows({ org, invitations, onChanged }: InvitationRowsPr
   );
 }
 
-function RowButton({
+/** A quiet text button for a row's own actions (Send again, Rename, Remove). */
+export function RowButton({
   children,
   onClick,
   disabled,

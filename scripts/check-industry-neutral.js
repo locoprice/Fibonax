@@ -1,7 +1,8 @@
 // Gate for what the product ships and every new account sees:
 //   - the server functions in services/supabase/functions/, including the
 //     instructions they send to the AI model;
-//   - the Getting started window (app/src/features/onboarding/).
+//   - the Getting started window (app/src/features/onboarding/);
+//   - the starter library (app/src/features/library/).
 //
 // Fibonax ships to every industry (root CLAUDE.md, Industry-Neutral). The
 // suggest-labels prompt once told the model it worked for a hospitality team
@@ -23,6 +24,7 @@ const { VERTICAL } = require('./vertical-words');
 const AREAS = [
   { dir: 'services/supabase/functions', what: 'server functions' },
   { dir: 'app/src/features/onboarding', what: 'the Getting started window' },
+  { dir: 'app/src/features/library', what: 'the starter library' },
 ];
 
 const problems = [];

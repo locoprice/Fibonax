@@ -430,18 +430,22 @@
    * How far along a form is.
    *
    * @param {Array} fields  fillForm(...).fields, after the form is resolved
-   * @returns {{ show: boolean, done: number, total: number, percent: number, label: string }}
+   * @returns {{ show: boolean, done: number, total: number, percent: number, label: string, filled: boolean[] }}
    *   show    whether the form is long enough to carry the line
    *   label   the words beside it, the same on every surface
+   *   filled  one entry per counted field, in form order: the dot on the
+   *           line for that field, true once it holds a usable answer
    */
   function progress(fields) {
     var list = Array.isArray(fields) ? fields : [];
-    var total = 0, done = 0;
+    var total = 0, done = 0, filled = [];
     for (var i = 0; i < list.length; i++) {
       var f = list[i];
       if (!f || f.visible === false) continue;
       total++;
-      if (trim(f.value) !== '' && !f.error) done++;
+      var ok = trim(f.value) !== '' && !f.error;
+      filled.push(ok);
+      if (ok) done++;
     }
     var all = total > 0 && done === total;
     return {
@@ -449,7 +453,8 @@
       done: done,
       total: total,
       percent: total ? Math.round(done / total * 100) : 0,
-      label: all ? 'All ' + total + ' filled in' : done + ' of ' + total + ' filled in'
+      label: all ? 'All ' + total + ' filled in' : done + ' of ' + total + ' filled in',
+      filled: filled
     };
   }
 

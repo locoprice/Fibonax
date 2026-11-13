@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Clock } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { MAX_MONTHS, MIN_MONTHS } from '@/lib/inactivity';
@@ -52,10 +52,7 @@ export function InactivityPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-warning-deep" aria-hidden />
-          Unused snippets and prompts
-        </CardTitle>
+        <CardTitle>Unused snippets and prompts</CardTitle>
         <CardDescription>
           A notice appears on the Snippets and Prompts pages when something has not been used for
           this long. Counted from the last expansion, or from the day it was added if it has never

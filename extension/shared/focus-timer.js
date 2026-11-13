@@ -1,7 +1,7 @@
 // focus-timer.js: the Pomodoro timer's rules, decided once.
 //
-// A Pomodoro timer in the extension: work sessions, a short break after each,
-// and a long break after the last session of a block. Three places use it:
+// A Pomodoro timer: work sessions, a short break after each, and a long break
+// after the last session of a block. Four places use it:
 //
 //   extension/background/background.js   the only writer: every change goes
 //                                        through reduce(), the alarm sits on
@@ -9,12 +9,17 @@
 //                                        chime plays through offscreen/chime.html
 //   extension/popup/popup.js             the Pomodoro timer pane and the header button
 //   extension/content/focus-break.js     the break screen on every web page
+//   app/public/mobile/index.html         the phone: a generated copy of this
+//                                        file (scripts/sync-focus-timer.js)
 //
 // Everything here is pure: a state and a time go in, a state comes out. The
-// state lives in chrome.storage.local under STORAGE_KEY, on this device only;
-// nothing is sent anywhere. scripts/check-focus-timer.js runs these rules over
+// only exception is playChime, which draws on the AudioContext it is handed.
+// The state lives under STORAGE_KEY, in chrome.storage.local on a computer and
+// localStorage on a phone: each device keeps its own timer and nothing is sent
+// anywhere. scripts/check-focus-timer.js runs these rules over
 // the cases that matter: a whole block, an extra break, a skip, a pause, a
-// computer that slept through a phase, the six-hour and detox day warnings.
+// computer that slept through a phase, the six-hour and detox day warnings,
+// and starting by itself.
 (function(root) {
   'use strict';
 
@@ -37,7 +42,9 @@
     // is theirs to pick; Sunday until they do.
     detoxDay: [1, 2, 3, 4, 5, 6, 0]
   };
-  var DEFAULTS = { workMin: 25, breakMin: 5, sessions: 4, longMin: 15, detoxDay: 0, chime: true };
+  // autoStart: "Start automatically", off until the person turns it on, so
+  // someone who never opened the timer never meets a break screen.
+  var DEFAULTS = { workMin: 25, breakMin: 5, sessions: 4, longMin: 15, detoxDay: 0, chime: true, autoStart: false };
   var DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   // "I need a break now" offers these lengths, in minutes.
@@ -47,6 +54,7 @@
   var GAP_MS = 30 * MIN_MS;    // a stop or a pause longer than this ends the streak
   var STALE_MS = 30 * MIN_MS;  // a phase overdue by more than this: the person was away
   var KEEP_DAYS = 14;          // daily counts kept, for the "Last 7 days" row
+  var AWAY_SEC = 60;           // no key or mouse for this long: the person is away from the computer
 
   var KINDS = ['work', 'short', 'long', 'extra'];
 
@@ -73,10 +81,15 @@
   var PHOTO_KEY = 'sb_focus_photos';
   var PHOTO_MAX = 5;
   var PHOTO_MAX_SIDE = 1280;
+  var PHOTO_QUALITY = 0.82;
   var IMAGE_URL = /^data:image\/(jpeg|png|webp);base64,/;
 
   // The call when someone starts the timer on their detox day anyway.
   var DETOX_LINE = 'Your time is precious. Spend it offline, with the people and things you love.';
+
+  // The chime: two soft bell tones made by the browser, [pitch in Hz, seconds
+  // after the first], so no surface ships a sound file.
+  var CHIME_TONES = [[880, 0], [1318.5, 0.18]];
 
   function plain(value) {
     return (value && typeof value === 'object' && !Array.isArray(value)) ? value : {};
@@ -126,6 +139,7 @@
       out[k] = OPTIONS[k].indexOf(n) >= 0 ? n : DEFAULTS[k];
     });
     out.chime = s.chime !== false;
+    out.autoStart = s.autoStart === true;
     return out;
   }
 
@@ -276,6 +290,7 @@
   //   {type:'extra', minutes}   "I need a break now", during work only
   //   {type:'skip'}             ends the break now, counted
   //   {type:'tick'}             moves on when the current phase is over
+  //   {type:'auto'}             Chrome opened or the person is at the computer
   //   {type:'settings', settings}
   function reduce(raw, action, nowMs) {
     var st = normalize(raw);
@@ -349,6 +364,24 @@
         // just came back with the wrong screen, so the timer stops instead.
         if (nowMs - run.endsAt > STALE_MS) return next(stopped(st, run, run.endsAt, 'away'));
         return next(run.kind === 'work' ? workEnds(st, nowMs) : breakEnds(st, nowMs), true);
+      }
+      case 'auto': {
+        // "Start automatically": a phase that ended meanwhile moves on first,
+        // then a timer that is not running starts. Never on the detox day,
+        // and not within half an hour of Stop, which the person chose. A
+        // pause longer than that counts as a stop from the moment it began.
+        var ticked = reduce(st, { type: 'tick' }, nowMs);
+        var cur = ticked.state;
+        if (!cur.settings.autoStart || new Date(nowMs).getDay() === cur.settings.detoxDay) return ticked;
+        var held = cur.run;
+        if (held && held.paused && held.pausedAt && nowMs - held.pausedAt > GAP_MS) {
+          cur = stopped(cur, held, held.pausedAt, 'stop');
+          held = null;
+        }
+        if (held) return ticked;
+        var lastStop = cur.last;
+        if (lastStop && lastStop.reason === 'stop' && nowMs - lastStop.stoppedAt <= GAP_MS) return ticked;
+        return next(reduce(cur, { type: 'start' }, nowMs).state, ticked.chime);
       }
       case 'settings': {
         var settings = normalizeSettings(Object.assign({}, st.settings, plain(a.settings)));
@@ -532,6 +565,39 @@
     return parts.join(' ');
   }
 
+  // The buttons a surface offers at this moment, in order. style is 'primary',
+  // 'link' or empty. 'ask' opens the question of how long the break should be.
+  function actions(v) {
+    function a(act, text, style) { return { act: act, text: text, style: style || '' }; }
+    if (v.mode === 'idle') return [a('start', 'Start', 'primary')];
+    if (v.mode === 'paused') return [a('resume', 'Resume', 'primary'), a('stop', 'Stop')];
+    if (v.mode === 'break') return [a('skip', 'Skip this break'), a('stop', 'Stop')];
+    return [a('pause', 'Pause'), a('stop', 'Stop'), a('ask', 'I need a break now', 'link')];
+  }
+
+  // How one choice reads in a settings menu.
+  function optionLabel(key, n) {
+    if (key === 'detoxDay') return DAY_NAMES[n];
+    return n + (key === 'sessions' ? ' sessions' : ' minutes');
+  }
+
+  // Plays the two tones on an AudioContext that is already running.
+  function playChime(ctx) {
+    CHIME_TONES.forEach(function(tone) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      var at = ctx.currentTime + tone[1];
+      osc.type = 'sine';
+      osc.frequency.value = tone[0];
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.25, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.6);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(at);
+      osc.stop(at + 1.7);
+    });
+  }
+
   // The header button's label while the timer runs, empty while it does not.
   function pillText(v) {
     if (v.mode === 'work') return v.clock;
@@ -573,6 +639,7 @@
     GAP_MS: GAP_MS,
     STALE_MS: STALE_MS,
     KEEP_DAYS: KEEP_DAYS,
+    AWAY_SEC: AWAY_SEC,
     SUGGESTIONS: SUGGESTIONS,
     BREAK_LEAD: BREAK_LEAD,
     PHONE_RULE: PHONE_RULE,
@@ -581,7 +648,12 @@
     PHOTO_KEY: PHOTO_KEY,
     PHOTO_MAX: PHOTO_MAX,
     PHOTO_MAX_SIDE: PHOTO_MAX_SIDE,
+    PHOTO_QUALITY: PHOTO_QUALITY,
     DETOX_LINE: DETOX_LINE,
+    CHIME_TONES: CHIME_TONES,
+    actions: actions,
+    optionLabel: optionLabel,
+    playChime: playChime,
     isDetoxDay: isDetoxDay,
     detoxTitle: detoxTitle,
     photoItems: photoItems,

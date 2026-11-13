@@ -28,6 +28,7 @@ import { RESOURCE_LINKS } from '@/lib/links';
 import { useGettingStartedVisible } from '@/lib/useGettingStartedVisible';
 import { JotFormModal } from '@/components/layout/JotFormModal';
 import { NavCountPill } from '@/components/layout/NavCountPill';
+import { SidebarLine } from '@/components/layout/SidebarLine';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/stores/authStore';
@@ -52,6 +53,8 @@ interface NavItem {
   countLabel?: string;
   /** Renders a hairline above this item, splitting the content trio from the rest. */
   dividerBefore?: boolean;
+  /** A beige tag after the label, for a section still being built. */
+  beta?: boolean;
 }
 
 function navClass({ isActive, collapsed }: { isActive: boolean; collapsed: boolean }): string {
@@ -145,7 +148,7 @@ export function Sidebar() {
     { to: '/review', label: 'Review', icon: ShieldCheck, count: waitingCount },
     { to: '/analytics', label: 'Analytics', icon: BarChart3 },
     // A Pro section, not built yet: its page says "Coming soon".
-    { to: '/business-intelligence', label: 'Business Intelligence', icon: LineChart },
+    { to: '/business-intelligence', label: 'Business Intelligence', icon: LineChart, beta: true },
   ];
 
   // One small read per session, for the Review count. Status changes made in
@@ -233,6 +236,11 @@ export function Sidebar() {
                     <>
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.label}</span>
+                      {item.beta && (
+                        <span className="ml-auto shrink-0 rounded-full bg-sand px-1.5 py-1 text-[10px] font-semibold leading-none uppercase tracking-wide text-sand-ink">
+                          Beta
+                        </span>
+                      )}
                       {typeof item.count === 'number' && item.count > 0 ? (
                         <NavCountPill
                           count={item.count}
@@ -266,20 +274,28 @@ export function Sidebar() {
 
       {/* Company watermark: the user's own logo (Settings → Company branding).
           Wider than the collapsed rail, so it only shows while the sidebar is
-          open. The flex-1 spacer stays either way. */}
-      <div className="flex flex-1 items-center justify-center">
-        {companyLogoUrl && !collapsed && (
-          <img
-            src={companyLogoUrl}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            className="w-24 select-none opacity-[0.10] grayscale"
-          />
-        )}
+          open. The flex-1 spacer stays either way.
+          The wrapping column is what fits the sentence: when the free height
+          is too small for it, it wraps into a second column that is clipped,
+          so it shows whenever it fits and the user block is never pushed off. */}
+      <div className="flex min-h-0 flex-1 flex-col flex-wrap overflow-hidden">
+        <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+          {companyLogoUrl && !collapsed && (
+            <img
+              src={companyLogoUrl}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              className="max-h-full w-24 select-none object-contain opacity-[0.10] grayscale"
+            />
+          )}
+        </div>
+
+        {/* Too wide for the collapsed rail. */}
+        {!collapsed && <SidebarLine />}
       </div>
 
-      {/* User block — click to open menu */}
+      {/* User block, click to open menu */}
       <div
         ref={menuRef}
         className={cn(

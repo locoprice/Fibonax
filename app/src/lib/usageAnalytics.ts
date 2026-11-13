@@ -4,8 +4,8 @@
  *
  * `extension/shared/usage-analytics.js` decides every figure: the period and
  * the one before it, the daily series, rankings and movers, weekday-by-hour,
- * streaks, folder and language shares, library health, the 80/20 view and the
- * team table. This module loads that file and types what it returns; it does
+ * streaks, folder and language shares, library health, the 80/20 view, the
+ * suggestions and the team table. This module loads that file and types what it returns; it does
  * not re-implement any of it. `scripts/check-usage-analytics.js` pins the arithmetic, and
  * `src/__tests__/usageAnalytics.test.ts` pins the shape typed here.
  */
@@ -246,6 +246,52 @@ export interface ParetoReport {
   prompts: ParetoKindReport | null;
 }
 
+/** Snippets, or prompts, used one after the other again and again. */
+export interface SuggestTogether {
+  /** "snippet:id1>id2", what "Not now" stores. */
+  key: string;
+  kind: 'snippet' | 'prompt';
+  /** In the order they were used. */
+  ids: string[];
+  titles: string[];
+  count: number;
+  text: string;
+}
+
+/** A starter library item the library seems to lack. */
+export interface SuggestMissing {
+  /** "missing:terms", what "Not now" stores. */
+  key: string;
+  kind: 'snippet' | 'prompt' | 'brain';
+  /** The id of the item in features/library/catalogue.ts. */
+  libraryId: string;
+  title: string;
+  text: string;
+}
+
+export interface SuggestReport {
+  /** The use window "used together" reads, in days. */
+  days: number;
+  together: SuggestTogether[];
+  missing: SuggestMissing[];
+  empty: boolean;
+}
+
+export interface SuggestInput {
+  now: number;
+  events: Array<{ snippet_id: string | null; created_at: string }>;
+  promptEvents: Array<{ prompt_id: string; created_at: string }>;
+  /**
+   * `text` is the body in any form: fields and markup are read past. `langs`
+   * lists every language the snippet holds.
+   */
+  snippets: Array<{ id: string; title: string; text: string; langs: string[] }>;
+  prompts: Array<{ id: string; name: string; text: string }>;
+  brains: Array<{ name: string; description: string }>;
+  /** Suggestion key to when "Not now" was chosen. */
+  dismissed: Record<string, string>;
+}
+
 /** One row of team_usage_by_member(). */
 export interface TeamUsageRow {
   user_id: string;
@@ -279,6 +325,11 @@ export interface UsageAnalyticsApi {
   hourLabel(h: number): string;
   compute(input: UsageInput & { period: UsagePeriod; now: number }): UsageReport;
   pareto(input: UsageInput & { period: UsagePeriod; now: number }): ParetoReport;
+  SUGGEST_DAYS: number;
+  /** How long "Not now" hides a suggestion. */
+  DISMISS_DAYS: number;
+  MISSING_RULES: Array<{ key: string; kind: SuggestMissing['kind']; libraryId: string; title: string }>;
+  suggest(input: SuggestInput): SuggestReport;
   team(current: TeamUsageRow[], previous: TeamUsageRow[], myId: string | null): UsageTeamReport;
   /** "Last used by NAME on DD/MM/YYYY at HH:MM", or "Never used". */
   lastUseLine(lastUse: TeamLastUse | null | undefined): string;

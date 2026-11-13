@@ -44,10 +44,10 @@ function act(state, action, at) { return F.reduce(state, action, at); }
 // ── 1. reading a state ─────────────────────────────────────────────
 const empty = F.normalize(undefined);
 check('nothing stored reads as the defaults and no run', [empty.settings, empty.run, empty.last, empty.days],
-  [{ workMin: 25, breakMin: 5, sessions: 4, longMin: 15, detoxDay: 0, chime: true }, null, null, {}]);
+  [{ workMin: 25, breakMin: 5, sessions: 4, longMin: 15, detoxDay: 0, chime: true, autoStart: false }, null, null, {}]);
 check('values outside the choices land on the defaults, chime off stays off',
   F.normalizeSettings({ workMin: 0, breakMin: '10', sessions: 1000, longMin: 'x', detoxDay: 7, chime: false }),
-  { workMin: 25, breakMin: 10, sessions: 4, longMin: 15, detoxDay: 0, chime: false });
+  { workMin: 25, breakMin: 10, sessions: 4, longMin: 15, detoxDay: 0, chime: false, autoStart: false });
 check('any day of the week can be the detox day, listed from Monday', [F.OPTIONS.detoxDay.map((d) => F.DAY_NAMES[d]), F.normalizeSettings({ detoxDay: '5' }).detoxDay],
   [['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], 5]);
 check('a run that cannot be read is no run', F.normalize({ run: { kind: 'nap', session: 1, endsAt: T0, streakFrom: T0 } }).run, null);
@@ -215,6 +215,37 @@ check('the header shows the time in work and in a break', [F.pillText(F.view(s, 
   ['24:00', 'Break 4:00']);
 check('nothing in the header while the timer is off', F.pillText(F.view({}, T0)), '');
 
+// ── 9b. Start automatically ─────────────────────────────────────────
+const AUTO = { settings: { autoStart: true } };
+check('off until the person turns it on, and only true turns it on',
+  [F.normalize({}).settings.autoStart, F.normalizeSettings({ autoStart: 'yes' }).autoStart, act({}, { type: 'auto' }, T0).changed], [false, false, false]);
+check('turning it on is saved', act({}, { type: 'settings', settings: { autoStart: true } }, T0).state.settings.autoStart, true);
+r = act(AUTO, { type: 'auto' }, T0);
+check('on: a timer that is not running starts session 1, without a chime',
+  [r.changed, r.chime, r.state.run.kind, r.state.run.session, r.state.run.endsAt - T0], [true, false, 'work', 1, 25 * MIN]);
+check('a running timer is left as it is', act(r.state, { type: 'auto' }, T0 + MIN).changed, false);
+check('never on the detox day, Sunday unless changed', act(AUTO, { type: 'auto' }, SUNDAY).changed, false);
+check('with Friday as the detox day, Sunday starts and Friday does not',
+  [act({ settings: { autoStart: true, detoxDay: 5 } }, { type: 'auto' }, SUNDAY).state.run.kind, act({ settings: { autoStart: true, detoxDay: 5 } }, { type: 'auto' }, FRIDAY).changed], ['work', false]);
+s = act(act(AUTO, { type: 'start' }, T0).state, { type: 'stop' }, T0 + 10 * MIN).state;
+check('within 30 minutes of Stop it stays stopped', act(s, { type: 'auto' }, T0 + 40 * MIN).changed, false);
+check('after that it starts again, as a new streak', act(s, { type: 'auto' }, T0 + 41 * MIN).state.run.streakFrom, T0 + 41 * MIN);
+s = Object.assign({}, act(two, { type: 'start' }, T0).state, { settings: { workMin: 25, breakMin: 5, sessions: 2, longMin: 15, chime: true, autoStart: true } });
+s = act(act(act(act(s, { type: 'tick' }, T0 + 25 * MIN).state, { type: 'tick' }, T0 + 30 * MIN).state, { type: 'tick' }, T0 + 55 * MIN).state, { type: 'tick' }, T0 + 70 * MIN).state;
+check('after the long break, a new block starts', [s.run, s.last.reason, act(s, { type: 'auto' }, T0 + 70 * MIN).state.run.session], [null, 'block', 1]);
+s = act(AUTO, { type: 'start' }, T0).state;
+r = act(s, { type: 'auto' }, T0 + 26 * MIN);
+check('a phase that just ended moves on as a tick would, with its chime', [r.state.run.kind, r.chime], ['short', true]);
+r = act(s, { type: 'auto' }, T0 + 3 * HOUR);
+check('back after the computer slept: the old session is dropped, a fresh one starts, nothing counted',
+  [r.state.run.session, r.state.run.endsAt - (T0 + 3 * HOUR), r.state.days[TODAY], r.chime], [1, 25 * MIN, undefined, false]);
+s = act(act(AUTO, { type: 'start' }, T0).state, { type: 'pause' }, T0 + 10 * MIN).state;
+check('a pause of 30 minutes or less is left alone', act(s, { type: 'auto' }, T0 + 40 * MIN).changed, false);
+r = act(s, { type: 'auto' }, T0 + 41 * MIN);
+check('a longer pause counts as a stop when it began, and a fresh session starts',
+  [r.state.run.session, r.state.run.paused, r.state.run.streakFrom], [1, false, T0 + 41 * MIN]);
+check('away means a minute without a key or the mouse', F.AWAY_SEC, 60);
+
 // ── 10. wording ─────────────────────────────────────────────────────
 const MODULE = readText('extension/shared/focus-timer.js');
 check('no brand names in the ideas', /nutella/i.test(MODULE), false);
@@ -224,8 +255,8 @@ check('no long dashes in the module', /[–—]/.test(MODULE), false);
 // ── 11. the wiring ──────────────────────────────────────────────────
 const manifest = JSON.parse(readText('extension/manifest.json'));
 const js = manifest.content_scripts[0].js;
-check('the manifest asks for offscreen and for nothing that shows a warning',
-  [manifest.permissions.indexOf('offscreen') !== -1, manifest.permissions.indexOf('notifications'), manifest.permissions.indexOf('tabs')], [true, -1, -1]);
+check('the manifest asks for offscreen and idle, and for nothing that shows a warning',
+  [manifest.permissions.indexOf('offscreen') !== -1, manifest.permissions.indexOf('idle') !== -1, manifest.permissions.indexOf('notifications'), manifest.permissions.indexOf('tabs')], [true, true, -1, -1]);
 check('pages load the module before the break screen',
   js.indexOf('shared/focus-timer.js') !== -1 && js.indexOf('shared/focus-timer.js') < js.indexOf('content/focus-break.js'), true);
 
@@ -234,10 +265,31 @@ check('the background loads the module', BG.indexOf("importScripts('../shared/fo
 check('the background answers the popup and the break screen', /msg\.type !== 'sb_focus'/.test(BG) && /SBFocus\.reduce\(/.test(BG), true);
 check('the background keeps the alarm on the end of the phase', /chrome\.alarms\.create\(SBFocus\.ALARM_NAME, \{ when: /.test(BG), true);
 check('the background moves the timer on when the alarm fires', /alarm\.name === SBFocus\.ALARM_NAME/.test(BG), true);
-check('the background checks the timer when Chrome starts and after an update',
-  (BG.match(/sbFocusApply\(\{ type: 'tick' \}\)/g) || []).length >= 3, true);
+// One listener's body: from its addListener line to the line that closes it.
+function listener(head) {
+  const at = BG.indexOf(head);
+  return at === -1 ? '' : BG.slice(at, BG.indexOf('\n});', at));
+}
+const ON_STARTUP = listener('chrome.runtime.onStartup.addListener');
+const ON_INSTALLED = listener('chrome.runtime.onInstalled.addListener');
+check('the background checks the timer after an update, and starts it if asked when Chrome starts',
+  ON_INSTALLED.indexOf("sbFocusApply({ type: 'tick' });") !== -1 && ON_STARTUP.indexOf("sbFocusApply({ type: 'auto' });") !== -1, true);
+check('coming back to the computer starts the timer if asked',
+  BG.indexOf('chrome.idle.setDetectionInterval(SBFocus.AWAY_SEC);') !== -1 && /state === 'active'\) sbFocusApply\(\{ type: 'auto' \}\)/.test(BG), true);
+check('a timer that stopped by itself, or the switch turned on, starts only if someone is at the computer',
+  /sbFocusAutoIfHere\(res\.state, action\);/.test(BG) && /chrome\.idle\.queryState\(SBFocus\.AWAY_SEC, function\(idle\) \{\s*if \(idle === 'active'\) sbFocusApply\(\{ type: 'auto' \}\);/.test(BG) &&
+  /action\.type !== 'tick' && !turnedOn\) return;/.test(BG), true);
 check('the chime plays from the offscreen page', /createDocument\(\{[\s\S]*?url: SB_CHIME_PAGE/.test(BG) && BG.indexOf("var SB_CHIME_PAGE = 'offscreen/chime.html';") !== -1, true);
 check('the offscreen page loads its script', /<script src="chime\.js"><\/script>/.test(readText('extension/offscreen/chime.html')), true);
+check('the offscreen page loads the module first and plays its tones',
+  readText('extension/offscreen/chime.html').indexOf('../shared/focus-timer.js') !== -1 &&
+  readText('extension/offscreen/chime.html').indexOf('../shared/focus-timer.js') < readText('extension/offscreen/chime.html').indexOf('chime.js"') &&
+  /SBFocus\.playChime\(ctx\)/.test(readText('extension/offscreen/chime.js')), true);
+check('the chime is two tones', F.CHIME_TONES, [[880, 0], [1318.5, 0.18]]);
+check('what each moment offers', ['idle', 'paused', 'break', 'work'].map((mode) => F.actions({ mode }).map((a) => a.act)),
+  [['start'], ['resume', 'stop'], ['skip', 'stop'], ['pause', 'stop', 'ask']]);
+check('the first button says what it does', [F.actions({ mode: 'idle' })[0].text, F.actions({ mode: 'break' })[0].text], ['Start', 'Skip this break']);
+check('the settings menus read in words', [F.optionLabel('workMin', 25), F.optionLabel('sessions', 4), F.optionLabel('detoxDay', 0)], ['25 minutes', '4 sessions', 'Sunday']);
 
 const BREAK = readText('extension/content/focus-break.js');
 check('the break screen reads the timer through the module', /F\.view\(/.test(BREAK) && /F\.STORAGE_KEY/.test(BREAK), true);
@@ -282,8 +334,14 @@ check('the break screen hands Left and Right to the carousel, and stops it when 
 check('the carousel draws only with the design tokens, in words a screen reader can use',
   !/#[0-9a-fA-F]{3,8}\b/.test(CAROUSEL) && !/rgba?\(/.test(CAROUSEL) && /aria-roledescription/.test(CAROUSEL) && /'Pause slideshow'/.test(CAROUSEL) &&
   /prefers-reduced-motion/.test(CAROUSEL) && !/[–—]/.test(CAROUSEL), true);
+check('the carousel shows every picture whole, over a blurred fill, and never crops it',
+  /\.sbc-pic\{object-fit:contain\}/.test(CAROUSEL) && /\.sbc-fill\{object-fit:cover;filter:blur\(/.test(CAROUSEL) &&
+  /fill\.alt = ''/.test(CAROUSEL) && !/\.sbc-slide\{[^}]*object-fit/.test(CAROUSEL), true);
+check('the Timer settings carry Start automatically, and the popup saves it through the background',
+  POPUP_HTML.indexOf('<label for="fo-auto">Start automatically</label><input type="checkbox" id="fo-auto"') !== -1 &&
+  /settings: \{ autoStart: gi\('fo-auto'\)\.checked \}/.test(POPUP_JS) && /au\.checked = v\.settings\.autoStart/.test(POPUP_JS), true);
 check('the settings carry the Detox day, its days named by the module',
-  POPUP_HTML.indexOf('<label for="fo-detox">Detox day</label>') !== -1 && /data-key="detoxDay"/.test(POPUP_HTML) && /SBFocus\.DAY_NAMES\[n\]/.test(POPUP_JS), true);
+  POPUP_HTML.indexOf('<label for="fo-detox">Detox day</label>') !== -1 && /data-key="detoxDay"/.test(POPUP_HTML) && /SBFocus\.optionLabel\(key, n\)/.test(POPUP_JS), true);
 
 // ── 12. the name and the credit ─────────────────────────────────────
 // The owners' naming (2026-11-01): people read "Pomodoro timer", after the

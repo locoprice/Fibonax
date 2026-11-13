@@ -11,7 +11,14 @@ import {
 } from '@/lib/branding';
 import { COVER_MAX_WIDTH, downscaleImage } from '@/lib/imageResize';
 import { isImageCover } from '@/lib/teamCoverPresets';
-import type { OrgMember, OrgRole, OrganizationSummary } from '@/types/database';
+import { normalizeDepartmentName, normalizeJobTitle } from '@/lib/orgChart';
+import type {
+  MemberPlacement,
+  OrgDepartment,
+  OrgMember,
+  OrgRole,
+  OrganizationSummary,
+} from '@/types/database';
 
 // Organization reads for the dashboard. The folder-sharing UI (Phase B) needs
 // to know the signed-in user's active organization and its member directory.
@@ -34,7 +41,13 @@ type DirectoryRow = {
   display_name: string;
   role: OrgRole;
   avatar_url: string | null;
+  department_id: string | null;
+  job_title: string | null;
+  is_department_lead: boolean | null;
 };
+
+/** What the screen says when row security matched nothing: the caller is not an admin. */
+const DEPARTMENTS_ADMIN_ONLY = 'Only a team admin can change departments.';
 
 export interface OrgApi {
   /**
@@ -62,6 +75,24 @@ export interface OrgApi {
   createTeam(name: string): Promise<OrganizationSummary>;
   /** The member directory for an org the caller belongs to. */
   listMembers(orgId: string): Promise<OrgMember[]>;
+  /** The team's departments, by name. Every member may read them. */
+  listDepartments(orgId: string): Promise<OrgDepartment[]>;
+  /**
+   * Add, rename or remove a department. Admin-only, enforced by row security
+   * on `org_departments`; a non-admin's write matches no row and is reported
+   * as an error rather than passing as done. Removing a department keeps its
+   * people in the team, with no department.
+   */
+  addDepartment(orgId: string, name: string): Promise<OrgDepartment>;
+  renameDepartment(departmentId: string, name: string): Promise<void>;
+  removeDepartment(departmentId: string): Promise<void>;
+  /**
+   * Set a person's department and job title, and for admins whether they lead
+   * the department. Runs through `set_member_placement` because membership
+   * rows are admin-only under row security, and a person may still set their
+   * own place.
+   */
+  setMemberPlacement(orgId: string, userId: string, placement: MemberPlacement): Promise<void>;
   /**
    * Set the team cover to a preset key or null (remove). Admin-only — enforced
    * by the `org_update` RLS policy, which matches 0 rows for non-admins; we
@@ -132,7 +163,73 @@ export const orgApi: OrgApi = {
       // The function already keeps non-https values back; this is the same
       // guard every surface applies to a photo address before rendering it.
       avatar_url: pickHttpsUrl({ avatar_url: r.avatar_url }, 'avatar_url'),
+      department_id: r.department_id ?? null,
+      job_title: r.job_title ?? null,
+      is_department_lead: r.is_department_lead === true,
     }));
+  },
+
+  async listDepartments(orgId) {
+    const { data, error } = await supabase
+      .from('org_departments')
+      .select('id, name')
+      .eq('organization_id', orgId)
+      .order('name', { ascending: true });
+    if (error) throw toApiError(error);
+    return (data ?? []) as OrgDepartment[];
+  },
+
+  async addDepartment(orgId, name) {
+    const { data, error } = await supabase
+      .from('org_departments')
+      .insert({ organization_id: orgId, name: normalizeDepartmentName(name) })
+      .select('id, name')
+      .single();
+    if (error) {
+      throw toApiError(
+        error,
+        error.code === '23505' ? 'You already have a department with that name.' : undefined,
+      );
+    }
+    return data as OrgDepartment;
+  },
+
+  async renameDepartment(departmentId, name) {
+    const { data, error } = await supabase
+      .from('org_departments')
+      .update({ name: normalizeDepartmentName(name) })
+      .eq('id', departmentId)
+      .select('id');
+    if (error) {
+      throw toApiError(
+        error,
+        error.code === '23505' ? 'You already have a department with that name.' : undefined,
+      );
+    }
+    if (!data || data.length === 0) throw new Error(DEPARTMENTS_ADMIN_ONLY);
+  },
+
+  async removeDepartment(departmentId) {
+    const { data, error } = await supabase
+      .from('org_departments')
+      .delete()
+      .eq('id', departmentId)
+      .select('id');
+    if (error) throw toApiError(error);
+    if (!data || data.length === 0) throw new Error(DEPARTMENTS_ADMIN_ONLY);
+  },
+
+  async setMemberPlacement(orgId, userId, placement) {
+    const { error } = await supabase.rpc('set_member_placement', {
+      p_org: orgId,
+      p_user: userId,
+      p_department: placement.departmentId,
+      p_job_title: normalizeJobTitle(placement.jobTitle),
+      // Left out when the caller is not choosing a lead, so the saved mark stays.
+      ...(placement.lead === undefined ? {} : { p_lead: placement.lead }),
+    });
+    // The function words its own refusals ("That department no longer exists").
+    if (error) throw toApiError(error);
   },
 
   async setCover(orgId, cover, previousCover = null) {

@@ -31,7 +31,8 @@ Teams can share their library. Fibonax works for any kind of work: writing, codi
 
 ## About this site
 
-- Pricing: coming soon. https://fibonax.com/pricing/
+- Company facts for AI assistants: https://fibonax.com/ai-info/
+- Pricing: free daily allowance; from January 1, 2027, one-time FiboToken packs or an unlimited monthly plan. https://fibonax.com/pricing/
 - Languages: English (https://fibonax.com/), Italian (https://fibonax.com/it/), Spanish (https://fibonax.com/es/)
 - Source code: https://github.com/locoprice/Fibonax
 - Service status: https://fibonax.instatus.com/

@@ -40,7 +40,9 @@ Fibonax/
 │   └── docs/                          # VISUAL_FOUNDATIONS, CONTENT, ICONOGRAPHY
 │
 ├── scripts/                           # Node.js CI helper scripts
-│   ├── check-version.js               # Enforces manifest ≈ package.json version parity
+│   ├── version-stamps.js              # Every place the release number is written, listed once
+│   ├── bump-version.js                # Checks develop on GitHub, writes the next free number to every stamp
+│   ├── check-version.js               # Fails when any stamp drifts from extension/manifest.json
 │   ├── check-snippets.js              # Validates formula/template syntax
 │   └── check-expansion.js            # Pins when a typed trigger expands + its delete span
 │
@@ -67,7 +69,7 @@ Local module rules extend but never weaken the root standards.
 ### GitHub Actions (`.github/workflows/ci.yml`)
 Runs on every push to `develop`. Three gates must pass:
 
-1. **Version parity** — `scripts/check-version.js` verifies `extension/manifest.json` version matches `app/package.json`. Both must be kept in sync; increment together.
+1. **Version parity**: `scripts/check-version.js` verifies that every stamp in `scripts/version-stamps.js` (12 files, 14 stamps) matches `extension/manifest.json`. Bump with `node scripts/bump-version.js <patch|minor>` as the last step before a commit; it stops when this copy is behind develop on GitHub.
 2. **Formula validation** — `scripts/check-snippets.js` validates snippet template/formula syntax.
 3. **Trigger expansion** — `scripts/check-expansion.js` pins when a typed trigger expands and how many characters it removes (a shortcut that opens a longer word must not fire mid-word).
 4. **File structure** — Asserts `extension/manifest.json`, `app/index.html`, and `app/package.json` exist.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageBanner } from '@/components/layout/PageBanner';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -6,9 +6,9 @@ import { InactiveAssetBanner } from '@/components/shared/InactiveAssetBanner';
 import { useTeamLastUseRefresh } from '@/components/shared/TeamLastUseLine';
 import { FolderBreadcrumb } from '@/features/org/FolderBreadcrumb';
 import { LabelManagerDialog } from '@/features/labels/LabelManagerDialog';
+import { LibraryButton, LibraryDialog } from '@/features/library/LibraryDialog';
 import { BulkActionsBar } from '@/features/snippets/BulkActionsBar';
 import { FilterToolbar } from '@/features/snippets/FilterToolbar';
-import { ImportExportButtons, type ImportResult } from '@/features/snippets/ImportExportButtons';
 import { NewSnippetDialog } from '@/features/snippets/NewSnippetDialog';
 import { SnippetFolderTree } from '@/features/snippets/SnippetFolderTree';
 import { SnippetsTable } from '@/features/snippets/SnippetsTable';
@@ -39,8 +39,6 @@ export function SnippetsPage() {
   // between reading the table and scrolling it sideways, so it can be put away.
   // The toggle itself sits in the filter bar.
   const railOpen = useUiStore((s) => s.foldersRailOpen);
-
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
   // ── Unused-snippet notice (INACTIVE-001) ──────────────────────────────────
   const openEditSnippet = useUiStore((s) => s.openEditSnippet);
@@ -103,6 +101,7 @@ export function SnippetsPage() {
     <>
       <VersionHistoryPanel />
       <LabelManagerDialog />
+      <LibraryDialog section="snippets" />
       <PageHeader
         breadcrumb={
           selectedFolder ? (
@@ -122,7 +121,7 @@ export function SnippetsPage() {
         }
         action={
           <>
-            <ImportExportButtons onResult={setImportResult} />
+            <LibraryButton section="snippets" />
             <NewSnippetDialog />
           </>
         }
@@ -141,17 +140,6 @@ export function SnippetsPage() {
         onModify={openEditSnippet}
         onDelete={(id) => void removeSnippet(id)}
       />
-
-      {importResult && (
-        <PageBanner
-          tone={importResult.ok ? 'success' : 'error'}
-          onDismiss={() => setImportResult(null)}
-        >
-          {importResult.ok
-            ? `${importResult.count} snippet${importResult.count !== 1 ? 's' : ''} imported successfully${importResult.skipped > 0 ? ` · ${importResult.skipped} skipped` : ''}.`
-            : importResult.message}
-        </PageBanner>
-      )}
 
       <div className="flex gap-8">
         {railOpen && <SnippetFolderTree />}

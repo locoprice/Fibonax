@@ -11,7 +11,6 @@
   'use strict';
 
   var F = window.SBFocus;
-  var JPEG_QUALITY = 0.82;
   var stored = null;   // what is saved, as last read
   var gallery = null;  // the carousel on screen, if any
 
@@ -82,7 +81,7 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close();
-      return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+      return canvas.toDataURL('image/jpeg', F.PHOTO_QUALITY);
     });
   }
 

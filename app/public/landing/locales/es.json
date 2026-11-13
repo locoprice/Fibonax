@@ -284,7 +284,7 @@
     {
       "find": "aria-label=\"Close\"",
       "replace": "aria-label=\"Cerrar\"",
-      "count": 3
+      "count": 4
     },
     {
       "find": "aria-label=\"Menu\"",
@@ -344,7 +344,7 @@
     {
       "find": "<span>No download required</span>",
       "replace": "<span>Sin descargas</span>",
-      "count": 2
+      "count": 1
     },
     {
       "find": "<footer class=\"sb-footer\">One account &nbsp;·&nbsp; Three surfaces &nbsp;·&nbsp; Always in sync</footer>",
@@ -827,54 +827,99 @@
       "count": 1
     },
     {
-      "find": "Interactive screenshot with depth and perspective",
-      "replace": "Captura interactiva con profundidad y perspectiva",
+      "find": "alt=\"The official Chrome Web Store screenshot of the Fibonax extension: its popup with the prompt library, under the headline Type once. Use it everywhere.\"",
+      "replace": "alt=\"La captura oficial de Chrome Web Store de la extensión Fibonax: su ventana con la biblioteca de prompts, bajo el titular Type once. Use it everywhere.\"",
       "count": 1
     },
     {
-      "find": "Pause animation",
-      "replace": "Pausar animación",
-      "count": 2
+      "find": "alt=\"The Fibonax web dashboard with the snippets library, each snippet with its shortcut and folder\"",
+      "replace": "alt=\"El dashboard web de Fibonax con la biblioteca de snippets, cada uno con su atajo y su carpeta\"",
+      "count": 1
     },
     {
-      "find": "Resume animation",
-      "replace": "Reanudar animación",
+      "find": "alt=\"The Fibonax mobile website with a search box and the list of snippets\"",
+      "replace": "alt=\"El sitio móvil de Fibonax con el buscador y la lista de snippets\"",
+      "count": 1
+    },
+    {
+      "find": "alt=\"The Security settings in the Fibonax dashboard, listing the devices signed in to the account\"",
+      "replace": "alt=\"Los ajustes de seguridad en el dashboard de Fibonax, con la lista de dispositivos conectados a la cuenta\"",
+      "count": 1
+    },
+    {
+      "find": "data-source-label=\"Fibonax · Web Dashboard\"",
+      "replace": "data-source-label=\"Fibonax · Dashboard web\"",
+      "count": 1
+    },
+    {
+      "find": "data-source-label=\"Fibonax · Security settings\"",
+      "replace": "data-source-label=\"Fibonax · Ajustes de seguridad\"",
+      "count": 1
+    },
+    {
+      "find": ">In your browser<",
+      "replace": ">En tu navegador<",
+      "count": 1
+    },
+    {
+      "find": "<span>You save</span>",
+      "replace": "<span>Tú guardas</span>",
+      "count": 1
+    },
+    {
+      "find": "<span>Fibonax syncs it</span>",
+      "replace": "<span>Fibonax lo sincroniza</span>",
+      "count": 1
+    },
+    {
+      "find": "<p>Ready in the extension and on your phone.</p>",
+      "replace": "<p>Listo en la extensión y en tu teléfono.</p>",
+      "count": 1
+    },
+    {
+      "find": ">On your phone<",
+      "replace": ">En tu teléfono<",
+      "count": 1
+    },
+    {
+      "find": "<span>You tap</span>",
+      "replace": "<span>Tú tocas</span>",
+      "count": 1
+    },
+    {
+      "find": "<span>Fibonax copies</span>",
+      "replace": "<span>Fibonax copia</span>",
+      "count": 1
+    },
+    {
+      "find": "<p>Hi Sam, the first draft is ready for your review.</p>",
+      "replace": "<p>Hola Sam, el primer borrador está listo para que lo revises.</p>",
+      "count": 1
+    },
+    {
+      "find": ">In Settings<",
+      "replace": ">En Ajustes<",
+      "count": 1
+    },
+    {
+      "find": "<span>You click</span>",
+      "replace": "<span>Tú haces clic</span>",
+      "count": 1
+    },
+    {
+      "find": "<span>Fibonax signs out</span>",
+      "replace": "<span>Fibonax cierra la sesión</span>",
+      "count": 1
+    },
+    {
+      "find": "<p>Every device, at once.</p>",
+      "replace": "<p>En todos los dispositivos, a la vez.</p>",
       "count": 1
     },
     {
       "find": "Screenshot:",
       "replace": "Captura:",
       "count": 1
-    },
-    {
-      "find": "fibonax.com · Security",
-      "replace": "fibonax.com · Seguridad",
-      "count": 1
-    },
-    {
-      "find": "Fibonax extension and snippet picker, cropped from the official Chrome Web Store screenshot",
-      "replace": "Extensión Fibonax y selector de snippets, recortados de la captura oficial de Chrome Web Store",
-      "count": 1
-    },
-    {
-      "find": "Fibonax web dashboard prompt library, cropped from the official Chrome Web Store screenshot",
-      "replace": "Biblioteca de prompts del dashboard web de Fibonax, recortada de la captura oficial de Chrome Web Store",
-      "count": 1
-    },
-    {
-      "find": "The four security features captured directly from the live Fibonax website",
-      "replace": "Las cuatro funciones de seguridad capturadas directamente del sitio de Fibonax",
-      "count": 1
-    },
-    {
-      "find": "<span>Always in sync</span>",
-      "replace": "<span>Siempre sincronizado</span>",
-      "count": 1
-    },
-    {
-      "find": "Fibonax mobile snippet form with language selection and copy preview",
-      "replace": "Formulario de fragmento móvil de Fibonax con selección de idioma y vista previa para copiar",
-      "count": 2
     },
     {
       "find": "data-source-label=\"Fibonax · Mobile Website\"",
@@ -982,8 +1027,8 @@
       "count": 1
     },
     {
-      "find": "Thresholds and rates will be announced before activation.",
-      "replace": "Los límites y las tarifas se comunicarán antes de la activación.",
+      "find": "See the pricing page for allowances and rates.",
+      "replace": "Consulta la página de precios para ver los límites y las tarifas.",
       "count": 1
     },
     {
@@ -1079,7 +1124,7 @@
     {
       "find": "<span class=\"sr-only\"> (opens in a new tab)</span>",
       "replace": "<span class=\"sr-only\"> (se abre en una pestaña nueva)</span>",
-      "count": 2
+      "count": 3
     },
     {
       "find": "content=\"Fibonax: Your context. Every AI. One direction.\"",
@@ -1089,6 +1134,31 @@
     {
       "find": "\"description\": \"One place for your Snippets, Prompts and Brains. Built to give every AI the context it needs to work better.\"",
       "replace": "\"description\": \"Un solo lugar para tus Snippets, Prompts y Brains. Diseñado para dar a cada IA el contexto que necesita para trabajar mejor.\"",
+      "count": 1
+    },
+    {
+      "find": "data-loading=\"Loading the chart from Google.\" data-failed=\"The chart didn't load. A content blocker or a weak connection may be stopping it. Try again, or open it in Google Trends.\" data-retry=\"Try again\" data-chart-label=\"Google Trends chart of searches for prompt manager and prompt library\"",
+      "replace": "data-loading=\"Cargando el gráfico de Google.\" data-failed=\"El gráfico no se ha cargado. Puede que lo bloquee un bloqueador de anuncios o que la conexión sea débil. Vuelve a intentarlo o ábrelo en Google Trends.\" data-retry=\"Reintentar\" data-chart-label=\"Gráfico de Google Trends con las búsquedas de prompt manager y prompt library\"",
+      "count": 1
+    },
+    {
+      "find": "      <h2 id=\"trends-title\">How often people search for prompt tools.</h2>\n      <p>Live from Google Trends: worldwide searches for \"prompt manager\" and \"prompt library\" over the past five years. 100 marks the busiest week.</p>",
+      "replace": "      <h2 id=\"trends-title\">Cuánto se buscan las herramientas de prompts.</h2>\n      <p>En directo desde Google Trends: búsquedas de \"prompt manager\" y \"prompt library\" en todo el mundo en los últimos cinco años. 100 marca la semana con más búsquedas.</p>",
+      "count": 1
+    },
+    {
+      "find": "<p>The chart loads from Google, and Google may set cookies when it does, so it waits for you. See the <a href=\"/legal/cookie-policy.html#third-party-cookies\">cookie policy</a>.</p>",
+      "replace": "<p>El gráfico viene de Google, que puede instalar cookies al cargarlo: por eso solo se abre cuando tú lo pides. Consulta la <a href=\"/legal/cookie-policy.html#third-party-cookies\">política de cookies</a>.</p>",
+      "count": 1
+    },
+    {
+      "find": "data-trends-load>Show live chart</button>",
+      "replace": "data-trends-load>Ver el gráfico en directo</button>",
+      "count": 1
+    },
+    {
+      "find": "rel=\"noopener\">Open in Google Trends<svg",
+      "replace": "rel=\"noopener\">Abrir en Google Trends<svg",
       "count": 1
     },
     {
@@ -1127,8 +1197,8 @@
       "count": 1
     },
     {
-      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">How much does it cost?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Anyone who signs up by December 31, 2026 keeps Fibonax free for life. From January 1, 2027, new accounts start with a free usage allowance and then pay only for what they use. There is no monthly or yearly subscription. See the <a href=\"pricing/\">pricing page</a>.</p></div>\n      </details>",
-      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">¿Cuánto cuesta?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Quien se registre antes del 31 de diciembre de 2026 conserva Fibonax gratis de por vida. Desde el 1 de enero de 2027, las cuentas nuevas empiezan con un uso gratuito incluido y después pagan solo por lo que usan. No hay suscripción mensual ni anual. Consulta la <a href=\"pricing/\">página de precios</a>.</p></div>\n      </details>",
+      "find": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">How much does it cost?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Anyone who signs up by December 31, 2026 keeps Fibonax free for life. From January 1, 2027, new accounts get a free daily allowance. Beyond it, buy FiboTokens once, or choose the unlimited monthly plan. No subscription is required. See the <a href=\"pricing/\">pricing page</a>.</p></div>\n      </details>",
+      "replace": "      <details class=\"faq-item\" itemscope itemprop=\"mainEntity\" itemtype=\"https://schema.org/Question\">\n        <summary class=\"faq-q\"><span itemprop=\"name\">¿Cuánto cuesta?</span><span class=\"faq-icon\" aria-hidden=\"true\"></span></summary>\n        <div class=\"faq-a\" itemscope itemprop=\"acceptedAnswer\" itemtype=\"https://schema.org/Answer\"><p itemprop=\"text\">Quien se registre antes del 31 de diciembre de 2026 conserva Fibonax gratis de por vida. Desde el 1 de enero de 2027, las cuentas nuevas tienen un uso gratuito diario. Si necesitas más, compra FiboTokens una sola vez o elige el plan mensual ilimitado. La suscripción no es obligatoria. Consulta la <a href=\"pricing/\">página de precios</a>.</p></div>\n      </details>",
       "count": 1
     },
     {
@@ -1139,6 +1209,76 @@
     {
       "find": "Still have a question? <a href=\"mailto:fibonaxai@gmail.com\">Write to us</a> or read the <a href=\"https://docs.fibonax.com/\" target=\"_blank\" rel=\"noopener\">user guide</a>.",
       "replace": "¿Todavía tienes una pregunta? <a href=\"mailto:fibonaxai@gmail.com\">Escríbenos</a> o lee la <a href=\"https://docs.fibonax.com/\" target=\"_blank\" rel=\"noopener\">guía de usuario</a>.",
+      "count": 1
+    },
+    {
+      "find": "<a href=\"/ai-info/\">Company facts</a>",
+      "replace": "<a href=\"/ai-info/\">Datos de la empresa</a>",
+      "count": 1
+    },
+    {
+      "find": ">FiboToken exchange rate<",
+      "replace": ">Tipo de cambio del FiboToken<",
+      "count": 1
+    },
+    {
+      "find": ">Current exchange rate<",
+      "replace": ">Tipo de cambio actual<",
+      "count": 1
+    },
+    {
+      "find": "> Variable rate<",
+      "replace": "> Tipo variable<",
+      "count": 2
+    },
+    {
+      "find": ">is worth<",
+      "replace": ">vale<",
+      "count": 1
+    },
+    {
+      "find": "</strong> FiboTokens · Rate set on <span",
+      "replace": "</strong> FiboTokens · Tipo fijado el <span",
+      "count": 1
+    },
+    {
+      "find": "Like a currency, the FiboToken rate is variable: it can change over time and move with the market. A new rate applies to new packs only. FiboTokens you already own keep their value: one FiboToken, one use.",
+      "replace": "Como una divisa, el tipo del FiboToken es variable: puede cambiar con el tiempo y oscilar con el mercado. Un nuevo tipo solo se aplica a los paquetes nuevos. Los FiboTokens que ya tienes conservan su valor: un FiboToken, un uso.",
+      "count": 1
+    },
+    {
+      "find": "FiboToken packs go on sale on <span",
+      "replace": "Los paquetes de FiboTokens estarán a la venta a partir del <span",
+      "count": 1
+    },
+    {
+      "find": ">See the packs<",
+      "replace": ">Ver los paquetes<",
+      "count": 1
+    },
+    {
+      "find": ">Show the exchange rate details<",
+      "replace": ">Mostrar los detalles del tipo de cambio<",
+      "count": 1
+    },
+    {
+      "find": "data-rate=\"rate\">€0.01<",
+      "replace": "data-rate=\"rate\">€0,01<",
+      "count": 2
+    },
+    {
+      "find": "data-rate=\"exampleTokens\">2,500<",
+      "replace": "data-rate=\"exampleTokens\">2500<",
+      "count": 1
+    },
+    {
+      "find": "data-rate=\"setOn\">October 28, 2026<",
+      "replace": "data-rate=\"setOn\">28 de octubre de 2026<",
+      "count": 1
+    },
+    {
+      "find": "data-rate=\"packsFrom\" data-iso=\"2027-01-01\">January 1, 2027<",
+      "replace": "data-rate=\"packsFrom\" data-iso=\"2027-01-01\">1 de enero de 2027<",
       "count": 1
     }
   ],
@@ -1304,8 +1444,8 @@
       "count": 3
     },
     {
-      "find": ">€4.90<",
-      "replace": ">€4,90<",
+      "find": ">€9.90<",
+      "replace": ">€9,90<",
       "count": 2
     },
     {
@@ -1339,13 +1479,13 @@
       "count": 1
     },
     {
-      "find": ">per month<",
-      "replace": ">al mes<",
+      "find": ">/month<",
+      "replace": ">/mes<",
       "count": 1
     },
     {
-      "find": "Unlimited snippets, prompts and Brains for one small monthly price. No FiboTokens to count.",
-      "replace": "Snippets, prompts y Brains ilimitados por un pequeño precio mensual. Sin FiboTokens que contar.",
+      "find": "<p class=\"plan-tagline\">No FiboTokens to count.</p>",
+      "replace": "<p class=\"plan-tagline\">Sin FiboTokens que contar.</p>",
       "count": 1
     },
     {
@@ -2067,6 +2207,11 @@
       "find": ">2,500<",
       "replace": ">2500<",
       "count": 3
+    },
+    {
+      "find": "</svg>Rate details<",
+      "replace": "</svg>Detalles del tipo<",
+      "count": 1
     }
   ]
 }

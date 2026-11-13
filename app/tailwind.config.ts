@@ -38,6 +38,12 @@ const config: Config = {
           DEFAULT: '#D70015',
           bg: '#FEF2F2',
         },
+        // Beige for the Beta tag on a section still being built. The text
+        // holds 5:1 contrast on the fill.
+        sand: {
+          DEFAULT: '#F2E6D3',
+          ink: '#7A5A2B',
+        },
       },
       fontFamily: {
         sans: [

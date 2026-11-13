@@ -1,11 +1,37 @@
 import type { ReactElement } from 'react';
 import { Lock } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { KeywordSphere } from '@/components/shared/KeywordSphere';
+import type { Keyword } from '@/components/shared/KeywordSphere';
 import { Card } from '@/components/ui/card';
+
+/** The topics the section will cover, turning as a sphere above the board. */
+const KEYWORDS: ReadonlyArray<Keyword> = [
+  { word: 'Market leader', size: 'sm' },
+  { word: 'Mission', size: 'md' },
+  { word: 'ROI', size: 'sm' },
+  { word: 'Benchmark', size: 'md' },
+  { word: 'Short-term strategy', size: 'sm' },
+  { word: 'Vision', size: 'md' },
+  { word: 'ROE', size: 'sm' },
+  { word: 'SWOT analysis', size: 'lg' },
+  { word: 'Technique', size: 'sm' },
+  { word: 'Strategy', size: 'lg' },
+  { word: 'Medium-term strategy', size: 'sm' },
+  { word: 'Kaizen', size: 'lg' },
+  { word: 'ROS', size: 'sm' },
+  { word: 'Business plan', size: 'md' },
+  { word: 'Market follower', size: 'sm' },
+  { word: 'Forecasting', size: 'md' },
+  { word: 'Long-term strategy', size: 'sm' },
+  { word: 'Competitor', size: 'md' },
+  { word: 'Key performance indicator', size: 'sm' },
+];
 
 /**
  * Business Intelligence: a Pro section that is not built yet. The page holds
- * its place in the sidebar and says so plainly, then offers a Lichess puzzle.
+ * its place in the sidebar and says so plainly, shows the topics it will
+ * cover, then offers a Lichess puzzle.
  */
 export function BusinessIntelligencePage(): ReactElement {
   return (
@@ -16,6 +42,7 @@ export function BusinessIntelligencePage(): ReactElement {
           <Lock className="h-5 w-5" aria-hidden />
         </span>
         <h2 className="text-lg font-semibold text-ink">Coming soon / Pro Users</h2>
+        <KeywordSphere words={KEYWORDS} label="Topics this section will cover" />
         {/* A chess puzzle to try while the section is being built. Lichess's
             widget is a preview that navigates away on click, so the board
             takes no clicks itself: the link around it opens the puzzle on

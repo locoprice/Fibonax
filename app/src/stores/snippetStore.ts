@@ -15,14 +15,10 @@ import { snippetGroupKey } from '@/lib/snippetGrouping';
 import { nextSort, type SortDir } from '@/lib/sortToggle';
 import { expandWithDescendants } from '@/lib/labelTree';
 import { reviewApi } from '@/lib/api/reviewApi';
+import type { ImportBatchResult } from '@/lib/fileIo';
 import type { NewItemOptions, ReviewStatus } from '@/lib/reviewStatus';
 
 export type SortColumn = 'updated_at' | 'usage_count' | 'name';
-
-export interface ImportBatchResult {
-  imported: number;
-  failed: number;
-}
 
 interface SnippetStore {
   folders: Folder[];

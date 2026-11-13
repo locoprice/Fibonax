@@ -410,6 +410,10 @@ function sbApplyCompanyFavicon(meta) {
 
 // ── CHANGELOG ─────────────────────────────────────────────────────
 var CHANGELOG = [
+  { version:'v3.122.0', date:'2026-11-11', label:'Pomodoro timer starts by itself',
+    changes:[
+      {type:'new', text:'Tick Start automatically in the Pomodoro timer and you never have to press Start again. The timer starts when Chrome opens, when you come back to your computer, and with a new block after the long break. It never starts by itself on your detox day, and after Stop it waits 30 minutes.'}
+    ]},
   { version:'v3.111.0', date:'2026-11-01', label:'Pomodoro timer',
     changes:[
       {type:'new', text:'A Pomodoro timer in the popup, after the technique Francesco Cirillo created in the 1980s. Click the clock at the top right, then Start: work sessions with a short break after each one, and a long break at the end of the block. Pick the lengths and turn the chime on or off in the same place.'},
@@ -1422,6 +1426,55 @@ function updateDetailPreview(id){
   }
   if(wrap) window.SBFillFormUI.pictureNote(wrap.querySelector('.ff-picnote'), vm, 'copy');
 }
+// ── OFTEN SENT NEXT ────────────────────────────────────────────────
+// "Add Firma after it" above the Copy buttons of the open snippet: the snippet
+// usually sent right after it, the offer the page's fill window shows. What
+// comes next is background.js's sb_next, read from the use history; whether to
+// offer it, and its words, come from fill-form-ui.js. Ticked, Copy puts it
+// after the text, a blank line between, and counts a use of each.
+var nextMap={}, nextHidden={}, detailNext=null;
+try{
+  chrome.storage.local.get(['sb_next','sb_next_hidden'], function(d){
+    nextMap=d&&d.sb_next&&d.sb_next.map?d.sb_next.map:{};
+    nextHidden=(d&&d.sb_next_hidden)||{};
+  });
+  chrome.storage.onChanged.addListener(function(changes, area){
+    if(area!=='local') return;
+    if(changes.sb_next) nextMap=changes.sb_next.newValue&&changes.sb_next.newValue.map?changes.sb_next.newValue.map:{};
+    if(changes.sb_next_hidden) nextHidden=changes.sb_next_hidden.newValue||{};
+  });
+}catch(e){ console.error('[Fibonax] could not read what usually comes next:', e); }
+
+function mountDetailNext(wrap){
+  detailNext=null;
+  var ui=window.SBFillFormUI;
+  var s=findSnip(wrap.getAttribute('data-detail'));
+  var acts=wrap.querySelector('.d-acts');
+  if(!s||!ui||!acts) return;
+  var next=ui.nextFor(nextMap, s.id, snips, nextHidden);
+  if(!next) return;
+  var offer=ui.nextOffer(document, next, function(){
+    nextHidden=ui.hideNext(nextHidden, s.id, next.id);
+    detailNext=null;
+    try{ chrome.storage.local.set({ sb_next_hidden: nextHidden }); }
+    catch(e){ console.error('[Fibonax] could not remember the hidden suggestion:', e); }
+  });
+  wrap.insertBefore(offer.el, acts);
+  detailNext={ id:s.id, snip:next, offer:offer };
+}
+
+// The text (and its formatted copy) with the next snippet after it, when ticked.
+function withDetailNext(s, text, html){
+  var n=detailNext&&detailNext.id===s.id&&detailNext.offer.checked()?detailNext.snip:null;
+  if(!n) return { text:text, html:html||null, next:null };
+  var t=window.SBFillFormUI.nextText(n);
+  return {
+    text: text+window.SBFillFormUI.NEXT_SEPARATOR+t.text,
+    html: html?html+'<br><br>'+(t.formatted||esc(t.text).replace(/\n/g,'<br>')):null,
+    next: n
+  };
+}
+
 function copyFilled(id){
   var s=findSnip(id); if(!s) return;
   var body=detailActiveBody(s);
@@ -1430,9 +1483,11 @@ function copyFilled(id){
   if(!window.SBFillFormUI.validate(form,vm)) return;
   var out=vm.preview;
   checkThenCopy(s, out, vm, form, function(){
-    copyWithPictures(out, vm.formatted);
+    var all=withDetailNext(s, out, vm.formatted);
+    copyWithPictures(all.text, all.html);
     logSnippetCopy(s, vm.fields.length);
-    showToast('Copied filled text');
+    if(all.next) logSnippetCopy(all.next, 0);
+    showToast(all.next?'Copied with '+all.next.title:'Copied filled text');
   });
 }
 // The text, and with a text that has pictures its formatted copy too: an email
@@ -1838,7 +1893,8 @@ function renderList(q){
         return;
       }
     }
-    el.innerHTML='<div class="empty">'+(q?'No matches for &ldquo;'+esc(q)+'&rdquo;.':'No snippets yet.<br><small>Create snippets in the dashboard.</small>')+'</div>';
+    el.innerHTML='<div class="empty">'+(q?'No matches for &ldquo;'+esc(q)+'&rdquo;.':'No snippets yet.<br><small>Create snippets in the dashboard.</small>'+libraryLinkHtml('snippets'))+'</div>';
+    wireLibraryLink(el);
     return;
   }
 
@@ -1976,6 +2032,7 @@ function wireListRows(el){
   // The open snippet's pictures are drawn into its preview once it is on screen.
   el.querySelectorAll('.detail[data-detail]').forEach(function(wrap){
     if(wrap.querySelector('.ff-picnote')) updateDetailPreview(wrap.getAttribute('data-detail'));
+    mountDetailNext(wrap);
   });
 }
 
@@ -2368,9 +2425,11 @@ function copyFinishedBody(id){
   var lang=(detailLang && vars[detailLang]) ? detailLang : (s.lang||'EN');
   var body=detailBody(s, lang, vars);
   checkThenCopy(s, body, null, null, function(){
-    try{ navigator.clipboard.writeText(body||''); }catch(e){}
+    var all=withDetailNext(s, body||'', null);
+    try{ navigator.clipboard.writeText(all.text); }catch(e){ console.error('[Fibonax] copy refused:', e); }
     logSnippetCopy(s, 0);
-    showToast('Copied '+lang+' body');
+    if(all.next) logSnippetCopy(all.next, 0);
+    showToast(all.next?'Copied with '+all.next.title:'Copied '+lang+' body');
   });
 }
 
@@ -2397,7 +2456,8 @@ function renderPrompts(q) {
   }
   if (ct) ct.textContent = prompts.length;
   if (!filtered.length) {
-    el.innerHTML = '<div class="p-empty">'+(q?'No prompts match &ldquo;'+esc(q)+'&rdquo;':'No prompts yet.<br>Create and edit prompts in the <strong>dashboard</strong>.')+'</div>';
+    el.innerHTML = '<div class="p-empty">'+(q?'No prompts match &ldquo;'+esc(q)+'&rdquo;':'No prompts yet.<br>Create and edit prompts in the <strong>dashboard</strong>.'+libraryLinkHtml('prompts'))+'</div>';
+    wireLibraryLink(el);
     return;
   }
   // Pinned prompts float to the top (pin is set on the dashboard or mobile);
@@ -2617,7 +2677,8 @@ function renderBrains(q){
   }
   el.setAttribute('aria-busy', 'false');
   if (!brains.length) {
-    el.innerHTML = '<div class="p-empty">No Brains yet.<br>Create one in the <strong>dashboard</strong>.</div>';
+    el.innerHTML = '<div class="p-empty">No Brains yet.<br>Create one in the <strong>dashboard</strong>.'+libraryLinkHtml('brains')+'</div>';
+    wireLibraryLink(el);
     return;
   }
   var lq = String(q || '').trim().toLowerCase();
@@ -2841,7 +2902,37 @@ function setMode(m) {
 // dashboard; the pane only mirrors state and hosts the two local prefs.
 function openCfg(){
   applyTriggerCfgToInputs();
+  renderRate();
   show('pane-cfg');
+}
+
+// FIBOTOKEN EXCHANGE RATE in Settings: read-only, drawn from
+// shared/fibotoken-rate.js each time the pane opens, so the "on sale" line
+// follows the clock. Rate details opens the rest in place.
+function renderRate(){
+  var root = gi('cfg-rate');
+  if (!root) return;
+  if (typeof SBFiboTokenRate === 'undefined') { root.style.display = 'none'; return; }
+  var v = SBFiboTokenRate.view(Date.now());
+  root.querySelectorAll('[data-rate]').forEach(function(n){ n.textContent = v[n.getAttribute('data-rate')]; });
+  gi('rate-worth').textContent = v.worth;
+  gi('rate-note').textContent = SBFiboTokenRate.DISCLAIMER;
+  var packs = gi('rate-packs');
+  packs.textContent = v.packsNote || '';
+  packs.hidden = !v.packsNote;
+}
+function toggleRate(){
+  var tog = gi('rate-tog');
+  var more = gi('rate-more');
+  var open = tog.getAttribute('aria-expanded') !== 'true';
+  tog.setAttribute('aria-expanded', open ? 'true' : 'false');
+  more.hidden = !open;
+  if (open) more.scrollIntoView({ block: 'nearest' });
+}
+function openPricing(){
+  var url = SBFiboTokenRate.PRICING_URL;
+  try { chrome.tabs.create({ url: url }); }
+  catch(e) { try { window.open(url, '_blank'); } catch(e2) {} }
 }
 
 // POMODORO TIMER: the pane and the header button ("focus" is its name inside
@@ -2849,7 +2940,6 @@ function openCfg(){
 // shared/focus-timer.js holds its rules; the popup draws the stored state and
 // sends the background what was clicked.
 var FOCUS_SELECTS = ['fo-work', 'fo-break', 'fo-sessions', 'fo-long', 'fo-detox'];
-var FOCUS_UNITS = { workMin: ' minutes', breakMin: ' minutes', longMin: ' minutes', sessions: ' sessions' };
 var focusState = null;
 var focusActsKey = '';
 var focusTickFor = 0;
@@ -2879,13 +2969,9 @@ function focusText(id, text) {
 }
 
 function focusButtons(v) {
-  function b(act, text, cls) {
-    return '<button type="button" class="fo-btn' + (cls ? ' ' + cls : '') + '" data-act="' + act + '">' + text + '</button>';
-  }
-  if (v.mode === 'idle') return b('start', 'Start', 'primary');
-  if (v.mode === 'paused') return b('resume', 'Resume', 'primary') + b('stop', 'Stop');
-  if (v.mode === 'break') return b('skip', 'Skip this break') + b('stop', 'Stop');
-  return b('pause', 'Pause') + b('stop', 'Stop') + b('ask', 'I need a break now', 'link');
+  return SBFocus.actions(v).map(function(a) {
+    return '<button type="button" class="fo-btn' + (a.style ? ' ' + a.style : '') + '" data-act="' + a.act + '">' + a.text + '</button>';
+  }).join('');
 }
 
 function renderFocus() {
@@ -2949,6 +3035,8 @@ function renderFocus() {
   });
   var ch = gi('fo-chime');
   if (ch && document.activeElement !== ch) ch.checked = v.settings.chime;
+  var au = gi('fo-auto');
+  if (au && document.activeElement !== au) au.checked = v.settings.autoStart;
 }
 
 function openFocus(){
@@ -2963,8 +3051,7 @@ function focusInit() {
     if (!sel) return;
     var key = sel.getAttribute('data-key');
     sel.innerHTML = SBFocus.OPTIONS[key].map(function(n) {
-      var text = key === 'detoxDay' ? SBFocus.DAY_NAMES[n] : n + FOCUS_UNITS[key];
-      return '<option value="' + n + '">' + text + '</option>';
+      return '<option value="' + n + '">' + SBFocus.optionLabel(key, n) + '</option>';
     }).join('');
     sel.addEventListener('change', function() {
       var patch = {};
@@ -2974,6 +3061,9 @@ function focusInit() {
   });
   on('fo-chime', 'change', function() {
     focusSend({ type: 'settings', settings: { chime: gi('fo-chime').checked } });
+  });
+  on('fo-auto', 'change', function() {
+    focusSend({ type: 'settings', settings: { autoStart: gi('fo-auto').checked } });
   });
 
   chrome.storage.local.get(SBFocus.STORAGE_KEY, function(d) {
@@ -3068,11 +3158,30 @@ function openDashboard(){
   }
 }
 
+// Starter library — the empty Snippets, Prompts and Brains lists offer it.
+// The dashboard page opens its library window when its address carries
+// ?library (LibraryDialog), and sign-in keeps the address.
+var SB_LIBRARY_PATHS = { snippets: '', prompts: 'prompts', brains: 'memory' };
+function libraryLinkHtml(section){
+  return '<br><button class="lib-link" type="button" data-library="'+section+'">Browse the starter library</button>';
+}
+function wireLibraryLink(el){
+  var b = el.querySelector('[data-library]');
+  if (!b) return;
+  b.addEventListener('click', function(){
+    var url = SB_DASHBOARD_HOME_URL + SB_LIBRARY_PATHS[b.getAttribute('data-library')] + '?library';
+    try { chrome.tabs.create({ url: url }); }
+    catch(e) { try { window.open(url, '_blank'); } catch(e2) {} }
+  });
+}
+
 // WIRE EVENTS
 function on(id,ev,fn){ var e=gi(id); if(e) e.addEventListener(ev,fn); }
 on('bcfg','click',    openCfg);
 on('bdash','click',   openDashboard);
 on('bmanage','click', openDashboard);
+on('rate-tog','click', toggleRate);
+on('rate-go','click',  openPricing);
 on('bbcfg','click',   function(){ show('pane-list'); refreshUI(); });
 on('bfocus','click',  openFocus);
 on('bbfocus','click', function(){ show('pane-list'); refreshUI(); });
@@ -3378,7 +3487,6 @@ on('sq','paste', function(){ setTimeout(function(){
 var OTP_TTL_MS = 55 * 60 * 1000; // Supabase OTPs are valid for 60 min; bail at 55.
 
 var SB_DASHBOARD_LINK_URL = 'https://app.fibonax.com/extension-link';
-var SB_DELETE_ACCOUNT_URL = 'https://app.fibonax.com/settings?tab=account';
 
 (function initAuthGate() {
   var gate    = document.getElementById('sb-auth');
@@ -3480,15 +3588,6 @@ var SB_DELETE_ACCOUNT_URL = 'https://app.fibonax.com/settings?tab=account';
     if (signOutBtn && !signOutBtn._wired) {
       signOutBtn._wired = true;
       signOutBtn.addEventListener('click', function() { window.sbSignOut(); });
-    }
-    // Deleting an account names the teams it would delete and asks to confirm,
-    // so it lives in one place: the dashboard's Account settings.
-    var deleteAccountBtn = document.getElementById('sb-delete-account-btn');
-    if (deleteAccountBtn && !deleteAccountBtn._wired) {
-      deleteAccountBtn._wired = true;
-      deleteAccountBtn.addEventListener('click', function() {
-        try { chrome.tabs.create({ url: SB_DELETE_ACCOUNT_URL }); } catch(e) { window.open(SB_DELETE_ACCOUNT_URL, '_blank'); }
-      });
     }
     if (!booted) { booted = true; boot(); }
     // Runs after a session exists, because the capture card reads memory_spaces

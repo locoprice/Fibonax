@@ -48,3 +48,7 @@ Outside Codex's visual scope:
 ## Branch
 
 Only `develop`. Never create a branch, never push to `main`.
+
+---
+
+> "give an account of thy stewardship, for thou mayest be no longer steward" (Luke 16:2)

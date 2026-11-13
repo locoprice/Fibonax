@@ -235,6 +235,9 @@ A repeating alarm fires every 5 minutes so that a sign-out from another device r
 **offscreen**
 The Pomodoro timer plays a short chime when a work session or a break ends. A Manifest V3 service worker cannot play audio, so the extension opens a small offscreen page with the `AUDIO_PLAYBACK` reason that plays the chime and closes by itself. It reads no data and shows nothing.
 
+**idle**
+The Pomodoro timer has a "Start automatically" setting, off by default. When the user turns it on, the timer starts when they come back to the computer after a minute without keyboard or mouse input. The extension only asks Chrome whether the computer is active, idle or locked; the answer is used on the device and never stored or sent.
+
 **Host permission: `<all_urls>`**
 Snippet expansion must work in any text field on any website: CRMs, booking platforms, email clients, chat tools, AI chat interfaces, and internal dashboards all use different origins. Restricting to a fixed list of domains would make the core feature non-functional for most users. The content script runs at `document_idle`, injects no UI unless the user types a configured trigger, and reads no page content beyond the keystroke buffer needed for trigger detection.
 

@@ -142,28 +142,40 @@
       }
     }
 
-    // Two passes. Prefer the lower half of the viewport, which is where a chat
-    // composer lives, then widen to the whole page rather than returning
-    // nothing. A short page can put the composer above the midpoint, and one
-    // slightly odd anchor position beats no picker at all.
+    // Only the lower half of the viewport, which is where a chat composer lives.
+    // This used to widen to the whole page when the lower half had nothing, and
+    // that is how the button ended up on settings pages and search boxes: any
+    // large text box anywhere passed for a chat. A page the host's own
+    // selectors miss and whose lower half holds no editable is not a chat.
     var candidates = doc.querySelectorAll('textarea, div[contenteditable="true"], p[contenteditable="true"]');
     var midpoint = (root.innerHeight || 800) / 2;
 
-    function largest(requireLowerHalf) {
-      var best = null;
-      var bestArea = 0;
-      for (var k = 0; k < candidates.length; k++) {
-        var el = candidates[k];
-        if (!isVisible(el)) continue;
-        var rect = el.getBoundingClientRect();
-        if (requireLowerHalf && rect.top < midpoint) continue;
-        var area = rect.width * rect.height;
-        if (area > bestArea) { bestArea = area; best = el; }
-      }
-      return best;
+    var best = null;
+    var bestArea = 0;
+    for (var k = 0; k < candidates.length; k++) {
+      var el = candidates[k];
+      if (!isVisible(el)) continue;
+      var rect = el.getBoundingClientRect();
+      if (rect.top < midpoint) continue;
+      var area = rect.width * rect.height;
+      if (area > bestArea) { bestArea = area; best = el; }
     }
+    return best;
+  }
 
-    return largest(true) || largest(false);
+  /**
+   * True when something the site drew sits on top of the composer: a settings
+   * window, a dialog, a full-page menu. The button floats above the page, so
+   * without this it stayed in sight over whatever covered the chat. Tested at
+   * the middle of the composer's visible part; what is found there has to be
+   * the composer, something inside it (its text, its placeholder), or
+   * something around it. `skip` is the button's own host.
+   */
+  function isCovered(el, rect, doc, skip) {
+    if (typeof doc.elementFromPoint !== 'function') return false;
+    var hit = doc.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    if (!hit || hit === skip) return false;
+    return !(el === hit || el.contains(hit) || hit.contains(el));
   }
 
   function readComposer(el) {
@@ -179,12 +191,19 @@
   var CSS = [
     ':host{all:initial}',
     '*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}',
-    '.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:#FFFFFF;',
+    // At rest the button is the Fibonax T and nothing else. Clicked, it widens
+    // to show "Context" while the panel is open, then folds back.
+    '.pill{display:inline-flex;align-items:center;height:28px;min-width:28px;padding:0 4px;background:#FFFFFF;',
     'border:1px solid #BED0FF;border-radius:999px;font-size:12px;font-weight:600;color:#1B4FD8;',
-    'cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.04);line-height:1.2}',
+    'cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);line-height:1.2}',
     '.pill:hover{background:#EEF2FF}',
+    '.pill:focus-visible{outline:2px solid #1B4FD8;outline-offset:2px}',
     '.pill[data-active="1"]{background:#EEF2FF;border-color:#1B4FD8}',
-    '.dot{width:7px;height:7px;border-radius:50%;background:#1B4FD8;flex:0 0 auto}',
+    '.pill svg{width:18px;height:18px;flex:0 0 auto}',
+    '.lbl{max-width:0;margin:0;overflow:hidden;white-space:nowrap;opacity:0;',
+    'transition:max-width .18s ease,opacity .18s ease,margin .18s ease}',
+    '.pill[data-active="1"] .lbl{max-width:80px;margin:0 6px 0 4px;opacity:1}',
+    '@media (prefers-reduced-motion:reduce){.lbl{transition:none}}',
     '.menu{position:absolute;bottom:calc(100% + 8px);left:0;width:300px;max-height:340px;overflow-y:auto;',
     'background:#FFFFFF;border:1px solid #E5E5EA;border-radius:12px;padding:6px;',
     'box-shadow:0 4px 20px rgba(27,79,216,.12),0 1px 3px rgba(0,0,0,.06)}',
@@ -251,6 +270,15 @@
     'font-size:11px;color:#1C1C1E;cursor:pointer}',
     '.loading{padding:14px 10px;font-size:12px;color:#6E6E73}'
   ].join('');
+
+  // The Fibonax T, as on the landing page (landing/leib-tour-icon.png), drawn
+  // as strokes so it stays sharp at button size and needs no file from the
+  // extension: three lines a side, each a bar that turns down into the stem.
+  var T_MARK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" ' +
+    'aria-hidden="true" focusable="false"><path d="' +
+    'M0.8 2.4H9.6L11.1 4.6V19.4L12 20.6M2.2 3.8H8.4L9.7 5.8V18.6L12 20.9M3.6 5.2H7L8.1 6.9V17.4L12 21.3' +
+    'M23.2 2.4H14.4L12.9 4.6V19.4L12 20.6M21.8 3.8H15.6L14.3 5.8V18.6L12 20.9M20.4 5.2H17L15.9 6.9V17.4L12 21.3' +
+    '"/></svg>';
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -455,7 +483,10 @@
     var pill = doc.createElement('button');
     pill.type = 'button';
     pill.className = 'pill';
-    pill.innerHTML = '<span class="dot"></span><span>Context</span>';
+    pill.setAttribute('aria-label', 'Context');
+    pill.setAttribute('aria-expanded', 'false');
+    pill.title = 'Add context from your Brains';
+    pill.innerHTML = T_MARK + '<span class="lbl">Context</span>';
     wrap.appendChild(pill);
 
     var menu = null;
@@ -469,7 +500,10 @@
     function position() {
       if (!composer) { host.style.display = 'none'; return; }
       var r = visibleRect(composer, win);
-      if (r.width < 80 || r.height <= 0) { host.style.display = 'none'; return; }
+      if (r.width < 80 || r.height <= 0 || isCovered(composer, r, doc, host)) {
+        host.style.display = 'none';
+        return;
+      }
       host.style.display = 'block';
       host.style.left = Math.round(r.left) + 'px';
       host.style.top = Math.round(r.top - 34) + 'px';
@@ -485,6 +519,7 @@
     function closeMenu() {
       if (menu) { menu.remove(); menu = null; }
       pill.setAttribute('data-active', '0');
+      pill.setAttribute('aria-expanded', 'false');
     }
 
     // ── Injection panel (MEMORY-002 I1) ────────────────────────────────────
@@ -531,6 +566,7 @@
         menu.innerHTML = '<div class="loading">Looking through your Brains…</div>';
         wrap.appendChild(menu);
         pill.setAttribute('data-active', '1');
+        pill.setAttribute('aria-expanded', 'true');
         placeMenu();
         return;
       }
@@ -590,6 +626,7 @@
       menu.innerHTML = html;
       wrap.appendChild(menu);
       pill.setAttribute('data-active', '1');
+      pill.setAttribute('aria-expanded', 'true');
       placeMenu();
       wirePanel();
 
@@ -939,6 +976,15 @@
         refresh();
         win.addEventListener('scroll', position, true);
         win.addEventListener('resize', position);
+        // Windows such as a site's settings open on a click or a key, and
+        // nothing scrolls when they do. Look again just after, so the button
+        // leaves with the chat instead of waiting for the next tick.
+        // Plain typing never opens a window, so only shortcuts and Escape count.
+        function recheck() { win.setTimeout(position, 200); }
+        doc.addEventListener('click', recheck, true);
+        doc.addEventListener('keyup', function (e) {
+          if (e.key === 'Escape' || e.ctrlKey || e.metaKey || e.altKey) recheck();
+        }, true);
         // Composers get re-created on navigation inside these single-page apps,
         // so a one-time lookup goes stale within a click or two.
         win.setInterval(refresh, 1500);

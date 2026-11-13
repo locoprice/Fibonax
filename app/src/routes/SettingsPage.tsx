@@ -1,28 +1,51 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LoadErrorCard } from '@/components/shared/LoadErrorCard';
+import { Segmented } from '@/components/ui/segmented';
 import { AccountPanel } from '@/features/settings/AccountPanel';
 import { AutoInsertPanel } from '@/features/settings/AutoInsertPanel';
 import { BrandingPanel } from '@/features/settings/BrandingPanel';
 import { DeleteAccountPanel } from '@/features/settings/DeleteAccountPanel';
+import { FiboTokenRatePanel } from '@/features/settings/FiboTokenRatePanel';
+import { ImportExportPanel } from '@/features/settings/ImportExportPanel';
 import { InactivityPanel } from '@/features/settings/InactivityPanel';
 import { InlineTriggerPanel } from '@/features/settings/InlineTriggerPanel';
 import { IntegrationsPanel } from '@/features/settings/IntegrationsPanel';
+import { MonthlyRecapPanel } from '@/features/settings/MonthlyRecapPanel';
 import { PasswordPanel } from '@/features/settings/PasswordPanel';
 import { SaintOfDayPanel } from '@/features/settings/SaintOfDayPanel';
 import { SecurityPanel } from '@/features/settings/SecurityPanel';
 import { useSettingsStore } from '@/stores/settingsStore';
 
-const TABS = ['account', 'security', 'integrations'] as const;
+const SECTION_OPTIONS = [
+  { value: 'account', label: 'Account' },
+  { value: 'security', label: 'Security' },
+  { value: 'integrations', label: 'Integrations' },
+] as const;
+
+type SectionKey = (typeof SECTION_OPTIONS)[number]['value'];
+
+const SECTION_DESCRIPTIONS: Record<SectionKey, string> = {
+  account:
+    'Your profile, your company brand, how snippets are inserted, the FiboToken rate, and your import and export files.',
+  security: 'Your password, the devices signed in and your recent sign-ins.',
+  integrations: 'The other places where you use Fibonax.',
+};
+
+/** Two columns on the golden ratio on wide screens, one column below. */
+const GOLDEN_COLUMNS = 'grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.618fr)_minmax(0,1fr)]';
 
 export function SettingsPage() {
   const profile = useSettingsStore((s) => s.profile);
+  const error = useSettingsStore((s) => s.error);
   const load = useSettingsStore((s) => s.load);
-  // ?tab=security opens straight on that tab (the password reset link lands there).
+  // ?tab=security opens straight on that section (the password reset link lands there).
   const [params] = useSearchParams();
-  const requestedTab = params.get('tab');
-  const initialTab = TABS.find((t) => t === requestedTab) ?? 'account';
+  const requested = params.get('tab');
+  const [section, setSection] = useState<SectionKey>(
+    () => SECTION_OPTIONS.find((o) => o.value === requested)?.value ?? 'account',
+  );
 
   useEffect(() => {
     if (!profile) {
@@ -34,33 +57,64 @@ export function SettingsPage() {
     <>
       <PageHeader
         title="Settings"
-        description="Manage your account, security, and connected surfaces."
+        description={SECTION_DESCRIPTIONS[section]}
+        action={
+          <Segmented
+            ariaLabel="Settings section"
+            className="shrink-0 [&>button]:whitespace-nowrap"
+            options={SECTION_OPTIONS}
+            value={section}
+            onChange={setSection}
+          />
+        }
       />
 
-      <Tabs defaultValue={initialTab} className="w-full">
-        <TabsList>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-        </TabsList>
+      {section === 'account' ? (
+        profile ? (
+          <>
+            <div className={GOLDEN_COLUMNS}>
+              <div className="grid gap-5">
+                <AccountPanel />
+                <BrandingPanel />
+                <MonthlyRecapPanel />
+                <SaintOfDayPanel />
+                <ImportExportPanel />
+              </div>
+              <div className="grid gap-5">
+                <InlineTriggerPanel />
+                <AutoInsertPanel />
+                <InactivityPanel />
+                <FiboTokenRatePanel />
+              </div>
+            </div>
+            <div className="mt-6">
+              <DeleteAccountPanel />
+            </div>
+          </>
+        ) : error ? (
+          <LoadErrorCard
+            title="Your settings could not load."
+            message={`${error} Check your connection and try again.`}
+            onRetry={() => void load()}
+          />
+        ) : (
+          <div className={GOLDEN_COLUMNS}>
+            <div className="h-[520px] animate-pulse rounded-[16px] bg-card" />
+            <div className="h-[520px] animate-pulse rounded-[16px] bg-card" />
+          </div>
+        )
+      ) : null}
 
-        <TabsContent value="account" className="space-y-4">
-          <AccountPanel />
-          <BrandingPanel />
-          <InlineTriggerPanel />
-          <AutoInsertPanel />
-          <InactivityPanel />
-          <SaintOfDayPanel />
-          <DeleteAccountPanel />
-        </TabsContent>
-        <TabsContent value="security" className="space-y-4">
+      {section === 'security' ? (
+        <>
           <PasswordPanel />
-          <SecurityPanel />
-        </TabsContent>
-        <TabsContent value="integrations">
-          <IntegrationsPanel />
-        </TabsContent>
-      </Tabs>
+          <div className={`mt-6 ${GOLDEN_COLUMNS}`}>
+            <SecurityPanel />
+          </div>
+        </>
+      ) : null}
+
+      {section === 'integrations' ? <IntegrationsPanel /> : null}
     </>
   );
 }

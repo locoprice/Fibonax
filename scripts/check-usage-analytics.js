@@ -188,6 +188,113 @@ check('pareto empty', [pEmpty.snippets.empty, pEmpty.snippets.headline, pEmpty.p
   [true, 'No snippets used in this period', 'No prompts used in this period', 0]);
 check('device labels', UA.DEVICE_LABELS, { computer: 'Computer', phone: 'Phone', unknown: 'Before tracking' });
 
+// A calendar month (the monthly recap email): October against September, which
+// is a day shorter. The month's last day is "today" for the streak, and a
+// month still running is cut at the real today.
+const monthEvents = [
+  ev('a', at(2026, 10, 2, 9), 1), ev('b', at(2026, 10, 3, 9)), ev('a', at(2026, 10, 31, 23, 30)),
+  ev('a', at(2026, 9, 30, 23, 59)), ev('c', at(2026, 9, 1, 0, 0)),
+  ev('a', at(2026, 8, 31, 23, 59)),
+];
+const mo = UA.compute({ now: new Date(2026, 11, 1, 9).getTime(), month: '2026-10', events: monthEvents, snippets, folders });
+check('month window', [mo.period, mo.label, mo.rangeLabel, mo.prevRangeLabel, mo.start, mo.prevStart, mo.series.length],
+  [31, 'October 2026', 'Oct 1 – Oct 31, 2026', 'Sep 1 – Sep 30, 2026', '2026-10-01', '2026-09-01', 31]);
+check('month totals against the month before', [mo.totals.uses.cur, mo.totals.uses.prev, mo.totals.uses.text, mo.totals.activeDays.cur, mo.totals.activeDays.prev, mo.totals.days],
+  [3, 2, '+50%', 3, 2, 31]);
+check('month streak runs to the month end', mo.patterns.streak.longestInPeriod, 2);
+check('month series ends on the 31st', [mo.series[30].date, mo.series[30].count, mo.series[0].prev], ['2026-10-31', 1, 1]);
+const running = UA.compute({ now: NOW, month: '2026-10', events: monthEvents, snippets, folders });
+check('an unfinished month is cut at today', [running.totals.uses.cur, running.patterns.streak.current], [2, 0]);
+check('a bad month falls back to the period', UA.compute({ now: NOW, month: '2026-13', period: 7, events: [], snippets, folders }).label, 'Last 7 days');
+const moP = UA.pareto({ now: new Date(2026, 11, 1, 9).getTime(), month: '2026-10', events: monthEvents, snippets, folders });
+check('pareto by month', [moP.label, moP.snippets.uses, moP.snippets.headline], ['October 2026', 3, '2 snippets did all of your work']);
+
+// Suggestions: snippets and prompts used one after the other, and pieces the
+// library lacks. The window is the last 90 days ending today.
+const sSnips = [
+  { id: 's1', title: 'Price reply', text: 'The price is {formtext: name=TOTAL; type=number} EUR. Payment by card.', lang: 'EN' },
+  { id: 's2', title: 'Payment details', text: 'You can pay by bank transfer to the account below.', lang: 'EN' },
+  { id: 's3', title: 'Terms link', text: 'Read our terms here: https://example.com/terms', lang: 'EN' },
+  { id: 's4', title: 'Hello', text: 'Hi there', lang: 'IT' },
+];
+function sev(id, d, h, min) { return { snippet_id: id, created_at: at(2026, 10, d, h, min) }; }
+const runs = [];
+[20, 21, 22].forEach((d) => runs.push(sev('s1', d, 9, 0), sev('s2', d, 9, 3), sev('s3', d, 9, 5)));
+runs.push(sev('s1', 23, 9, 0), sev('s1', 23, 9, 1), sev('s2', 23, 9, 2));  // the same snippet twice is one step
+runs.push(sev('s4', 24, 9, 0), sev('s1', 24, 9, 30));                       // 30 minutes apart: not together
+runs.push(sev('s4', 25, 9, 0), sev('s1', 25, 9, 2), sev('s4', 26, 9, 0), sev('s1', 26, 9, 2)); // twice only
+runs.push({ snippet_id: 's1', created_at: at(2026, 7, 1, 9, 0) }, { snippet_id: 's2', created_at: at(2026, 7, 1, 9, 1) }); // older than 90 days
+const sPrompts = [{ id: 'p1', name: 'Summarise', text: 'Summarise this thread.' }, { id: 'p2', name: 'Action list', text: 'Turn notes into actions.' }];
+const pRuns = [];
+[10, 11, 12].forEach((d) => pRuns.push({ prompt_id: 'p1', created_at: at(2026, 10, d, 15, 0) }, { prompt_id: 'p2', created_at: at(2026, 10, d, 15, 4) }));
+
+const sg = UA.suggest({ now: NOW, events: runs, promptEvents: pRuns, snippets: sSnips, prompts: sPrompts, brains: [] });
+check('together: a chain of three, its pairs folded in, prompts apart',
+  sg.together.map((s) => [s.key, s.count, s.titles.join(' > ')]),
+  [['snippet:s1>s2>s3', 3, 'Price reply > Payment details > Terms link'], ['prompt:p1>p2', 3, 'Summarise > Action list']]);
+check('together sentence', sg.together[0].text, 'You used these one after the other 3 times in the last 90 days.');
+const strongPair = runs.concat([27, 27].map((d, i) => sev('s1', d, 10 + i * 2, 0)).concat([sev('s2', 27, 10, 1), sev('s2', 27, 12, 1)]));
+check('a pair used far more often than its chain of three stays on its own',
+  UA.suggest({ now: NOW, events: strongPair.concat([sev('s1', 28, 8, 0), sev('s2', 28, 8, 1)]), snippets: sSnips }).together.map((s) => [s.key, s.count]),
+  [['snippet:s1>s2', 7], ['snippet:s1>s2>s3', 3]]);
+const fiveDaysAgo = new Date(NOW - 5 * 86400000).toISOString();
+const fortyDaysAgo = new Date(NOW - 40 * 86400000).toISOString();
+check('Not now hides a suggestion for 30 days',
+  [UA.suggest({ now: NOW, events: runs, snippets: sSnips, dismissed: { 'snippet:s1>s2>s3': fiveDaysAgo } }).together.length,
+    UA.suggest({ now: NOW, events: runs, snippets: sSnips, dismissed: { 'snippet:s1>s2>s3': fortyDaysAgo } }).together.length],
+  [0, 1]);
+const joinedSnips = sSnips.concat([{ id: 's5', title: 'All in one', text: sSnips[0].text + '\n\n' + sSnips[1].text + '\n\n' + sSnips[2].text }]);
+check('a chain already joined into one snippet is not suggested again',
+  UA.suggest({ now: NOW, events: runs, snippets: joinedSnips }).together.length, 0);
+
+const mLib = [
+  { id: 'x1', title: 'Quote', text: 'Your quote total is {formtext: name=TOTAL; type=number} EUR.' },
+  { id: 'x2', title: 'Deposit', text: 'Please pay the deposit within a week.' },
+];
+const mg = UA.suggest({ now: NOW, snippets: mLib, prompts: [], brains: [] });
+check('missing: terms link and quote follow-up',
+  mg.missing.map((s) => [s.key, s.kind, s.libraryId, s.title]),
+  [['missing:terms', 'snippet', 'terms', 'Terms and conditions link'], ['missing:followquote', 'snippet', 'followquote', 'Follow-up on a quote']]);
+check('missing sentences', mg.missing.map((s) => s.text),
+  ['2 of your snippets talk about prices or payments, but none links to your terms and conditions.', 'You have a snippet for quotes, but none to follow up on one.']);
+check('words in another language and with accents count',
+  UA.suggest({ now: NOW, snippets: mLib.concat([{ id: 'x3', title: 'Condiciones', text: 'Consulta nuestros términos.' }]) }).missing.map((s) => s.key),
+  ['missing:followquote']);
+check('an item with the library name is already there',
+  UA.suggest({ now: NOW, snippets: mLib.concat([{ id: 'x4', title: 'Terms and conditions link', text: 'Here.' }]) }).missing.map((s) => s.key),
+  ['missing:followquote']);
+check('Not now hides a missing piece', UA.suggest({ now: NOW, snippets: mLib, dismissed: { 'missing:terms': fiveDaysAgo } }).missing.map((s) => s.key),
+  ['missing:followquote']);
+const factLib = [
+  { id: 'f1', title: 'Prices', text: 'Our prices start at 10 EUR.', lang: 'EN' },
+  { id: 'f2', title: 'Hours', text: 'Opening hours: 9 to 18.', lang: 'IT' },
+  { id: 'f3', title: 'Cancel', text: 'You can cancel up to two days before.', lang: 'ES' },
+];
+check('Brains and prompts get missing pieces, in rule order',
+  UA.suggest({ now: NOW, snippets: factLib }).missing.map((s) => [s.key, s.kind]),
+  [['missing:company', 'brain'], ['missing:translate', 'prompt']]);
+check('three missing pieces at most',
+  UA.suggest({ now: NOW, snippets: factLib.concat(mLib) }).missing.map((s) => s.key),
+  ['missing:terms', 'missing:company', 'missing:followquote']);
+check('a Brain about the company covers it',
+  UA.suggest({ now: NOW, snippets: factLib, brains: [{ name: 'About us', description: 'Who we are' }] }).missing.map((s) => s.key),
+  ['missing:translate']);
+check('a library with nothing to suggest is empty', [UA.suggest({ now: NOW }).empty, UA.suggest({ now: NOW }).days], [true, 90]);
+check('every rule names a library item', UA.MISSING_RULES.map((r) => r.key + ':' + r.kind),
+  ['terms:snippet', 'company:brain', 'reply:prompt', 'followquote:snippet', 'translate:prompt', 'overdue:snippet', 'tone:brain', 'away:snippet']);
+
+// What usually comes next, for "Add Firma after it" in the fill windows.
+const nx = UA.nextAfter({ now: NOW, events: runs });
+check('next after each snippet, from the same runs', nx, { s1: { id: 's2', count: 4 }, s2: { id: 's3', count: 3 } });
+check('a pair seen twice is not enough', UA.nextAfter({ now: NOW, events: runs }).s4, undefined);
+check('a snippet no longer in the library breaks the run',
+  UA.nextAfter({ now: NOW, events: runs, ids: ['s1', 's3'] }), {});
+const tie = [];
+[10, 11, 12].forEach((d) => tie.push(sev('a', d, 9, 0), sev('c', d, 9, 1)));
+[13, 14, 15].forEach((d) => tie.push(sev('a', d, 9, 0), sev('b', d, 9, 1)));
+check('a tie goes to the id that sorts first', UA.nextAfter({ now: NOW, events: tie }).a, { id: 'b', count: 3 });
+check('prompts read through idField', UA.nextAfter({ now: NOW, events: pRuns, idField: 'prompt_id' }), { p1: { id: 'p2', count: 3 } });
+
 if (failed) {
   console.error('\n' + failed + ' usage analytics check(s) failed');
   process.exit(1);

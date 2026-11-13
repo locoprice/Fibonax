@@ -16,6 +16,9 @@
 //              the team for a shared snippet. It is what "never used" and "not
 //              used for 90 days" read, because the event window is finite.
 //   period     7, 30, 90 or 365 days, ending today
+//   month      'YYYY-MM' instead of a period: that calendar month, compared
+//              with the calendar month before it (the monthly recap email).
+//              Pass a finished month: an unfinished one is cut at today.
 //   now        a timestamp, passed in so the gate can pin the clock
 //
 // pareto() reads the same inputs, plus the prompt log (public.prompt_events)
@@ -50,6 +53,7 @@
   var WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   var WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   var MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var LANG_NAMES = { EN: 'English', IT: 'Italian', ES: 'Spanish', FR: 'French', DE: 'German', PT: 'Portuguese', MULTI: 'Several languages' };
 
   function pad(n) { return n < 10 ? '0' + n : String(n); }
@@ -80,14 +84,55 @@
     return n === 365 ? 'Last 12 months' : 'Last ' + n + ' days';
   }
 
-  /** The two windows a period compares, as Dates (start inclusive, end exclusive). */
-  function range(period, now) {
-    var p = normalizePeriod(period);
+  /** 'YYYY-MM' as { year, month (1-12) }, or null for anything else. */
+  function monthKey(value) {
+    var m = /^(\d{4})-(\d{2})$/.exec(String(value || ''));
+    if (!m) return null;
+    var month = Number(m[2]);
+    if (month < 1 || month > 12) return null;
+    return { year: Number(m[1]), month: month };
+  }
+
+  /** Calendar days from one local midnight to another, whatever the clock change does in between. */
+  function daysBetween(from, to) {
+    return Math.round((to.getTime() - from.getTime()) / 86400000);
+  }
+
+  /**
+   * The two windows compared, as Dates (start inclusive, end exclusive).
+   * A period is the last N days ending today; a month is that calendar month
+   * against the calendar month before it, which may be a different length
+   * (`prevDays`). `today` is the last day inside the window.
+   */
+  function range(period, now, month) {
+    var key = monthKey(month);
     var today = startOfDay(now);
+    if (key) {
+      var mStart = new Date(key.year, key.month - 1, 1);
+      var mEnd = new Date(key.year, key.month, 1);
+      var mPrev = new Date(key.year, key.month - 2, 1);
+      var last = addDays(mEnd, -1);
+      return {
+        period: daysBetween(mStart, mEnd),
+        prevDays: daysBetween(mPrev, mStart),
+        start: mStart,
+        end: mEnd,
+        prevStart: mPrev,
+        prevEnd: mStart,
+        today: last < today ? last : today,
+        month: key.year + '-' + pad(key.month)
+      };
+    }
+    var p = normalizePeriod(period);
     var end = addDays(today, 1);
     var start = addDays(today, -(p - 1));
     var prevStart = addDays(start, -p);
-    return { period: p, start: start, end: end, prevStart: prevStart, prevEnd: start, today: today };
+    return { period: p, prevDays: p, start: start, end: end, prevStart: prevStart, prevEnd: start, today: today, month: null };
+  }
+
+  /** "Last 30 days" for a period, "October 2026" for a month. */
+  function windowLabel(r) {
+    return r.month ? MONTHS_LONG[r.start.getMonth()] + ' ' + r.start.getFullYear() : periodLabel(r.period);
   }
 
   /** Where the event read has to start for every figure to be complete. */
@@ -263,7 +308,7 @@
   function compute(input) {
     var inp = input || {};
     var now = Number(inp.now) || Date.now();
-    var r = range(inp.period, now);
+    var r = range(inp.period, now, inp.month);
     var p = r.period;
     var snippets = Array.isArray(inp.snippets) ? inp.snippets : [];
     var folders = Array.isArray(inp.folders) ? inp.folders : [];
@@ -297,7 +342,7 @@
 
     function known(id) { return !!snipById[id]; }
     var totals = windowTotals(cur, p, r.start, known);
-    var prevTotals = windowTotals(prev, p, r.prevStart, known);
+    var prevTotals = windowTotals(prev, r.prevDays, r.prevStart, known);
 
     // Daily series, with the previous period's same day beside it and a
     // trailing 7-day average once a period is long enough for one to mean
@@ -464,7 +509,7 @@
 
     return {
       period: p,
-      label: periodLabel(p),
+      label: windowLabel(r),
       rangeLabel: rangeLabel(r.start, r.end),
       prevRangeLabel: rangeLabel(r.prevStart, r.prevEnd),
       start: dayKey(r.start),
@@ -678,7 +723,7 @@
   function pareto(input) {
     var inp = input || {};
     var now = Number(inp.now) || Date.now();
-    var r = range(inp.period, now);
+    var r = range(inp.period, now, inp.month);
     var startMs = r.start.getTime();
     var endMs = r.end.getTime();
 
@@ -720,10 +765,355 @@
 
     return {
       period: r.period,
-      label: periodLabel(r.period),
+      label: windowLabel(r),
       rangeLabel: rangeLabel(r.start, r.end),
       snippets: snippetReport,
       prompts: promptReport
+    };
+  }
+
+  // ── Suggestions ────────────────────────────────────────────────────────
+  // What Fibonax notices on its own, from what the person already has. Nothing
+  // new is collected and nothing leaves the device: the inputs are the same use
+  // logs and library the rest of this file reads.
+  //
+  //   together  snippets (and, apart, prompts) used one after the other, again
+  //             and again: a run is uses at most TOGETHER_GAP_MIN minutes
+  //             apart, and a sequence must appear in TOGETHER_MIN runs within
+  //             the last SUGGEST_DAYS days. A sequence is counted once per run.
+  //   missing   a piece the library lacks, read from the words of its own
+  //             items (MISSING_RULES). Each one names a starter library item,
+  //             which is what the dashboard offers to add.
+  //
+  // "Not now" is passed in as `dismissed` ({ key: iso }), so a suggestion stays
+  // hidden for DISMISS_DAYS on every surface that reads this.
+  var SUGGEST_DAYS = 90;
+  var TOGETHER_GAP_MIN = 10;
+  var TOGETHER_MIN = 3;
+  var TOGETHER_LIMIT = 3;
+  var MISSING_LIMIT = 3;
+  var DISMISS_DAYS = 30;
+
+  // Words in English, Italian and Spanish, written without accents. A trailing
+  // * matches the start of a word ("payment*" finds "payments").
+  var W = {
+    price: ['price*', 'pricing', 'cost', 'costs', 'payment*', 'pay', 'paying', 'paid', 'invoice*', 'quote*', 'fee', 'fees', 'deposit*', 'refund*', 'total',
+      'prezz*', 'pagament*', 'fattur*', 'preventiv*', 'costo', 'costi', 'tariff*', 'rimbors*', 'acconto',
+      'precio*', 'pago', 'pagos', 'pagar', 'factura*', 'presupuesto*', 'reembolso*', 'senal', 'anticipo'],
+    terms: ['terms', 'conditions', 't&c', 'policy', 'policies', 'termini', 'condizioni', 'informativa', 'terminos', 'condiciones', 'politica*'],
+    quote: ['quote', 'quotes', 'quotation*', 'estimate*', 'proposal*', 'offer', 'offers', 'preventiv*', 'offerta', 'offerte', 'proposta', 'presupuesto*', 'oferta*', 'propuesta*'],
+    followup: ['follow up', 'following up', 'followup', 'checking in', 'any news', 'had a chance', 'ti ricontatto', 'hai avuto modo', 'novita', 'seguimiento', 'has podido', 'alguna novedad'],
+    invoice: ['invoice*', 'fattur*', 'factura*'],
+    reminder: ['reminder*', 'overdue', 'outstanding', 'unpaid', 'past due', 'sollecit*', 'scadut*', 'promemoria', 'recordatorio*', 'vencid*', 'pendiente*'],
+    away: ['out of office', 'away until', 'on holiday', 'on vacation', 'on leave', 'back on', 'fuori ufficio', 'assente', 'in ferie', 'fuera de la oficina', 'ausente', 'de vacaciones'],
+    answer: ['thank you for your message', 'thanks for your message', 'thank you for contacting', 'thanks for reaching out', 'your request', 'your question',
+      'grazie per il tuo messaggio', 'grazie per averci', 'la tua richiesta', 'gracias por tu mensaje', 'gracias por contactar', 'tu solicitud', 'tu consulta'],
+    reply: ['reply', 'replies', 'respond*', 'response', 'answer*', 'rispond*', 'rispost*', 'respuesta*', 'contesta*'],
+    translate: ['translat*', 'tradu*'],
+    facts: ['price*', 'opening hours', 'hours', 'address', 'phone', 'payment*', 'policy', 'policies', 'cancel*', 'refund*',
+      'prezz*', 'orari*', 'indirizzo', 'telefono', 'pagament*', 'precio*', 'horario*', 'direccion'],
+    factsBrain: ['facts', 'company', 'about us', 'business', 'azienda', 'chi siamo', 'empresa', 'quienes somos'],
+    write: ['write', 'rewrite', 'draft', 'email', 'reply', 'scrivi', 'riscrivi', 'escribe', 'redacta', 'reescribe'],
+    tone: ['tone', 'voice', 'style', 'brand', 'tono', 'stile', 'voce', 'estilo']
+  };
+
+  // In priority order, kinds mixed so the first few are not all snippets.
+  // `found` returns the number the sentence prints, or 0 when the rule does not
+  // apply. Every `libraryId` is a starter library item of that kind with that
+  // exact `title` (src/__tests__/suggestions.test.ts pins it).
+  var MISSING_RULES = [
+    {
+      key: 'terms', kind: 'snippet', libraryId: 'terms', title: 'Terms and conditions link',
+      found: function (L) { var n = L.count('snippets', W.price); return n >= 2 && !L.any('snippets', W.terms) ? n : 0; },
+      text: function (n) { return n + ' of your snippets talk about prices or payments, but none links to your terms and conditions.'; }
+    },
+    {
+      key: 'company', kind: 'brain', libraryId: 'company', title: 'Company facts',
+      found: function (L) { var n = L.count('snippets', W.facts); return n >= 3 && !L.any('brains', W.factsBrain) ? n : 0; },
+      text: function (n) { return n + ' of your snippets hold prices, hours or policies. A Brain of company facts lets an AI answer with them.'; }
+    },
+    {
+      key: 'reply', kind: 'prompt', libraryId: 'reply', title: 'Reply to a customer',
+      found: function (L) { var n = L.count('snippets', W.answer); return n >= 3 && !L.any('prompts', W.reply) ? n : 0; },
+      text: function (n) { return n + ' of your snippets answer messages. A prompt can draft a reply when none of them fits.'; }
+    },
+    {
+      key: 'followquote', kind: 'snippet', libraryId: 'followquote', title: 'Follow-up on a quote',
+      found: function (L) { var n = L.count('snippets', W.quote); return n >= 1 && !L.any('snippets', W.followup) ? n : 0; },
+      text: function (n) {
+        return n === 1 ? 'You have a snippet for quotes, but none to follow up on one.'
+          : n + ' of your snippets are about quotes, but none follows up on one.';
+      }
+    },
+    {
+      key: 'translate', kind: 'prompt', libraryId: 'translate', title: 'Translate, keep the tone',
+      found: function (L) { var n = L.languages(); return n >= 2 && !L.any('prompts', W.translate) ? n : 0; },
+      text: function (n) { return 'Your snippets are in ' + n + ' languages. A prompt can translate a message and keep its tone.'; }
+    },
+    {
+      key: 'overdue', kind: 'snippet', libraryId: 'overdue', title: 'Payment reminder',
+      found: function (L) { var n = L.count('snippets', W.invoice); return n >= 1 && !L.any('snippets', W.reminder) ? n : 0; },
+      text: function () { return 'You send invoices, but have no snippet to remind someone who has not paid.'; }
+    },
+    {
+      key: 'tone', kind: 'brain', libraryId: 'tone', title: 'Tone of voice',
+      found: function (L) { var n = L.count('prompts', W.write); return n >= 2 && !L.any('brains', W.tone) ? n : 0; },
+      text: function (n) { return n + ' of your prompts write for you. A Tone of voice Brain helps the AI sound like you.'; }
+    },
+    {
+      key: 'away', kind: 'snippet', libraryId: 'away', title: 'Out of office',
+      found: function (L) { var n = L.size('snippets'); return n >= 10 && !L.any('snippets', W.away) ? n : 0; },
+      text: function (n) { return 'You have ' + n + ' snippets, but none for the days you are away.'; }
+    }
+  ];
+
+  /**
+   * An item's words, ready to search: fields and formulas, markup, accents and
+   * punctuation removed, lower case, one space between words and one at each end.
+   */
+  function plainWords(text) {
+    var s = String(text || '').replace(/<[^>]*>/g, ' ');
+    // Innermost tokens first, so a formula holding a field goes too.
+    for (var i = 0; i < 4 && /\{[^{}]*\}/.test(s); i++) s = s.replace(/\{[^{}]*\}/g, ' ');
+    if (typeof s.normalize === 'function') s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    s = s.toLowerCase().replace(/[^a-z0-9&]+/g, ' ').trim();
+    return s ? ' ' + s + ' ' : ' ';
+  }
+
+  function hasAny(words, list) {
+    for (var i = 0; i < list.length; i++) {
+      var w = list[i];
+      if (w.charAt(w.length - 1) === '*') {
+        if (words.indexOf(' ' + w.slice(0, -1)) !== -1) return true;
+      } else if (words.indexOf(' ' + w + ' ') !== -1) return true;
+    }
+    return false;
+  }
+
+  function isDismissed(dismissed, key, now) {
+    var at = dismissed && dismissed[key] ? new Date(dismissed[key]).getTime() : NaN;
+    return !isNaN(at) && now - at < DISMISS_DAYS * 86400000;
+  }
+
+  // Uses of one kind cut into runs: the ids used one after the other, at most
+  // TOGETHER_GAP_MIN minutes apart, between startMs and now. The same item
+  // twice in a row is one step. An item `known` does not hold (one no longer in
+  // the library) still ends a run: it sat between. Only runs of two or more.
+  function runsOf(events, idField, known, startMs, now) {
+    var uses = [];
+    for (var e = 0; e < events.length; e++) {
+      var t = eventTime(events[e]);
+      if (t === null || t < startMs || t > now) continue;
+      var id = events[e][idField];
+      uses.push({ id: id && known(id) ? id : null, t: t });
+    }
+    uses.sort(function (a, b) { return a.t - b.t; });
+    var gap = TOGETHER_GAP_MIN * 60000;
+    var runs = [];
+    var run = [];
+    function cut() { if (run.length > 1) runs.push(run); run = []; }
+    var lastT = null;
+    for (var u = 0; u < uses.length; u++) {
+      var use = uses[u];
+      if (lastT !== null && use.t - lastT > gap) cut();
+      lastT = use.t;
+      if (use.id === null) { cut(); continue; }
+      if (run.length && run[run.length - 1] === use.id) continue;
+      run.push(use.id);
+    }
+    cut();
+    return runs;
+  }
+
+  // One kind's "used together": `items` are { id, title, words, body }, where
+  // `body` is the text alone, without the title.
+  function togetherOf(kind, events, idField, items, startMs, now) {
+    var byId = {};
+    for (var i = 0; i < items.length; i++) byId[items[i].id] = items[i];
+    var counts = {};
+    runsOf(events, idField, function (id) { return !!byId[id]; }, startMs, now).forEach(function (run) {
+      var seen = {};
+      for (var a = 0; a < run.length - 1; a++) {
+        for (var len = 2; len <= 3 && a + len <= run.length; len++) {
+          var ids = run.slice(a, a + len);
+          if (len === 3 && ids[0] === ids[2]) continue;
+          var k = ids.join('>');
+          if (seen[k]) continue;
+          seen[k] = true;
+          counts[k] = (counts[k] || 0) + 1;
+        }
+      }
+    });
+
+    function setKey(ids) { return ids.slice().sort().join('|'); }
+    var cands = Object.keys(counts)
+      .filter(function (k) { return counts[k] >= TOGETHER_MIN; })
+      .map(function (k) { return { ids: k.split('>'), count: counts[k] }; });
+    function byStrength(a, b) {
+      return b.count - a.count || b.ids.length - a.ids.length || a.ids.join('>').localeCompare(b.ids.join('>'));
+    }
+    cands.sort(byStrength);
+
+    // Three in a row first, then pairs. A pair is folded into a chosen chain of
+    // three that holds it when the three go together at least half as often as
+    // the two do; otherwise the pair is the stronger habit and stays.
+    var picked = [];
+    var pickedSets = {};
+    [3, 2].forEach(function (len) {
+      for (var c = 0; c < cands.length; c++) {
+        var cand = cands[c];
+        if (cand.ids.length !== len) continue;
+        var sk = setKey(cand.ids);
+        if (pickedSets[sk]) continue;
+        var folded = picked.some(function (p) {
+          return p.ids.length === 3 && cand.ids.every(function (x) { return p.ids.indexOf(x) !== -1; }) && p.count * 2 >= cand.count;
+        });
+        if (folded) continue;
+        picked.push(cand);
+        pickedSets[sk] = true;
+      }
+    });
+
+    // Already joined: another item's text holds the text of every one of them.
+    function joined(ids) {
+      var parts = ids.map(function (x) { return byId[x].body; });
+      if (parts.some(function (w) { return w.trim() === ''; })) return false;
+      return items.some(function (it) {
+        if (ids.indexOf(it.id) !== -1) return false;
+        return parts.every(function (w) { return it.body.indexOf(w.trim()) !== -1; });
+      });
+    }
+
+    return picked.filter(function (p) { return !joined(p.ids); }).map(function (p) {
+      return {
+        key: kind + ':' + p.ids.join('>'),
+        kind: kind,
+        ids: p.ids,
+        titles: p.ids.map(function (x) { return byId[x].title; }),
+        count: p.count,
+        text: 'You used these one after the other ' + p.count + ' times in the last ' + SUGGEST_DAYS + ' days.'
+      };
+    });
+  }
+
+  /**
+   * What usually comes next after each snippet, for "Add Firma after it" in
+   * the fill windows: the snippet used right after it in the most runs (the
+   * same runs as "used together"), at least TOGETHER_MIN of them in the last
+   * SUGGEST_DAYS days. A tie goes to the id that sorts first, so every surface
+   * picks the same one. Pure:
+   *   events   uses { snippet_id, created_at }
+   *   ids      the snippets still in the library; leave out to take every id
+   *   idField  'snippet_id' unless given
+   *   now      a timestamp
+   * Returns { fromId: { id: nextId, count } }.
+   */
+  function nextAfter(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var startMs = addDays(startOfDay(now), -(SUGGEST_DAYS - 1)).getTime();
+    var known = function () { return true; };
+    if (Array.isArray(inp.ids)) {
+      var set = {};
+      inp.ids.forEach(function (id) { set[id] = true; });
+      known = function (id) { return !!set[id]; };
+    }
+    var counts = {};
+    runsOf(Array.isArray(inp.events) ? inp.events : [], inp.idField || 'snippet_id', known, startMs, now).forEach(function (run) {
+      var seen = {};
+      for (var i = 0; i < run.length - 1; i++) {
+        var k = run[i] + '>' + run[i + 1];
+        if (seen[k]) continue;
+        seen[k] = true;
+        counts[k] = (counts[k] || 0) + 1;
+      }
+    });
+    var best = {};
+    Object.keys(counts).sort().forEach(function (k) {
+      var n = counts[k];
+      if (n < TOGETHER_MIN) return;
+      var pair = k.split('>');
+      if (!best[pair[0]] || n > best[pair[0]].count) best[pair[0]] = { id: pair[1], count: n };
+    });
+    return best;
+  }
+
+  /**
+   * Suggestions for one person. Pure, like compute():
+   *   events        snippet uses { snippet_id, created_at }
+   *   promptEvents  prompt uses { prompt_id, created_at }
+   *   snippets      { id, title, text, lang }   text: the body, any form;
+   *                 `langs` (a list) in place of `lang` for a snippet that
+   *                 holds several languages
+   *   prompts       { id, name, text }
+   *   brains        { name, description }
+   *   dismissed     { key: iso } from "Not now"
+   *   now           a timestamp
+   */
+  function suggest(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var startMs = addDays(startOfDay(now), -(SUGGEST_DAYS - 1)).getTime();
+    var dismissed = inp.dismissed || {};
+
+    function list(v) { return Array.isArray(v) ? v.filter(function (x) { return x && x.id; }) : []; }
+    var snippets = list(inp.snippets).map(function (s) {
+      return {
+        id: s.id, title: s.title || s.shortcut || 'Untitled snippet', langs: Array.isArray(s.langs) ? s.langs : [s.lang],
+        words: plainWords((s.title || '') + ' ' + (s.text || '')), body: plainWords(s.text)
+      };
+    });
+    var prompts = list(inp.prompts).map(function (p) {
+      return {
+        id: p.id, title: p.name || p.shortcut || 'Untitled prompt',
+        words: plainWords((p.name || '') + ' ' + (p.text || '')), body: plainWords(p.text)
+      };
+    });
+    var brains = (Array.isArray(inp.brains) ? inp.brains : []).filter(Boolean).map(function (b) {
+      return { title: b.name || '', words: plainWords((b.name || '') + ' ' + (b.description || '')) };
+    });
+    var lib = { snippets: snippets, prompts: prompts, brains: brains };
+
+    var together = togetherOf('snippet', Array.isArray(inp.events) ? inp.events : [], 'snippet_id', snippets, startMs, now)
+      .concat(togetherOf('prompt', Array.isArray(inp.promptEvents) ? inp.promptEvents : [], 'prompt_id', prompts, startMs, now))
+      .filter(function (s) { return !isDismissed(dismissed, s.key, now); })
+      .sort(function (a, b) { return b.count - a.count || b.ids.length - a.ids.length || a.key.localeCompare(b.key); })
+      .slice(0, TOGETHER_LIMIT);
+
+    var L = {
+      count: function (kind, words) { return lib[kind].filter(function (x) { return hasAny(x.words, words); }).length; },
+      any: function (kind, words) { return lib[kind].some(function (x) { return hasAny(x.words, words); }); },
+      size: function (kind) { return lib[kind].length; },
+      languages: function () {
+        var seen = {};
+        snippets.forEach(function (s) {
+          s.langs.forEach(function (l) {
+            var c = String(l || '').toUpperCase();
+            if (c && c !== 'MULTI') seen[c] = true;
+          });
+        });
+        return Object.keys(seen).length;
+      }
+    };
+    var KIND_LIST = { snippet: 'snippets', prompt: 'prompts', brain: 'brains' };
+    var missing = [];
+    for (var m = 0; m < MISSING_RULES.length && missing.length < MISSING_LIMIT; m++) {
+      var rule = MISSING_RULES[m];
+      var key = 'missing:' + rule.key;
+      if (isDismissed(dismissed, key, now)) continue;
+      // Already there under the library's own name: added before, kept.
+      var named = rule.title.toLowerCase();
+      if (lib[KIND_LIST[rule.kind]].some(function (x) { return String(x.title).trim().toLowerCase() === named; })) continue;
+      var n = rule.found(L);
+      if (!n) continue;
+      missing.push({ key: key, kind: rule.kind, libraryId: rule.libraryId, title: rule.title, text: rule.text(n) });
+    }
+
+    return {
+      days: SUGGEST_DAYS,
+      together: together,
+      missing: missing,
+      empty: together.length === 0 && missing.length === 0
     };
   }
 
@@ -745,6 +1135,11 @@
     DEVICE_LABELS: DEVICE_LABELS,
     compute: compute,
     pareto: pareto,
+    SUGGEST_DAYS: SUGGEST_DAYS,
+    DISMISS_DAYS: DISMISS_DAYS,
+    MISSING_RULES: MISSING_RULES.map(function (r) { return { key: r.key, kind: r.kind, libraryId: r.libraryId, title: r.title }; }),
+    suggest: suggest,
+    nextAfter: nextAfter,
     team: team,
     lastUseLine: lastUseLine
   };

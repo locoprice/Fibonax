@@ -148,6 +148,35 @@ body{
 .home-brains strong{display:block;font-size:15px;font-weight:700}
 .home-brains small{display:block;margin-top:3px;font-size:12px;color:var(--text2)}
 .home-brains .home-brains-arrow{width:18px;height:18px;margin-left:auto}
+/* FiboToken exchange rate: a pill at the foot of the home page that opens in
+   place. Its numbers come from the generated FIBOTOKEN_RATE block. */
+.home-rate{margin-top:18px;border:1px solid var(--border);border-radius:24px;background:var(--card);box-shadow:var(--shadow-sm);overflow:hidden;
+  scroll-margin:16px 0 104px}
+.home-rate-pill{display:flex;align-items:center;gap:8px;width:100%;min-height:48px;padding:8px 16px;border:0;background:none;
+  color:var(--text);font-family:inherit;text-align:left;cursor:pointer}
+.home-rate-pill:focus-visible{outline-offset:-2px;border-radius:24px}
+.home-rate-sum{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.home-rate-sum span{color:var(--primary)}
+.home-rate-chip{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:4px 8px;border-radius:9999px;
+  background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:700;white-space:nowrap}
+.home-rate-caret{width:18px;height:18px;flex:none;stroke:var(--text2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
+  transition:transform .3s ease}
+.home-rate.open .home-rate-caret{transform:rotate(180deg)}
+.home-rate-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
+.home-rate.open .home-rate-panel{grid-template-rows:1fr}
+.home-rate-in{min-height:0;overflow:hidden;visibility:hidden;transition:visibility 0s .3s}
+.home-rate.open .home-rate-in{visibility:visible;transition-delay:0s}
+.home-rate-body{padding:13px 16px 16px;border-top:1px solid var(--border);text-align:center}
+.home-rate-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.home-rate-main{margin-top:8px;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--text)}
+.home-rate-main small{display:block;font-size:15px;font-weight:700}
+.home-rate-main strong{display:block;margin-top:5px;font-size:55px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--primary)}
+.home-rate-facts{margin-top:13px;font-size:14px;line-height:1.6;color:var(--text2)}
+.home-rate-facts strong{font-family:var(--mono);color:var(--text)}
+.home-rate-note{margin-top:13px;padding-top:13px;border-top:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--text2);text-align:left}
+.home-rate-packs{margin-top:8px;font-size:13px;line-height:1.5;font-weight:600;color:var(--text);text-align:left}
+.home-rate-link{display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:13px;border-radius:var(--r-btn);
+  background:var(--primary);color:#fff;font-size:15px;font-weight:700;text-decoration:none}
 @media(min-width:700px){
   .home-band{padding-left:40px;padding-right:40px}
   .home-title{font-size:44px}
@@ -163,8 +192,12 @@ body{
   .home-title{font-size:34px}
   .home-task{padding:12px;gap:9px}
   .home-task-copy strong{font-size:15px}
+  .home-rate-pill{flex-wrap:wrap}
+  .home-rate-sum{flex:1}
+  .home-rate-chip{order:3;margin-left:0}
 }
-@media(prefers-reduced-motion:reduce){.home-task{transition:none}.home-task:active{transform:none}}
+@media(prefers-reduced-motion:reduce){.home-task{transition:none}.home-task:active{transform:none}
+  .home-rate-panel,.home-rate-in,.home-rate-caret{transition:none}}
 
 /* ── LIBRARY BAND (snippets, prompts, Brains) ── */
 /* The home band's frame on the three library pages: navy, the greeting and
@@ -479,9 +512,6 @@ body{
 .search-details:active{background:var(--bg-alt)}
 .search-details:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .search-match{font-size:12px;color:var(--text2);overflow-wrap:anywhere;margin-top:4px}
-.sb-info-row.is-list{display:block}
-.sb-info-row.is-list .sb-info-v{display:block;white-space:pre-wrap;text-align:left;
-  overflow-wrap:anywhere;margin-top:8px;line-height:1.6;font-weight:500}
 .sb-info-row.is-multi .sb-info-v{white-space:normal;overflow:visible;text-overflow:clip;
   overflow-wrap:anywhere;line-height:1.6}
 .sb-info-item{white-space:nowrap}
@@ -507,7 +537,8 @@ body{
 .lIT{background:#F0FDF4;color:#15803D}
 .lFR{background:#F0FDFA;color:#0D9488}
 .lMULTI{background:#F5F3FF;color:#7C3AED}
-.sb-info-row.is-list .sb-info-v.sb-info-languages{display:flex;flex-wrap:wrap;gap:8px}
+.sb-info-v.sb-info-languages{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;
+  white-space:normal;overflow:visible}
 .sb-info-languages .lbadge{font-size:12px;font-weight:500;padding:8px 12px;
   border-radius:6px;text-transform:none;letter-spacing:normal}
 
@@ -798,7 +829,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 
 /* Copy footer — sticky with safe-area inset. Share sits beside Copy where the
    phone has a Share menu, and Copy takes the whole row where it has none. */
-.copy-foot{position:fixed;bottom:0;left:0;right:0;display:flex;gap:8px;
+.copy-foot{position:fixed;bottom:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:8px;
   padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
   background:rgba(248,249,252,.92);backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:40}
@@ -1403,6 +1434,19 @@ svg.brain-type-icon{stroke-width:1.8}
 .an-retry{margin-top:10px;min-height:40px;padding:0 16px;border-radius:var(--r-btn);border:1px solid var(--border);
   background:var(--card);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .an-more{font-size:11.5px;color:var(--text3);padding:8px 0}
+/* Suggestions: snippets or prompts used together, and pieces the library
+   lacks. Joining and adding happen on the computer; here only Not now. */
+.an-sg{padding:14px 0;border-bottom:1px solid var(--bg-alt)}
+.an-sg:last-child{border-bottom:none}
+.an-sg-k{font-size:11.5px;font-weight:600;color:var(--text3)}
+.an-sg-t{font-size:14px;font-weight:600;color:var(--text);margin-top:2px}
+.an-sg-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 0;padding:0;list-style:none}
+.an-sg-chips li{display:flex;align-items:center;gap:6px}
+.an-sg-chip{padding:3px 10px;border-radius:999px;background:var(--primary-lt);color:var(--primary);font-size:12.5px;font-weight:600}
+.an-sg-arrow{color:var(--text3);font-size:12px}
+.an-sg-p{font-size:13px;line-height:1.45;color:var(--text2);margin:6px 0 0}
+.an-sg-btn{margin-top:10px;min-height:44px;padding:0 16px;border-radius:var(--r-btn);border:1px solid var(--border);
+  background:var(--card);color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
 /* What does most of your work (80/20): a Snippets / Prompts switch, the
    headline, where the uses happened, then the key group and the rest. Phone
    share in the azure the heatmap's second step uses; uses logged before
@@ -1439,6 +1483,97 @@ svg.brain-type-icon{stroke-width:1.8}
 .an-unused{font-size:12.5px;line-height:1.45;color:var(--text2);padding:12px 0 14px;border-top:1px solid var(--bg-alt)}
 /* Detail view hides the global tab bar */
 .sb-detail-view .mtab,.sb-detail-view .mtab-indicator{display:none !important}
+
+/* ── POMODORO TIMER ("focus" is its name inside the code) ─────────
+   The rules and the gallery are generated copies (SB_FOCUS_TIMER block); this
+   is only how the phone draws them. Spacing runs on Fibonacci numbers. */
+#view-focus{overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+#view-focus [hidden],.fo-dlg [hidden],.fo-pill[hidden]{display:none}
+.fo-body{display:flex;flex-direction:column;gap:13px;padding:0 16px;margin-top:-28px;position:relative;z-index:2}
+.fo-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-card);padding:21px;box-shadow:var(--shadow-sm)}
+.fo-phase{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--primary-copy)}
+.fo-clock{margin:2px 0 5px;font-size:55px;font-weight:700;letter-spacing:-1.5px;line-height:1.1;color:var(--text);font-variant-numeric:tabular-nums}
+.fo-next{min-height:42px;margin-bottom:13px;font-size:14px;line-height:1.5;color:var(--text2)}
+.fo-acts{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.fo-btn{min-height:48px;padding:0 21px;font-family:inherit;font-size:15px;font-weight:650;color:var(--text);cursor:pointer;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-btn);-webkit-tap-highlight-color:transparent}
+.fo-btn:active{background:var(--bg-alt)}
+.fo-btn:focus-visible,.fo-link:focus-visible,.fo-pill:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
+.fo-btn.primary{flex:1 1 auto;color:#fff;background:var(--primary);border-color:var(--primary)}
+.fo-btn.primary:active{background:var(--primary-dk)}
+.fo-btn.link{padding:0 8px;color:var(--primary-copy);background:none;border-color:transparent}
+.fo-btn.danger{margin-left:auto;padding:0 8px;color:var(--danger);background:none;border-color:transparent}
+.fo-ask{margin-top:13px;padding:13px;border-radius:var(--r-in);background:var(--primary-lt);border:1px solid #C8D3F0}
+.fo-ask-q{margin-bottom:8px;font-size:14px;font-weight:600;color:var(--text)}
+.fo-warn{padding:13px;border-radius:var(--r-in);background:var(--warn-bg);border:1px solid #FDE68A;font-size:14px;line-height:1.5;color:var(--text)}
+.fo-note,.fo-hint,.fo-credit,.fo-lead{font-size:13px;line-height:1.5;color:var(--text2)}
+.fo-hint+.fo-hint{margin-top:8px}
+.fo-title{margin-bottom:13px;font-size:16px;font-weight:700;letter-spacing:-.2px;color:var(--text)}
+.fo-stats{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.fo-stats caption{margin-bottom:8px;font-size:16px;font-weight:700;letter-spacing:-.2px;text-align:left;color:var(--text)}
+.fo-stats th,.fo-stats td{padding:8px 4px;text-align:right;border-bottom:1px solid var(--border)}
+.fo-stats thead th{font-weight:600;color:var(--text2);vertical-align:bottom;line-height:1.3}
+.fo-stats tbody th{text-align:left;font-weight:600;color:var(--text)}
+.fo-stats td{font-weight:700;color:var(--text)}
+.fo-dilute{margin-top:13px;font-size:13px;line-height:1.5;color:var(--text2)}
+.fo-set{display:flex;align-items:center;justify-content:space-between;gap:13px;min-height:48px;font-size:14px;font-weight:600;color:var(--text)}
+.fo-set select{width:144px;min-height:44px;padding:0 8px;font-family:inherit;font-size:16px;color:var(--text);
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-in)}
+.fo-set select:focus-visible,.fo-set input:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
+.fo-set input[type=checkbox]{width:24px;height:24px;flex:none;accent-color:var(--primary)}
+.fo-card .fo-hint{margin-top:8px}
+/* Detox day: the small picture is a golden rectangle, 89 x 55. */
+.fo-pic{display:flex;align-items:center;gap:13px;margin-top:13px}
+.fo-thumb{position:relative;width:89px;height:55px;flex:none;border-radius:var(--r-in);overflow:hidden;background:var(--bg-alt);border:1px dashed var(--border)}
+.fo-thumb.has{border-style:solid}
+.fo-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.fo-pic-txt{flex:1;min-width:0;font-size:13px;line-height:1.45;color:var(--text2)}
+.fo-pic-count{display:block;margin-top:2px;font-weight:600;color:var(--text)}
+.fo-pic-count:empty{display:none}
+.fo-pic-btn{width:100%;margin-top:13px}
+.fo-pics{margin-top:21px;padding-top:21px;border-top:1px solid var(--border)}
+.fo-lead{margin-bottom:13px}
+.fo-frame{position:relative;width:100%;aspect-ratio:1.618/1;border-radius:var(--r);overflow:hidden;background:var(--bg-alt);border:1px dashed var(--border)}
+.fo-frame.has{border-style:solid}
+.fo-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2)}
+.fo-count{min-height:21px;margin-top:8px;font-size:13px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums}
+.fo-status{min-height:21px;margin-top:8px;font-size:14px;color:#15803D}
+.fo-status.err{color:var(--danger)}
+.fo-pics .fo-acts{margin-top:8px}
+.fo-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom));z-index:51;
+  display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:9999px;
+  background:var(--card);color:var(--primary-copy);font-family:inherit;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;
+  white-space:nowrap;box-shadow:var(--shadow-md);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.fo-pill svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sb-detail-view .fo-pill{display:none}
+/* The break screen and the detox day call: full-page, over everything. */
+.fo-dlg{position:fixed;inset:0;z-index:10020;width:100%;height:100%;max-width:none;max-height:none;margin:0;border:0;
+  padding:calc(21px + env(safe-area-inset-top)) 21px calc(21px + env(safe-area-inset-bottom));
+  background:rgba(24,24,27,.98);color:var(--text);overflow:hidden;overscroll-behavior:contain}
+.fo-dlg[open]{display:flex;align-items:center;justify-content:center}
+.fo-dlg:not([open]){display:none}
+.fo-dlg::backdrop{background:transparent}
+.fo-dlg.has-controls{padding-bottom:calc(89px + env(safe-area-inset-bottom))}
+.fo-dlg-gallery{position:absolute;inset:0}
+.fo-dlg-card{position:relative;width:min(420px,100%);max-height:100%;overflow:auto;padding:21px;background:var(--card);
+  border-radius:var(--r-card);box-shadow:var(--shadow-md);line-height:1.5;outline:none}
+.fo-dlg .fo-clock{margin-bottom:13px;font-size:34px;letter-spacing:-.5px;line-height:1.2}
+.fo-dlg-warn{margin-bottom:13px}
+.fo-dlg-lead{font-size:14px;color:var(--text2)}
+.fo-dlg-idea{margin:4px 0 13px;font-size:17px;font-weight:650;line-height:1.4;color:var(--text)}
+.fo-dlg-foot{display:flex;justify-content:flex-end;margin-top:13px}
+.fo-link{min-height:44px;padding:0 8px;font-family:inherit;font-size:14px;font-weight:650;color:var(--primary-copy);background:none;border:0;cursor:pointer}
+.fo-call-t{margin:4px 0 8px;font-size:21px;font-weight:700;letter-spacing:-.2px;line-height:1.3;color:var(--text)}
+.fo-call-line{margin-bottom:21px;font-size:14px;line-height:1.5;color:var(--text2)}
+.fo-call-add{display:block;margin:8px 0 0 -8px}
+/* The shared gallery reads the extension's token names, and a thumb needs
+   bigger targets than a mouse. */
+.sbc{--sb-bg:#FFFFFF;--sb-ink:#18181B;--sb-ink-muted:#52525B;--sb-r-pill:9999px;--sb-toast-bg:rgba(24,24,27,.92);
+  --sb-dur-fast:120ms;--sb-dur-base:150ms;--sb-ease:cubic-bezier(0.4,0,0.2,1)}
+.sbc .sbc-btn{width:44px;height:44px}
+.sbc .sbc-dot{height:44px}
+.fo-dlg .sbc .sbc-bar{bottom:calc(16px + env(safe-area-inset-bottom))}
 </style>
 </head>
 <body>
@@ -1516,6 +1651,28 @@ svg.brain-type-icon{stroke-width:1.8}
         <span><strong>Your Brains</strong><small>Read, copy, or add to your context</small></span>
         <svg class="home-brains-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
       </button>
+
+      <!-- FiboToken exchange rate: the pill opens in place. The numbers are
+           written by the script from the generated FIBOTOKEN_RATE block. -->
+      <section class="home-rate" id="home-rate" aria-label="FiboToken exchange rate">
+        <button class="home-rate-pill" type="button" id="home-rate-pill" aria-expanded="false" aria-controls="home-rate-panel">
+          <span class="home-rate-sum">1 FiboToken = <span data-rate="rate"></span></span>
+          <span class="home-rate-chip"><span aria-hidden="true">↕</span> Variable rate</span>
+          <svg class="home-rate-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="home-rate-panel" id="home-rate-panel">
+          <div class="home-rate-in">
+            <div class="home-rate-body">
+              <p class="home-rate-label">Current exchange rate</p>
+              <p class="home-rate-main"><small>1 FiboToken is worth</small><strong data-rate="rate"></strong></p>
+              <p class="home-rate-facts"><strong data-rate="example"></strong><br>Rate set on <span data-rate="setOn"></span></p>
+              <p class="home-rate-note">Like a currency, the FiboToken rate is variable: it can change over time and move with the market. A new rate applies to new packs only. FiboTokens you already own keep their value: one FiboToken, one use.</p>
+              <p class="home-rate-packs" id="home-rate-packs">FiboToken packs go on sale on <span data-rate="packsFrom"></span>.</p>
+              <a class="home-rate-link" href="https://fibonax.com/pricing/" target="_blank" rel="noopener">See the packs</a>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -1851,7 +2008,124 @@ svg.brain-type-icon{stroke-width:1.8}
 
 </div>
 
-<!-- GLOBAL FLOATING TAB BAR (position:fixed — visible across list + analytics views) -->
+<!-- POMODORO TIMER: drawn by renderFocus() from the generated rules. Each device
+     keeps its own timer. -->
+<div id="view-focus" class="view lib-page">
+  <header class="lib-band an-band">
+    <div class="lib-top">
+      <p class="lib-greet"><span class="mgreet">Welcome</span> <span class="mname">Fibonax</span></p>
+      <button class="home-account lib-account" type="button" data-lib-action="account" aria-label="Open your account">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </button>
+    </div>
+    <div class="lib-title-row"><h1 class="lib-title">Pomodoro timer</h1></div>
+    <p class="an-band-sub">The Italian way to boost productivity</p>
+  </header>
+  <div class="fo-body">
+    <section class="fo-card" aria-label="Timer">
+      <div class="fo-phase" id="fo-phase" aria-live="polite">Ready</div>
+      <div class="fo-clock" id="fo-clock" role="timer" aria-label="Time left">25:00</div>
+      <div class="fo-next" id="fo-next"></div>
+      <div class="fo-acts" id="fo-acts"></div>
+      <div class="fo-ask" id="fo-ask" hidden>
+        <div class="fo-ask-q" id="fo-ask-q">How long should this break be?</div>
+        <div class="fo-acts" role="group" aria-labelledby="fo-ask-q">
+          <button type="button" class="fo-btn" data-min="1">1 minute</button>
+          <button type="button" class="fo-btn" data-min="2">2 minutes</button>
+          <button type="button" class="fo-btn" data-min="5">5 minutes</button>
+          <button type="button" class="fo-btn link" id="fo-ask-x">Cancel</button>
+        </div>
+      </div>
+    </section>
+    <div class="fo-warn" id="fo-warn" role="status" hidden></div>
+    <div class="fo-note" id="fo-note" role="status" hidden></div>
+    <div>
+      <p class="fo-hint">During a break, this page is covered until the break ends. Other apps stay open.</p>
+      <p class="fo-hint">Keep this page open to hear the chime. A phone can't run the timer or play a sound while the page is closed or the phone is locked. When you come back, the timer moves on, or stops if you were away more than 30 minutes.</p>
+      <p class="fo-hint">This timer and its counts are on this phone only. Your computer keeps its own.</p>
+    </div>
+    <section class="fo-card" aria-label="Detox day">
+      <div class="fo-set"><label for="fo-detox">Detox day</label><select id="fo-detox" data-key="detoxDay" aria-describedby="fo-detox-note"></select></div>
+      <p class="fo-hint" id="fo-detox-note">Your day off from screens and technology.</p>
+      <div class="fo-pic">
+        <div class="fo-thumb" id="fo-thumb"><img id="fo-thumb-img" alt="" hidden></div>
+        <div class="fo-pic-txt">Pictures of what you love, shown if you try to work on your detox day.<span class="fo-pic-count" id="fo-pic-count"></span></div>
+      </div>
+      <button type="button" class="fo-btn fo-pic-btn" id="fo-pic-btn" aria-expanded="false" aria-controls="fo-pics">Add pictures</button>
+      <div class="fo-pics" id="fo-pics" hidden>
+        <h3 class="fo-title">Your detox day pictures</h3>
+        <p class="fo-lead">Choose pictures of what you love most: your family, a sunset, your dog. If you try to work on your detox day, Fibonax shows them to you as a call to spend the day offline. With more than one, they play as a gallery.</p>
+        <div class="fo-frame" id="fo-ph-frame"><div class="fo-empty" id="fo-ph-empty">No pictures yet</div></div>
+        <div class="fo-count" id="fo-ph-count"></div>
+        <div class="fo-acts">
+          <button type="button" class="fo-btn primary" id="fo-ph-add">Choose pictures</button>
+          <button type="button" class="fo-btn danger" id="fo-ph-remove" hidden>Remove picture</button>
+        </div>
+        <input type="file" id="fo-ph-file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+        <div class="fo-status" id="fo-ph-status" role="status" aria-live="polite"></div>
+        <p class="fo-hint">The pictures stay on this phone. Fibonax never uploads them.</p>
+      </div>
+    </section>
+    <section class="fo-card">
+      <table class="fo-stats">
+        <caption>Sessions and breaks</caption>
+        <thead><tr><td></td><th scope="col">Sessions</th><th scope="col">Extra breaks</th><th scope="col">Skipped</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Today</th><td id="fo-t-done">0</td><td id="fo-t-extra">0</td><td id="fo-t-skip">0</td></tr>
+          <tr><th scope="row">Last 7 days</th><td id="fo-w-done">0</td><td id="fo-w-extra">0</td><td id="fo-w-skip">0</td></tr>
+        </tbody>
+      </table>
+      <p class="fo-dilute" id="fo-dilute" hidden></p>
+    </section>
+    <section class="fo-card" aria-labelledby="fo-set-t">
+      <h2 class="fo-title" id="fo-set-t">Timer</h2>
+      <div class="fo-set"><label for="fo-work">Work</label><select id="fo-work" data-key="workMin"></select></div>
+      <div class="fo-set"><label for="fo-break">Break</label><select id="fo-break" data-key="breakMin"></select></div>
+      <div class="fo-set"><label for="fo-sessions">Sessions in a block</label><select id="fo-sessions" data-key="sessions"></select></div>
+      <div class="fo-set"><label for="fo-long">Long break at the end</label><select id="fo-long" data-key="longMin"></select></div>
+      <div class="fo-set"><label for="fo-chime">Chime when a session or break ends</label><input type="checkbox" id="fo-chime" checked></div>
+      <p class="fo-hint">Changes start with the next session or break.</p>
+    </section>
+    <p class="fo-credit">The Pomodoro® Technique was created by Francesco Cirillo in the 1980s. Pomodoro® is a registered trademark.</p>
+  </div>
+</div>
+
+<!-- While the timer runs, the time left floats above the bottom bar. -->
+<button type="button" class="fo-pill" id="fo-pill" aria-label="Pomodoro timer" hidden>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+  <span id="fo-pill-t"></span>
+</button>
+
+<!-- The break screen: covers this page until the break ends. -->
+<dialog class="fo-dlg" id="fo-screen" aria-labelledby="fo-screen-t" aria-describedby="fo-screen-lead">
+  <div class="fo-dlg-gallery" id="fo-screen-gallery"></div>
+  <div class="fo-dlg-card" tabindex="-1" autofocus>
+    <div class="fo-phase" id="fo-screen-t"></div>
+    <div class="fo-clock" id="fo-screen-clock" role="timer" aria-label="Time left in the break"></div>
+    <div class="fo-warn fo-dlg-warn" id="fo-screen-warn" role="status" hidden></div>
+    <p class="fo-dlg-lead" id="fo-screen-lead"></p>
+    <p class="fo-dlg-idea" id="fo-screen-idea"></p>
+    <p class="fo-dlg-lead" id="fo-screen-rule"></p>
+    <div class="fo-dlg-foot"><button type="button" class="fo-link" id="fo-screen-skip">Skip this break</button></div>
+  </div>
+</dialog>
+
+<!-- The detox day call: Start pressed on the detox day. -->
+<dialog class="fo-dlg" id="fo-call" aria-labelledby="fo-call-t" aria-describedby="fo-call-line">
+  <div class="fo-dlg-gallery" id="fo-call-gallery"></div>
+  <div class="fo-dlg-card">
+    <div class="fo-phase">Detox day</div>
+    <div class="fo-call-t" id="fo-call-t"></div>
+    <p class="fo-call-line" id="fo-call-line"></p>
+    <div class="fo-acts">
+      <button type="button" class="fo-btn primary" id="fo-call-off">Take the day off</button>
+      <button type="button" class="fo-btn link" id="fo-call-go">Start anyway</button>
+    </div>
+    <button type="button" class="fo-link fo-call-add" id="fo-call-add" hidden>Add pictures of what you love</button>
+  </div>
+</dialog>
+
+<!-- GLOBAL FLOATING TAB BAR (position:fixed: visible across list + analytics views) -->
 <div class="mtab-indicator" aria-hidden="true"></div>
 <div id="mobile-more-menu" class="mobile-more-menu" role="dialog" aria-label="More options" hidden>
   <button type="button" data-more-action="search">
@@ -1861,6 +2135,10 @@ svg.brain-type-icon{stroke-width:1.8}
   <button type="button" data-more-action="analytics">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m8 10V5m8 14v-7"/><path d="M2 19h20"/></svg>
     <span>Analytics</span>
+  </button>
+  <button type="button" data-more-action="focus">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+    <span>Pomodoro timer</span>
   </button>
   <button type="button" data-more-action="profile">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
@@ -2796,18 +3074,22 @@ svg.brain-type-icon{stroke-width:1.8}
    * How far along a form is.
    *
    * @param {Array} fields  fillForm(...).fields, after the form is resolved
-   * @returns {{ show: boolean, done: number, total: number, percent: number, label: string }}
+   * @returns {{ show: boolean, done: number, total: number, percent: number, label: string, filled: boolean[] }}
    *   show    whether the form is long enough to carry the line
    *   label   the words beside it, the same on every surface
+   *   filled  one entry per counted field, in form order: the dot on the
+   *           line for that field, true once it holds a usable answer
    */
   function progress(fields) {
     var list = Array.isArray(fields) ? fields : [];
-    var total = 0, done = 0;
+    var total = 0, done = 0, filled = [];
     for (var i = 0; i < list.length; i++) {
       var f = list[i];
       if (!f || f.visible === false) continue;
       total++;
-      if (trim(f.value) !== '' && !f.error) done++;
+      var ok = trim(f.value) !== '' && !f.error;
+      filled.push(ok);
+      if (ok) done++;
     }
     var all = total > 0 && done === total;
     return {
@@ -2815,7 +3097,8 @@ svg.brain-type-icon{stroke-width:1.8}
       done: done,
       total: total,
       percent: total ? Math.round(done / total * 100) : 0,
-      label: all ? 'All ' + total + ' filled in' : done + ' of ' + total + ' filled in'
+      label: all ? 'All ' + total + ' filled in' : done + ' of ' + total + ' filled in',
+      filled: filled
     };
   }
 
@@ -4026,15 +4309,18 @@ svg.brain-type-icon{stroke-width:1.8}
 .ff-form .ff-warn{font-size:12px;line-height:1.5;color:var(--ff-ink);margin:4px 0 0;padding:4px 8px;border-left:3px solid var(--ff-warn);border-radius:4px;background:var(--ff-warn-bg);overflow-wrap:anywhere;}
 #sb-overlay .ff-form p.ff-warn{margin:4px 0 0;padding:4px 8px;font-size:12px;color:var(--ff-ink);}
 /* The line above a long form (SBFillForm.progress): a 3px track, the filled
-   share in Azure, and "3 of 8 filled in" beside it. It sits before the form,
-   outside .ff-form, so it carries its own tokens. */
+   share in Azure, and "3 of 8 filled in" beside it. It sits outside .ff-form
+   (before it, or above the overlay's footer), so it carries its own tokens. */
 .ff-progress{--ff-line:var(--sb-line,#E5E5EA);--ff-muted:var(--sb-ink-muted,#6E6E73);--ff-primary:var(--sb-azure,#1B4FD8);--ff-bg:var(--sb-bg,#fff);display:flex;align-items:center;gap:12px;margin:0 0 16px;}
 .ff-progress[hidden]{display:none;}
-.ff-progress .ff-progress-track{flex:1;min-width:0;height:3px;border-radius:9999px;background:var(--ff-line);overflow:hidden;}
+.ff-progress .ff-progress-track{position:relative;flex:1;min-width:0;height:3px;border-radius:9999px;background:var(--ff-line);}
 .ff-progress .ff-progress-fill{display:block;height:100%;width:0;border-radius:inherit;background:var(--ff-primary);transition:width 300ms cubic-bezier(.4,0,.2,1);}
+/* One 8px dot per field on the line: hollow while empty, Azure once filled. */
+.ff-progress .ff-progress-dot{position:absolute;top:50%;box-sizing:border-box;width:8px;height:8px;border:1.5px solid var(--ff-muted);border-radius:9999px;background:var(--ff-bg);transform:translate(-50%,-50%);transition:background-color 300ms cubic-bezier(.4,0,.2,1),border-color 300ms cubic-bezier(.4,0,.2,1);}
+.ff-progress .ff-progress-dot--on{border-color:var(--ff-primary);background:var(--ff-primary);}
 .ff-progress .ff-progress-text{flex:none;margin:0;font-size:12px;line-height:1.5;font-weight:500;color:var(--ff-muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
 .ff-progress.ff-progress--done .ff-progress-text{color:var(--ff-primary);}
-@media(prefers-reduced-motion:reduce){.ff-progress .ff-progress-fill{transition:none;}}
+@media(prefers-reduced-motion:reduce){.ff-progress .ff-progress-fill,.ff-progress .ff-progress-dot{transition:none;}}
 #ff-unf-bd{position:fixed;inset:0;z-index:2147483647;background:var(--sb-scrim,rgba(0,0,0,.5));}
 #ff-unf{all:initial;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483647;box-sizing:border-box;display:flex;flex-direction:column;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:var(--sb-bg,#fff);border:1px solid var(--sb-line,#E5E5EA);border-radius:16px;box-shadow:var(--sb-shadow-md,0 4px 20px rgba(27,79,216,.12),0 1px 3px rgba(0,0,0,.06));font-family:var(--sb-font,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif);font-size:14px;line-height:1.5;color:var(--sb-ink,#1C1C1E);text-align:left;color-scheme:light;-webkit-font-smoothing:antialiased;}
 #ff-unf,#ff-unf *{box-sizing:border-box;}
@@ -4070,10 +4356,10 @@ svg.brain-type-icon{stroke-width:1.8}
 @media(min-width:900px){#sb-overlay[role=dialog] .ff-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 #sb-overlay[role=dialog] .sb-form-content{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);padding:0;overflow:hidden;}
 #sb-overlay[role=dialog] .sb-input-pane{--ff-pane-pad:24px;min-width:0;overflow-y:auto;padding:var(--ff-pane-pad);overscroll-behavior:contain;}
-/* Kept in view while the fields scroll under it, on the pane's own background
-   and across its full width. A sticky box stops short of a scroll pane's top
-   by the pane's padding, so the inset is taken back to sit flush. */
-#sb-overlay[role=dialog] .ff-progress{position:sticky;top:calc(var(--ff-pane-pad) * -1);z-index:1;margin:0 calc(var(--ff-pane-pad) * -1) 16px;padding:10px var(--ff-pane-pad);background:var(--ff-bg);}
+/* A white strip across the whole window, right above the blue footer: its own
+   thin line on top, the footer's line below, the footer's side padding. */
+#sb-overlay[role=dialog] .ff-progress{flex:none;margin:0;padding:var(--sb-s-3,12px) var(--sb-s-6,24px);border-top:1px solid var(--ff-line);background:var(--ff-bg);}
+@media(max-width:480px){#sb-overlay[role=dialog] .ff-progress{padding:var(--sb-s-3,12px) var(--sb-s-5,20px);}}
 #sb-overlay[role=dialog] .sb-preview{min-width:0;min-height:0;display:flex;flex-direction:column;margin:0;padding:24px;border-left:1px solid var(--sb-line);border-radius:0;}
 #sb-overlay[role=dialog] .sb-preview-heading{flex:none;margin-bottom:16px;}
 #sb-overlay[role=dialog] .sb-prev{overflow-y:auto;min-height:0;flex:1;color:var(--sb-ink);padding:16px;border:1px solid var(--sb-line);border-radius:12px;background:var(--sb-bg);}
@@ -4112,6 +4398,30 @@ svg.brain-type-icon{stroke-width:1.8}
 /* Above both columns; the grid's gap spaces it. */
 .detail:has(.d-fields) .ff-progress{margin:0;}
 #view-detail #prev-text{max-height:none;overflow:visible;}
+
+/* "Add Firma after it": the snippet usually sent next, offered in the fill
+   window's footer between the keyboard hint and Insert. Azure tint, a 44px
+   tick target, the cross to hide the pair. Words carry the meaning, never the
+   colour alone. */
+.ff-next{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);--ffn-muted:var(--sb-ink-muted,var(--text2,#6E6E73));display:flex!important;align-items:center;gap:4px;min-width:0;margin:0 auto;padding:2px 4px 2px 12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);box-sizing:border-box;font-family:inherit;text-align:left;}
+.ff-next .ff-next-tick{display:flex!important;flex:1 1 auto;align-items:center;gap:10px;min-height:44px;min-width:0;margin:0;padding:0;cursor:pointer;font:inherit;color:var(--ffn-primary);}
+.ff-next .ff-next-tick input{all:revert;width:18px;height:18px;margin:0;flex:none;accent-color:var(--ffn-primary);cursor:pointer;}
+.ff-next .ff-next-tick input:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
+.ff-next .ff-next-tick>span{display:flex;flex-direction:column;min-width:0;}
+.ff-next .ff-next-title{font-size:14px;line-height:1.3;font-weight:600;color:var(--ffn-primary);overflow-wrap:anywhere;}
+.ff-next .ff-next-why{font-size:12px;line-height:1.3;color:var(--ffn-muted);}
+.ff-next .ff-next-hide{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;border-radius:10px;color:var(--ffn-muted);cursor:pointer;}
+.ff-next .ff-next-hide:hover{background:var(--sb-bg,var(--card,#fff));color:var(--ffn-primary);}
+.ff-next .ff-next-hide:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
+.ff-next svg{display:block;}
+@media(max-width:480px){#sb-overlay .ff-next{width:100%;margin:0;}}
+/* The phone: a row of its own above Copy and Share, and the page below it
+   scrolls far enough to clear the taller footer. */
+.copy-foot>.ff-next{flex:1 1 100%;margin:0;background:var(--card,#fff);}
+#view-detail:has(.copy-foot>.ff-next) .det-body{padding-bottom:calc(170px + env(safe-area-inset-bottom));}
+/* The popup: a row of its own above the Copy buttons, across both columns. */
+.detail>.ff-next{margin:8px 0 0;}
+.detail:has(.d-fields)>.ff-next{grid-column:1/-1;margin:0;}
 
 /* Pictures in a preview, and the line that says where they go. Host pages style
    img freely, so the sizes hold with !important. */
@@ -4203,10 +4513,11 @@ svg.brain-type-icon{stroke-width:1.8}
   // ── PROGRESS ────────────────────────────────────────────────────
   // The line above a long form that says how far along it is. What it counts
   // and when it shows come from the view model (SBFillForm.progress); this
-  // only draws it, right before the form, so each surface's stylesheet can
-  // place it (the overlay and the phone keep it in view while the form
-  // scrolls). Made the first time it is needed and then updated in place, so
-  // a keystroke moves the line rather than redrawing it.
+  // only draws it, right before the form, or right before cfg.progressBefore
+  // when a surface names a place of its own (the overlay sets it above its
+  // footer; the phone keeps it in view while the form scrolls). Made the
+  // first time it is needed and then updated in place, so a keystroke moves
+  // the line rather than redrawing it.
   function drawProgress(host, state, p) {
     var bar = state.progress;
     if (!p || !p.show) { if (bar) bar.hidden = true; return; }
@@ -4228,7 +4539,7 @@ svg.brain-type-icon{stroke-width:1.8}
       text.setAttribute('aria-hidden', 'true');
       bar.appendChild(track);
       bar.appendChild(text);
-      host.before(bar);
+      (state.cfg.progressBefore || host).before(bar);
       state.progress = bar;
     }
     bar.hidden = false;
@@ -4237,6 +4548,21 @@ svg.brain-type-icon{stroke-width:1.8}
     meter.setAttribute('aria-valuenow', String(p.done));
     meter.setAttribute('aria-valuetext', p.label);
     bar.querySelector('.ff-progress-fill').style.width = p.percent + '%';
+    // One dot per field, each at the middle of its share of the line, made
+    // again only when the number of fields changes (a field shown or hidden).
+    var dots = meter.querySelectorAll('.ff-progress-dot');
+    if (dots.length !== p.filled.length) {
+      Array.prototype.forEach.call(dots, function(d) { d.remove(); });
+      p.filled.forEach(function(_, i) {
+        var dot = document.createElement('span');
+        dot.className = 'ff-progress-dot';
+        dot.setAttribute('aria-hidden', 'true');
+        dot.style.left = ((i + 0.5) / p.filled.length * 100) + '%';
+        meter.appendChild(dot);
+      });
+      dots = meter.querySelectorAll('.ff-progress-dot');
+    }
+    p.filled.forEach(function(on, i) { dots[i].classList.toggle('ff-progress-dot--on', on); });
     bar.querySelector('.ff-progress-text').textContent = p.label;
     bar.classList.toggle('ff-progress--done', p.total > 0 && p.done === p.total);
   }
@@ -4648,8 +4974,111 @@ svg.brain-type-icon{stroke-width:1.8}
     el.textContent = text;
   }
 
+  // ── OFTEN SENT NEXT ─────────────────────────────────────────────
+  // The snippet a person usually sends right after this one, offered where
+  // the snippet is used: in the fill window's footer, between the keyboard
+  // hint and Insert, and on the page's card after a snippet without a form.
+  // Which one comes next is decided from the use history by
+  // SBUsageAnalytics.nextAfter ({ fromId: { id, count } }); this decides
+  // whether to offer it and draws the offer, for the page, the popup and the
+  // phone alike. Only a snippet with nothing to fill is offered: it goes in as
+  // it is, a blank line after the first. The cross hides that pair for
+  // NEXT_HIDE_DAYS on the device.
+  var NEXT_HIDE_DAYS = 30;
+  var NEXT_SEPARATOR = '\n\n';
+
+  function nextWords(key, title) {
+    var t = String(title || 'it');
+    switch (key) {
+      case 'tick': return 'Add ' + t + ' after it';
+      case 'why': return 'Often sent next';
+      case 'card': return 'Often sent with ' + t;
+      case 'card-hint': return 'Add it right after this text.';
+      case 'add': return 'Add ' + t;
+      case 'hide': return 'Don’t suggest ' + t + ' after this snippet';
+      default: return '';
+    }
+  }
+
+  /**
+   * The snippet to offer after `fromId`, or null. `map` is nextAfter's answer,
+   * `library` the snippets this surface can expand ({ id, body, fieldCfg or
+   * field_cfg, lang }), `hidden` the pairs the cross hid ({ 'from>to': iso }).
+   */
+  function nextFor(map, fromId, library, hidden, now) {
+    var hit = map && fromId ? map[fromId] : null;
+    if (!hit || !hit.id || hit.id === fromId) return null;
+    var at = hidden && hidden[fromId + '>' + hit.id] ? Date.parse(hidden[fromId + '>' + hit.id]) : NaN;
+    if (!isNaN(at) && (now || Date.now()) - at < NEXT_HIDE_DAYS * 86400000) return null;
+    var next = null;
+    for (var i = 0; library && i < library.length; i++) { if (library[i] && library[i].id === hit.id) { next = library[i]; break; } }
+    if (!next || !root.SBFillForm) return null;
+    var vm = root.SBFillForm.fillForm(next.body || '', {}, { fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang });
+    return vm.fields.length || vm.buttons.length ? null : next;
+  }
+
+  /** The hidden pairs with this one added and the ones past NEXT_HIDE_DAYS dropped. */
+  function hideNext(hidden, fromId, toId, now) {
+    var t = now || Date.now();
+    var out = {};
+    Object.keys(hidden || {}).forEach(function(k) {
+      var at = Date.parse(hidden[k]);
+      if (!isNaN(at) && t - at < NEXT_HIDE_DAYS * 86400000) out[k] = hidden[k];
+    });
+    out[fromId + '>' + toId] = new Date(t).toISOString();
+    return out;
+  }
+
+  /**
+   * The offer in a fill window's footer: a tick box "Add Firma after it", the
+   * line "Often sent next" and a cross that hides the pair (onHide). Returns
+   * { el, checked } where checked() says whether the box is ticked. It starts
+   * unticked: nothing extra goes in unless the person asks.
+   */
+  function nextOffer(doc, next, onHide) {
+    var box = doc.createElement('div');
+    box.className = 'ff-next';
+    var label = doc.createElement('label');
+    label.className = 'ff-next-tick';
+    var tick = doc.createElement('input');
+    tick.type = 'checkbox';
+    var words = doc.createElement('span');
+    var strong = doc.createElement('span');
+    strong.className = 'ff-next-title';
+    strong.textContent = nextWords('tick', next.title);
+    var why = doc.createElement('span');
+    why.className = 'ff-next-why';
+    why.textContent = nextWords('why');
+    words.appendChild(strong); words.appendChild(why);
+    label.appendChild(tick); label.appendChild(words);
+    var hide = doc.createElement('button');
+    hide.type = 'button';
+    hide.className = 'ff-next-hide';
+    hide.setAttribute('aria-label', nextWords('hide', next.title));
+    hide.title = nextWords('hide', next.title);
+    hide.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+    hide.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      tick.checked = false;
+      box.remove();
+      if (typeof onHide === 'function') onHide();
+    });
+    box.appendChild(label); box.appendChild(hide);
+    return { el: box, checked: function() { return box.isConnected && tick.checked; } };
+  }
+
+  /** The next snippet's text as it goes in, and its formatted form when it has one. */
+  function nextText(next) {
+    var vm = root.SBFillForm.fillForm(next.body || '', {}, {
+      fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang, formatted: next.bodyHtml || next.body_html || null
+    });
+    return { text: vm.preview, formatted: vm.formatted || null };
+  }
+
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
-    unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote };
+    unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
+    NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
+    nextWords: nextWords, nextFor: nextFor, hideNext: hideNext, nextOffer: nextOffer, nextText: nextText };
 })(typeof window !== 'undefined' ? window : this);
 </script>
 <!-- SB_FILL_FORM_UI:END -->
@@ -5907,6 +6336,9 @@ svg.brain-type-icon{stroke-width:1.8}
 //              the team for a shared snippet. It is what "never used" and "not
 //              used for 90 days" read, because the event window is finite.
 //   period     7, 30, 90 or 365 days, ending today
+//   month      'YYYY-MM' instead of a period: that calendar month, compared
+//              with the calendar month before it (the monthly recap email).
+//              Pass a finished month: an unfinished one is cut at today.
 //   now        a timestamp, passed in so the gate can pin the clock
 //
 // pareto() reads the same inputs, plus the prompt log (public.prompt_events)
@@ -5941,6 +6373,7 @@ svg.brain-type-icon{stroke-width:1.8}
   var WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   var WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   var MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var LANG_NAMES = { EN: 'English', IT: 'Italian', ES: 'Spanish', FR: 'French', DE: 'German', PT: 'Portuguese', MULTI: 'Several languages' };
 
   function pad(n) { return n < 10 ? '0' + n : String(n); }
@@ -5971,14 +6404,55 @@ svg.brain-type-icon{stroke-width:1.8}
     return n === 365 ? 'Last 12 months' : 'Last ' + n + ' days';
   }
 
-  /** The two windows a period compares, as Dates (start inclusive, end exclusive). */
-  function range(period, now) {
-    var p = normalizePeriod(period);
+  /** 'YYYY-MM' as { year, month (1-12) }, or null for anything else. */
+  function monthKey(value) {
+    var m = /^(\d{4})-(\d{2})$/.exec(String(value || ''));
+    if (!m) return null;
+    var month = Number(m[2]);
+    if (month < 1 || month > 12) return null;
+    return { year: Number(m[1]), month: month };
+  }
+
+  /** Calendar days from one local midnight to another, whatever the clock change does in between. */
+  function daysBetween(from, to) {
+    return Math.round((to.getTime() - from.getTime()) / 86400000);
+  }
+
+  /**
+   * The two windows compared, as Dates (start inclusive, end exclusive).
+   * A period is the last N days ending today; a month is that calendar month
+   * against the calendar month before it, which may be a different length
+   * (`prevDays`). `today` is the last day inside the window.
+   */
+  function range(period, now, month) {
+    var key = monthKey(month);
     var today = startOfDay(now);
+    if (key) {
+      var mStart = new Date(key.year, key.month - 1, 1);
+      var mEnd = new Date(key.year, key.month, 1);
+      var mPrev = new Date(key.year, key.month - 2, 1);
+      var last = addDays(mEnd, -1);
+      return {
+        period: daysBetween(mStart, mEnd),
+        prevDays: daysBetween(mPrev, mStart),
+        start: mStart,
+        end: mEnd,
+        prevStart: mPrev,
+        prevEnd: mStart,
+        today: last < today ? last : today,
+        month: key.year + '-' + pad(key.month)
+      };
+    }
+    var p = normalizePeriod(period);
     var end = addDays(today, 1);
     var start = addDays(today, -(p - 1));
     var prevStart = addDays(start, -p);
-    return { period: p, start: start, end: end, prevStart: prevStart, prevEnd: start, today: today };
+    return { period: p, prevDays: p, start: start, end: end, prevStart: prevStart, prevEnd: start, today: today, month: null };
+  }
+
+  /** "Last 30 days" for a period, "October 2026" for a month. */
+  function windowLabel(r) {
+    return r.month ? MONTHS_LONG[r.start.getMonth()] + ' ' + r.start.getFullYear() : periodLabel(r.period);
   }
 
   /** Where the event read has to start for every figure to be complete. */
@@ -6154,7 +6628,7 @@ svg.brain-type-icon{stroke-width:1.8}
   function compute(input) {
     var inp = input || {};
     var now = Number(inp.now) || Date.now();
-    var r = range(inp.period, now);
+    var r = range(inp.period, now, inp.month);
     var p = r.period;
     var snippets = Array.isArray(inp.snippets) ? inp.snippets : [];
     var folders = Array.isArray(inp.folders) ? inp.folders : [];
@@ -6188,7 +6662,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
     function known(id) { return !!snipById[id]; }
     var totals = windowTotals(cur, p, r.start, known);
-    var prevTotals = windowTotals(prev, p, r.prevStart, known);
+    var prevTotals = windowTotals(prev, r.prevDays, r.prevStart, known);
 
     // Daily series, with the previous period's same day beside it and a
     // trailing 7-day average once a period is long enough for one to mean
@@ -6355,7 +6829,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
     return {
       period: p,
-      label: periodLabel(p),
+      label: windowLabel(r),
       rangeLabel: rangeLabel(r.start, r.end),
       prevRangeLabel: rangeLabel(r.prevStart, r.prevEnd),
       start: dayKey(r.start),
@@ -6569,7 +7043,7 @@ svg.brain-type-icon{stroke-width:1.8}
   function pareto(input) {
     var inp = input || {};
     var now = Number(inp.now) || Date.now();
-    var r = range(inp.period, now);
+    var r = range(inp.period, now, inp.month);
     var startMs = r.start.getTime();
     var endMs = r.end.getTime();
 
@@ -6611,10 +7085,355 @@ svg.brain-type-icon{stroke-width:1.8}
 
     return {
       period: r.period,
-      label: periodLabel(r.period),
+      label: windowLabel(r),
       rangeLabel: rangeLabel(r.start, r.end),
       snippets: snippetReport,
       prompts: promptReport
+    };
+  }
+
+  // ── Suggestions ────────────────────────────────────────────────────────
+  // What Fibonax notices on its own, from what the person already has. Nothing
+  // new is collected and nothing leaves the device: the inputs are the same use
+  // logs and library the rest of this file reads.
+  //
+  //   together  snippets (and, apart, prompts) used one after the other, again
+  //             and again: a run is uses at most TOGETHER_GAP_MIN minutes
+  //             apart, and a sequence must appear in TOGETHER_MIN runs within
+  //             the last SUGGEST_DAYS days. A sequence is counted once per run.
+  //   missing   a piece the library lacks, read from the words of its own
+  //             items (MISSING_RULES). Each one names a starter library item,
+  //             which is what the dashboard offers to add.
+  //
+  // "Not now" is passed in as `dismissed` ({ key: iso }), so a suggestion stays
+  // hidden for DISMISS_DAYS on every surface that reads this.
+  var SUGGEST_DAYS = 90;
+  var TOGETHER_GAP_MIN = 10;
+  var TOGETHER_MIN = 3;
+  var TOGETHER_LIMIT = 3;
+  var MISSING_LIMIT = 3;
+  var DISMISS_DAYS = 30;
+
+  // Words in English, Italian and Spanish, written without accents. A trailing
+  // * matches the start of a word ("payment*" finds "payments").
+  var W = {
+    price: ['price*', 'pricing', 'cost', 'costs', 'payment*', 'pay', 'paying', 'paid', 'invoice*', 'quote*', 'fee', 'fees', 'deposit*', 'refund*', 'total',
+      'prezz*', 'pagament*', 'fattur*', 'preventiv*', 'costo', 'costi', 'tariff*', 'rimbors*', 'acconto',
+      'precio*', 'pago', 'pagos', 'pagar', 'factura*', 'presupuesto*', 'reembolso*', 'senal', 'anticipo'],
+    terms: ['terms', 'conditions', 't&c', 'policy', 'policies', 'termini', 'condizioni', 'informativa', 'terminos', 'condiciones', 'politica*'],
+    quote: ['quote', 'quotes', 'quotation*', 'estimate*', 'proposal*', 'offer', 'offers', 'preventiv*', 'offerta', 'offerte', 'proposta', 'presupuesto*', 'oferta*', 'propuesta*'],
+    followup: ['follow up', 'following up', 'followup', 'checking in', 'any news', 'had a chance', 'ti ricontatto', 'hai avuto modo', 'novita', 'seguimiento', 'has podido', 'alguna novedad'],
+    invoice: ['invoice*', 'fattur*', 'factura*'],
+    reminder: ['reminder*', 'overdue', 'outstanding', 'unpaid', 'past due', 'sollecit*', 'scadut*', 'promemoria', 'recordatorio*', 'vencid*', 'pendiente*'],
+    away: ['out of office', 'away until', 'on holiday', 'on vacation', 'on leave', 'back on', 'fuori ufficio', 'assente', 'in ferie', 'fuera de la oficina', 'ausente', 'de vacaciones'],
+    answer: ['thank you for your message', 'thanks for your message', 'thank you for contacting', 'thanks for reaching out', 'your request', 'your question',
+      'grazie per il tuo messaggio', 'grazie per averci', 'la tua richiesta', 'gracias por tu mensaje', 'gracias por contactar', 'tu solicitud', 'tu consulta'],
+    reply: ['reply', 'replies', 'respond*', 'response', 'answer*', 'rispond*', 'rispost*', 'respuesta*', 'contesta*'],
+    translate: ['translat*', 'tradu*'],
+    facts: ['price*', 'opening hours', 'hours', 'address', 'phone', 'payment*', 'policy', 'policies', 'cancel*', 'refund*',
+      'prezz*', 'orari*', 'indirizzo', 'telefono', 'pagament*', 'precio*', 'horario*', 'direccion'],
+    factsBrain: ['facts', 'company', 'about us', 'business', 'azienda', 'chi siamo', 'empresa', 'quienes somos'],
+    write: ['write', 'rewrite', 'draft', 'email', 'reply', 'scrivi', 'riscrivi', 'escribe', 'redacta', 'reescribe'],
+    tone: ['tone', 'voice', 'style', 'brand', 'tono', 'stile', 'voce', 'estilo']
+  };
+
+  // In priority order, kinds mixed so the first few are not all snippets.
+  // `found` returns the number the sentence prints, or 0 when the rule does not
+  // apply. Every `libraryId` is a starter library item of that kind with that
+  // exact `title` (src/__tests__/suggestions.test.ts pins it).
+  var MISSING_RULES = [
+    {
+      key: 'terms', kind: 'snippet', libraryId: 'terms', title: 'Terms and conditions link',
+      found: function (L) { var n = L.count('snippets', W.price); return n >= 2 && !L.any('snippets', W.terms) ? n : 0; },
+      text: function (n) { return n + ' of your snippets talk about prices or payments, but none links to your terms and conditions.'; }
+    },
+    {
+      key: 'company', kind: 'brain', libraryId: 'company', title: 'Company facts',
+      found: function (L) { var n = L.count('snippets', W.facts); return n >= 3 && !L.any('brains', W.factsBrain) ? n : 0; },
+      text: function (n) { return n + ' of your snippets hold prices, hours or policies. A Brain of company facts lets an AI answer with them.'; }
+    },
+    {
+      key: 'reply', kind: 'prompt', libraryId: 'reply', title: 'Reply to a customer',
+      found: function (L) { var n = L.count('snippets', W.answer); return n >= 3 && !L.any('prompts', W.reply) ? n : 0; },
+      text: function (n) { return n + ' of your snippets answer messages. A prompt can draft a reply when none of them fits.'; }
+    },
+    {
+      key: 'followquote', kind: 'snippet', libraryId: 'followquote', title: 'Follow-up on a quote',
+      found: function (L) { var n = L.count('snippets', W.quote); return n >= 1 && !L.any('snippets', W.followup) ? n : 0; },
+      text: function (n) {
+        return n === 1 ? 'You have a snippet for quotes, but none to follow up on one.'
+          : n + ' of your snippets are about quotes, but none follows up on one.';
+      }
+    },
+    {
+      key: 'translate', kind: 'prompt', libraryId: 'translate', title: 'Translate, keep the tone',
+      found: function (L) { var n = L.languages(); return n >= 2 && !L.any('prompts', W.translate) ? n : 0; },
+      text: function (n) { return 'Your snippets are in ' + n + ' languages. A prompt can translate a message and keep its tone.'; }
+    },
+    {
+      key: 'overdue', kind: 'snippet', libraryId: 'overdue', title: 'Payment reminder',
+      found: function (L) { var n = L.count('snippets', W.invoice); return n >= 1 && !L.any('snippets', W.reminder) ? n : 0; },
+      text: function () { return 'You send invoices, but have no snippet to remind someone who has not paid.'; }
+    },
+    {
+      key: 'tone', kind: 'brain', libraryId: 'tone', title: 'Tone of voice',
+      found: function (L) { var n = L.count('prompts', W.write); return n >= 2 && !L.any('brains', W.tone) ? n : 0; },
+      text: function (n) { return n + ' of your prompts write for you. A Tone of voice Brain helps the AI sound like you.'; }
+    },
+    {
+      key: 'away', kind: 'snippet', libraryId: 'away', title: 'Out of office',
+      found: function (L) { var n = L.size('snippets'); return n >= 10 && !L.any('snippets', W.away) ? n : 0; },
+      text: function (n) { return 'You have ' + n + ' snippets, but none for the days you are away.'; }
+    }
+  ];
+
+  /**
+   * An item's words, ready to search: fields and formulas, markup, accents and
+   * punctuation removed, lower case, one space between words and one at each end.
+   */
+  function plainWords(text) {
+    var s = String(text || '').replace(/<[^>]*>/g, ' ');
+    // Innermost tokens first, so a formula holding a field goes too.
+    for (var i = 0; i < 4 && /\{[^{}]*\}/.test(s); i++) s = s.replace(/\{[^{}]*\}/g, ' ');
+    if (typeof s.normalize === 'function') s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    s = s.toLowerCase().replace(/[^a-z0-9&]+/g, ' ').trim();
+    return s ? ' ' + s + ' ' : ' ';
+  }
+
+  function hasAny(words, list) {
+    for (var i = 0; i < list.length; i++) {
+      var w = list[i];
+      if (w.charAt(w.length - 1) === '*') {
+        if (words.indexOf(' ' + w.slice(0, -1)) !== -1) return true;
+      } else if (words.indexOf(' ' + w + ' ') !== -1) return true;
+    }
+    return false;
+  }
+
+  function isDismissed(dismissed, key, now) {
+    var at = dismissed && dismissed[key] ? new Date(dismissed[key]).getTime() : NaN;
+    return !isNaN(at) && now - at < DISMISS_DAYS * 86400000;
+  }
+
+  // Uses of one kind cut into runs: the ids used one after the other, at most
+  // TOGETHER_GAP_MIN minutes apart, between startMs and now. The same item
+  // twice in a row is one step. An item `known` does not hold (one no longer in
+  // the library) still ends a run: it sat between. Only runs of two or more.
+  function runsOf(events, idField, known, startMs, now) {
+    var uses = [];
+    for (var e = 0; e < events.length; e++) {
+      var t = eventTime(events[e]);
+      if (t === null || t < startMs || t > now) continue;
+      var id = events[e][idField];
+      uses.push({ id: id && known(id) ? id : null, t: t });
+    }
+    uses.sort(function (a, b) { return a.t - b.t; });
+    var gap = TOGETHER_GAP_MIN * 60000;
+    var runs = [];
+    var run = [];
+    function cut() { if (run.length > 1) runs.push(run); run = []; }
+    var lastT = null;
+    for (var u = 0; u < uses.length; u++) {
+      var use = uses[u];
+      if (lastT !== null && use.t - lastT > gap) cut();
+      lastT = use.t;
+      if (use.id === null) { cut(); continue; }
+      if (run.length && run[run.length - 1] === use.id) continue;
+      run.push(use.id);
+    }
+    cut();
+    return runs;
+  }
+
+  // One kind's "used together": `items` are { id, title, words, body }, where
+  // `body` is the text alone, without the title.
+  function togetherOf(kind, events, idField, items, startMs, now) {
+    var byId = {};
+    for (var i = 0; i < items.length; i++) byId[items[i].id] = items[i];
+    var counts = {};
+    runsOf(events, idField, function (id) { return !!byId[id]; }, startMs, now).forEach(function (run) {
+      var seen = {};
+      for (var a = 0; a < run.length - 1; a++) {
+        for (var len = 2; len <= 3 && a + len <= run.length; len++) {
+          var ids = run.slice(a, a + len);
+          if (len === 3 && ids[0] === ids[2]) continue;
+          var k = ids.join('>');
+          if (seen[k]) continue;
+          seen[k] = true;
+          counts[k] = (counts[k] || 0) + 1;
+        }
+      }
+    });
+
+    function setKey(ids) { return ids.slice().sort().join('|'); }
+    var cands = Object.keys(counts)
+      .filter(function (k) { return counts[k] >= TOGETHER_MIN; })
+      .map(function (k) { return { ids: k.split('>'), count: counts[k] }; });
+    function byStrength(a, b) {
+      return b.count - a.count || b.ids.length - a.ids.length || a.ids.join('>').localeCompare(b.ids.join('>'));
+    }
+    cands.sort(byStrength);
+
+    // Three in a row first, then pairs. A pair is folded into a chosen chain of
+    // three that holds it when the three go together at least half as often as
+    // the two do; otherwise the pair is the stronger habit and stays.
+    var picked = [];
+    var pickedSets = {};
+    [3, 2].forEach(function (len) {
+      for (var c = 0; c < cands.length; c++) {
+        var cand = cands[c];
+        if (cand.ids.length !== len) continue;
+        var sk = setKey(cand.ids);
+        if (pickedSets[sk]) continue;
+        var folded = picked.some(function (p) {
+          return p.ids.length === 3 && cand.ids.every(function (x) { return p.ids.indexOf(x) !== -1; }) && p.count * 2 >= cand.count;
+        });
+        if (folded) continue;
+        picked.push(cand);
+        pickedSets[sk] = true;
+      }
+    });
+
+    // Already joined: another item's text holds the text of every one of them.
+    function joined(ids) {
+      var parts = ids.map(function (x) { return byId[x].body; });
+      if (parts.some(function (w) { return w.trim() === ''; })) return false;
+      return items.some(function (it) {
+        if (ids.indexOf(it.id) !== -1) return false;
+        return parts.every(function (w) { return it.body.indexOf(w.trim()) !== -1; });
+      });
+    }
+
+    return picked.filter(function (p) { return !joined(p.ids); }).map(function (p) {
+      return {
+        key: kind + ':' + p.ids.join('>'),
+        kind: kind,
+        ids: p.ids,
+        titles: p.ids.map(function (x) { return byId[x].title; }),
+        count: p.count,
+        text: 'You used these one after the other ' + p.count + ' times in the last ' + SUGGEST_DAYS + ' days.'
+      };
+    });
+  }
+
+  /**
+   * What usually comes next after each snippet, for "Add Firma after it" in
+   * the fill windows: the snippet used right after it in the most runs (the
+   * same runs as "used together"), at least TOGETHER_MIN of them in the last
+   * SUGGEST_DAYS days. A tie goes to the id that sorts first, so every surface
+   * picks the same one. Pure:
+   *   events   uses { snippet_id, created_at }
+   *   ids      the snippets still in the library; leave out to take every id
+   *   idField  'snippet_id' unless given
+   *   now      a timestamp
+   * Returns { fromId: { id: nextId, count } }.
+   */
+  function nextAfter(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var startMs = addDays(startOfDay(now), -(SUGGEST_DAYS - 1)).getTime();
+    var known = function () { return true; };
+    if (Array.isArray(inp.ids)) {
+      var set = {};
+      inp.ids.forEach(function (id) { set[id] = true; });
+      known = function (id) { return !!set[id]; };
+    }
+    var counts = {};
+    runsOf(Array.isArray(inp.events) ? inp.events : [], inp.idField || 'snippet_id', known, startMs, now).forEach(function (run) {
+      var seen = {};
+      for (var i = 0; i < run.length - 1; i++) {
+        var k = run[i] + '>' + run[i + 1];
+        if (seen[k]) continue;
+        seen[k] = true;
+        counts[k] = (counts[k] || 0) + 1;
+      }
+    });
+    var best = {};
+    Object.keys(counts).sort().forEach(function (k) {
+      var n = counts[k];
+      if (n < TOGETHER_MIN) return;
+      var pair = k.split('>');
+      if (!best[pair[0]] || n > best[pair[0]].count) best[pair[0]] = { id: pair[1], count: n };
+    });
+    return best;
+  }
+
+  /**
+   * Suggestions for one person. Pure, like compute():
+   *   events        snippet uses { snippet_id, created_at }
+   *   promptEvents  prompt uses { prompt_id, created_at }
+   *   snippets      { id, title, text, lang }   text: the body, any form;
+   *                 `langs` (a list) in place of `lang` for a snippet that
+   *                 holds several languages
+   *   prompts       { id, name, text }
+   *   brains        { name, description }
+   *   dismissed     { key: iso } from "Not now"
+   *   now           a timestamp
+   */
+  function suggest(input) {
+    var inp = input || {};
+    var now = Number(inp.now) || Date.now();
+    var startMs = addDays(startOfDay(now), -(SUGGEST_DAYS - 1)).getTime();
+    var dismissed = inp.dismissed || {};
+
+    function list(v) { return Array.isArray(v) ? v.filter(function (x) { return x && x.id; }) : []; }
+    var snippets = list(inp.snippets).map(function (s) {
+      return {
+        id: s.id, title: s.title || s.shortcut || 'Untitled snippet', langs: Array.isArray(s.langs) ? s.langs : [s.lang],
+        words: plainWords((s.title || '') + ' ' + (s.text || '')), body: plainWords(s.text)
+      };
+    });
+    var prompts = list(inp.prompts).map(function (p) {
+      return {
+        id: p.id, title: p.name || p.shortcut || 'Untitled prompt',
+        words: plainWords((p.name || '') + ' ' + (p.text || '')), body: plainWords(p.text)
+      };
+    });
+    var brains = (Array.isArray(inp.brains) ? inp.brains : []).filter(Boolean).map(function (b) {
+      return { title: b.name || '', words: plainWords((b.name || '') + ' ' + (b.description || '')) };
+    });
+    var lib = { snippets: snippets, prompts: prompts, brains: brains };
+
+    var together = togetherOf('snippet', Array.isArray(inp.events) ? inp.events : [], 'snippet_id', snippets, startMs, now)
+      .concat(togetherOf('prompt', Array.isArray(inp.promptEvents) ? inp.promptEvents : [], 'prompt_id', prompts, startMs, now))
+      .filter(function (s) { return !isDismissed(dismissed, s.key, now); })
+      .sort(function (a, b) { return b.count - a.count || b.ids.length - a.ids.length || a.key.localeCompare(b.key); })
+      .slice(0, TOGETHER_LIMIT);
+
+    var L = {
+      count: function (kind, words) { return lib[kind].filter(function (x) { return hasAny(x.words, words); }).length; },
+      any: function (kind, words) { return lib[kind].some(function (x) { return hasAny(x.words, words); }); },
+      size: function (kind) { return lib[kind].length; },
+      languages: function () {
+        var seen = {};
+        snippets.forEach(function (s) {
+          s.langs.forEach(function (l) {
+            var c = String(l || '').toUpperCase();
+            if (c && c !== 'MULTI') seen[c] = true;
+          });
+        });
+        return Object.keys(seen).length;
+      }
+    };
+    var KIND_LIST = { snippet: 'snippets', prompt: 'prompts', brain: 'brains' };
+    var missing = [];
+    for (var m = 0; m < MISSING_RULES.length && missing.length < MISSING_LIMIT; m++) {
+      var rule = MISSING_RULES[m];
+      var key = 'missing:' + rule.key;
+      if (isDismissed(dismissed, key, now)) continue;
+      // Already there under the library's own name: added before, kept.
+      var named = rule.title.toLowerCase();
+      if (lib[KIND_LIST[rule.kind]].some(function (x) { return String(x.title).trim().toLowerCase() === named; })) continue;
+      var n = rule.found(L);
+      if (!n) continue;
+      missing.push({ key: key, kind: rule.kind, libraryId: rule.libraryId, title: rule.title, text: rule.text(n) });
+    }
+
+    return {
+      days: SUGGEST_DAYS,
+      together: together,
+      missing: missing,
+      empty: together.length === 0 && missing.length === 0
     };
   }
 
@@ -6636,6 +7455,11 @@ svg.brain-type-icon{stroke-width:1.8}
     DEVICE_LABELS: DEVICE_LABELS,
     compute: compute,
     pareto: pareto,
+    SUGGEST_DAYS: SUGGEST_DAYS,
+    DISMISS_DAYS: DISMISS_DAYS,
+    MISSING_RULES: MISSING_RULES.map(function (r) { return { key: r.key, kind: r.kind, libraryId: r.libraryId, title: r.title }; }),
+    suggest: suggest,
+    nextAfter: nextAfter,
     team: team,
     lastUseLine: lastUseLine
   };
@@ -6652,6 +7476,965 @@ svg.brain-type-icon{stroke-width:1.8}
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
 </script>
 <!-- SB_USAGE_ANALYTICS:END -->
+<!-- SB_FOCUS_TIMER:BEGIN (generated from extension/shared/focus-timer.js and focus-carousel.js by scripts/sync-focus-timer.js, do not edit) -->
+<script>
+// focus-timer.js: the Pomodoro timer's rules, decided once.
+//
+// A Pomodoro timer: work sessions, a short break after each, and a long break
+// after the last session of a block. Four places use it:
+//
+//   extension/background/background.js   the only writer: every change goes
+//                                        through reduce(), the alarm sits on
+//                                        the end of the current phase, and the
+//                                        chime plays through offscreen/chime.html
+//   extension/popup/popup.js             the Pomodoro timer pane and the header button
+//   extension/content/focus-break.js     the break screen on every web page
+//   app/public/mobile/index.html         the phone: a generated copy of this
+//                                        file (scripts/sync-focus-timer.js)
+//
+// Everything here is pure: a state and a time go in, a state comes out. The
+// only exception is playChime, which draws on the AudioContext it is handed.
+// The state lives under STORAGE_KEY, in chrome.storage.local on a computer and
+// localStorage on a phone: each device keeps its own timer and nothing is sent
+// anywhere. scripts/check-focus-timer.js runs these rules over
+// the cases that matter: a whole block, an extra break, a skip, a pause, a
+// computer that slept through a phase, the six-hour and detox day warnings,
+// and starting by itself.
+(function(root) {
+  'use strict';
+
+  var STORAGE_KEY = 'sb_focus';
+  var ALARM_NAME = 'sb_focus_alarm';
+
+  var MIN_MS = 60000;
+  var HOUR_MS = 3600000;
+
+  // The choices the Pomodoro timer pane offers. A stored value outside them lands
+  // on the default, so an old or hand-edited value can never make a zero-minute
+  // break or a block of a thousand sessions.
+  var OPTIONS = {
+    workMin: [15, 20, 25, 30, 45, 50, 60],
+    breakMin: [3, 5, 10, 15],
+    sessions: [2, 3, 4, 5, 6, 8, 10],
+    longMin: [10, 15, 20, 30],
+    // The detox day: the person's day off from screens, as Date.getDay() counts
+    // (0 is Sunday), listed from Monday. People keep different days off, so it
+    // is theirs to pick; Sunday until they do.
+    detoxDay: [1, 2, 3, 4, 5, 6, 0]
+  };
+  // autoStart: "Start automatically", off until the person turns it on, so
+  // someone who never opened the timer never meets a break screen.
+  var DEFAULTS = { workMin: 25, breakMin: 5, sessions: 4, longMin: 15, detoxDay: 0, chime: true, autoStart: false };
+  var DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // "I need a break now" offers these lengths, in minutes.
+  var EXTRA_MIN = [1, 2, 5];
+
+  var LONG_HOURS = 6;          // the "enjoy your life" warning, in hours of one streak
+  var GAP_MS = 30 * MIN_MS;    // a stop or a pause longer than this ends the streak
+  var STALE_MS = 30 * MIN_MS;  // a phase overdue by more than this: the person was away
+  var KEEP_DAYS = 14;          // daily counts kept, for the "Last 7 days" row
+  var AWAY_SEC = 60;           // no key or mouse for this long: the person is away from the computer
+
+  var KINDS = ['work', 'short', 'long', 'extra'];
+
+  // One idea per break, in turn, so every open tab shows the same one.
+  var SUGGESTIONS = [
+    'Get some fresh air',
+    'Do 20 push-ups',
+    'Eat a snack, away from your desk',
+    'Read a few pages of a book that has nothing to do with work',
+    'Drink a glass of water',
+    'Stretch your neck, back and shoulders'
+  ];
+  var BREAK_LEAD = 'Step away from the screen. One idea:';
+  var PHONE_RULE = 'No social media and no phone. Calling your mum is allowed.';
+  var DILUTION_NOTE = 'Extra and skipped breaks are cutting into many of your sessions. A shorter work time may suit you better.';
+
+  // The detox day pictures: up to 5 pictures of what the person loves (their
+  // family, a sunset, their dog), shown as a carousel when they try to work on
+  // their detox day. Each is resized before it is saved, they stay on this
+  // device, and they live under their own key, so the timer state that every
+  // open tab reads on each change stays small. The limit was 8 at first; the
+  // owners found that too many (2026-11-01). 5 is a Fibonacci number, and at
+  // about 300 KB a picture it is well inside the extension's storage.
+  var PHOTO_KEY = 'sb_focus_photos';
+  var PHOTO_MAX = 5;
+  var PHOTO_MAX_SIDE = 1280;
+  var PHOTO_QUALITY = 0.82;
+  var IMAGE_URL = /^data:image\/(jpeg|png|webp);base64,/;
+
+  // The call when someone starts the timer on their detox day anyway.
+  var DETOX_LINE = 'Your time is precious. Spend it offline, with the people and things you love.';
+
+  // The chime: two soft bell tones made by the browser, [pitch in Hz, seconds
+  // after the first], so no surface ships a sound file.
+  var CHIME_TONES = [[880, 0], [1318.5, 0.18]];
+
+  function plain(value) {
+    return (value && typeof value === 'object' && !Array.isArray(value)) ? value : {};
+  }
+
+  function num(value) {
+    var n = Number(value);
+    return (value === null || value === undefined || value === '' || !isFinite(n)) ? null : n;
+  }
+
+  function count(value) {
+    var n = Math.floor(Number(value));
+    return isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function pad(n) {
+    return n < 10 ? '0' + n : String(n);
+  }
+
+  function isBreak(kind) {
+    return kind === 'short' || kind === 'long' || kind === 'extra';
+  }
+
+  // The local calendar date, YYYY-MM-DD: "today" is the person's today.
+  function dayKey(nowMs) {
+    var d = new Date(nowMs);
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  // The date keys of the last n days, today first. Steps the calendar, not a
+  // fixed 24 hours, so a daylight saving change never skips or repeats a day.
+  function lastDays(nowMs, n) {
+    var d = new Date(nowMs);
+    var keys = [];
+    for (var i = 0; i < n; i++) {
+      keys.push(dayKey(d.getTime()));
+      d.setDate(d.getDate() - 1);
+    }
+    return keys;
+  }
+
+  function normalizeSettings(raw) {
+    var s = plain(raw);
+    var out = {};
+    Object.keys(OPTIONS).forEach(function(k) {
+      var n = num(s[k]);
+      out[k] = OPTIONS[k].indexOf(n) >= 0 ? n : DEFAULTS[k];
+    });
+    out.chime = s.chime !== false;
+    out.autoStart = s.autoStart === true;
+    return out;
+  }
+
+  // A run that cannot be read is no run: the timer shows Start again rather
+  // than counting down to a time that means nothing.
+  function normalizeRun(raw) {
+    var r = plain(raw);
+    if (KINDS.indexOf(r.kind) < 0) return null;
+    var session = count(r.session);
+    var streakFrom = num(r.streakFrom);
+    if (session < 1 || !(streakFrom > 0)) return null;
+    var paused = r.paused === true && r.kind === 'work';
+    var endsAt = num(r.endsAt);
+    var leftMs = num(r.leftMs);
+    if (paused ? !(leftMs >= 0) : !(endsAt > 0)) return null;
+    return {
+      kind: r.kind,
+      session: session,
+      paused: paused,
+      endsAt: paused ? null : endsAt,
+      leftMs: paused ? leftMs : null,
+      pausedAt: paused ? (num(r.pausedAt) || null) : null,
+      resumeMs: r.kind === 'extra' ? Math.max(0, num(r.resumeMs) || 0) : null,
+      breaks: count(r.breaks),
+      streakFrom: streakFrom
+    };
+  }
+
+  function normalizeLast(raw) {
+    var l = plain(raw);
+    var stoppedAt = num(l.stoppedAt);
+    if (!(stoppedAt > 0)) return null;
+    return {
+      stoppedAt: stoppedAt,
+      streakFrom: num(l.streakFrom) || stoppedAt,
+      reason: ['stop', 'block', 'away'].indexOf(l.reason) >= 0 ? l.reason : 'stop',
+      sessions: count(l.sessions)
+    };
+  }
+
+  function normalizeDays(raw) {
+    var src = plain(raw);
+    var out = {};
+    Object.keys(src).forEach(function(k) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
+      var d = plain(src[k]);
+      out[k] = { done: count(d.done), extra: count(d.extra), skipped: count(d.skipped) };
+    });
+    return out;
+  }
+
+  function normalize(raw) {
+    var s = plain(raw);
+    return {
+      settings: normalizeSettings(s.settings),
+      run: normalizeRun(s.run),
+      last: normalizeLast(s.last),
+      days: normalizeDays(s.days)
+    };
+  }
+
+  function copy(st, patch) {
+    return {
+      settings: 'settings' in patch ? patch.settings : st.settings,
+      run: 'run' in patch ? patch.run : st.run,
+      last: 'last' in patch ? patch.last : st.last,
+      days: 'days' in patch ? patch.days : st.days
+    };
+  }
+
+  // One more of `field` today; days older than KEEP_DAYS are dropped.
+  function bump(days, nowMs, field) {
+    var keep = lastDays(nowMs, KEEP_DAYS);
+    var out = {};
+    Object.keys(days).forEach(function(k) {
+      if (keep.indexOf(k) >= 0) out[k] = days[k];
+    });
+    var today = dayKey(nowMs);
+    var d = out[today] || { done: 0, extra: 0, skipped: 0 };
+    var next = { done: d.done, extra: d.extra, skipped: d.skipped };
+    next[field] += 1;
+    out[today] = next;
+    return out;
+  }
+
+  function newRun(prev, patch) {
+    return {
+      kind: patch.kind,
+      session: 'session' in patch ? patch.session : prev.session,
+      paused: false,
+      endsAt: patch.endsAt,
+      leftMs: null,
+      pausedAt: null,
+      resumeMs: patch.kind === 'extra' ? patch.resumeMs : null,
+      breaks: 'breaks' in patch ? patch.breaks : prev.breaks,
+      streakFrom: 'streakFrom' in patch ? patch.streakFrom : prev.streakFrom
+    };
+  }
+
+  function stopped(st, run, atMs, reason) {
+    return copy(st, {
+      run: null,
+      last: { stoppedAt: atMs, streakFrom: run.streakFrom, reason: reason, sessions: run.session }
+    });
+  }
+
+  // A work session reached its end: it counts as done, and a break begins. The
+  // last session of the block gets the long break.
+  function workEnds(st, nowMs) {
+    var run = st.run;
+    var s = st.settings;
+    var lastOne = run.session >= s.sessions;
+    return copy(st, {
+      days: bump(st.days, nowMs, 'done'),
+      run: newRun(run, {
+        kind: lastOne ? 'long' : 'short',
+        endsAt: nowMs + (lastOne ? s.longMin : s.breakMin) * MIN_MS,
+        breaks: run.breaks + 1
+      })
+    });
+  }
+
+  // A break is over, by time or by Skip. An extra break hands back the work
+  // time that was left; a short break opens the next session; the long break
+  // ends the block.
+  function breakEnds(st, nowMs) {
+    var run = st.run;
+    if (run.kind === 'extra') {
+      return copy(st, { run: newRun(run, { kind: 'work', endsAt: nowMs + run.resumeMs }) });
+    }
+    if (run.kind === 'short') {
+      return copy(st, {
+        run: newRun(run, { kind: 'work', session: run.session + 1, endsAt: nowMs + st.settings.workMin * MIN_MS })
+      });
+    }
+    return stopped(st, run, nowMs, 'block');
+  }
+
+  function sameSettings(a, b) {
+    return Object.keys(DEFAULTS).every(function(k) { return a[k] === b[k]; });
+  }
+
+  // The one way the timer changes. Returns the next state, whether to chime,
+  // and whether anything changed at all (an action that does not apply, such
+  // as Pause during a break, changes nothing).
+  //
+  //   {type:'start'} {type:'pause'} {type:'resume'} {type:'stop'}
+  //   {type:'extra', minutes}   "I need a break now", during work only
+  //   {type:'skip'}             ends the break now, counted
+  //   {type:'tick'}             moves on when the current phase is over
+  //   {type:'auto'}             Chrome opened or the person is at the computer
+  //   {type:'settings', settings}
+  function reduce(raw, action, nowMs) {
+    var st = normalize(raw);
+    var a = plain(action);
+    var run = st.run;
+    var same = { state: st, chime: false, changed: false };
+    function next(state, chime) { return { state: state, chime: !!chime, changed: true }; }
+
+    switch (a.type) {
+      case 'start': {
+        if (run) return same;
+        var l = st.last;
+        var streakFrom = (l && nowMs - l.stoppedAt <= GAP_MS && l.streakFrom <= nowMs) ? l.streakFrom : nowMs;
+        return next(copy(st, {
+          last: null,
+          run: {
+            kind: 'work', session: 1, paused: false,
+            endsAt: nowMs + st.settings.workMin * MIN_MS,
+            leftMs: null, pausedAt: null, resumeMs: null,
+            breaks: 0, streakFrom: streakFrom
+          }
+        }));
+      }
+      case 'pause': {
+        if (!run || run.kind !== 'work' || run.paused) return same;
+        return next(copy(st, {
+          run: {
+            kind: 'work', session: run.session, paused: true,
+            endsAt: null, leftMs: Math.max(0, run.endsAt - nowMs), pausedAt: nowMs,
+            resumeMs: null, breaks: run.breaks, streakFrom: run.streakFrom
+          }
+        }));
+      }
+      case 'resume': {
+        if (!run || !run.paused) return same;
+        var longPause = run.pausedAt !== null && nowMs - run.pausedAt > GAP_MS;
+        return next(copy(st, {
+          run: newRun(run, {
+            kind: 'work',
+            endsAt: nowMs + run.leftMs,
+            streakFrom: longPause ? nowMs : run.streakFrom
+          })
+        }));
+      }
+      case 'stop': {
+        if (!run) return same;
+        // Paused, the person stopped working when they paused.
+        return next(stopped(st, run, run.paused && run.pausedAt ? run.pausedAt : nowMs, 'stop'));
+      }
+      case 'extra': {
+        var minutes = num(a.minutes);
+        if (!run || run.kind !== 'work' || run.paused || EXTRA_MIN.indexOf(minutes) < 0) return same;
+        return next(copy(st, {
+          days: bump(st.days, nowMs, 'extra'),
+          run: newRun(run, {
+            kind: 'extra',
+            endsAt: nowMs + minutes * MIN_MS,
+            resumeMs: Math.max(0, run.endsAt - nowMs),
+            breaks: run.breaks + 1
+          })
+        }));
+      }
+      case 'skip': {
+        if (!run || !isBreak(run.kind)) return same;
+        return next(breakEnds(copy(st, { days: bump(st.days, nowMs, 'skipped') }), nowMs));
+      }
+      case 'tick': {
+        if (!run || run.paused || nowMs < run.endsAt) return same;
+        // Overdue by more than half an hour: the computer slept or Chrome was
+        // closed. Starting a break or a session now would greet someone who
+        // just came back with the wrong screen, so the timer stops instead.
+        if (nowMs - run.endsAt > STALE_MS) return next(stopped(st, run, run.endsAt, 'away'));
+        return next(run.kind === 'work' ? workEnds(st, nowMs) : breakEnds(st, nowMs), true);
+      }
+      case 'auto': {
+        // "Start automatically": a phase that ended meanwhile moves on first,
+        // then a timer that is not running starts. Never on the detox day,
+        // and not within half an hour of Stop, which the person chose. A
+        // pause longer than that counts as a stop from the moment it began.
+        var ticked = reduce(st, { type: 'tick' }, nowMs);
+        var cur = ticked.state;
+        if (!cur.settings.autoStart || new Date(nowMs).getDay() === cur.settings.detoxDay) return ticked;
+        var held = cur.run;
+        if (held && held.paused && held.pausedAt && nowMs - held.pausedAt > GAP_MS) {
+          cur = stopped(cur, held, held.pausedAt, 'stop');
+          held = null;
+        }
+        if (held) return ticked;
+        var lastStop = cur.last;
+        if (lastStop && lastStop.reason === 'stop' && nowMs - lastStop.stoppedAt <= GAP_MS) return ticked;
+        return next(reduce(cur, { type: 'start' }, nowMs).state, ticked.chime);
+      }
+      case 'settings': {
+        var settings = normalizeSettings(Object.assign({}, st.settings, plain(a.settings)));
+        if (sameSettings(settings, st.settings)) return same;
+        return next(copy(st, { settings: settings }));
+      }
+      default:
+        return same;
+    }
+  }
+
+  // 25:00, 4:12, 1:05:00. Rounded up, so a fresh 25 minute session reads 25:00
+  // and the clock reaches 0:00 exactly when the phase ends.
+  function clock(ms) {
+    var total = Math.max(0, Math.ceil(ms / 1000));
+    var h = Math.floor(total / 3600);
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    return (h ? h + ':' + pad(m) : String(m)) + ':' + pad(s);
+  }
+
+  function minutesLeft(ms) {
+    var m = Math.ceil(ms / MIN_MS);
+    if (ms < MIN_MS) return 'less than a minute left';
+    return m + (m === 1 ? ' minute left' : ' minutes left');
+  }
+
+  // Six hours in one streak, or a timer running on the detox day. Both at once
+  // make one sentence, so "enjoy your life" is said once.
+  function warnings(st, nowMs) {
+    if (!st.run) return [];
+    // A pause does not add hours at the computer.
+    var until = st.run.paused && st.run.pausedAt ? st.run.pausedAt : nowMs;
+    var hours = Math.floor((until - st.run.streakFrom) / HOUR_MS);
+    var long = hours >= LONG_HOURS;
+    var detox = new Date(nowMs).getDay() === st.settings.detoxDay;
+    if (!long && !detox) return [];
+    var atComputer = 'at the computer for ' + hours + ' hours straight.';
+    var today = "It's " + DAY_NAMES[st.settings.detoxDay] + ', your detox day';
+    var opening = today + '.';
+    if (long && detox) opening = today + ", and you've been " + atComputer;
+    else if (long) opening = "You've been " + atComputer;
+    return [opening + ' Your time is precious: enjoy your life.'];
+  }
+
+  function idleLine(s) {
+    return s.workMin + ' minutes of work, then a ' + s.breakMin + ' minute break. After ' +
+      s.sessions + ' sessions, a ' + s.longMin + ' minute long break.';
+  }
+
+  // What every surface shows, in words, from one state at one moment.
+  function view(raw, nowMs) {
+    var st = normalize(raw);
+    var s = st.settings;
+    var run = st.run;
+    var base = {
+      settings: s,
+      session: run ? run.session : 0,
+      sessions: s.sessions,
+      warnings: warnings(st, nowMs),
+      suggestion: null,
+      note: null
+    };
+
+    if (!run) {
+      var l = st.last;
+      var note = null;
+      if (l && dayKey(l.stoppedAt) === dayKey(nowMs)) {
+        if (l.reason === 'block') note = 'Block done: ' + l.sessions + (l.sessions === 1 ? ' session' : ' sessions') + ". Start again when you're ready.";
+        if (l.reason === 'away') note = 'The timer stopped while you were away.';
+      }
+      return Object.assign(base, {
+        mode: 'idle', kind: null, title: 'Ready', onBreak: false,
+        leftMs: s.workMin * MIN_MS, clock: clock(s.workMin * MIN_MS),
+        next: idleLine(s), note: note
+      });
+    }
+
+    var of = 'Session ' + run.session + ' of ' + s.sessions;
+
+    if (run.paused) {
+      return Object.assign(base, {
+        mode: 'paused', kind: 'work', title: 'Paused', onBreak: false,
+        leftMs: run.leftMs, clock: clock(run.leftMs),
+        next: of + ' is paused.'
+      });
+    }
+
+    var left = Math.max(0, run.endsAt - nowMs);
+
+    if (run.kind === 'work') {
+      var lastOne = run.session >= s.sessions;
+      return Object.assign(base, {
+        mode: 'work', kind: 'work', title: 'Working', onBreak: false,
+        leftMs: left, clock: clock(left),
+        next: of + '. ' + (lastOne
+          ? 'A ' + s.longMin + ' minute long break comes next.'
+          : 'A ' + s.breakMin + ' minute break comes next.')
+      });
+    }
+
+    var titles = { short: 'Break', long: 'Long break', extra: 'Extra break' };
+    var nexts = {
+      short: 'Session ' + (run.session + 1) + ' of ' + s.sessions + ' starts after the break.',
+      long: 'The block is done after this break.',
+      extra: 'Session ' + run.session + ' goes on after the break, with ' + minutesLeft(run.resumeMs || 0) + '.'
+    };
+    return Object.assign(base, {
+      mode: 'break', kind: run.kind, title: titles[run.kind], onBreak: true,
+      leftMs: left, clock: clock(left), next: nexts[run.kind],
+      suggestion: SUGGESTIONS[(Math.max(1, run.breaks) - 1) % SUGGESTIONS.length]
+    });
+  }
+
+  function isDetoxDay(raw, nowMs) {
+    return new Date(nowMs).getDay() === normalizeSettings(plain(raw).settings).detoxDay;
+  }
+
+  function detoxTitle(raw) {
+    return "It's " + DAY_NAMES[normalizeSettings(plain(raw).settings).detoxDay] + ', your detox day.';
+  }
+
+  // The saved pictures, in the order they were added: [{id, dataUrl, savedAt}].
+  // Anything that is not a saved image, or past the limit, is left out.
+  function photoItems(stored) {
+    var list = plain(stored).items;
+    var out = [];
+    if (!Array.isArray(list)) return out;
+    for (var i = 0; i < list.length && out.length < PHOTO_MAX; i++) {
+      var it = plain(list[i]);
+      if (typeof it.id !== 'string' || !it.id) continue;
+      if (typeof it.dataUrl !== 'string' || !IMAGE_URL.test(it.dataUrl)) continue;
+      out.push({ id: it.id, dataUrl: it.dataUrl, savedAt: num(it.savedAt) || 0 });
+    }
+    return out;
+  }
+
+  // Just the addresses an <img> can show, for the carousel.
+  function photoUrls(stored) {
+    return photoItems(stored).map(function(it) { return it.dataUrl; });
+  }
+
+  function newPhotoId(items, nowMs) {
+    var base = 'p' + Math.floor(nowMs).toString(36);
+    var id = base;
+    var n = 0;
+    while (items.some(function(it) { return it.id === id; })) { n++; id = base + '-' + n; }
+    return id;
+  }
+
+  // Adds pictures to what is saved. A picture that is already there is skipped,
+  // and what does not fit under the limit is counted, never half saved.
+  function addPhotos(stored, urls, nowMs) {
+    var items = photoItems(stored);
+    var added = 0, duplicates = 0, full = 0;
+    (Array.isArray(urls) ? urls : []).forEach(function(url) {
+      if (typeof url !== 'string' || !IMAGE_URL.test(url)) return;
+      if (items.some(function(it) { return it.dataUrl === url; })) { duplicates++; return; }
+      if (items.length >= PHOTO_MAX) { full++; return; }
+      items.push({ id: newPhotoId(items, nowMs), dataUrl: url, savedAt: nowMs });
+      added++;
+    });
+    return { stored: { items: items }, added: added, duplicates: duplicates, full: full };
+  }
+
+  function removePhoto(stored, id) {
+    return { items: photoItems(stored).filter(function(it) { return it.id !== id; }) };
+  }
+
+  // What the picture page says after pictures were chosen, in one place.
+  function photoNote(r) {
+    var parts = [];
+    if (r.added) parts.push(r.added === 1 ? 'Picture added.' : r.added + ' pictures added.');
+    if (r.duplicates) parts.push(r.duplicates === 1 ? 'One was already saved.' : r.duplicates + ' were already saved.');
+    if (r.unreadable) {
+      parts.push(r.unreadable === 1 ? "One file isn't a picture or can't be opened." : r.unreadable + " files aren't pictures or can't be opened.");
+    }
+    if (r.full) {
+      parts.push('The limit is ' + PHOTO_MAX + ' pictures, so ' + (r.full === 1 ? 'one picture was' : r.full + ' pictures were') + ' left out.');
+    }
+    return parts.join(' ');
+  }
+
+  // The buttons a surface offers at this moment, in order. style is 'primary',
+  // 'link' or empty. 'ask' opens the question of how long the break should be.
+  function actions(v) {
+    function a(act, text, style) { return { act: act, text: text, style: style || '' }; }
+    if (v.mode === 'idle') return [a('start', 'Start', 'primary')];
+    if (v.mode === 'paused') return [a('resume', 'Resume', 'primary'), a('stop', 'Stop')];
+    if (v.mode === 'break') return [a('skip', 'Skip this break'), a('stop', 'Stop')];
+    return [a('pause', 'Pause'), a('stop', 'Stop'), a('ask', 'I need a break now', 'link')];
+  }
+
+  // How one choice reads in a settings menu.
+  function optionLabel(key, n) {
+    if (key === 'detoxDay') return DAY_NAMES[n];
+    return n + (key === 'sessions' ? ' sessions' : ' minutes');
+  }
+
+  // Plays the two tones on an AudioContext that is already running.
+  function playChime(ctx) {
+    CHIME_TONES.forEach(function(tone) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      var at = ctx.currentTime + tone[1];
+      osc.type = 'sine';
+      osc.frequency.value = tone[0];
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.25, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.6);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(at);
+      osc.stop(at + 1.7);
+    });
+  }
+
+  // The header button's label while the timer runs, empty while it does not.
+  function pillText(v) {
+    if (v.mode === 'work') return v.clock;
+    if (v.mode === 'paused') return 'Paused';
+    if (v.mode === 'break') return 'Break ' + v.clock;
+    return '';
+  }
+
+  // Today and the last 7 days, and whether extra and skipped breaks are eating
+  // into the sessions: at least 4 sessions in the week, and one cut for every
+  // two sessions or more.
+  function stats(raw, nowMs) {
+    var st = normalize(raw);
+    var keys = lastDays(nowMs, 7);
+    var zero = { done: 0, extra: 0, skipped: 0 };
+    var today = st.days[keys[0]] || zero;
+    var week = { done: 0, extra: 0, skipped: 0 };
+    keys.forEach(function(k) {
+      var d = st.days[k];
+      if (!d) return;
+      week.done += d.done;
+      week.extra += d.extra;
+      week.skipped += d.skipped;
+    });
+    return {
+      today: { done: today.done, extra: today.extra, skipped: today.skipped },
+      week: week,
+      diluted: week.done >= 4 && (week.extra + week.skipped) * 2 >= week.done
+    };
+  }
+
+  var API = {
+    STORAGE_KEY: STORAGE_KEY,
+    ALARM_NAME: ALARM_NAME,
+    OPTIONS: OPTIONS,
+    DEFAULTS: DEFAULTS,
+    EXTRA_MIN: EXTRA_MIN,
+    LONG_HOURS: LONG_HOURS,
+    GAP_MS: GAP_MS,
+    STALE_MS: STALE_MS,
+    KEEP_DAYS: KEEP_DAYS,
+    AWAY_SEC: AWAY_SEC,
+    SUGGESTIONS: SUGGESTIONS,
+    BREAK_LEAD: BREAK_LEAD,
+    PHONE_RULE: PHONE_RULE,
+    DILUTION_NOTE: DILUTION_NOTE,
+    DAY_NAMES: DAY_NAMES,
+    PHOTO_KEY: PHOTO_KEY,
+    PHOTO_MAX: PHOTO_MAX,
+    PHOTO_MAX_SIDE: PHOTO_MAX_SIDE,
+    PHOTO_QUALITY: PHOTO_QUALITY,
+    DETOX_LINE: DETOX_LINE,
+    CHIME_TONES: CHIME_TONES,
+    actions: actions,
+    optionLabel: optionLabel,
+    playChime: playChime,
+    isDetoxDay: isDetoxDay,
+    detoxTitle: detoxTitle,
+    photoItems: photoItems,
+    photoUrls: photoUrls,
+    addPhotos: addPhotos,
+    removePhoto: removePhoto,
+    photoNote: photoNote,
+    dayKey: dayKey,
+    normalize: normalize,
+    normalizeSettings: normalizeSettings,
+    reduce: reduce,
+    view: view,
+    pillText: pillText,
+    stats: stats,
+    clock: clock
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = API;
+  } else {
+    root.SBFocus = API;
+  }
+
+}(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
+</script>
+<script>
+// focus-carousel.js: the picture carousel, built once.
+//
+// When someone has saved more than one detox day picture, they play as a
+// gallery. Three places draw it, so none keeps its own copy:
+//
+//   extension/popup/popup.js           the call over the popup when Start is pressed
+//   extension/content/focus-break.js   the break screen on every web page
+//   extension/focus/photo.js           the page where the pictures are chosen
+//
+// create(urls, opts) returns an element that fills whatever it is put in: the
+// caller sizes the parent. The element carries its own <style>, so it works in
+// the page, in the popup and inside a shadow root alike, and every class starts
+// with sbc-. Colours come from the design tokens, which reach into a shadow
+// root through inheritance.
+//
+// Every picture shows whole, never cropped: a tall family photo keeps every
+// head. What the picture does not cover is filled with a soft, blurred copy of
+// it, so the frame never shows bare bands.
+//
+// One picture is just a picture: no arrows, no dots, nothing moving. With more,
+// the gallery advances by itself every 7 seconds. It stops while the controls
+// are in use, when the person presses Pause, and always when their system asks
+// for less motion (they can still press Play). Left and Right arrow keys step
+// through it.
+(function(root) {
+  'use strict';
+
+  var AUTOPLAY_MS = 7000;
+
+  var CSS =
+    '.sbc{position:relative;width:100%;height:100%;overflow:hidden;background:var(--sb-ink)}' +
+    '.sbc[hidden]{display:none}' +
+    '.sbc-slide{position:absolute;inset:0;overflow:hidden;opacity:0;transition:opacity 600ms var(--sb-ease)}' +
+    '.sbc-slide.on{opacity:1}' +
+    '.sbc-fill,.sbc-pic{position:absolute;inset:0;width:100%;height:100%}' +
+    '.sbc-fill{object-fit:cover;filter:blur(34px);transform:scale(1.2);opacity:.55}' +
+    '.sbc-pic{object-fit:contain}' +
+    '.sbc-bar{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;padding:4px;' +
+      'max-width:calc(100% - 32px);border-radius:var(--sb-r-pill);background:var(--sb-toast-bg)}' +
+    '.sbc-btn{width:36px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0;border:0;' +
+      'border-radius:var(--sb-r-pill);background:none;color:var(--sb-bg);cursor:pointer;transition:background var(--sb-dur-fast)}' +
+    '.sbc-btn:hover{background:var(--sb-ink-muted)}' +
+    '.sbc-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}' +
+    '.sbc-dots{display:flex;align-items:center}' +
+    '.sbc-dot{position:relative;width:24px;height:24px;padding:0;border:0;border-radius:var(--sb-r-pill);background:none;cursor:pointer}' +
+    '.sbc-dot::before{content:"";position:absolute;top:50%;left:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;' +
+      'background:var(--sb-bg);opacity:.45;transition:opacity var(--sb-dur-base)}' +
+    '.sbc-dot[aria-current="true"]::before{opacity:1}' +
+    '.sbc-btn:focus-visible,.sbc-dot:focus-visible{outline:2px solid var(--sb-bg);outline-offset:-2px}' +
+    '@media (prefers-reduced-motion:reduce){.sbc-slide{transition:none}}';
+
+  var ICON_PREV = '<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>';
+  var ICON_NEXT = '<svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+  var ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="9" y1="6" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="18"/></svg>';
+  var ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="8 5 19 12 8 19 8 5"/></svg>';
+
+  // The picture after (dir 1) or before (dir -1) this one, wrapping round at
+  // both ends. An index that is not in range counts as the first picture.
+  function inRange(index, count) {
+    var i = Math.floor(Number(index));
+    return isFinite(i) && i >= 0 && i < count;
+  }
+
+  function stepIndex(index, count, dir) {
+    var n = Math.floor(count);
+    if (!(n > 0)) return 0;
+    var i = inRange(index, n) ? Math.floor(Number(index)) : 0;
+    return (i + (dir < 0 ? -1 : 1) + n) % n;
+  }
+
+  function slideLabel(index, count) {
+    return 'Picture ' + (index + 1) + ' of ' + count;
+  }
+
+  function button(doc, className, label, html) {
+    var b = doc.createElement('button');
+    b.type = 'button';
+    b.className = className;
+    b.setAttribute('aria-label', label);
+    if (html) b.innerHTML = html;
+    return b;
+  }
+
+  /**
+   * @param {string[]} urls   picture addresses, in the order to show them
+   * @param {object} [opts]   start: the first picture shown; doc: the document
+   *                          to build in; onFail: called if no picture can load
+   * @returns {object|null}   null for an empty list, else
+   *   { el, count, index(), go(i), step(dir), handleKey(e), destroy() }
+   */
+  function create(urls, opts) {
+    var o = opts || {};
+    var doc = o.doc || root.document;
+    var list = (Array.isArray(urls) ? urls : []).filter(function(u) { return typeof u === 'string' && u; });
+    var n = list.length;
+    if (!n) return null;
+
+    var index = inRange(o.start, n) ? Math.floor(Number(o.start)) : 0;
+    var reduce = !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var userPaused = reduce;
+    var hold = false;
+    var timer = null;
+    var failed = 0;
+
+    var el = doc.createElement('div');
+    el.className = 'sbc';
+    el.setAttribute('role', 'group');
+    el.setAttribute('aria-roledescription', 'carousel');
+    el.setAttribute('aria-label', 'Your pictures');
+
+    var style = doc.createElement('style');
+    style.textContent = CSS;
+    el.appendChild(style);
+
+    var stage = doc.createElement('div');
+    stage.style.cssText = 'position:absolute;inset:0';
+    el.appendChild(stage);
+
+    // Each slide is the blurred fill behind the whole picture. Only the picture
+    // is read aloud, and only its failure to load counts.
+    var slides = list.map(function(url, i) {
+      var slide = doc.createElement('div');
+      slide.className = 'sbc-slide';
+      var fill = doc.createElement('img');
+      fill.className = 'sbc-fill';
+      fill.alt = '';
+      fill.src = url;
+      slide.appendChild(fill);
+      var img = doc.createElement('img');
+      img.className = 'sbc-pic';
+      img.alt = slideLabel(i, n);
+      img.addEventListener('error', function() {
+        failed++;
+        if (failed === n) {
+          el.hidden = true;
+          stop();
+          if (typeof o.onFail === 'function') o.onFail();
+        }
+      });
+      img.src = url;
+      slide.appendChild(img);
+      stage.appendChild(slide);
+      return slide;
+    });
+
+    var dots = [];
+    var pauseBtn = null;
+
+    function playing() { return n > 1 && !userPaused && !hold && !el.hidden; }
+
+    function stop() {
+      if (timer) { clearInterval(timer); timer = null; }
+    }
+
+    // Starts or stops the automatic advance to match the state. A gallery that
+    // moves by itself must not announce each picture, one that does not may.
+    function sync() {
+      if (playing()) {
+        if (!timer) timer = setInterval(function() { show(stepIndex(index, n, 1)); }, AUTOPLAY_MS);
+      } else {
+        stop();
+      }
+      stage.setAttribute('aria-live', timer ? 'off' : 'polite');
+    }
+
+    function show(i) {
+      index = i;
+      slides.forEach(function(slide, k) {
+        slide.classList.toggle('on', k === i);
+        if (k === i) slide.removeAttribute('aria-hidden'); else slide.setAttribute('aria-hidden', 'true');
+      });
+      dots.forEach(function(d, k) { d.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    }
+
+    // A person moving by hand restarts the wait, so it never jumps right after.
+    function go(i) {
+      show(inRange(i, n) ? Math.floor(Number(i)) : 0);
+      stop();
+      sync();
+    }
+
+    function step(dir) {
+      show(stepIndex(index, n, dir));
+      stop();
+      sync();
+    }
+
+    if (n > 1) {
+      var bar = doc.createElement('div');
+      bar.className = 'sbc-bar';
+      var prev = button(doc, 'sbc-btn', 'Previous picture', ICON_PREV);
+      var next = button(doc, 'sbc-btn', 'Next picture', ICON_NEXT);
+      var dotWrap = doc.createElement('div');
+      dotWrap.className = 'sbc-dots';
+      for (var k = 0; k < n; k++) {
+        (function(i) {
+          var d = button(doc, 'sbc-dot', 'Show picture ' + (i + 1) + ' of ' + n);
+          d.addEventListener('click', function() { go(i); });
+          dots.push(d);
+          dotWrap.appendChild(d);
+        })(k);
+      }
+      pauseBtn = button(doc, 'sbc-btn', userPaused ? 'Play slideshow' : 'Pause slideshow', userPaused ? ICON_PLAY : ICON_PAUSE);
+      prev.addEventListener('click', function() { step(-1); });
+      next.addEventListener('click', function() { step(1); });
+      pauseBtn.addEventListener('click', function() {
+        userPaused = !userPaused;
+        pauseBtn.setAttribute('aria-label', userPaused ? 'Play slideshow' : 'Pause slideshow');
+        pauseBtn.innerHTML = userPaused ? ICON_PLAY : ICON_PAUSE;
+        sync();
+      });
+      bar.appendChild(prev);
+      bar.appendChild(dotWrap);
+      bar.appendChild(next);
+      bar.appendChild(pauseBtn);
+      // Using the controls holds the advance, with the mouse or the keyboard.
+      bar.addEventListener('mouseenter', function() { hold = true; sync(); });
+      bar.addEventListener('mouseleave', function() { hold = false; sync(); });
+      bar.addEventListener('focusin', function() { hold = true; sync(); });
+      bar.addEventListener('focusout', function() { hold = false; sync(); });
+      el.appendChild(bar);
+    }
+
+    // Left and Right step through the pictures. Returns whether the key was one
+    // of them, so a page that guards its keys (the break screen) can pass it on.
+    function handleKey(e) {
+      if (n < 2 || !e || e.type !== 'keydown') return false;
+      if (e.key === 'ArrowLeft') { step(-1); return true; }
+      if (e.key === 'ArrowRight') { step(1); return true; }
+      return false;
+    }
+
+    el.addEventListener('keydown', function(e) {
+      if (handleKey(e)) e.preventDefault();
+    });
+
+    show(index);
+    sync();
+
+    return {
+      el: el,
+      count: n,
+      index: function() { return index; },
+      go: go,
+      step: step,
+      handleKey: handleKey,
+      destroy: function() {
+        stop();
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }
+    };
+  }
+
+  var API = {
+    AUTOPLAY_MS: AUTOPLAY_MS,
+    inRange: inRange,
+    stepIndex: stepIndex,
+    slideLabel: slideLabel,
+    create: create
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = API;
+  } else {
+    root.SBFocusCarousel = API;
+  }
+
+}(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
+</script>
+<!-- SB_FOCUS_TIMER:END -->
+<!-- FIBOTOKEN_RATE:BEGIN (generated from app/src/config/fiboTokenRate.json by scripts/sync-fibotoken-rate.js, do not edit) -->
+<script>
+var FIBOTOKEN_RATE = {"euroPerFiboToken":0.01,"exampleEuros":25,"rateSetOn":"2026-10-28","packsFrom":"2027-01-01"};
+</script>
+<!-- FIBOTOKEN_RATE:END -->
 <!-- SB_INTERACTIVE_STEPS:BEGIN (generated from extension/shared/interactive-steps.js by scripts/check-interactive-steps.js --write, do not edit) -->
 <script>
 // interactive-steps.js: the "Interactive Steps" prompt setting, decided once.
@@ -8758,6 +10541,7 @@ function loadSnips(){
     if(curView==='home'){renderHome();}
     else if(curView==='analytics'){renderFolderChips();renderList();renderAnalytics();}
     else if(!otherPageActive()){showList();renderFolderChips();renderList();}
+    loadMobNext();
   })
   .catch(function(){
     snipsLoaded=true;
@@ -8795,7 +10579,7 @@ function showHome(){
   setActiveQuickAction(null);
   document.body.classList.remove('sb-detail-view');
   document.getElementById('loading').style.display='none';
-  ['view-list','view-detail','view-analytics','view-prompts','view-memory','view-memitem'].forEach(function(id){
+  ['view-list','view-detail','view-analytics','view-focus','view-prompts','view-memory','view-memitem'].forEach(function(id){
     document.getElementById(id).classList.remove('active');
   });
   document.getElementById('view-home').classList.add('active');
@@ -8810,6 +10594,7 @@ function showList(){
   document.body.classList.remove('sb-detail-view');
   document.getElementById('loading').style.display='none';
   document.getElementById('view-home').classList.remove('active');
+  document.getElementById('view-focus').classList.remove('active');
   document.getElementById('view-list').classList.add('active');
   document.getElementById('view-detail').classList.remove('active');
   document.getElementById('view-analytics').classList.remove('active');
@@ -8843,6 +10628,7 @@ function showAnalyticsView(){
   document.getElementById('view-prompts').classList.remove('active');
   document.getElementById('view-memory').classList.remove('active');
   document.getElementById('view-memitem').classList.remove('active');
+  document.getElementById('view-focus').classList.remove('active');
   document.getElementById('view-analytics').classList.add('active');
   setActivePrimaryTab(null);
   renderAnalytics();
@@ -9328,7 +11114,7 @@ function renderPromptList(){
         });
       });
     }else{
-      el.innerHTML='<div class="empty"><div class="emo">🤖</div><p>No prompts yet</p></div>';
+      el.innerHTML=memEmptyHtml('🤖','No prompts yet',LIBRARY_PHONE_HINT);
     }
     return;
   }
@@ -9600,6 +11386,7 @@ function showPrompts(){
   document.getElementById('view-analytics').classList.remove('active');
   document.getElementById('view-memory').classList.remove('active');
   document.getElementById('view-memitem').classList.remove('active');
+  document.getElementById('view-focus').classList.remove('active');
   document.getElementById('view-prompts').classList.add('active');
   setActiveQuickAction('prompts');
   setActivePrimaryTab('prompts');
@@ -9836,6 +11623,9 @@ function memItemCardHtml(it,withBrain){
     +'<button type="button" class="prompt-menu" data-mem-menu="item" data-id="'+esc(it.id)+'" aria-label="More actions">⋮</button>'
   +'</div>';
 }
+/* The starter library lives on the dashboard (the phone carries no add-many
+   screen), so an empty list points there in words. Shared by all three lists. */
+var LIBRARY_PHONE_HINT='Add ready-made ones from the starter library on your computer.';
 function memEmptyHtml(emo,title,hint){
   return '<div class="empty"><div class="emo">'+emo+'</div><p>'+esc(title)+'</p>'
     +(hint?'<p class="empty-hint">'+esc(hint)+'</p>':'')+'</div>';
@@ -9895,7 +11685,7 @@ function renderMemory(){
     return;
   }
   if(!n){
-    list.innerHTML=memEmptyHtml(BRAIN_SVG,'No Brains yet','Create one in the dashboard and it shows up here.');
+    list.innerHTML=memEmptyHtml(BRAIN_SVG,'No Brains yet','Create one in the dashboard, or add a ready-made one from the starter library there.');
     return;
   }
   var q=memSearch.trim().toLowerCase();
@@ -9939,6 +11729,7 @@ function showMemory(){
   document.getElementById('view-analytics').classList.remove('active');
   document.getElementById('view-prompts').classList.remove('active');
   document.getElementById('view-memitem').classList.remove('active');
+  document.getElementById('view-focus').classList.remove('active');
   document.getElementById('view-memory').classList.add('active');
   setActiveQuickAction('memory');
   setActivePrimaryTab('brains');
@@ -11054,7 +12845,9 @@ function renderList(){
   groups=pinnedGroups.concat(restGroups);
   document.getElementById('cnt').textContent=groupCount(allSnips);
   if(!groups.length){
-    el.innerHTML='<div class="empty"><div class="emo">🔍</div><p>No snippets found</p></div>';
+    el.innerHTML=allSnips.length
+      ?'<div class="empty"><div class="emo">🔍</div><p>No snippets found</p></div>'
+      :memEmptyHtml('✍️','No snippets yet',LIBRARY_PHONE_HINT);
     return;
   }
   // A new search, folder or language is a new list, so it starts at page one.
@@ -11327,6 +13120,7 @@ function renderDetail(snip,keepVals){
   window.SBFillFormUI.enhance(form, _vm, {prefix: 'mobile', row: '.field-row', caption: '.field-lbl,.field-ctx,.field-ctxline', menu: '.field-opts', control: '.field-in,.field-othertxt'});
   setDetailPane('fields');
   updatePrev();
+  mountMobNext();
   document.getElementById('det-body').scrollTop=0;
 }
 
@@ -11752,21 +13546,95 @@ function fillFromLink(){
   });
 })();
 
+/* ── OFTEN SENT NEXT ────────────────────────────── */
+/* "Add Firma after it" above Copy and Share: the snippet usually sent right
+   after this one, the offer the extension's fill window shows. What comes next
+   is SBUsageAnalytics.nextAfter over your own uses on every device, read at
+   most every 6 hours and kept on this phone; whether to offer it, and its
+   words, come from the shared fill-form-ui module. Ticked, Copy and Share put
+   it after the text, a blank line between, and count a use of each. */
+var MOB_NEXT_KEY='sb_mob_next', MOB_NEXT_HIDDEN_KEY='sb_mob_next_hidden', MOB_NEXT_MS=6*60*60*1000;
+var mobNextMap={}, mobNext=null, mobNextLoading=false;
+function mobNextHidden(){
+  try{var o=JSON.parse(localStorage.getItem(MOB_NEXT_HIDDEN_KEY)||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{};}
+  catch(e){return {};}
+}
+function loadMobNext(){
+  if(mobNextLoading||!USER_ID)return;
+  try{
+    var have=JSON.parse(localStorage.getItem(MOB_NEXT_KEY)||'null');
+    if(have&&have.uid===USER_ID&&have.map){
+      mobNextMap=have.map;
+      if(Date.now()-have.at<MOB_NEXT_MS){mountMobNext();return;}
+    }
+  }catch(e){console.error('Could not read what usually comes next',e);}
+  mobNextLoading=true;
+  var now=Date.now();
+  var from=new Date(now-SBUsageAnalytics.SUGGEST_DAYS*86400000).toISOString();
+  anFetchPages(SUPA+'/rest/v1/snippet_events?select=snippet_id,created_at'
+    +'&user_id=eq.'+encodeURIComponent(USER_ID)+'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc')
+    .then(function(events){
+      mobNextMap=SBUsageAnalytics.nextAfter({events:events,ids:allSnips.map(function(s){return s.id;}),now:now});
+      try{localStorage.setItem(MOB_NEXT_KEY,JSON.stringify({uid:USER_ID,at:now,map:mobNextMap}));}
+      catch(e){console.error('Could not keep what usually comes next',e);}
+      mobNextLoading=false;
+      mountMobNext();
+    })
+    .catch(function(err){
+      mobNextLoading=false;
+      console.error('Could not read the use history for what usually comes next',err);
+    });
+}
+/* Draws the offer for the snippet on screen, or takes it away. */
+function mountMobNext(){
+  var foot=document.querySelector('#view-detail .copy-foot');
+  if(!foot)return;
+  var old=foot.querySelector('.ff-next');
+  if(old)old.remove();
+  mobNext=null;
+  if(!curSnip||!detailOpen()||!window.SBFillFormUI)return;
+  var UI=window.SBFillFormUI, s=curSnip;
+  var next=UI.nextFor(mobNextMap,s.id,allSnips,mobNextHidden());
+  if(!next)return;
+  var offer=UI.nextOffer(document,next,function(){
+    try{localStorage.setItem(MOB_NEXT_HIDDEN_KEY,JSON.stringify(UI.hideNext(mobNextHidden(),s.id,next.id)));}
+    catch(e){console.error('Could not remember the hidden suggestion',e);}
+    mobNext=null;
+  });
+  foot.insertBefore(offer.el,foot.firstChild);
+  mobNext={id:s.id,snip:next,offer:offer};
+}
+/* The text, and its formatted copy, with the next snippet after it when ticked. */
+function withMobNext(s,text,html){
+  var n=mobNext&&mobNext.id===s.id&&mobNext.offer.checked()?mobNext.snip:null;
+  if(!n)return {text:text,html:html||null,next:null};
+  var t=window.SBFillFormUI.nextText(n);
+  return {
+    text:text+window.SBFillFormUI.NEXT_SEPARATOR+t.text,
+    html:html?html+'<br><br>'+(t.formatted||esc(t.text).replace(/\n/g,'<br>')):null,
+    next:n
+  };
+}
+
 /* ── COPY & SHARE ───────────────────────────────── */
 document.getElementById('copy-btn').addEventListener('click',function(){
   if(!curSnip||!validateDetail())return;
   var btn=this,s=curSnip,vm=currentForm();
   checkThenGo(s,vm.preview,vm,document.getElementById('fform'),'copy-anyway',function(){
+    var all=withMobNext(s,vm.preview,vm.formatted);
     logSnipUse(s,detailFilled());
-    copyWithPictures(vm.preview,vm.formatted,function(){flashFootBtn(btn,'Copied!');});
+    if(all.next)logSnipUse(all.next,0);
+    copyWithPictures(all.text,all.html,function(){flashFootBtn(btn,'Copied!');});
   });
 });
 document.getElementById('share-btn').addEventListener('click',function(){
   if(!curSnip||!validateDetail())return;
   var btn=this,s=curSnip,filled=detailFilled(),vm=currentForm();
   checkThenGo(s,vm.preview,vm,document.getElementById('fform'),'share-anyway',function(){
-    shareOut(s.title||'Snippet',vm.preview,function(){
+    var all=withMobNext(s,vm.preview,null);
+    shareOut(s.title||'Snippet',all.text,function(){
       logSnipUse(s,filled);
+      if(all.next)logSnipUse(all.next,0);
       flashFootBtn(btn,'Shared!');
     });
   });
@@ -12550,10 +14418,10 @@ function openSnippetInfo(s){
     ['Characters', String((s.body||'').length)],
     ['Updated', (s.updated_at?timeAgo(s.updated_at):'—')+' · '+updateScope]
   ];
-  rows.unshift(['Languages',Array.from(new Set((variants&&variants.length?variants:[s]).map(function(v){return v.lang||'EN';}))).join('\n')]);
   var labels=assetLabelNames(s.id,snipLabelMap,true);
   if(s.alternative_queries&&s.alternative_queries.length)rows.unshift(['Search keywords',s.alternative_queries.join('\n')]);
   if(labels.length)rows.unshift(['Labels',labels.join('\n')]);
+  rows.unshift(['Languages',Array.from(new Set((variants&&variants.length?variants:[s]).map(function(v){return v.lang||'EN';}))).join('\n')]);
   // ID last: the least glanceable, most technical fact here, kept for support
   // and API use. Tappable — a full id does not fit the row, so read-by-eye is
   // not the point; copy is.
@@ -12577,7 +14445,7 @@ function showInfoSheet(title,rows,foot){
       // The dot stays with the word before it, so a wrapped line never starts with one.
       return '<span class="sb-info-item">'+esc(item)+(i<all.length-1?'<span class="sb-info-sep"> ·</span>':'')+'</span>';
     }).join(' '):esc(r[1]);
-    return '<div class="sb-info-row'+(isLanguages?' is-list':isMulti?' is-multi':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
+    return '<div class="sb-info-row'+(isMulti?' is-multi':'')+'"'+(isId?' data-copy="'+esc(r[1])+'"':'')+'>'
       +'<span class="sb-info-k">'+esc(r[0])+'</span>'
       +'<span class="sb-info-v'+(isId?' sb-info-mono':isLanguages?' sb-info-languages':'')+'">'+value+'</span></div>';
   }).join('')+(foot?'<div class="sb-info-foot">'+esc(foot)+'</div>':'');
@@ -13524,7 +15392,7 @@ function closeMobileMore(restoreFocus){
   if(restoreFocus&&trigger)trigger.focus();
 }
 function focusCurrentSearch(){
-  if(curView==='home'||curView==='analytics')showList();
+  if(curView==='home'||curView==='analytics'||curView==='focus')showList();
   var surface=curSurface();
   var id=surface==='prompts'?'prompt-srch':surface==='memory'?'mem-srch':'srch';
   var field=document.getElementById(id);
@@ -13557,6 +15425,7 @@ document.getElementById('mobile-more-menu').addEventListener('click',function(e)
   closeMobileMore();
   if(name==='search')focusCurrentSearch();
   else if(name==='analytics')showAnalyticsView();
+  else if(name==='focus')showFocus();
   else if(name==='profile')openProfileSheet();
 });
 document.addEventListener('click',function(e){
@@ -13572,6 +15441,53 @@ document.addEventListener('click',function(e){
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape')closeMobileMore(true);
 });
+/* ── FiboToken exchange rate (home pill) ─────────────
+   The numbers come from the FIBOTOKEN_RATE block, a generated copy of
+   app/src/config/fiboTokenRate.json (scripts/sync-fibotoken-rate.js). The
+   wording matches app/src/lib/fiboTokenRate.ts on the dashboard. */
+(function(){
+  var root=document.getElementById('home-rate');
+  var rate=window.FIBOTOKEN_RATE;
+  if(!rate){root.hidden=true;return;}
+  function longDate(iso){
+    return new Date(iso+'T12:00:00Z').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric',timeZone:'UTC'});
+  }
+  var tokens=Math.round(rate.exampleEuros/rate.euroPerFiboToken);
+  var text={
+    rate:'€'+rate.euroPerFiboToken.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4}),
+    example:'€'+rate.exampleEuros.toLocaleString('en-US')+' = '+tokens.toLocaleString('en-US')+' FiboTokens',
+    setOn:longDate(rate.rateSetOn),
+    packsFrom:longDate(rate.packsFrom)
+  };
+  Array.prototype.forEach.call(root.querySelectorAll('[data-rate]'),function(node){
+    node.textContent=text[node.getAttribute('data-rate')];
+  });
+  // Italy is UTC+01:00 on a winter sale day, whatever the phone's zone.
+  if(Date.now()>=Date.parse(rate.packsFrom+'T00:00:00+01:00'))document.getElementById('home-rate-packs').hidden=true;
+  var pill=document.getElementById('home-rate-pill');
+  var panel=document.getElementById('home-rate-panel');
+  pill.addEventListener('click',function(){
+    var open=!root.classList.contains('open');
+    root.classList.toggle('open',open);
+    pill.setAttribute('aria-expanded',String(open));
+    if(!open)return;
+    // Bring what just opened into view, clear of the bottom bar, once it has
+    // its full height: when the opening ends, or at once when motion is off.
+    // The timer covers a browser that opens the panel without a transition.
+    var still=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var shown=false;
+    function reveal(){
+      panel.removeEventListener('transitionend',onEnd);
+      if(shown||!root.classList.contains('open'))return;
+      shown=true;
+      root.scrollIntoView({block:'nearest',behavior:still?'auto':'smooth'});
+    }
+    function onEnd(e){if(e.target===panel)reveal();}
+    if(still){reveal();return;}
+    panel.addEventListener('transitionend',onEnd);
+    setTimeout(reveal,600);
+  });
+})();
 (function(){
   document.getElementById('view-home').addEventListener('click',function(e){
     var action=e.target.closest('[data-home-action]');
@@ -13630,7 +15546,9 @@ document.addEventListener('keydown',function(e){
        you belong to a team. When the server has no such function the Team
        section is left out instead of showing an error;
      - your own prompt uses (prompt_events is select-own) and the prompts you
-       can read, for the 80/20 section (SBUsageAnalytics.pareto). */
+       can read, for the 80/20 section (SBUsageAnalytics.pareto);
+     - the same, plus the prompts' text and your Brains' names, for the
+       Suggestions (SBUsageAnalytics.suggest). */
 var AN_PAGE=1000;
 var AN_PERIOD_KEY='sb_mob_an_period';
 var anPeriod=(function(){
@@ -13684,8 +15602,14 @@ function loadAnalyticsUsage(){
     +'&user_id=eq.'+encodeURIComponent(USER_ID)
     +'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc';
   // The prompts you can read, archived ones left out as the dashboard leaves them out.
-  var prUrl=SUPA+'/rest/v1/prompts?select=id,name,shortcut'
+  var prUrl=SUPA+'/rest/v1/prompts?select=id,name,shortcut,content'
     +'&or=(review_status.is.null,review_status.neq.archived)&order=id.asc';
+  // Your Brains' names and descriptions, for the Suggestions. Fails open to
+  // null: then no Brain ideas are offered, rather than wrong ones.
+  var brFetch=fetch(SUPA+'/rest/v1/memory_spaces?select=name,description&deleted_at=is.null',{headers:authHeaders()})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(rows){return Array.isArray(rows)?rows:null;})
+    .catch(function(){return null;});
   var luFetch=anRpc('snippet_last_used').then(function(r){
     if(handle401(r))throw new Error('Your session has ended.');
     if(!r.ok)throw new Error('The server answered '+r.status+'.');
@@ -13696,10 +15620,10 @@ function loadAnalyticsUsage(){
       .then(function(r){return r.ok?r.json():[];})
       .then(function(rows){return Array.isArray(rows)&&rows.length>0;})
       .catch(function(){return false;});
-  Promise.all([anFetchPages(evUrl),luFetch,memberFetch,anFetchPages(pevUrl),anFetchPages(prUrl)]).then(function(res){
+  Promise.all([anFetchPages(evUrl),luFetch,memberFetch,anFetchPages(pevUrl),anFetchPages(prUrl),brFetch]).then(function(res){
     var lastUsed={};
     (Array.isArray(res[1])?res[1]:[]).forEach(function(r){if(r&&r.snippet_id&&r.last_used_at)lastUsed[r.snippet_id]=r.last_used_at;});
-    anUsage={events:res[0],lastUsed:lastUsed,loadedFrom:from,at:now,promptEvents:res[3],prompts:res[4]};
+    anUsage={events:res[0],lastUsed:lastUsed,loadedFrom:from,at:now,promptEvents:res[3],prompts:res[4],brains:res[5]};
     anInTeam=!!res[2];
     anTeam={};anTeamError=null;
     anLoading=false;
@@ -13959,6 +15883,54 @@ function anParetoHtml(pareto){
   return html;
 }
 
+/* Suggestions, decided by SBUsageAnalytics.suggest() as on the dashboard.
+   "Not now" is kept on this phone and hides one for DISMISS_DAYS. */
+var AN_DISMISS_KEY='sb_mob_an_dismissed';
+var AN_KIND_NOUN={snippet:'snippet',prompt:'prompt',brain:'Brain'};
+function anDismissed(){
+  try{var o=JSON.parse(localStorage.getItem(AN_DISMISS_KEY)||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{};}
+  catch(e){return {};}
+}
+function anDismiss(key){
+  var cutoff=Date.now()-SBUsageAnalytics.DISMISS_DAYS*86400000, was=anDismissed(), next={};
+  Object.keys(was).forEach(function(k){if(k!==key&&Date.parse(was[k])>cutoff)next[k]=was[k];});
+  next[key]=new Date().toISOString();
+  try{localStorage.setItem(AN_DISMISS_KEY,JSON.stringify(next));}catch(e){}
+}
+function anSuggestHtml(){
+  var UA=SBUsageAnalytics;
+  var res=UA.suggest({
+    now:anUsage.at, events:anUsage.events, promptEvents:anUsage.promptEvents,
+    // Every language a row holds: its own body and its bodies map, empty ones left out.
+    snippets:allSnips.map(function(s){
+      var map=Object.assign({},(s.bodies&&typeof s.bodies==='object')?s.bodies:{});
+      if(s.lang&&!map[s.lang]&&s.body)map[s.lang]=s.body;
+      var langs=Object.keys(map).filter(function(k){return typeof map[k]==='string'&&map[k].trim();});
+      return {id:s.id,title:s.title,text:langs.map(function(k){return map[k];}).join('\n\n'),langs:langs};
+    }),
+    prompts:(anUsage.prompts||[]).map(function(p){return {id:p.id,name:p.name,text:p.content||''};}),
+    brains:anUsage.brains||[],
+    dismissed:anDismissed()
+  });
+  // Brains that could not be read would look like no Brains at all.
+  var missing=anUsage.brains?res.missing:res.missing.filter(function(m){return m.kind!=='brain';});
+  var notNow=function(key){return '<button type="button" class="an-sg-btn" data-an-dismiss="'+esc(key)+'">Not now</button>';};
+  var inner='';
+  res.together.forEach(function(s){
+    inner+='<div class="an-sg"><div class="an-sg-k">'+(s.kind==='snippet'?'Snippets':'Prompts')+' often used together</div>'
+      +'<ol class="an-sg-chips" aria-label="In the order you used them">'
+      +s.titles.map(function(t,i){return '<li>'+(i?'<span class="an-sg-arrow" aria-hidden="true">→</span>':'')+'<span class="an-sg-chip">'+esc(t)+'</span></li>';}).join('')
+      +'</ol><p class="an-sg-p">'+esc(s.text)+'</p>'+notNow(s.key)+'</div>';
+  });
+  missing.forEach(function(s){
+    inner+='<div class="an-sg"><div class="an-sg-k">A '+AN_KIND_NOUN[s.kind]+' you may need</div>'
+      +'<div class="an-sg-t">'+esc(s.title)+'</div><p class="an-sg-p">'+esc(s.text)+'</p>'+notNow(s.key)+'</div>';
+  });
+  if(!inner)inner='<div class="an-msg">Nothing to suggest yet. As you use your snippets and prompts, Fibonax spots the ones you use together.</div>';
+  return anSection('Suggestions','What Fibonax noticed in your last '+UA.SUGGEST_DAYS+' days of use and in your library.'
+    +' To join or add one, open Analytics on your computer.',inner);
+}
+
 function renderAnalytics(){
   var body=document.getElementById('an-body');
   var sub=document.getElementById('an-hdr-sub');
@@ -14000,6 +15972,8 @@ function renderAnalytics(){
     +'<div class="an-fact"><dt>Fields filled per insert</dt><dd>'+t.avgFieldsPerUse+'</dd><dd class="an-fact-hint">'+t.usesWithFieldsShare+'% of inserts had a form</dd></div>'
     +'<div class="an-fact"><dt>Weekdays</dt><dd>'+p.workdayShare+'%</dd><dd class="an-fact-hint">of inserts from Monday to Friday</dd></div>'
   +'</dl></div></div>';
+
+  html+=anSuggestHtml();
 
   html+=anSection('Inserts per day',report.rangeLabel+', with '+report.prevRangeLabel+' dashed for comparison.',anChart(report),true);
 
@@ -14075,6 +16049,12 @@ document.getElementById('view-analytics').addEventListener('click',function(e){
     renderAnalytics();
     return;
   }
+  var dm=e.target.closest('[data-an-dismiss]');
+  if(dm){
+    anDismiss(dm.getAttribute('data-an-dismiss'));
+    renderAnalytics();
+    return;
+  }
   var act=e.target.closest('[data-an-action]');
   if(act&&act.getAttribute('data-an-action')==='pareto-rest'){
     anParetoRestOpen=!anParetoRestOpen;
@@ -14123,15 +16103,13 @@ function applyHeroName(){
     first=e.split('@')[0];
     if(first)first=first.charAt(0).toUpperCase()+first.slice(1);
   }
-  if(first){
-    // Every page's hero carries the same greeting and name.
-    document.querySelectorAll('.mname').forEach(function(n){n.textContent=first;});
-  }
-  var h=new Date().getHours();
-  var greet=h>=5&&h<12?'Good morning,'
-           :h>=12&&h<18?'Good afternoon,'
-           :'Good evening,';
-  document.querySelectorAll('.mgreet').forEach(function(g){g.textContent=greet;});
+  // Every page's hero carries the same greeting and name. The phone greets in
+  // Latin at every hour of the day: "AVE Valentina!". The "!" sits with the
+  // name so a long name shortens before the greeting does. The page's own
+  // default name stands in when the account has neither a name nor an email.
+  document.querySelectorAll('.mname').forEach(function(n){n.textContent=(first||n.textContent.replace(/!+$/,''))+'!';});
+  // The crossed swords (⚔️) come first; a screen reader skips them.
+  document.querySelectorAll('.mgreet').forEach(function(g){g.innerHTML='<span aria-hidden="true">⚔️</span> AVE';});
 }
 /* Company co-brand — reads the same user_metadata keys the dashboard topbar
    renders (Settings → Company branding): company_logo_url (https-only, same
@@ -14199,9 +16177,435 @@ function refreshAccountDetails(){
     })
     .catch(function(){});
 }
+/* ── POMODORO TIMER ─────────────────────────────────
+   "focus" is its name inside the code. The rules are the extension's own file
+   (SB_FOCUS_TIMER block, scripts/sync-focus-timer.js); this code stores them on
+   the phone and draws them. Each device keeps its own timer: the state is in
+   localStorage and the pictures in IndexedDB, which holds far more, and neither
+   leaves the phone. A phone page cannot run while it is closed or the phone is
+   locked, so the timer moves on when the page comes back. */
+var FOCUS_SELECTS=['fo-work','fo-break','fo-sessions','fo-long','fo-detox'];
+var FOCUS_DB='sb_focus_phone';
+var FOCUS_STORE='kv';
+var focusState=null;
+var focusActsKey='';
+var focusTickFor=0;
+var focusAudio=null;
+var focusScreenOn=false;
+var focusScreenFrom=null;
+var focusScreenGallery=null;
+var focusCallGallery=null;
+var focusPicGallery=null;
+var focusStored=null;
+
+function foEl(id){return document.getElementById(id);}
+function focusText(id,text){var el=foEl(id);if(el.textContent!==text)el.textContent=text;}
+function focusRead(){
+  try{
+    var raw=localStorage.getItem(SBFocus.STORAGE_KEY);
+    return raw?JSON.parse(raw):null;
+  }catch(e){
+    console.error('[Fibonax] Could not read the Pomodoro timer:',e);
+    return null;
+  }
+}
+/* quiet: a tick the person did not ask for shows no toast when it fails. Read
+   again right before changing, so a second tab's change is kept. */
+function focusApply(action,quiet){
+  var res=SBFocus.reduce(focusRead(),action,Date.now());
+  if(res.changed){
+    try{
+      localStorage.setItem(SBFocus.STORAGE_KEY,JSON.stringify(res.state));
+    }catch(e){
+      console.error('[Fibonax] Could not save the Pomodoro timer:',e);
+      if(!quiet)showToast('Could not save the timer. Try again');
+      return;
+    }
+    if(res.chime&&res.state.settings.chime)focusChime();
+  }
+  focusState=res.state;
+  renderFocus();
+}
+/* A phone only allows sound after a tap, so the sound is opened on one. */
+function focusUnlockAudio(){
+  var Ctx=window.AudioContext||window.webkitAudioContext;
+  if(!Ctx)return;
+  try{
+    if(!focusAudio)focusAudio=new Ctx();
+    if(focusAudio.state!=='running')focusAudio.resume().catch(function(e){console.error('[Fibonax] Could not open the chime:',e);});
+  }catch(e){
+    console.error('[Fibonax] Could not open the chime:',e);
+  }
+}
+/* A chime that could not sound right now is dropped, not played late. */
+function focusChime(){
+  if(document.hidden||!focusAudio)return;
+  var asked=Date.now();
+  focusAudio.resume().then(function(){
+    if(Date.now()-asked<2000)SBFocus.playChime(focusAudio);
+  }).catch(function(e){console.error('[Fibonax] Could not play the chime:',e);});
+}
+function focusButtons(v){
+  return SBFocus.actions(v).map(function(a){
+    return '<button type="button" class="fo-btn'+(a.style?' '+a.style:'')+'" data-act="'+a.act+'">'+esc(a.text)+'</button>';
+  }).join('');
+}
+function renderFocus(){
+  var now=Date.now();
+  var v=SBFocus.view(focusState,now);
+  var label=SBFocus.pillText(v);
+  focusText('fo-pill-t',label);
+  foEl('fo-pill').hidden=!label||curView==='focus';
+  foEl('fo-pill').setAttribute('aria-label',label?'Pomodoro timer, '+v.title+', '+v.clock+' left':'Pomodoro timer');
+
+  // The end of a phase moves the timer on, once per phase.
+  if((v.mode==='work'||v.mode==='break')&&v.leftMs<=0){
+    var endsAt=focusState&&focusState.run?focusState.run.endsAt:0;
+    if(endsAt&&focusTickFor!==endsAt){
+      focusTickFor=endsAt;
+      focusApply({type:'tick'},true);
+      return;
+    }
+  }
+  if(v.onBreak&&v.leftMs>0)focusShowScreen(v);
+  else focusHideScreen();
+
+  if(curView!=='focus')return;
+  focusText('fo-phase',v.title);
+  focusText('fo-clock',v.clock);
+  focusText('fo-next',v.next);
+  var key=v.mode+':'+v.kind;
+  if(key!==focusActsKey){
+    focusActsKey=key;
+    foEl('fo-acts').innerHTML=focusButtons(v);
+    if(v.mode!=='work')foEl('fo-ask').hidden=true;
+  }
+  var warn=v.warnings.join(' ');
+  focusText('fo-warn',warn);
+  foEl('fo-warn').hidden=!warn;
+  focusText('fo-note',v.note||'');
+  foEl('fo-note').hidden=!v.note;
+
+  var st=SBFocus.stats(focusState,now);
+  focusText('fo-t-done',String(st.today.done));
+  focusText('fo-t-extra',String(st.today.extra));
+  focusText('fo-t-skip',String(st.today.skipped));
+  focusText('fo-w-done',String(st.week.done));
+  focusText('fo-w-extra',String(st.week.extra));
+  focusText('fo-w-skip',String(st.week.skipped));
+  focusText('fo-dilute',st.diluted?SBFocus.DILUTION_NOTE:'');
+  foEl('fo-dilute').hidden=!st.diluted;
+
+  // A control being changed keeps what the person picked until it is saved.
+  FOCUS_SELECTS.forEach(function(id){
+    var sel=foEl(id);
+    if(document.activeElement!==sel)sel.value=String(v.settings[sel.getAttribute('data-key')]);
+  });
+  if(document.activeElement!==foEl('fo-chime'))foEl('fo-chime').checked=v.settings.chime;
+}
+function showFocus(){
+  curView='focus';
+  setActiveQuickAction(null);
+  document.body.classList.remove('sb-detail-view');
+  document.getElementById('loading').style.display='none';
+  ['view-home','view-list','view-detail','view-analytics','view-prompts','view-memory','view-memitem'].forEach(function(id){
+    foEl(id).classList.remove('active');
+  });
+  foEl('view-focus').classList.add('active');
+  setActivePrimaryTab(null);
+  window.scrollTo(0,0);
+  focusActsKey='';
+  renderFocus();
+}
+function focusOpenDialog(d){
+  if(typeof d.showModal!=='function'){d.setAttribute('open','');return;}
+  try{d.showModal();}
+  catch(e){
+    console.error('[Fibonax] Could not show the Pomodoro timer screen:',e);
+    d.setAttribute('open','');
+  }
+}
+function focusShowScreen(v){
+  var d=foEl('fo-screen');
+  if(!focusScreenOn){
+    focusScreenOn=true;
+    focusScreenFrom=document.activeElement;
+    if(SBFocus.isDetoxDay(focusState,Date.now()))focusScreenPhotos();
+  }
+  // Anything that closed the screen, a back gesture included, is undone within
+  // a second while the break still runs.
+  if(!d.open)focusOpenDialog(d);
+  focusText('fo-screen-t',v.title);
+  focusText('fo-screen-clock',v.clock);
+  focusText('fo-screen-idea',v.suggestion||'');
+  var warn=v.warnings.join(' ');
+  focusText('fo-screen-warn',warn);
+  foEl('fo-screen-warn').hidden=!warn;
+}
+function focusHideScreen(){
+  if(!focusScreenOn)return;
+  focusScreenOn=false;
+  var d=foEl('fo-screen');
+  if(focusScreenGallery){focusScreenGallery.destroy();focusScreenGallery=null;}
+  d.classList.remove('has-controls');
+  if(d.open)d.close();
+  if(focusScreenFrom&&focusScreenFrom.isConnected&&typeof focusScreenFrom.focus==='function'){
+    focusScreenFrom.focus({preventScroll:true});
+  }
+  focusScreenFrom=null;
+}
+function focusScreenPhotos(){
+  var urls=SBFocus.photoUrls(focusStored);
+  if(!urls.length)return;
+  var d=foEl('fo-screen');
+  focusScreenGallery=SBFocusCarousel.create(urls,{onFail:function(){d.classList.remove('has-controls');}});
+  foEl('fo-screen-gallery').appendChild(focusScreenGallery.el);
+  if(focusScreenGallery.count>1)d.classList.add('has-controls');
+}
+function openDetoxCall(){
+  focusText('fo-call-t',SBFocus.detoxTitle(focusState));
+  focusText('fo-call-line',SBFocus.DETOX_LINE);
+  focusCallGallery=SBFocusCarousel.create(SBFocus.photoUrls(focusStored));
+  if(focusCallGallery)foEl('fo-call-gallery').appendChild(focusCallGallery.el);
+  foEl('fo-call').classList.toggle('has-controls',!!(focusCallGallery&&focusCallGallery.count>1));
+  foEl('fo-call-add').hidden=!!focusCallGallery;
+  focusOpenDialog(foEl('fo-call'));
+  foEl('fo-call-off').focus();
+}
+function closeDetoxCall(){
+  if(focusCallGallery){focusCallGallery.destroy();focusCallGallery=null;}
+  var d=foEl('fo-call');
+  if(d.open)d.close();
+  else d.removeAttribute('open');
+}
+
+/* The detox day pictures, in their own small database on this phone. */
+function focusDb(){
+  return new Promise(function(ok,no){
+    var open=indexedDB.open(FOCUS_DB,1);
+    open.onupgradeneeded=function(){open.result.createObjectStore(FOCUS_STORE);};
+    open.onsuccess=function(){ok(open.result);};
+    open.onerror=function(){no(open.error);};
+  });
+}
+function focusDbRun(mode,run){
+  return focusDb().then(function(db){
+    return new Promise(function(ok,no){
+      var tx=db.transaction(FOCUS_STORE,mode);
+      var req=run(tx.objectStore(FOCUS_STORE));
+      tx.oncomplete=function(){db.close();ok(req.result);};
+      tx.onerror=tx.onabort=function(){db.close();no(tx.error);};
+    });
+  });
+}
+function focusPhotosLoad(){
+  return focusDbRun('readonly',function(s){return s.get(SBFocus.PHOTO_KEY);});
+}
+function focusPhotosSave(next){
+  return focusDbRun('readwrite',function(s){return s.put(next,SBFocus.PHOTO_KEY);});
+}
+function focusSay(text,isError){
+  focusText('fo-ph-status',text);
+  foEl('fo-ph-status').classList.toggle('err',!!isError);
+}
+function focusSetPhotos(stored){
+  focusStored=stored;
+  var urls=SBFocus.photoUrls(stored);
+  var n=urls.length;
+  var img=foEl('fo-thumb-img');
+  if(n){img.src=urls[0];img.hidden=false;}
+  else{img.removeAttribute('src');img.hidden=true;}
+  foEl('fo-thumb').classList.toggle('has',n>0);
+  focusText('fo-pic-count',n>1?n+' pictures, shown as a gallery':n===1?'1 picture':'');
+  focusText('fo-pic-btn',n?'Manage pictures':'Add pictures');
+}
+function focusRenderPics(start){
+  var urls=SBFocus.photoUrls(focusStored);
+  var n=urls.length;
+  if(focusPicGallery){focusPicGallery.destroy();focusPicGallery=null;}
+  if(n){
+    focusPicGallery=SBFocusCarousel.create(urls,{start:start||0});
+    foEl('fo-ph-frame').appendChild(focusPicGallery.el);
+  }
+  foEl('fo-ph-frame').classList.toggle('has',n>0);
+  foEl('fo-ph-empty').hidden=n>0;
+  focusText('fo-ph-count',n?n+' of '+SBFocus.PHOTO_MAX+' pictures saved':'');
+  focusText('fo-ph-add',n?'Add more pictures':'Choose pictures');
+  foEl('fo-ph-remove').hidden=n===0;
+  focusText('fo-ph-remove',n>1?'Remove this picture':'Remove picture');
+}
+function focusTogglePics(open){
+  var panel=foEl('fo-pics');
+  panel.hidden=!open;
+  foEl('fo-pic-btn').setAttribute('aria-expanded',open?'true':'false');
+  if(open){focusSay('');focusRenderPics(0);}
+  else if(focusPicGallery){focusPicGallery.destroy();focusPicGallery=null;}
+}
+function focusShrink(file){
+  return pictureLoad(file).then(function(img){
+    var w=img.naturalWidth,h=img.naturalHeight;
+    var scale=Math.min(1,SBFocus.PHOTO_MAX_SIDE/Math.max(w,h));
+    var c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(w*scale));
+    c.height=Math.max(1,Math.round(h*scale));
+    var ctx=c.getContext('2d');
+    // A transparent picture sits on white, not on black.
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,0,c.width,c.height);
+    ctx.drawImage(img,0,0,c.width,c.height);
+    return c.toDataURL('image/jpeg',SBFocus.PHOTO_QUALITY);
+  });
+}
+/* One file at a time: several phone photos decoded together can run a phone
+   out of memory. Only as many as fit are opened; the rest are counted. */
+function focusAddPhotos(files){
+  var room=Math.max(0,SBFocus.PHOTO_MAX-SBFocus.photoItems(focusStored).length);
+  var toRead=files.slice(0,room);
+  var leftOut=files.length-toRead.length;
+  var urls=[];
+  focusSay('Preparing your '+(toRead.length===1?'picture':'pictures'));
+  toRead.reduce(function(chain,file){
+    return chain.then(function(){
+      if(!/^image\//.test(file.type)){urls.push(null);return null;}
+      return focusShrink(file).then(function(url){urls.push(url);},function(e){
+        console.error('[Fibonax] Could not open the picture:',e);
+        urls.push(null);
+      });
+    });
+  },Promise.resolve()).then(focusPhotosLoad).then(function(stored){
+    var before=SBFocus.photoItems(stored).length;
+    var good=urls.filter(Boolean);
+    var result=SBFocus.addPhotos(stored,good,Date.now());
+    var note=SBFocus.photoNote({added:result.added,duplicates:result.duplicates,unreadable:urls.length-good.length,full:result.full+leftOut});
+    if(!result.added){focusSay(note,true);return null;}
+    return focusPhotosSave(result.stored).then(function(){
+      focusSetPhotos(result.stored);
+      focusRenderPics(before);
+      focusSay(note);
+    });
+  }).catch(function(e){
+    console.error('[Fibonax] Could not save the detox day pictures:',e);
+    focusSay('Could not save. Remove a picture or try smaller ones.',true);
+  });
+}
+function focusRemovePhoto(){
+  if(!focusPicGallery)return;
+  var at=focusPicGallery.index();
+  focusPhotosLoad().then(function(stored){
+    var target=SBFocus.photoItems(stored)[at];
+    if(!target){focusSetPhotos(stored);focusRenderPics(0);return null;}
+    var next=SBFocus.removePhoto(stored,target.id);
+    return focusPhotosSave(next).then(function(){
+      focusSetPhotos(next);
+      focusRenderPics(Math.min(at,SBFocus.photoItems(next).length-1));
+      focusSay('Picture removed.');
+    });
+  }).catch(function(e){
+    console.error('[Fibonax] Could not save the detox day pictures:',e);
+    focusSay('Could not save. Remove a picture or try smaller ones.',true);
+  });
+}
+function focusInit(){
+  FOCUS_SELECTS.forEach(function(id){
+    var sel=foEl(id);
+    var key=sel.getAttribute('data-key');
+    sel.innerHTML=SBFocus.OPTIONS[key].map(function(n){
+      return '<option value="'+n+'">'+esc(SBFocus.optionLabel(key,n))+'</option>';
+    }).join('');
+    sel.addEventListener('change',function(){
+      var patch={};
+      patch[key]=Number(sel.value);
+      focusApply({type:'settings',settings:patch});
+    });
+  });
+  foEl('fo-chime').addEventListener('change',function(){
+    focusApply({type:'settings',settings:{chime:foEl('fo-chime').checked}});
+  });
+  focusText('fo-screen-lead',SBFocus.BREAK_LEAD);
+  focusText('fo-screen-rule',SBFocus.PHONE_RULE);
+  foEl('fo-pill').addEventListener('click',showFocus);
+  foEl('fo-acts').addEventListener('click',function(e){
+    var btn=e.target.closest('[data-act]');
+    if(!btn)return;
+    var act=btn.getAttribute('data-act');
+    var ask=foEl('fo-ask');
+    if(act==='ask'){
+      ask.hidden=false;
+      ask.querySelector('[data-min]').focus();
+      return;
+    }
+    if(act==='start'){
+      focusUnlockAudio();
+      // Starting work on the detox day first shows what the person loves.
+      if(SBFocus.isDetoxDay(focusState,Date.now())){openDetoxCall();return;}
+    }
+    ask.hidden=true;
+    focusApply({type:act});
+  });
+  foEl('fo-ask').addEventListener('click',function(e){
+    var btn=e.target.closest('button');
+    if(!btn)return;
+    foEl('fo-ask').hidden=true;
+    var minutes=Number(btn.getAttribute('data-min'));
+    if(minutes){focusApply({type:'extra',minutes:minutes});return;}
+    var back=foEl('fo-acts').querySelector('[data-act="ask"]');
+    if(back)back.focus();
+  });
+  foEl('fo-screen-skip').addEventListener('click',function(){focusApply({type:'skip'});});
+  foEl('fo-screen').addEventListener('cancel',function(e){e.preventDefault();});
+  foEl('fo-call-off').addEventListener('click',function(){closeDetoxCall();showHome();});
+  foEl('fo-call-go').addEventListener('click',function(){
+    closeDetoxCall();
+    focusUnlockAudio();
+    focusApply({type:'start'});
+  });
+  foEl('fo-call-add').addEventListener('click',function(){
+    closeDetoxCall();
+    focusTogglePics(true);
+    foEl('fo-pics').scrollIntoView({block:'start'});
+  });
+  foEl('fo-call').addEventListener('cancel',function(e){e.preventDefault();closeDetoxCall();});
+  foEl('fo-pic-btn').addEventListener('click',function(){focusTogglePics(foEl('fo-pics').hidden);});
+  foEl('fo-ph-add').addEventListener('click',function(){
+    if(SBFocus.photoItems(focusStored).length>=SBFocus.PHOTO_MAX){
+      focusSay('You have '+SBFocus.PHOTO_MAX+' pictures, the most Fibonax keeps. Remove one to add another.',true);
+      return;
+    }
+    foEl('fo-ph-file').click();
+  });
+  foEl('fo-ph-file').addEventListener('change',function(){
+    var input=foEl('fo-ph-file');
+    var files=Array.prototype.slice.call(input.files||[]);
+    input.value='';
+    if(files.length)focusAddPhotos(files);
+  });
+  foEl('fo-ph-remove').addEventListener('click',focusRemovePhoto);
+  // Any tap while the timer runs keeps the chime able to sound.
+  document.addEventListener('click',function(){
+    if(focusState&&focusState.run)focusUnlockAudio();
+  },true);
+  // A timer started in another tab shows here too.
+  window.addEventListener('storage',function(e){
+    if(e.key!==SBFocus.STORAGE_KEY)return;
+    focusState=focusRead();
+    renderFocus();
+  });
+  // Coming back to the page shows the right time at once.
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible')focusApply({type:'tick'},true);
+  });
+  focusPhotosLoad().then(focusSetPhotos).catch(function(e){
+    console.error('[Fibonax] Could not read the detox day pictures:',e);
+  });
+  focusState=focusRead();
+  focusApply({type:'tick'},true);
+  setInterval(renderFocus,1000);
+}
+
 if(requireAuth()){
   applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();refreshAccountDetails();
   captureResume();
+  focusInit();
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible'){
       sbCheckAlive();refreshAccountDetails();

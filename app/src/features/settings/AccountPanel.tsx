@@ -5,7 +5,9 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { PlacementFields } from '@/features/org/PlacementFields';
 import { IMAGE_INPUT_ACCEPT, validateImageFile } from '@/lib/branding';
+import { normalizeJobTitle } from '@/lib/orgChart';
 import { useOrgStore } from '@/stores/orgStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useUiStore } from '@/stores/uiStore';
@@ -24,8 +26,19 @@ export function AccountPanel() {
   const orgLoading = useOrgStore((s) => s.loading);
   const orgError = useOrgStore((s) => s.error);
   const loadOrg = useOrgStore((s) => s.load);
+  const members = useOrgStore((s) => s.members);
+  const departments = useOrgStore((s) => s.departments);
+  const setMemberPlacement = useOrgStore((s) => s.setMemberPlacement);
+
+  // The signed-in person's own row in the active team: where their department
+  // and job title live. Null without a team, or while the directory loads.
+  const me = profile ? (members.find((m) => m.user_id === profile.id) ?? null) : null;
+  const savedDepartmentId = me?.department_id ?? null;
+  const savedJobTitle = me?.job_title ?? null;
 
   const [displayName, setDisplayName] = useState('');
+  const [departmentId, setDepartmentId] = useState<string | null>(null);
+  const [jobTitle, setJobTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -54,6 +67,13 @@ export function AccountPanel() {
     setDisplayName(profile.display_name);
   }, [profile]);
 
+  // Same for the department and job title, whenever the saved ones change
+  // (first load, a save here, an admin's edit, a switch of team).
+  useEffect(() => {
+    setDepartmentId(savedDepartmentId);
+    setJobTitle(savedJobTitle ?? '');
+  }, [savedDepartmentId, savedJobTitle]);
+
   // Briefly show "Saved" after a successful write.
   useEffect(() => {
     if (savedAt === null) return;
@@ -61,9 +81,11 @@ export function AccountPanel() {
     return () => window.clearTimeout(t);
   }, [savedAt]);
 
-  const dirty =
-    profile !== null &&
-    displayName.trim() !== profile.display_name;
+  const nameDirty = profile !== null && displayName.trim() !== profile.display_name;
+  const placementDirty =
+    me !== null &&
+    (departmentId !== savedDepartmentId || normalizeJobTitle(jobTitle) !== savedJobTitle);
+  const dirty = nameDirty || placementDirty;
 
   const trimmed = displayName.trim();
   const nameInvalid = trimmed.length === 0 || trimmed.length > NAME_MAX;
@@ -78,7 +100,10 @@ export function AccountPanel() {
     setSaving(true);
     setErrorMsg(null);
     try {
-      await editProfile({ display_name: trimmed });
+      if (nameDirty) await editProfile({ display_name: trimmed });
+      if (placementDirty && me) {
+        await setMemberPlacement(me.user_id, { departmentId, jobTitle });
+      }
       setSavedAt(Date.now());
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Save failed');
@@ -90,6 +115,8 @@ export function AccountPanel() {
   function onCancel() {
     if (!profile) return;
     setDisplayName(profile.display_name);
+    setDepartmentId(savedDepartmentId);
+    setJobTitle(savedJobTitle ?? '');
     setErrorMsg(null);
   }
 
@@ -346,6 +373,25 @@ export function AccountPanel() {
             <span className="text-sm font-medium text-ink">{memberSince}</span>
           </div>
         </div>
+
+        {/* Where this person sits in the team above: shown on the Team page. */}
+        {activeOrg && me && (
+          <PlacementFields
+            idPrefix="account"
+            layout="row"
+            departments={departments}
+            departmentId={departmentId}
+            jobTitle={jobTitle}
+            onDepartmentChange={setDepartmentId}
+            onJobTitleChange={setJobTitle}
+            disabled={saving}
+            emptyHint={
+              activeOrg.myRole === 'admin'
+                ? 'No departments yet. Add them on the Team page.'
+                : 'Your team has no departments yet.'
+            }
+          />
+        )}
 
         <div className="flex items-center justify-between border-t border-line pt-4">
           <div className="text-xs text-ink-subtle">

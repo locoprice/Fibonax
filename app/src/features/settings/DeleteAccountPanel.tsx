@@ -66,7 +66,7 @@ export function DeleteAccountPanel() {
 
   return (
     <>
-      <Card>
+      <Card className="border-danger/30 bg-danger-bg">
         <CardHeader>
           <CardTitle>Delete account</CardTitle>
           <CardDescription>
@@ -74,10 +74,10 @@ export function DeleteAccountPanel() {
             undone.
           </CardDescription>
         </CardHeader>
-        <CardFooter className="justify-end">
+        <CardFooter className="justify-end border-danger/20">
           <Button
             variant="ghost"
-            className="border-danger/30 text-danger hover:border-danger/50 hover:bg-danger/5"
+            className="border-danger/30 bg-card text-danger hover:border-danger/50 hover:bg-card"
             onClick={() => void openDialog()}
           >
             <Trash2 className="h-4 w-4" />

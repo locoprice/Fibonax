@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Zap } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -62,10 +62,7 @@ export function AutoInsertPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-primary" aria-hidden />
-          Insert automatically
-        </CardTitle>
+        <CardTitle>Insert automatically</CardTitle>
         <CardDescription>
           Type your trigger and a few letters. When only one snippet fits, Fibonax can insert it
           for you after a short wait. Turned off, you pick the snippet from the list with Tab or
