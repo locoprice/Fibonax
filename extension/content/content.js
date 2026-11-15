@@ -4683,10 +4683,13 @@ function sbMemoryPreferredLangs(preferred) {
   // searches instead of reading a step, so there is nothing left to configure
   // and nothing left to gate on.
   var BUDGET_KEY = 'sb_memory_budgets';
+  // What the panel adds: 'prompt', 'brains' or 'both'. One choice for every
+  // site, kept on this device like the budgets below.
+  var MODE_KEY = 'sb_injector_mode';
 
   var picker = SBMemoryPicker.create({
-    search: function(query, cb) {
-      ask('knowledge_search', { query: query, limit: 40 }, function(e, r) {
+    search: function(query, kinds, cb) {
+      ask('knowledge_search', { query: query, kinds: kinds, limit: 40 }, function(e, r) {
         if (e) { cb(e); return; }
         cb(null, r.rows || []);
       });
@@ -4731,6 +4734,22 @@ function sbMemoryPreferredLangs(preferred) {
           patch[BUDGET_KEY] = all;
           chrome.storage.local.set(patch);
         });
+      } catch(e) {}
+    },
+    // Same promise as the budgets: storage.local, and a failure falls back to
+    // Both without a message.
+    loadMode: function(cb) {
+      try {
+        chrome.storage.local.get(MODE_KEY, function(d) {
+          cb((d && d[MODE_KEY]) || null);
+        });
+      } catch(e) { cb(null); }
+    },
+    saveMode: function(mode) {
+      try {
+        var patch = {};
+        patch[MODE_KEY] = mode;
+        chrome.storage.local.set(patch);
       } catch(e) {}
     }
   });

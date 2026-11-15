@@ -396,11 +396,19 @@ function withPromptBrains(rows) {
  * Brain items and prompts. Snippets are text to expand, not context, and
  * listing them buried the Brain items. The search leaves prompts out unless
  * they are asked for by name, which is why 'prompt' is spelled out here.
+ *
+ * `kinds` narrows that to one of the two, for the panel's Prompts and Brains
+ * choices. It can only narrow: anything else in it is ignored, and a list
+ * that names neither gets both, so a snippet still never reaches the panel.
  */
-function knowledgeSearch(query, limit) {
+function knowledgeSearch(query, limit, kinds) {
+  var offered = ['memory', 'prompt'];
+  var wanted = offered.filter(function(kind) {
+    return Array.isArray(kinds) && kinds.indexOf(kind) !== -1;
+  });
   return supaRpc('knowledge_search', {
     p_query: query || null,
-    p_kinds: ['memory', 'prompt'],
+    p_kinds: wanted.length ? wanted : offered,
     p_label_ids: null,
     p_container_ids: null,
     p_limit: typeof limit === 'number' ? limit : 40
@@ -411,7 +419,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   if (!msg) return;
 
   if (msg.type === 'knowledge_search') {
-    knowledgeSearch(msg.query, msg.limit).then(function(rows) {
+    knowledgeSearch(msg.query, msg.limit, msg.kinds).then(function(rows) {
       try { sendResponse({ ok: true, rows: rows || [] }); } catch(e) {}
     }, function() {
       try { sendResponse({ ok: false }); } catch(e) {}

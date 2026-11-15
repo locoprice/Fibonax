@@ -410,6 +410,57 @@ const pending = [];
     vm.runInContext(BG.slice(from, to) + '\nknowledgeSearch("airport", 40);', bgSandbox);
     check('the Context panel runs one search', asked.map((a) => a.fn), ['knowledge_search']);
     check('the Context panel asks for Brain items and prompts', asked[0].params.p_kinds, ['memory', 'prompt']);
+
+    // Prompts / Brains / Both. The choice can narrow the search to one of the
+    // two kinds and nothing more: a snippet is never let in through it.
+    const kindsFor = (kinds) => {
+      asked.length = 0;
+      bgSandbox.kinds = kinds;
+      vm.runInContext('knowledgeSearch("airport", 40, kinds);', bgSandbox);
+      return asked[0].params.p_kinds;
+    };
+    check('Prompts searches prompts only', kindsFor(['prompt']), ['prompt']);
+    check('Brains searches Brain items only', kindsFor(['memory']), ['memory']);
+    check('Both searches the two', kindsFor(['memory', 'prompt']), ['memory', 'prompt']);
+    check('a snippet cannot be asked for through the choice', kindsFor(['snippet', 'prompt']), ['prompt']);
+    check('a choice naming neither kind gets both', kindsFor(['snippet']), ['memory', 'prompt']);
+    check('a choice that is not a list gets both', kindsFor('prompt'), ['memory', 'prompt']);
+  }
+
+  // The panel's side of the same choice, on the real memory-picker.js.
+  const choice = sandbox.SBMemoryPicker;
+  if (choice && typeof choice.kindsForMode === 'function' && typeof choice.carryChecked === 'function' &&
+      typeof choice.mergeCarried === 'function' && typeof choice.orderForInsert === 'function') {
+    check('Prompts asks for prompts', choice.kindsForMode('prompt'), ['prompt']);
+    check('Brains asks for Brain items', choice.kindsForMode('brains'), ['memory']);
+    check('Both asks for the two', choice.kindsForMode('both'), ['memory', 'prompt']);
+    check('a saved choice that is not one of ours falls back to Both', choice.normaliseMode('everything'), 'both');
+    check('nothing saved yet is Both', choice.normaliseMode(null), 'both');
+
+    const listed = [
+      { id: 'p1', kind: 'prompt' }, { id: 'm1', kind: 'memory' }, { id: 'm2', kind: 'memory' },
+    ];
+    const ticked = { p1: true, m2: true };
+    check('a new search keeps what is ticked', choice.carryChecked(listed, ticked, 'both').map((f) => f.id), ['p1', 'm2']);
+    check('switching to Brains drops a ticked prompt', choice.carryChecked(listed, ticked, 'brains').map((f) => f.id), ['m2']);
+    check('switching to Prompts drops a ticked Brain item', choice.carryChecked(listed, ticked, 'prompt').map((f) => f.id), ['p1']);
+    check('carried facts lead the new list, each listed once',
+      choice.mergeCarried([listed[2]], [listed[0], listed[2], listed[1]]).map((f) => f.id), ['m2', 'p1', 'm1']);
+
+    // Both, in the message: prompts first, then Brain items, each in rank order.
+    check('prompts go in before Brain items, ranked order kept inside each',
+      choice.orderForInsert([
+        { id: 'm1', kind: 'memory' }, { id: 'p1', kind: 'prompt' }, { id: 'm2', kind: 'memory' }, { id: 'p2', kind: 'prompt' },
+      ]).map((i) => i.id), ['p1', 'p2', 'm1', 'm2']);
+
+    // The choice is remembered under one key, on this device only.
+    const CONTENT = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content', 'content.js'), 'utf8');
+    check('the choice is saved as sb_injector_mode', /var MODE_KEY = 'sb_injector_mode';/.test(CONTENT), true);
+    check('the choice is read from and written to storage.local',
+      /chrome\.storage\.local\.get\(MODE_KEY/.test(CONTENT) && /patch\[MODE_KEY\] = mode;\s*chrome\.storage\.local\.set\(patch\)/.test(CONTENT), true);
+  } else {
+    console.error('X memory-picker.js no longer exposes kindsForMode / carryChecked / mergeCarried / orderForInsert');
+    failed++;
   }
 
   // What happens to the rows the user ticks: each kind is read from its own table.

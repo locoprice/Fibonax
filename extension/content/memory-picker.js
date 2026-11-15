@@ -237,6 +237,21 @@
     '.ptitle{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6B6B70}',
     '.pcount{font-size:11px;color:#6E6E73;font-variant-numeric:tabular-nums}',
     '.pcount.over{color:#D70015;font-weight:600}',
+    // What the panel adds: prompts, Brain items, or both. One track, three
+    // equal parts; the chosen one is the raised white part in bold, so the
+    // choice never rests on colour alone.
+    '.pmode{display:flex;gap:2px;margin:2px 10px 6px;padding:2px;background:#F2F2F7;border-radius:8px;flex:0 0 auto}',
+    '.seg{flex:1 1 0;min-width:0;height:26px;padding:0 8px;border:0;border-radius:6px;background:transparent;',
+    'font-size:12px;font-weight:500;color:#3A3A3C;cursor:pointer}',
+    '.seg:hover{color:#1C1C1E}',
+    '.seg[aria-checked="true"]{background:#FFFFFF;color:#1B4FD8;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}',
+    '.seg:focus-visible{outline:2px solid #1B4FD8;outline-offset:1px}',
+    // Search inside the panel, so finding an item never depends on what is in
+    // the message box.
+    '.psearch{display:block;width:calc(100% - 20px);height:30px;margin:0 10px 6px;padding:0 10px;flex:0 0 auto;',
+    'border:1px solid #E5E5EA;border-radius:8px;background:#FFFFFF;font-size:13px;color:#1C1C1E;outline:0}',
+    '.psearch::placeholder{color:#6E6E73}',
+    '.psearch:focus{border-color:#1B4FD8;box-shadow:0 0 0 2px #BED0FF}',
     '.item{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer}',
     '.item:hover{background:#EEF2FF}',
     '.item input{margin:2px 0 0;width:14px;height:14px;flex:0 0 auto;accent-color:#1B4FD8;cursor:pointer}',
@@ -291,6 +306,79 @@
 
   function kindLabel(kind) {
     return KIND_LABELS[kind] || kind;
+  }
+
+  // ── What the panel adds: prompts, Brain items, or both ───────────────────
+  //
+  // One choice at the top of the panel decides what is searched, listed and
+  // inserted. It is remembered on this device. `kinds` is what the search is
+  // asked for; the rest is the wording each choice shows.
+  // How long the typing has to stop before the panel searches.
+  var SEARCH_PAUSE_MS = 300;
+  var DEFAULT_MODE = 'both';
+  var MODE_ORDER = ['prompt', 'brains', 'both'];
+  var MODES = {
+    prompt: { label: 'Prompts', kinds: ['prompt'], noun: 'your prompts',
+              loading: 'Looking through your prompts…', search: 'Search your prompts' },
+    brains: { label: 'Brains', kinds: ['memory'], noun: 'your Brains',
+              loading: 'Looking through your Brains…', search: 'Search your Brains' },
+    both:   { label: 'Both', kinds: ['memory', 'prompt'], noun: 'your prompts or Brains',
+              loading: 'Looking through your prompts and Brains…', search: 'Search your prompts and Brains' }
+  };
+
+  /** A saved choice, or the default when it is missing or not one of ours. */
+  function normaliseMode(mode) {
+    return Object.prototype.hasOwnProperty.call(MODES, mode) ? mode : DEFAULT_MODE;
+  }
+
+  /** The kinds the search returns for a choice. */
+  function kindsForMode(mode) {
+    return MODES[normaliseMode(mode)].kinds.slice();
+  }
+
+  /**
+   * The ticked facts that stay when the list is replaced by a new search or a
+   * new choice: still ticked, and of a kind the choice adds. Searching for a
+   * second item must not untick the first, and switching to Brains must drop a
+   * ticked prompt, since the choice says what goes in.
+   */
+  function carryChecked(facts, checked, mode) {
+    var kinds = kindsForMode(mode);
+    var out = [];
+    var list = facts || [];
+    for (var i = 0; i < list.length; i++) {
+      if (checked && checked[list[i].id] && kinds.indexOf(list[i].kind) !== -1) out.push(list[i]);
+    }
+    return out;
+  }
+
+  /** Carried facts first, then what the search found, each fact once. */
+  function mergeCarried(carried, facts) {
+    var seen = {};
+    var out = [];
+    var i;
+    for (i = 0; i < carried.length; i++) { seen[carried[i].id] = true; out.push(carried[i]); }
+    for (i = 0; i < facts.length; i++) {
+      if (!seen[facts[i].id]) out.push(facts[i]);
+    }
+    return out;
+  }
+
+  /**
+   * The order items go into the message: prompts first, then Brain items, each
+   * group in the order the engine ranked it. A prompt says what to do and a
+   * Brain item says what to know, so with both in one block the instructions
+   * lead and the facts follow, instead of the two taking turns by score.
+   */
+  function orderForInsert(items) {
+    var prompts = [];
+    var rest = [];
+    var list = items || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].kind === 'prompt') prompts.push(list[i]);
+      else rest.push(list[i]);
+    }
+    return prompts.concat(rest);
   }
 
   // ── One fact, one row (injection step A) ─────────────────────────────────
@@ -455,7 +543,9 @@
 
   /**
    * @param {object} deps
-   *   search(query, cb)         cb(err, rows): knowledge_search rows, no bodies
+   *   search(query, kinds, cb)  cb(err, rows): knowledge_search rows of those kinds, no bodies
+   *   loadMode(cb)              cb(mode|null): the saved Prompts / Brains / Both choice
+   *   saveMode(mode)            persists that choice
    *   snippetInfo(id)           {groupKey, lang, variants} or null: the local library's view of a snippet
    *   preferredLangs()          language codes, best first: the order context should arrive in
    *   getBodies(items, cb)      cb(err, rows): bodies for accepted {id, kind} pairs only
@@ -535,6 +625,12 @@
     var checked = {};      // id -> true, the user's choices
     var budget = 0;        // token ceiling for this host
     var searching = false;
+    var mode = DEFAULT_MODE;  // what the panel adds: 'prompt', 'brains' or 'both'
+    var typed = '';           // the panel's own search box; empty means "match my message"
+    var searchSeq = 0;        // only the newest search may fill the list
+    var typeTimer = null;
+    var listFloor = 0;        // the tallest the list has been since the panel opened
+    var lastFound = 0;        // how many facts the last search itself returned
 
     function checkedCandidates() {
       var out = [];
@@ -558,38 +654,60 @@
       var previousList = menu ? menu.querySelector('.plist') : null;
       var scrollTop = previousList ? previousList.scrollTop : 0;
 
+      // The same goes for the keyboard: a render in the middle of typing a
+      // search, or of walking the three choices with the arrows, must hand the
+      // focus back where it was.
+      var focused = (menu && shadow.activeElement && menu.contains(shadow.activeElement))
+        ? shadow.activeElement : null;
+      var focusSearch = !!focused && focused.className === 'psearch';
+      var focusMode = !!focused && focused.className === 'seg';
+      var caret = focusSearch ? [focused.selectionStart, focused.selectionEnd] : null;
+
       closeMenu();
       menu = doc.createElement('div');
       menu.className = 'menu panel';
 
-      if (searching) {
-        menu.innerHTML = '<div class="loading">Looking through your Brains…</div>';
-        wrap.appendChild(menu);
-        pill.setAttribute('data-active', '1');
-        pill.setAttribute('aria-expanded', 'true');
-        placeMenu();
-        return;
-      }
-
+      var wording = MODES[mode];
+      var query = typed.replace(/^\s+|\s+$/g, '');
       var used = checkedTokens();
       var over = used > budget;
       var html = '<div class="ptop"><span class="ptitle">Add context</span>' +
                  '<span class="pcount' + (over ? ' over' : '') + '">' +
                  used + ' / ' + budget + ' tokens</span></div>';
 
+      html += '<div class="pmode" role="radiogroup" aria-label="What to add">';
+      for (var s = 0; s < MODE_ORDER.length; s++) {
+        var chosen = MODE_ORDER[s] === mode;
+        html += '<button type="button" class="seg" role="radio" data-mode="' + MODE_ORDER[s] + '"' +
+                ' aria-checked="' + (chosen ? 'true' : 'false') + '" tabindex="' + (chosen ? '0' : '-1') + '">' +
+                MODES[MODE_ORDER[s]].label + '</button>';
+      }
+      html += '</div>';
+
+      html += '<input class="psearch" type="text" autocomplete="off" spellcheck="false"' +
+              ' placeholder="' + esc(wording.search) + '" aria-label="' + esc(wording.search) + '"' +
+              ' value="' + esc(typed) + '">';
+
       // Only this list scrolls. The header and footer stay put, so Insert is
       // reachable however short the panel has been clamped.
       html += '<div class="plist">';
-      if (!results.length) {
-        html += '<div class="empty">Nothing in your Brains or prompts matches what you are writing.' +
-                '<br>Save something first, or keep typing and refresh.</div>';
-      } else {
+      // A typed search that found nothing says so even when ticked facts are
+      // still listed under it: they were carried in, not found.
+      if (!searching && (query ? !lastFound : !results.length)) {
+        html += query
+          ? '<div class="empty">Nothing in ' + wording.noun + ' matches "' + esc(query) + '".' +
+            '<br>Try another word.</div>'
+          : '<div class="empty">Nothing in ' + wording.noun + ' matches what you are writing.' +
+            '<br>Search above, or keep typing and press Refresh.</div>';
+      } else if (!searching && !anyMatched()) {
         // A browse, not a match. Say so rather than letting a list of recent
         // items read as a list of relevant ones.
-        if (!anyMatched()) {
-          html += '<div class="empty">Your most recent items, not matches.' +
-                  '<br>Type what you are asking about, then Refresh.</div>';
-        }
+        html += '<div class="empty">Your most recent items, not matches.' +
+                '<br>Search above, or type your message and press Refresh.</div>';
+      }
+      if (results.length || searching) {
+        // While a search runs the list holds the ticked facts being carried
+        // into it, so they stay in sight, with the wait named under them.
         for (var i = 0; i < results.length; i++) {
           var c = results[i];
           var on = checked[c.id] ? ' checked' : '';
@@ -608,6 +726,7 @@
                   '<span class="kind">' + esc(kindLabel(c.kind)) + '</span>' + langHtml +
                   c.tokens + 't · ' + esc(c.summary || 'No summary') + '</span></span></label>';
         }
+        if (searching) html += '<div class="loading" role="status">' + wording.loading + '</div>';
       }
       html += '</div>';
 
@@ -632,7 +751,22 @@
 
       // After placeMenu, which may have clamped the height the offset lives in.
       var list = menu.querySelector('.plist');
+      // The panel grows upward from the message box, so a list that got
+      // shorter would pull the search box down from under the cursor in the
+      // middle of a word. While the panel is open the list keeps the tallest
+      // height it has had; it can still give way when the window is short.
+      if (list) {
+        if (list.offsetHeight < listFloor) list.style.flexBasis = listFloor + 'px';
+        else listFloor = list.offsetHeight;
+      }
       if (list && scrollTop) list.scrollTop = scrollTop;
+
+      var back = focusSearch ? menu.querySelector('.psearch')
+        : focusMode ? menu.querySelector('.seg[aria-checked="true"]') : null;
+      if (back) {
+        back.focus();
+        if (caret) back.setSelectionRange(caret[0], caret[1]);
+      }
     }
 
     function budgetOptions(current) {
@@ -668,7 +802,9 @@
       if (!menu) return;
 
       var GAP = 8;
-      var MAX = 340;
+      // 340 for the list, footer and title the panel always had, plus the two
+      // rows above the list (the choice and the search box).
+      var MAX = 412;
       // Below this a panel is not usable, and a page short enough to trigger it
       // is not a chat composer. Clamping to the floor and accepting a little
       // overflow beats rendering something nobody can read.
@@ -721,10 +857,57 @@
       for (var k = 0; k < buttons.length; k++) {
         buttons[k].addEventListener('click', function (e) {
           var act = e.currentTarget.getAttribute('data-act');
-          if (act === 'refresh') search();
+          // Refresh reads the message again and starts the ticks over. With a
+          // search typed in the panel it runs that search again instead, and
+          // what is ticked stays.
+          if (act === 'refresh') search(!!typed.replace(/\s+/g, ''));
           else if (act === 'insert') insertChecked();
           else if (act === 'remove') removeBlock();
         });
+      }
+
+      // Prompts, Brains or Both. A click chooses; so do the arrow keys, the
+      // way a group of radio buttons moves.
+      var segs = menu.querySelectorAll('.seg');
+      for (var g = 0; g < segs.length; g++) {
+        segs[g].addEventListener('click', function (e) {
+          setMode(e.currentTarget.getAttribute('data-mode'));
+        });
+        segs[g].addEventListener('keydown', function (e) {
+          var step = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1
+            : (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? -1 : 0;
+          if (!step) return;
+          e.preventDefault();
+          e.stopPropagation();
+          var at = MODE_ORDER.indexOf(mode);
+          setMode(MODE_ORDER[(at + step + MODE_ORDER.length) % MODE_ORDER.length]);
+        });
+      }
+
+      // The panel's own search. It searches a moment after the typing stops, or
+      // at once on Enter. Escape empties the box, then closes the panel. The
+      // keys stop here so the page's own shortcuts never fire while a word is
+      // being typed into the panel.
+      var box = menu.querySelector('.psearch');
+      if (box) {
+        box.addEventListener('input', function (e) {
+          typed = e.currentTarget.value;
+          if (typeTimer) win.clearTimeout(typeTimer);
+          typeTimer = win.setTimeout(function () { typeTimer = null; search(true); }, SEARCH_PAUSE_MS);
+        });
+        box.addEventListener('keydown', function (e) {
+          e.stopPropagation();
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            search(true);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            if (typed) { typed = ''; search(true); }
+            else closeMenu();
+          }
+        });
+        box.addEventListener('keyup', function (e) { e.stopPropagation(); });
+        box.addEventListener('keypress', function (e) { e.stopPropagation(); });
       }
 
       // One click, the next translation. The selection is left exactly as the
@@ -766,38 +949,90 @@
       return false;
     }
 
-    function search() {
+    /**
+     * Fill the list. The words typed into the panel's search box are the
+     * query; with the box empty, the message being written is, as before.
+     *
+     * `keep` carries the ticked facts into the new list (see carryChecked): a
+     * search typed in the panel and a change of Prompts / Brains / Both both
+     * pass it. Without it the ticks start over from what matches the message,
+     * which is what opening the panel and Refresh do.
+     *
+     * Facts are ticked by the panel only when it matched the message and
+     * nothing was carried. A typed search ticks nothing: every letter would
+     * tick something, and each of those would then be carried along.
+     */
+    function search(keep) {
       if (!composer) return;
+      if (typeTimer) { win.clearTimeout(typeTimer); typeTimer = null; }
+
+      var query = typed.replace(/^\s+|\s+$/g, '');
+      var carried = keep ? carryChecked(results, checked, mode) : [];
+      var seq = ++searchSeq;
+      var i;
+      // Until the answer arrives the list is what was carried and nothing
+      // else, so Insert can never add a fact the new choice leaves out.
+      results = carried;
+      checked = {};
+      for (i = 0; i < carried.length; i++) checked[carried[i].id] = true;
       searching = true;
       renderPanel();
 
-      deps.search(draftQuery(readComposer(composer)), function (err, rows) {
+      deps.search(query || draftQuery(readComposer(composer)), kindsForMode(mode), function (err, rows) {
+        // An answer to an older question: a newer search is on its way, and
+        // letting this one in would show results for words already replaced.
+        if (seq !== searchSeq) return;
         searching = false;
-        results = [];
-        deprecated = {};
+
+        var facts = [];
+        var flagged = {};
+        for (i = 0; i < carried.length; i++) {
+          if (deprecated[carried[i].id]) flagged[carried[i].id] = true;
+        }
         if (!err && rows) {
           // knowledge_search leaves archived items out and reports the rest
           // with their review status.
           for (var r = 0; r < rows.length; r++) {
-            if (rows[r] && rows[r].review_status === 'deprecated') deprecated[rows[r].source_id] = true;
+            if (rows[r] && rows[r].review_status === 'deprecated') flagged[rows[r].source_id] = true;
           }
           // Facts, not rows. Grouping runs before anything is shown because the
           // panel is where the user decides, and a translated snippet listed
           // four times is four decisions about one thing.
-          results = factsFromSearchRows(rows, deps.snippetInfo,
+          facts = factsFromSearchRows(rows, deps.snippetInfo,
             deps.preferredLangs ? deps.preferredLangs() : []);
         }
-        autoCheck();
+        deprecated = flagged;
+        lastFound = facts.length;
+        results = mergeCarried(carried, facts);
+
+        // What was carried stays ticked, including anything unticked while the
+        // search ran, which is why `checked` is left alone here.
+        if (!query && !carried.length) autoCheck();
         renderPanel();
       });
+    }
+
+    function setMode(next) {
+      next = normaliseMode(next);
+      if (next === mode) return;
+      mode = next;
+      if (deps.saveMode) deps.saveMode(mode);
+      search(true);
     }
 
     function openPanel() {
       if (!composer) return;
       if (!budget) budget = hostBudget(hostname());
+      // Every opening starts from the message, with the search box empty.
+      typed = '';
+      listFloor = 0;
       deps.loadBudget(hostname(), function (saved) {
         if (saved) budget = saved;
-        search();
+        if (!deps.loadMode) { search(false); return; }
+        deps.loadMode(function (savedMode) {
+          mode = normaliseMode(savedMode);
+          search(false);
+        });
       });
     }
 
@@ -863,7 +1098,9 @@
         // Replacing rather than stacking: inserting twice should refresh the
         // context, not leave two blocks arguing with each other.
         var draft = PACK.stripInjectedBlock(current);
-        var block = PACK.formatInjectedBlock(pack);
+        // One block either way. With prompts and Brain items together, the
+        // prompts lead: see orderForInsert.
+        var block = PACK.formatInjectedBlock({ items: orderForInsert(pack.items) });
 
         deps.insertText(composer, block + draft, current);
         lastUndo = { el: composer, text: current };
@@ -1002,6 +1239,11 @@
     findComposer: findComposer,
     hostConfig: hostConfig,
     kindLabel: kindLabel,
+    normaliseMode: normaliseMode,
+    kindsForMode: kindsForMode,
+    carryChecked: carryChecked,
+    mergeCarried: mergeCarried,
+    orderForInsert: orderForInsert,
     readComposer: readComposer,
     factsFromSearchRows: factsFromSearchRows,
     preselect: preselect,
