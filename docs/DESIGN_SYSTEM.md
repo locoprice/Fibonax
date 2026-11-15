@@ -551,6 +551,18 @@ The card under the page header of Prompts and Brains is one component, `app/src/
 - When filters hide everything, the empty state offers **Clear filters**. The gap between the bar and the content is 16 px (`gap-4`). Dashboard only: the phone and the extension keep their own surface conventions.
 
 
+### Phone edit window (2026-11)
+
+**Edit** on the phone (a snippet, a prompt, a Brain item) and **Add text** and **Save to Brain** share one frame, `.sb-edit-modal`: an Azure bar with a 44 px close cross, the title, and the window's one action. Existing tokens only; no new colour, radius or shadow.
+
+- **The action** (`#sb-modal-save`, `#sb-mem-save`, `#sb-cap-save`) is a white pill on the bar: `mobile-card` ground, `mobile-primary-copy` text, `r-pill`, 36 px tall with a 44 px touch target, `mobile-primary-bg` while pressed, 55% opacity while saving. One per window.
+- **Fields** stack in one column with the frame's 14 px gap. The error line takes room only when it speaks.
+- **Text grows, the window scrolls.** A snippet's text and a prompt's boxes grow with what is written (233 px floor for the main text, 89 px for a prompt part), so there is never a box that scrolls inside a page that scrolls.
+- **Field chip** (`.sb-edit-chip`): the dashboard's body chip, `r-sm` (6 px), `mobile-primary-bg` ground, `mobile-primary-copy` text, 13 px bold. Not editable. The line above the text shows one of the snippet's own chips beside its words, so the meaning never rests on colour.
+- **What stays as it is** (`.sb-edit-note`): one `mobile-primary-bg` line with the Brain icon, `r-in`, 13 px semibold `mobile-primary-copy`. A prompt's Brain above its Context box; an item's Brain and kind at the top of its window, in place of two menus that could not be changed.
+- **Removed field** (`.sb-edit-guard`): asked the moment a chip leaves the text, pinned to the top of the window until answered. `mobile-warning-bg` ground, 1 px `mobile-warning` border, the warning triangle beside a bold sentence in `mobile-ink`, a `mobile-muted` line under it, then two 44 px buttons: **Put it back** filled Azure (the safe one), **Leave it out** on `mobile-card`. Icon and words carry the meaning, not the amber.
+- **Focus**: 2 px `mobile-primary-border` outline on the window's controls, `#D8E3FF` on the bar, as on the library pages.
+
 ### Snippet quality (v3.134.0)
 
 The snippet rating (`lib/snippetQuality.ts`) is drawn by the same panel as the prompt editor's Efficiency Score: `components/shared/QualityPanel.tsx`, `tone="dark"` in the prompt side panel (its documented hexes) and `tone="light"` in the snippet editor (tokens, follows the theme). No new tokens.

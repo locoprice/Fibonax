@@ -1039,9 +1039,17 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   flex:1;font-size:16px;font-weight:700;text-align:center;letter-spacing:-.2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
-#sb-modal-save,#sb-mem-save,#sb-cap-save{font-weight:700}
-#sb-modal-save.saved{color:#A7F0BA;background:rgba(255,255,255,.1)}
-#sb-mem-save:disabled,#sb-cap-save:disabled{opacity:.55}
+/* The one action of the window: a white pill on the bar, 36px tall with a 44px
+   touch target around it. */
+#sb-modal-save,#sb-mem-save,#sb-cap-save{
+  position:relative;min-height:36px;padding:0 16px;margin-right:6px;border-radius:999px;
+  background:var(--card);color:var(--primary-copy);font-weight:700
+}
+#sb-modal-save::after,#sb-mem-save::after,#sb-cap-save::after{content:"";position:absolute;inset:-4px}
+#sb-modal-save:active,#sb-mem-save:active,#sb-cap-save:active{background:var(--primary-lt)}
+#sb-modal-save:disabled,#sb-mem-save:disabled,#sb-cap-save:disabled{opacity:.55}
+.sb-modal-header button:focus-visible{outline:2px solid #D8E3FF;outline-offset:2px}
+.sb-edit-modal .sb-field-row:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .sb-modal-body{
   flex:1;display:flex;flex-direction:column;
   overflow-y:auto;padding:16px;gap:14px
@@ -1076,6 +1084,62 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .sb-modal-err{
   color:var(--danger);font-size:14px;padding:0 4px;min-height:18px
 }
+/* A snippet's text in the edit window. Typed text is plain; what the dashboard
+   built (a field, a formula, a rule) sits in it as a chip that typing cannot break. */
+.sb-edit-rich{
+  flex:1 0 auto;min-height:233px;padding:14px;font-size:16px;line-height:1.75;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-in);
+  color:var(--text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere;
+  -webkit-user-select:text;user-select:text;transition:border-color .15s
+}
+.sb-edit-rich:focus{border-color:var(--primary-copy)}
+/* The dashboard's field chip (r-sm, primary on its tint), at a size a thumb reads. */
+.sb-edit-chip{
+  display:inline-block;max-width:100%;padding:0 8px;margin:0 1px;border-radius:6px;
+  background:var(--primary-lt);color:var(--primary-copy);font-size:13px;font-weight:700;
+  line-height:1.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:baseline;
+  -webkit-user-select:none;user-select:none
+}
+/* The text grows with what is written and the window scrolls as one page: no
+   box that scrolls inside a page that scrolls. */
+#sb-edit-text-group{flex:1 0 auto;min-height:auto}
+#sb-edit-body{flex:1 0 auto;min-height:233px;overflow:hidden}
+.sb-edit-hint{font-size:13px;line-height:1.6;color:var(--text2);padding:0 2px}
+.sb-edit-hint .sb-edit-chip{font-size:12px;margin-right:4px}
+.sb-edit-blocks{display:flex;flex-direction:column;gap:14px}
+.sb-edit-blocks textarea{flex:none;min-height:89px;overflow:hidden}
+/* What stays as it is while the rest is edited: a prompt's Brain, an item's Brain and kind. */
+.sb-edit-note{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--r-in);
+  background:var(--primary-lt);color:var(--primary-copy);font-size:13px;font-weight:600;line-height:1.4
+}
+.sb-edit-note svg{width:16px;height:16px;flex-shrink:0}
+.sb-edit-note[hidden]{display:none}
+/* Said the moment a field leaves the text, and kept in view until it is answered. */
+.sb-edit-guard{
+  position:sticky;top:0;z-index:2;display:flex;flex-direction:column;gap:8px;
+  padding:13px;border-radius:var(--r-in);background:var(--warn-bg);border:1px solid var(--warn-deep);
+  box-shadow:var(--shadow-sm);font-size:14px;line-height:1.45;color:var(--text)
+}
+.sb-edit-guard-head{display:flex;align-items:flex-start;gap:8px;font-weight:700}
+.sb-edit-guard-head svg{
+  width:18px;height:18px;flex-shrink:0;margin-top:1px;
+  stroke:var(--warn-deep);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round
+}
+.sb-edit-guard-sub{font-size:13px;color:var(--text2)}
+.sb-edit-guard-acts{display:flex;gap:8px;margin-top:5px}
+.sb-edit-guard-acts button{
+  flex:1;min-height:44px;padding:8px 10px;border-radius:var(--r-in);border:1px solid var(--border);
+  background:var(--card);color:var(--text);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;
+  -webkit-tap-highlight-color:transparent
+}
+.sb-edit-guard-acts .is-main{background:var(--primary);border-color:var(--primary);color:#fff}
+.sb-edit-guard-acts button:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
+/* An item being edited stays in its Brain and keeps its kind, so neither is offered. */
+#sb-mem-modal.is-edit .sb-mem-add-only{display:none}
+#sb-mem-modal.is-edit .sb-field-split{grid-template-columns:minmax(0,1fr)}
+/* The window's groups are flex boxes, which would outrank the hidden attribute. */
+#sb-edit-modal [hidden]{display:none}
 
 /* Edit modal: field groups with labels */
 .sb-field-group{display:flex;flex-direction:column;gap:6px}
@@ -1099,7 +1163,7 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   width:18px;height:18px;padding:0;border:none;border-radius:0;background:none;
   -webkit-appearance:checkbox;appearance:auto;accent-color:var(--primary-copy)}
 /* Add text opens on its fields; the error line takes room only when it speaks. */
-#sb-mem-err:empty,#sb-cap-err:empty{display:none}
+#sb-edit-err:empty,#sb-mem-err:empty,#sb-cap-err:empty{display:none}
 /* Save to Brain: why this Brain is offered, and what saving will make. */
 .sb-cap-note{font-size:13px;color:var(--text2);line-height:1.45;padding:0 2px}
 .sb-cap-note:empty{display:none}
@@ -2192,6 +2256,7 @@ svg.brain-type-icon{stroke-width:1.8}
     <ul class="sb-sheet-actions">
       <li data-action="use"><span class="sb-sheet-act-i">▶</span> Use now</li>
       <li data-action="copy"><span class="sb-sheet-act-i">📋</span> Copy text</li>
+      <li data-action="edit"><span class="sb-sheet-act-i">✏️</span> Edit</li>
       <li data-action="pin"><span class="sb-sheet-act-i">📌</span> <span id="sb-sheet-pin-lbl">Pin to top</span></li>
       <li data-action="share"><span class="sb-sheet-act-i">📤</span> Share…</li>
       <li data-action="info"><span class="sb-sheet-act-i">ℹ️</span> Snippet info</li>
@@ -2223,6 +2288,7 @@ svg.brain-type-icon{stroke-width:1.8}
     <ul class="sb-sheet-actions">
       <li data-paction="use" data-action="use"><span class="sb-sheet-act-i">▶</span> Use now</li>
       <li data-paction="copy"><span class="sb-sheet-act-i">📋</span> Copy text</li>
+      <li data-paction="edit"><span class="sb-sheet-act-i">✏️</span> Edit</li>
       <li data-paction="pin"><span class="sb-sheet-act-i">📌</span> <span id="sb-prompt-pin-lbl">Pin to top</span></li>
       <li data-paction="share"><span class="sb-sheet-act-i">📤</span> Share…</li>
       <li data-paction="info"><span class="sb-sheet-act-i">ℹ️</span> Prompt info</li>
@@ -2249,6 +2315,7 @@ svg.brain-type-icon{stroke-width:1.8}
     <ul class="sb-sheet-actions" data-mem-for="item">
       <li data-maction="use" data-action="use"><span class="sb-sheet-act-i">▶</span> Use now</li>
       <li data-maction="copy"><span class="sb-sheet-act-i">📋</span> Copy text</li>
+      <li data-maction="edit"><span class="sb-sheet-act-i">✏️</span> Edit</li>
       <li data-maction="share"><span class="sb-sheet-act-i">📤</span> Share…</li>
       <li data-maction="info"><span class="sb-sheet-act-i">ℹ️</span> Item info</li>
     </ul>
@@ -2272,17 +2339,25 @@ svg.brain-type-icon{stroke-width:1.8}
 <div id="sb-edit-modal" class="sb-edit-modal sb-hidden" role="dialog" aria-modal="true" aria-labelledby="sb-modal-title-text">
   <div class="sb-modal-header">
     <button id="sb-modal-cancel" type="button" aria-label="Cancel">✕</button>
-    <span class="sb-modal-title" id="sb-modal-title-text">Edit Snippet</span>
+    <span class="sb-modal-title" id="sb-modal-title-text">Edit snippet</span>
     <button id="sb-modal-save" type="button">Save</button>
   </div>
   <div class="sb-modal-body">
-    <div class="sb-field-group">
-      <label for="sb-edit-title" class="sb-field-label">Snippet Title</label>
-      <input type="text" id="sb-edit-title" placeholder="e.g. Price quote EN" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="sb-modal-err" id="sb-edit-err" role="alert"></div>
+    <div class="sb-edit-guard" id="sb-edit-guard" role="alert" hidden>
+      <div class="sb-edit-guard-head">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        <span id="sb-edit-guard-text"></span>
+      </div>
+      <div class="sb-edit-guard-sub">A field can only be added again on your computer.</div>
+      <div class="sb-edit-guard-acts">
+        <button type="button" id="sb-edit-guard-undo" class="is-main">Put it back</button>
+        <button type="button" id="sb-edit-guard-go">Leave it out</button>
+      </div>
     </div>
     <div class="sb-field-group">
-      <label for="sb-edit-shortcut" class="sb-field-label">Shortcut</label>
-      <input type="text" id="sb-edit-shortcut" placeholder="e.g. ;;quoteEN" autocomplete="off" autocorrect="off" spellcheck="false">
+      <label for="sb-edit-title" class="sb-field-label">Name</label>
+      <input type="text" id="sb-edit-title" autocomplete="off" autocorrect="off" autocapitalize="sentences" enterkeyhint="done" spellcheck="false">
     </div>
     <div class="sb-field-group">
       <label for="sb-edit-folder-btn" class="sb-field-label">Folder</label>
@@ -2292,11 +2367,13 @@ svg.brain-type-icon{stroke-width:1.8}
         <span class="sb-field-chev">›</span>
       </button>
     </div>
-    <div class="sb-modal-err" id="sb-edit-err"></div>
-    <div class="sb-field-group sb-field-group-grow">
-      <label for="sb-edit-body" class="sb-field-label">Content</label>
-      <textarea id="sb-edit-body" placeholder="Snippet body…" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+    <div class="sb-field-group sb-field-group-grow" id="sb-edit-text-group">
+      <span class="sb-field-label" id="sb-edit-text-label">Text</span>
+      <p class="sb-edit-hint" id="sb-edit-hint" hidden></p>
+      <div id="sb-edit-rich" class="sb-edit-rich" role="textbox" aria-multiline="true" aria-labelledby="sb-edit-text-label" spellcheck="true" hidden></div>
+      <textarea id="sb-edit-body" aria-labelledby="sb-edit-text-label" hidden></textarea>
     </div>
+    <div class="sb-edit-blocks" id="sb-edit-blocks" hidden></div>
   </div>
 </div>
 
@@ -2310,7 +2387,8 @@ svg.brain-type-icon{stroke-width:1.8}
   </div>
   <div class="sb-modal-body">
     <div class="sb-modal-err" id="sb-mem-err" role="alert"></div>
-    <div class="sb-field-group">
+    <p class="sb-edit-note" id="sb-mem-where" hidden></p>
+    <div class="sb-field-group sb-mem-add-only">
       <label for="sb-mem-brain" class="sb-field-label">Brain</label>
       <select id="sb-mem-brain"></select>
     </div>
@@ -2319,7 +2397,7 @@ svg.brain-type-icon{stroke-width:1.8}
         <label for="sb-mem-name" class="sb-field-label">Name</label>
         <input type="text" id="sb-mem-name" maxlength="64" placeholder="house-style" autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
-      <div class="sb-field-group">
+      <div class="sb-field-group sb-mem-add-only">
         <label for="sb-mem-kind" class="sb-field-label">Kind</label>
         <select id="sb-mem-kind"></select>
       </div>
@@ -10435,8 +10513,8 @@ var allPrompts=[], promptSearch='',promptsLoaded=false,promptsLoading=false,prom
 var PROMPT_STRATEGY_CLASS={'CoT':'pstrat-CoT','ToT':'pstrat-ToT','Few-shot':'pstrat-Few-shot','One-shot':'pstrat-One-shot','RAG':'pstrat-RAG','Agentic':'pstrat-Agentic'};
 /* Full column set — kept in parity with the desktop promptsApi so Duplicate
    round-trips every field (blocks, thinking_mode, etc.) without data loss. */
-var PROMPT_SELECT='id,name,content,type,strategy_type,thinking_mode,preferred_model,'
-  +'complexity_level,intent_category,output_type,blocks,folder_id,'
+var PROMPT_SELECT='id,name,content,shortcut,type,strategy_type,thinking_mode,preferred_model,'
+  +'complexity_level,intent_category,output_type,blocks,ask_user_questions,folder_id,'
   +'organization_id,created_at,updated_at,last_used_at,usage_count,pinned,review_status';
 var FOLDER_SHARED_SVG='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 
@@ -11447,7 +11525,7 @@ var curMemItem=null;        // the item open in the reader
 var memSearch='', curMemKind='ALL';
 var MEM_PAGE=1000;          // a full page means there may be more rows
 var MEM_SPACE_SELECT='id,name,description,ico,is_default,created_at,updated_at';
-var MEM_ITEM_SELECT='id,space_id,name,summary,body,kind,token_estimate,pinned,source_id,created_at,updated_at,review_status';
+var MEM_ITEM_SELECT='id,space_id,name,summary,body,kind,metadata,priority,token_estimate,pinned,source_id,created_at,updated_at,review_status';
 /* memory_shards_body_length, as the dashboard editor mirrors it. The name (64)
    and summary (280) limits ride on the Add text inputs' maxlength. */
 var MEM_BODY_MAX=20000;
@@ -11924,6 +12002,7 @@ function closeMemSheet(now){
       copyText(it.body||'',function(){showToast(reviewCopiedToast(it.review_status));},memCopyFailed);
       closeMemSheet();
     }else if(act==='share'){shareMemItem(it);}
+    else if(act==='edit'){closeMemSheet();setTimeout(function(){openMemEdit(it);},320);}
     else if(act==='info'){closeMemSheet();setTimeout(function(){openMemItemInfo(it);},320);}
   });
 })();
@@ -12001,14 +12080,23 @@ function syncMemClear(){
   });
 })();
 
-/* ── Memory: Add text ── */
-/* One new item, written on the phone with the dashboard editor's fields. */
+/* ── Memory: Add text, and Edit ── */
+/* One new item, written on the phone with the dashboard editor's fields. The
+   same window edits an item that is already there: `memEditItem` is that item,
+   null while adding. */
 var memAddSaving=false;
+var memEditItem=null;
 /* Set when the modal is being closed on purpose, so the history step it pops
    does not ask about discarding. */
 var memAddLeaving=false;
 function memAddOpen(){return !document.getElementById('sb-mem-modal').classList.contains('sb-hidden');}
 function memAddDirty(){
+  if(memEditItem){
+    return document.getElementById('sb-mem-name').value.trim()!==(memEditItem.name||'')
+      ||document.getElementById('sb-mem-summary').value.trim()!==(memEditItem.summary||'').trim()
+      ||document.getElementById('sb-mem-body').value!==(memEditItem.body||'')
+      ||document.getElementById('sb-mem-pinned').checked!==!!memEditItem.pinned;
+  }
   return !!(document.getElementById('sb-mem-name').value.trim()
     ||document.getElementById('sb-mem-summary').value.trim()
     ||document.getElementById('sb-mem-body').value.trim()
@@ -12026,6 +12114,40 @@ function memAddCount(){
   el.textContent=SBMemoryPack.estimateTokens(body)+' tokens · '+body.length+'/'+MEM_BODY_MAX;
   el.classList.toggle('over',body.length>MEM_BODY_MAX);
 }
+/* Add text and Edit share the window; this sets its words and what is locked.
+   An item stays in its Brain and keeps its kind when edited on the phone:
+   moving it and changing what it is belong to the dashboard. */
+function memModalMode(item){
+  memEditItem=item||null;
+  document.getElementById('sb-mem-modal').classList.toggle('is-edit',!!item);
+  document.getElementById('sb-mem-modal-title').textContent=item?'Edit item':'Add text';
+  var where=document.getElementById('sb-mem-where');
+  where.hidden=!item;
+  if(item){
+    var brain=memBrainById(item.space_id);
+    var kind=MEM_KIND_LABEL[item.kind]||(String(item.kind||'').charAt(0).toUpperCase()+String(item.kind||'').slice(1));
+    where.innerHTML=BRAIN_SVG+'<span>'+esc('In '+(brain?brain.name:'its Brain')+(kind?' · '+kind:''))+'</span>';
+  }
+  var save=document.getElementById('sb-mem-save');
+  save.disabled=false;save.textContent=item?'Save':'Add item';
+}
+function openMemEdit(it){
+  var brain=memBrainById(it.space_id);
+  if(!brain)return;
+  document.getElementById('sb-mem-brain').innerHTML='<option value="'+esc(brain.id)+'" selected>'+esc(brain.name)+'</option>';
+  document.getElementById('sb-mem-kind').innerHTML='<option value="'+esc(it.kind)+'" selected>'+esc(MEM_KIND_LABEL[it.kind]||it.kind)+'</option>';
+  document.getElementById('sb-mem-name').value=it.name||'';
+  document.getElementById('sb-mem-summary').value=it.summary||'';
+  document.getElementById('sb-mem-body').value=it.body||'';
+  document.getElementById('sb-mem-pinned').checked=!!it.pinned;
+  memAddError('');
+  memAddCount();
+  memModalMode(it);
+  memAddSaving=false;memAddLeaving=false;
+  history.pushState({memAdd:true},'');
+  document.getElementById('sb-mem-modal').classList.remove('sb-hidden');
+  document.querySelector('#sb-mem-modal .sb-modal-body').scrollTop=0;
+}
 function openMemAdd(bid){
   if(!allBrains.length)return;
   var brainSel=document.getElementById('sb-mem-brain');
@@ -12042,8 +12164,7 @@ function openMemAdd(bid){
   document.getElementById('sb-mem-pinned').checked=false;
   memAddError('');
   memAddCount();
-  var save=document.getElementById('sb-mem-save');
-  save.disabled=false;save.textContent='Add item';
+  memModalMode(null);
   memAddSaving=false;memAddLeaving=false;
   history.pushState({memAdd:true},'');
   document.getElementById('sb-mem-modal').classList.remove('sb-hidden');
@@ -12052,6 +12173,7 @@ function openMemAdd(bid){
 function closeMemAddNow(){
   document.getElementById('sb-mem-modal').classList.add('sb-hidden');
   memAddSaving=false;
+  memEditItem=null;
 }
 /* Closes on purpose: through the history step the modal pushed, so the phone's
    back button and the ✕ never disagree about what is open. */
@@ -12111,25 +12233,42 @@ function saveMemAdd(){
       +'split it into separate items so a budget can still hold one.');
     return;
   }
-  if(memTakenNames[name.toLowerCase()]){memAddError('"'+name+'" already exists. Names have to be unique.');return;}
+  var edited=memEditItem;
+  var sameName=!!edited&&name.toLowerCase()===String(edited.name||'').toLowerCase();
+  if(!sameName&&memTakenNames[name.toLowerCase()]){memAddError('"'+name+'" already exists. Names have to be unique.');return;}
+  if(edited&&!memAddDirty()){leaveMemAdd();return;}
   memAddError('');
   memAddSaving=true;
   var save=document.getElementById('sb-mem-save');
   save.disabled=true;save.textContent='Saving…';
+  /* An edit hands back what the form does not show exactly as it was: the save
+     rewrites every column it is given. */
   memSaveShard({
-    p_shard_id:null, p_name:name, p_summary:summary, p_body:body,
+    p_shard_id:edited?edited.id:null, p_name:name, p_summary:summary, p_body:body,
     p_editor_display:memEditorDisplay(), p_space_id:brain.id, p_kind:kind,
-    p_metadata:{}, p_pinned:pinned, p_priority:0, p_edit_note:null, p_surface:'mobile'
+    p_metadata:edited?(edited.metadata||{}):{}, p_pinned:pinned, p_priority:edited?(edited.priority||0):0,
+    p_edit_note:null, p_surface:'mobile'
   }).then(function(refused){
     if(refused){
       memAddSaving=false;
-      save.disabled=false;save.textContent='Add item';
+      save.disabled=false;save.textContent=edited?'Save':'Add item';
       memAddError(refused);
       return;
     }
+    if(edited){
+      delete memTakenNames[String(edited.name||'').toLowerCase()];
+      // The reader shows the item at once; the reload brings the rest.
+      edited.name=name;edited.summary=summary;edited.body=body;edited.pinned=pinned;
+      if(curMemItem&&curMemItem.id===edited.id){
+        document.getElementById('mi-title').textContent=name;
+        document.getElementById('mi-summary-sec').hidden=!summary;
+        document.getElementById('mi-summary').textContent=summary;
+        document.getElementById('mi-body').textContent=body;
+      }
+    }
     memTakenNames[name.toLowerCase()]=true;
     leaveMemAdd();
-    showToast('Item added ✓');
+    showToast(edited?'Saved ✓':'Item added ✓');
     loadMemory();
   });
 }
@@ -13834,6 +13973,15 @@ window.addEventListener('popstate',function(){
   // Add text and Save to Brain each sit on their own history step. Going back
   // closes them, after asking when there is text to lose; staying puts the
   // step back.
+  if(editOpen()){
+    if(editLeaving){editLeaving=false;closeEditNow();return;}
+    if(editSaving||(isDirty()&&!confirm('Discard changes?'))){
+      history.pushState({edit:true},'');
+      return;
+    }
+    closeEditNow();
+    return;
+  }
   if(memAddOpen()){
     if(memAddLeaving){memAddLeaving=false;closeMemAddNow();return;}
     if(memAddSaving||(memAddDirty()&&!confirm('Discard changes?'))){
@@ -13976,6 +14124,9 @@ document.querySelector('#sb-bottom-sheet .sb-sheet-actions')
       }else{
         shareSnippet(s);
       }
+    }else if(act==='edit'){
+      closeBottomSheet();
+      setTimeout(function(){openEditModal(s);},320);
     }else if(act==='info'){
       closeBottomSheet();
       setTimeout(function(){openSnippetInfo(s);},320);
@@ -14534,7 +14685,143 @@ function closeSnippetInfo(){
 }
 
 /* ── EDIT MODAL ─────────────────────────────────── */
-var editSnip=null, editOriginal=null, editFolderId=null;
+/* One window edits a snippet or a prompt: its name, its folder and its text.
+   What the dashboard builds stays whole. In a snippet's text every field,
+   formula and rule is a chip that typing cannot break; a prompt made of parts
+   gets one box per part. Building those, layouts, and deleting stay on the
+   dashboard. */
+var editKind='';            // 'snippet' or 'prompt'
+var editSnip=null;          // the snippet row or the prompt being edited
+var editLang='';            // snippet: the language version in the window
+var editOriginal=null, editFolderId=null;
+var editSaving=false, editLeaving=false;
+/* Snippet: the chips in the box after the last change, the ones that have just
+   left the text (each with the place it left from), and the ones the person
+   has said to leave out. */
+var editChipsNow=[], editChipLost=[], editChipAccepted=[];
+var EDIT_TOKEN=/\{[^{}]*\}/g;
+var EDIT_CHIP_WORDS={formtext:'Text',formparagraph:'Text',formnumber:'Number',formmenu:'Choice',
+  formdate:'Date',formtoggle:'Tick box',time:'Date',date:'Date','if':'Rule',elseif:'Or if',
+  'else':'Otherwise',endif:'End of rule','var':'Saved value',button:'Button',cursor:'Cursor',
+  clipboard:'Clipboard',key:'Key',note:'Note',link:'Link',picture:'Picture',greeting:'Greeting',
+  snippet:'Snippet',brain:'Brain'};
+var EDIT_BLOCK_TYPES=['role','objective','context','examples','constraints'];
+
+/* What a chip says: the field's own name when it has one, else what it is. */
+function editChipLabel(raw){
+  var inner=raw.slice(1,-1).replace(/^\s+|\s+$/g,'');
+  if(inner.charAt(0)==='=')return 'Formula';
+  var named=/(?:^|[:;])\s*name\s*=\s*([^;]+)/i.exec(inner);
+  if(named){
+    var words=named[1].replace(/^\s+|\s+$/g,'').replace(/[_-]+/g,' ').toLowerCase();
+    if(words)return words.charAt(0).toUpperCase()+words.slice(1);
+  }
+  var kind=inner.split(/[:\s]/)[0].toLowerCase();
+  if(EDIT_CHIP_WORDS[kind])return EDIT_CHIP_WORDS[kind];
+  return kind?kind.charAt(0).toUpperCase()+kind.slice(1):'Field';
+}
+function editMakeChip(raw){
+  var chip=document.createElement('span');
+  chip.className='sb-edit-chip';
+  chip.setAttribute('contenteditable','false');
+  chip.setAttribute('data-raw',raw);
+  chip.textContent=editChipLabel(raw);
+  return chip;
+}
+/* Fills the box: plain text between chips, each chip carrying its own text. */
+function editFillRich(text){
+  var box=document.getElementById('sb-edit-rich');
+  box.textContent='';
+  var last=0;
+  String(text||'').replace(EDIT_TOKEN,function(raw,at){
+    if(at>last)box.appendChild(document.createTextNode(text.slice(last,at)));
+    box.appendChild(editMakeChip(raw));
+    last=at+raw.length;
+    return raw;
+  });
+  if(last<text.length)box.appendChild(document.createTextNode(text.slice(last)));
+  editTailBreak();
+  editChipsNow=editChipRaws();editChipLost=[];editChipAccepted=[];
+}
+/* The chips in the box, in order, each by its own text. */
+function editChipRaws(){
+  return Array.prototype.map.call(document.querySelectorAll('#sb-edit-rich [data-raw]'),
+    function(chip){return chip.getAttribute('data-raw');});
+}
+/* A last empty line only shows, and only takes the caret, with a break after it.
+   A break that is no longer last has text after it, so it is a real new line. */
+function editTailBreak(){
+  var box=document.getElementById('sb-edit-rich');
+  box.querySelectorAll('br[data-tail]').forEach(function(br){
+    if(br!==box.lastChild)br.removeAttribute('data-tail');
+  });
+  var tail=box.lastChild;
+  if(tail&&tail.nodeType===1&&tail.hasAttribute('data-tail'))return;
+  var br=document.createElement('br');
+  br.setAttribute('data-tail','');
+  box.appendChild(br);
+}
+/* Reads the box back as the text to save, whatever shape the keyboard left it in. */
+function editReadRich(){
+  var out='';
+  (function walk(node){
+    for(var n=node.firstChild;n;n=n.nextSibling){
+      if(n.nodeType===3){out+=n.nodeValue;continue;}
+      if(n.nodeType!==1)continue;
+      if(n.hasAttribute('data-raw')){out+=n.getAttribute('data-raw');continue;}
+      if(n.nodeName==='BR'){if(!n.hasAttribute('data-tail'))out+='\n';continue;}
+      var block=n.nodeName==='DIV'||n.nodeName==='P';
+      if(block&&out&&out.charAt(out.length-1)!=='\n')out+='\n';
+      walk(n);
+    }
+  })(document.getElementById('sb-edit-rich'));
+  return out.replace(/\u00A0/g,' ');
+}
+/* The chips of `before` that `after` no longer has, each by its own text. */
+function editRemovedChips(before,after){
+  var left=(String(after||'').match(EDIT_TOKEN)||[]).slice();
+  var gone=[];
+  (String(before||'').match(EDIT_TOKEN)||[]).forEach(function(raw){
+    var at=left.indexOf(raw);
+    if(at>-1)left.splice(at,1);else gone.push(raw);
+  });
+  return gone;
+}
+/* `list` without one of each entry of `taken`. */
+function editWithout(list,taken){
+  var left=list.slice();
+  taken.forEach(function(raw){var at=left.indexOf(raw);if(at>-1)left.splice(at,1);});
+  return left;
+}
+/* A prompt's text from its parts, as the dashboard writes it (assembleBlocks in
+   app/src/lib/promptUtils.ts, pinned by app/src/__tests__/mobileEdit.test.ts). */
+var EDIT_ASK_SECTION='## Questions\nBefore you start, ask me clarifying questions about anything you need to know to do this task well.\nAsk one question at a time and wait for my answer, so I can respond easily.\nAsk no more than 5 questions in total.\nOnce you have enough information, ask me to confirm before you give the final result.';
+function editAssembleBlocks(blocks,askUserQuestions){
+  var parts=[];
+  (blocks||[]).forEach(function(b){
+    var text=String(b.content||'').trim();
+    var brain=b.type==='context'&&b.brain?b.brain:null;
+    if(!b.enabled||(!text&&!brain))return;
+    if(brain){
+      var token=SBMemoryPack.brainToken(brain);
+      text=text?token+'\n\n'+text:token;
+    }
+    parts.push('## '+b.type.charAt(0).toUpperCase()+b.type.slice(1)+'\n'+text);
+  });
+  var assembled=parts.join('\n\n');
+  if(!assembled||!askUserQuestions)return assembled;
+  return assembled+'\n\n'+EDIT_ASK_SECTION;
+}
+/* The parts of a prompt the phone can show, or null when it has none it knows:
+   a prompt with a part from an older version is changed on the dashboard. */
+function editPromptBlocks(p){
+  var blocks=Array.isArray(p.blocks)?p.blocks:null;
+  if(!blocks||!blocks.length)return null;
+  for(var i=0;i<blocks.length;i++){
+    if(!blocks[i]||EDIT_BLOCK_TYPES.indexOf(blocks[i].type)===-1)return false;
+  }
+  return blocks;
+}
 
 function renderEditFolderRow(){
   var f=getFolderById(editFolderId);
@@ -14548,32 +14835,174 @@ function renderEditFolderRow(){
     name.textContent='None';
   }
 }
-
-function openEditModal(s){
-  editSnip=s;
-  editOriginal={
-    title:s.title||'',shortcut:s.shortcut||'',body:s.body||'',
-    folder_id:s.folder_id||null
-  };
-  editFolderId=editOriginal.folder_id;
-  document.getElementById('sb-edit-title').value=editOriginal.title;
-  document.getElementById('sb-edit-shortcut').value=editOriginal.shortcut;
-  document.getElementById('sb-edit-body').value=editOriginal.body;
-  document.getElementById('sb-edit-err').textContent='';
+function editOpen(){return !document.getElementById('sb-edit-modal').classList.contains('sb-hidden');}
+function editError(msg){
+  var err=document.getElementById('sb-edit-err');
+  err.textContent=msg||'';
+  if(msg)err.scrollIntoView({block:'nearest'});
+}
+/* Asks about the chips that have left the text, or takes the question away. */
+function editGuard(){
+  var box=document.getElementById('sb-edit-guard');
+  var n=editChipLost.length;
+  box.hidden=!n;
+  if(!n)return;
+  var names=editChipLost.map(function(l){return editChipLabel(l.raw);});
+  document.getElementById('sb-edit-guard-text').textContent=n===1
+    ?'You took the field "'+names[0]+'" out of the text.'
+    :'You took '+n+' fields out of the text: '+names.join(', ')+'.';
+  document.getElementById('sb-edit-guard-undo').textContent=n===1?'Put it back':'Put them back';
+  document.getElementById('sb-edit-guard-go').textContent=n===1?'Leave it out':'Leave them out';
+}
+/* After every change to the text: a chip that is gone is asked about at once,
+   while the caret still marks the place it left from. */
+function editWatchChips(){
+  var now=editChipRaws();
+  var lost=editWithout(editChipsNow,now);
+  editChipsNow=now;
+  if(!lost.length)return;
+  var box=document.getElementById('sb-edit-rich');
+  var sel=window.getSelection();
+  var at=(sel&&sel.rangeCount&&box.contains(sel.anchorNode))?sel.getRangeAt(0).cloneRange():null;
+  if(at)at.collapse(false);
+  lost.forEach(function(raw){editChipLost.push({raw:raw,at:at});});
+  editError('');
+  editGuard();
+}
+/* Puts each chip back where it left from, or at the end when that place is gone. */
+function editPutBack(){
+  var box=document.getElementById('sb-edit-rich');
+  editChipLost.forEach(function(l){
+    var chip=editMakeChip(l.raw);
+    var at=l.at;
+    var inChip=at&&at.startContainer.parentElement&&at.startContainer.parentElement.closest('[data-raw]');
+    if(at&&box.contains(at.startContainer)&&!inChip){
+      at.insertNode(chip);
+      at.collapse(false);
+    }else{
+      box.appendChild(chip);
+    }
+  });
+  editChipLost=[];
+  editTailBreak();
+  editChipsNow=editChipRaws();
+  editError('');
+  editGuard();
+}
+/* Grows a text box to what is written in it. */
+function editGrow(area){
+  area.style.height='auto';
+  area.style.height=(area.scrollHeight+2)+'px';
+}
+/* Shows the window on its own history step, so the phone's back button and the
+   ✕ never disagree about what is open. */
+function editShow(title){
+  document.getElementById('sb-modal-title-text').textContent=title;
+  editError('');
+  editChipLost=[];editGuard();
   renderEditFolderRow();
-  document.getElementById('sb-modal-title-text').textContent='Edit Snippet';
   var saveBtn=document.getElementById('sb-modal-save');
   saveBtn.textContent='Save';
-  saveBtn.classList.remove('saved');
   saveBtn.disabled=false;
-  document.getElementById('sb-edit-modal').classList.remove('sb-hidden');
+  editSaving=false;editLeaving=false;
+  history.pushState({edit:true},'');
+  var modal=document.getElementById('sb-edit-modal');
+  modal.classList.remove('sb-hidden');
+  modal.querySelector('.sb-modal-body').scrollTop=0;
+  modal.querySelectorAll('textarea').forEach(function(area){if(!area.hidden)editGrow(area);});
+}
+function openEditModal(s){
+  var row=allSnips.find(function(x){return x.id===s.id;});
+  if(!row)return;
+  var lang=String(s.lang||row.lang||'EN').toUpperCase();
+  var layout=(row.bodies_html&&row.bodies_html[lang])
+    ||(String(row.lang||'').toUpperCase()===lang?row.body_html:'')||s.body_html||'';
+  if(layout){showToast('This snippet has a layout. Edit it on your computer.');return;}
+  editKind='snippet';editSnip=row;editLang=lang;
+  editOriginal={title:row.title||'',body:s.body||'',folder_id:row.folder_id||null};
+  editFolderId=editOriginal.folder_id;
+  document.getElementById('sb-edit-title').value=editOriginal.title;
+  var rich=document.getElementById('sb-edit-rich');
+  // Plain text only where the browser can promise it; the reader copes with the rest.
+  rich.setAttribute('contenteditable','plaintext-only');
+  if(rich.contentEditable!=='plaintext-only')rich.setAttribute('contenteditable','true');
+  editFillRich(editOriginal.body);
+  rich.hidden=false;
+  document.getElementById('sb-edit-body').hidden=true;
+  document.getElementById('sb-edit-text-group').hidden=false;
+  document.getElementById('sb-edit-blocks').hidden=true;
+  // Said with one of the snippet's own chips, so the line never rests on a colour.
+  var hint=document.getElementById('sb-edit-hint');
+  hint.textContent='';
+  hint.hidden=!editChipsNow.length;
+  if(editChipsNow.length){
+    hint.appendChild(editMakeChip(editChipsNow[0]));
+    hint.appendChild(document.createTextNode('Pieces like this are fields and formulas. Type around them. To change one, use your computer.'));
+  }
+  var langs=bodyVariants(row).length;
+  editShow(langs>1?'Edit snippet · '+(LANG_NAMES[lang]||lang):'Edit snippet');
+}
+function openPromptEdit(p){
+  var blocks=editPromptBlocks(p);
+  if(blocks===false){showToast('Edit this prompt on your computer.');return;}
+  editKind='prompt';editSnip=p;editLang='';
+  editOriginal={title:p.name||'',body:p.content||'',folder_id:p.folder_id||null,
+    blocks:blocks?blocks.map(function(b){return String(b.content||'');}):null};
+  editFolderId=editOriginal.folder_id;
+  document.getElementById('sb-edit-title').value=editOriginal.title;
+  document.getElementById('sb-edit-rich').hidden=true;
+  document.getElementById('sb-edit-hint').hidden=true;
+  editChipsNow=[];editChipAccepted=[];
+  var area=document.getElementById('sb-edit-body');
+  var boxes=document.getElementById('sb-edit-blocks');
+  if(blocks){
+    // One box per part that is switched on, under the name the dashboard gives
+    // it. The Brain a Context part carries is named above its box: it stays.
+    boxes.innerHTML=blocks.map(function(b,i){
+      if(!b.enabled)return '';
+      var word=b.type.charAt(0).toUpperCase()+b.type.slice(1);
+      var brain=b.type==='context'&&b.brain
+        ?'<p class="sb-edit-note">'+BRAIN_SVG+'<span>'+esc('Uses the Brain '+(b.brain.name||'')+'. It stays attached.')+'</span></p>'
+        :'';
+      return '<div class="sb-field-group"><label class="sb-field-label" for="sb-edit-block-'+i+'">'+esc(word)+'</label>'
+        +brain+'<textarea id="sb-edit-block-'+i+'" data-block="'+i+'"></textarea></div>';
+    }).join('')||'<p class="sb-edit-hint">Every part of this prompt is switched off. Switch one on from your computer to edit its text.</p>';
+    boxes.querySelectorAll('textarea').forEach(function(t){
+      t.value=editOriginal.blocks[+t.getAttribute('data-block')];
+    });
+    area.hidden=true;
+    document.getElementById('sb-edit-text-group').hidden=true;
+    boxes.hidden=false;
+  }else{
+    area.value=editOriginal.body;
+    area.hidden=false;
+    document.getElementById('sb-edit-text-group').hidden=false;
+    boxes.hidden=true;boxes.innerHTML='';
+  }
+  editShow('Edit prompt');
+}
+/* What the window holds now, in the shape it was opened with. */
+function editValues(){
+  var out={title:document.getElementById('sb-edit-title').value.trim(),folder_id:editFolderId,blocks:null};
+  if(editKind==='snippet'){out.body=editReadRich();return out;}
+  if(editOriginal&&editOriginal.blocks){
+    out.blocks=editOriginal.blocks.slice();
+    document.getElementById('sb-edit-blocks').querySelectorAll('textarea').forEach(function(t){
+      out.blocks[+t.getAttribute('data-block')]=t.value;
+    });
+    out.body=editOriginal.body;
+    return out;
+  }
+  out.body=document.getElementById('sb-edit-body').value;
+  return out;
 }
 function isDirty(){
   if(!editOriginal)return false;
-  return document.getElementById('sb-edit-title').value!==editOriginal.title
-    ||document.getElementById('sb-edit-shortcut').value!==editOriginal.shortcut
-    ||document.getElementById('sb-edit-body').value!==editOriginal.body
-    ||editFolderId!==editOriginal.folder_id;
+  var now=editValues();
+  return now.title!==editOriginal.title
+    ||now.body!==editOriginal.body
+    ||now.folder_id!==editOriginal.folder_id
+    ||(!!now.blocks&&now.blocks.join('\u0000')!==editOriginal.blocks.join('\u0000'));
 }
 function forceCloseBottomSheet(){
   var sh=document.getElementById('sb-bottom-sheet');
@@ -14583,10 +15012,10 @@ function forceCloseBottomSheet(){
   sh.setAttribute('aria-hidden','true');
   sheetSnip=null;
 }
-function closeEditModal(){
-  document.getElementById('sb-modal-title-text').textContent='Edit Snippet';
+function closeEditNow(){
   document.getElementById('sb-edit-modal').classList.add('sb-hidden');
-  editSnip=null;editOriginal=null;editFolderId=null;
+  editKind='';editSnip=null;editOriginal=null;editFolderId=null;editSaving=false;
+  editChipsNow=[];editChipLost=[];editChipAccepted=[];
   // Defensive: guarantee the 3-dots sheet is fully dismissed (no lingering
   // open state) and shield the list from phantom clicks that some mobile
   // browsers synthesize when a covering element disappears under a touch.
@@ -14596,6 +15025,12 @@ function closeEditModal(){
     el.style.pointerEvents='none';
     setTimeout(function(){el.style.pointerEvents='';},350);
   }
+}
+/* Closes on purpose, through the history step the window pushed. */
+function closeEditModal(){
+  editLeaving=true;
+  if(history.state&&history.state.edit)history.back();
+  else{editLeaving=false;closeEditNow();}
 }
 
 /* ── FOLDER PICKER ──────────────────────────────── */
@@ -14797,63 +15232,147 @@ document.getElementById('sb-folder-list').addEventListener('click',function(e){
 
 document.getElementById('sb-modal-cancel').addEventListener('click',function(e){
   e.stopPropagation();
+  if(editSaving)return;
   if(isDirty()&&!confirm('Discard changes?'))return;
   closeEditModal();
 });
-
+document.getElementById('sb-edit-rich').addEventListener('input',function(){editTailBreak();editWatchChips();});
+document.getElementById('sb-edit-modal').addEventListener('input',function(e){
+  if(e.target.tagName==='TEXTAREA')editGrow(e.target);
+});
+document.getElementById('sb-edit-guard-undo').addEventListener('click',editPutBack);
+document.getElementById('sb-edit-guard-go').addEventListener('click',function(){
+  editChipAccepted=editChipAccepted.concat(editChipLost.map(function(l){return l.raw;}));
+  editChipLost=[];
+  editError('');
+  editGuard();
+});
 document.getElementById('sb-modal-save').addEventListener('click',function(e){
   e.stopPropagation();
-  if(!editSnip)return;
-  var title=document.getElementById('sb-edit-title').value.trim();
-  var shortcut=document.getElementById('sb-edit-shortcut').value.trim();
-  var body=document.getElementById('sb-edit-body').value;
-  var folderId=editFolderId;
-  var err=document.getElementById('sb-edit-err');
-  if(!title){err.textContent='Title is required';return;}
-  if(!body.trim()){err.textContent='Body is required';return;}
-  err.textContent='';
-  var btn=this;
-  btn.disabled=true;btn.textContent='Saving…';
+  saveEdit();
+});
 
-  // Optimistic update — apply locally first, roll back on error
-    var idx=allSnips.findIndex(function(x){return x.id===editSnip.id;});
-    var prevRow=idx>-1?Object.assign({},allSnips[idx]):null;
+/* One RPC call. Resolves to '' once saved, else to the sentence that says why not. */
+function editCall(name,payload,noun){
+  return fetch(SUPA+'/rest/v1/rpc/'+name,{
+    method:'POST',
+    headers:authHeaders({'Content-Type':'application/json'}),
+    body:JSON.stringify(payload)
+  }).then(function(r){
+    if(handle401(r))return 'Signed out. Sign in again to save.';
+    return r.json().catch(function(){return null;}).then(function(data){
+      if(r.ok)return '';
+      console.error('[Fibonax] A save from the edit window was refused:',r.status,data);
+      var text=String((data&&data.message)||'');
+      if((data&&data.code)==='42501'||/access denied|not found|permission/i.test(text)){
+        return 'You can read this '+noun+' but not change it. Ask its owner for edit access.';
+      }
+      if((data&&data.code)==='23505')return 'That name is taken. Pick another.';
+      return 'Could not save. Try again.';
+    });
+  },function(e){
+    console.error('[Fibonax] A save from the edit window could not be sent:',e);
+    return 'Could not reach Fibonax. Check your connection and try again.';
+  });
+}
+/* Saves the window. A field that left the text is answered for first. */
+function saveEdit(){
+  if(!editSnip||editSaving)return;
+  var now=editValues();
+  if(!now.title){editError('Give it a name.');document.getElementById('sb-edit-title').focus();return;}
+  if(editKind==='snippet'){
+    if(!now.body.trim()){editError('Write the text.');return;}
+    var open=editWithout(editRemovedChips(editOriginal.body,now.body),editChipAccepted);
+    if(open.length){
+      // Normally asked the moment it happened; this catches one that was not.
+      if(!editChipLost.length)editChipLost=open.map(function(raw){return {raw:raw,at:null};});
+      editGuard();
+      editError('Choose first: put the field back, or leave it out.');
+      return;
+    }
+  }else if(now.blocks?!editAssembleBlocks(editPromptWith(now.blocks),false):!now.body.trim()){
+    editError('Write the text.');return;
+  }
+  if(!isDirty()){closeEditModal();return;}
+  editError('');
+  editSaving=true;
+  var btn=document.getElementById('sb-modal-save');
+  btn.disabled=true;btn.textContent='Saving…';
+  var item=editSnip, kind=editKind;
+  (kind==='snippet'?saveSnippetEdit(item,now):savePromptEdit(item,now)).then(function(refused){
+    if(refused){
+      editSaving=false;
+      btn.disabled=false;btn.textContent='Save';
+      editError(refused);
+      return;
+    }
+    closeEditModal();
+    showToast('Saved ✓');
+  });
+}
+/* A snippet, through the save the dashboard uses: the row and a version in its
+   history, in one step. The language in the window is written into the map of
+   language versions; the row's own text follows its own language. */
+function saveSnippetEdit(row,now){
+  var rowLang=String(row.lang||'EN').toUpperCase();
+  var bodies={};
+  if(row.bodies&&typeof row.bodies==='object'){for(var k in row.bodies)bodies[k]=row.bodies[k];}
+  bodies[editLang]=now.body;
+  var body=editLang===rowLang?now.body:(typeof row.body==='string'?row.body:'');
+  var lang=editLang, vid=row.id+'::'+lang;
+  return editCall('save_snippet_with_revision',{
+    p_snippet_id:row.id, p_title:now.title, p_shortcut:row.shortcut||'',
+    p_body:body, p_bodies:bodies, p_lang:row.lang||rowLang, p_folder_id:now.folder_id,
+    p_pinned:!!row.pinned,
+    p_enable_urgency_timer:false, p_timer_duration_ms:0, p_scarcity_count:0,
+    p_alternative_queries:Array.isArray(row.alternative_queries)?row.alternative_queries:[],
+    p_editor_display:memEditorDisplay(), p_edit_note:null
+  },'snippet').then(function(refused){
+    if(refused)return refused;
+    var idx=allSnips.findIndex(function(x){return x.id===row.id;});
     if(idx>-1){
       allSnips[idx]=Object.assign({},allSnips[idx],{
-        title:title,shortcut:shortcut,body:body,folder_id:folderId
+        title:now.title,body:body,bodies:bodies,folder_id:now.folder_id,updated_at:new Date().toISOString()
       });
     }
-    fetch(SUPA+'/rest/v1/snippets?id=eq.'+encodeURIComponent(editSnip.id)+'&user_id=eq.'+encodeURIComponent(USER_ID),{
-      method:'PATCH',
-      headers:authHeaders({
-        'Content-Type':'application/json',
-        'Prefer':'return=representation'
-      }),
-      body:JSON.stringify({title:title,shortcut:shortcut,body:body,folder_id:folderId})
-    })
-    .then(function(r){
-      if(handle401(r))throw new Error('401');
-      if(!r.ok)throw new Error('save failed');
-      return r.json();
-    })
-    .then(function(rows){
-      var updated=(Array.isArray(rows)&&rows[0])?rows[0]:null;
-      if(updated&&idx>-1){allSnips[idx]=Object.assign({},allSnips[idx],updated);}
-      try{localStorage.setItem('sb_mob_cache',JSON.stringify(allSnips));}catch(e){}
-      btn.textContent='✓ Saved';btn.classList.add('saved');
-      renderFolderChips();renderList();
-      if(curSnip&&editSnip&&curSnip.id===editSnip.id&&idx>-1){
-        curSnip=allSnips[idx];renderDetail(curSnip);
-      }
-      setTimeout(closeEditModal,2000);
-    })
-    .catch(function(){
-      if(idx>-1&&prevRow){allSnips[idx]=prevRow;}
-      err.textContent='Save failed. Please try again.';
-      btn.disabled=false;btn.textContent='Save';
-      btn.classList.remove('saved');
-    });
-});
+    try{localStorage.setItem('sb_mob_cache',JSON.stringify(allSnips));}catch(e){}
+    renderFolderChips();renderList();
+    if(curSnip&&curSnip.id===row.id&&idx>-1){
+      curSnip=_varIndex[vkey(curSnip)]||_varIndex[vid]||allSnips[idx];
+      renderDetail(curSnip);
+    }
+    return '';
+  });
+}
+/* The prompt's parts with the window's text in them. */
+function editPromptWith(texts){
+  return editSnip.blocks.map(function(b,i){
+    var next={};for(var k in b)next[k]=b[k];
+    next.content=texts[i];
+    return next;
+  });
+}
+/* A prompt, through the save the dashboard uses. Everything the window does not
+   show is handed back as it was: the save rewrites every column. */
+function savePromptEdit(p,now){
+  var blocks=now.blocks?editPromptWith(now.blocks):(p.blocks||null);
+  var content=now.blocks?editAssembleBlocks(blocks,!!p.ask_user_questions):now.body;
+  return editCall('save_prompt_with_version',{
+    p_prompt_id:p.id, p_name:now.title, p_content:content, p_blocks:blocks,
+    p_shortcut:String(p.shortcut||'').trim(),
+    p_strategy_type:p.strategy_type||null, p_thinking_mode:p.thinking_mode||null,
+    p_preferred_model:p.preferred_model||null, p_complexity_level:p.complexity_level||null,
+    p_intent_category:p.intent_category||null, p_output_type:p.output_type||null,
+    p_ask_user_questions:!!p.ask_user_questions, p_folder_id:now.folder_id,
+    p_editor_display:memEditorDisplay(), p_edit_note:null
+  },'prompt').then(function(refused){
+    if(refused)return refused;
+    p.name=now.title;p.content=content;p.blocks=blocks;p.folder_id=now.folder_id;
+    p.updated_at=new Date().toISOString();
+    renderPromptList();
+    return '';
+  });
+}
 
 /* ── QUICK ACTIONS ──────────────────────────────── */
 /* One bar, written once and mounted on every page that has a [data-mqa] slot,
@@ -14939,6 +15458,7 @@ function setupSheetDrag(sheetEl,closeFn){
     if(act==='use'||act==='copy'){promptCopy(p);closePromptSheet();}
     else if(act==='pin'){togglePromptPin(p);closePromptSheet();}
     else if(act==='share'){sharePrompt(p);}
+    else if(act==='edit'){closePromptSheet();setTimeout(function(){openPromptEdit(p);},320);}
     else if(act==='info'){closePromptSheet();setTimeout(function(){openPromptInfo(p);},320);}
   });
 })();
