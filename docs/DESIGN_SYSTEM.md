@@ -47,8 +47,12 @@ First applied to the pricing plan cards (see Landing pricing page).
 
 Valentina chose the light Concept B mockup (`concept-b.html`, "B + A, Selected
 direction") on 2026-10-23, replacing the dark palette applied earlier that day.
-The page is light; only the home screen's top band is navy. Azure stays the one
-action color. These values apply only to `/mobile/`.
+The page is light and every top bar is navy (Valentina, 2026-11-15: "navy
+everywhere"): the home band, the library bands, the header of a snippet's or a
+Brain item's page, the bar of the edit windows, and the installed app's own bars
+(`theme_color` in `manifest.webmanifest`, beside the page's `theme-color`).
+Azure stays the one action color and is never a bar. These values apply only to
+`/mobile/`.
 
 | Mobile token | Hex | Usage |
 | --- | --- | --- |
@@ -62,7 +66,7 @@ action color. These values apply only to `/mobile/`.
 | `mobile-primary-copy` | `#1B4FD8` | Azure text and icons |
 | `mobile-primary-border` | `#1B4FD8` | Focus rings and selected outlines |
 | `mobile-primary-bg` | `#EEF2FF` | Tinted Azure wells, chips and pinned cards |
-| `mobile-navy` | `#101C39` | Home band background |
+| `mobile-navy` | `#101C39` | Every top bar: home and library bands, detail page header, edit window bar, the installed app's bars |
 | `mobile-navy-soft` | `#203151` | Task cards on the home band |
 | `mobile-navy-line` | `#6B7C9C` | Task card borders on the home band |
 | `mobile-navy-copy` | `#C1CBE0` | Secondary text on the home band |
@@ -553,7 +557,7 @@ The card under the page header of Prompts and Brains is one component, `app/src/
 
 ### Phone edit window (2026-11)
 
-**Edit** on the phone (a snippet, a prompt, a Brain item) and **Add text** and **Save to Brain** share one frame, `.sb-edit-modal`: an Azure bar with a 44 px close cross, the title, and the window's one action. Existing tokens only; no new colour, radius or shadow.
+**Edit** on the phone (a snippet, a prompt, a Brain item) and **Add text** and **Save to Brain** share one frame, `.sb-edit-modal`: a `mobile-navy` bar with a 44 px close cross, the title, and the window's one action. Existing tokens only; no new colour, radius or shadow.
 
 - **The action** (`#sb-modal-save`, `#sb-mem-save`, `#sb-cap-save`) is a white pill on the bar: `mobile-card` ground, `mobile-primary-copy` text, `r-pill`, 36 px tall with a 44 px touch target, `mobile-primary-bg` while pressed, 55% opacity while saving. One per window.
 - **Fields** stack in one column with the frame's 14 px gap. The error line takes room only when it speaks.
