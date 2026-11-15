@@ -275,7 +275,7 @@ A 20 × 20 pill with a 12 × 12 stroked glyph, rendered beside an asset's name o
 | -------- | ------ | ---------------------------- | -------------------------------------------------------------- |
 | `top`    | Trophy | `primary-light` / `primary`  | Expanded ≥ 5 times **and** ≥ 25% of the library leader's count  |
 | `broken` | Wrench | `danger-bg` / `danger`       | Template fails structural validation — renders wrong output     |
-| `weak`   | Wrench | `warning-bg` / `warning-deep`| Prompt scoring ≤ 4/10, and not yet used enough to earn a trophy |
+| `weak`   | Wrench | `warning-bg` / `warning-deep`| Prompt or snippet scoring ≤ 4/10, and not yet used enough to earn a trophy. A snippet's score is its weakest language's |
 
 **Usage means expansions, counted per snippet — not per row.** Counts come from `snippet_events` via the `snippet_usage_counts()` RPC, never from `snippet_stats.uses` (that column only tracks copy-shortcut from the popup). A translated snippet is several rows sharing a base trigger and each is expanded under its own id, so both the badge and the Usage column sum across the group — `time` is 151 expansions across four variants, not four separate small numbers.
 
@@ -550,6 +550,17 @@ The card under the page header of Prompts and Brains is one component, `app/src/
 - Sort is the same three buttons as on Snippets (Name, Updated, and Usage or Items) with the same click rule (`app/src/lib/sortToggle.ts`). Pinned prompts and the default Brain stay first whichever column is chosen.
 - When filters hide everything, the empty state offers **Clear filters**. The gap between the bar and the content is 16 px (`gap-4`). Dashboard only: the phone and the extension keep their own surface conventions.
 
+
+### Snippet quality (v3.134.0)
+
+The snippet rating (`lib/snippetQuality.ts`) is drawn by the same panel as the prompt editor's Efficiency Score: `components/shared/QualityPanel.tsx`, `tone="dark"` in the prompt side panel (its documented hexes) and `tone="light"` in the snippet editor (tokens, follows the theme). No new tokens.
+
+| Part | Value |
+| --- | --- |
+| Quality button | In the body footer, left of Translate and Clear: the footer chip look (`r-sm`, 1 px `line`, `card`, 11 px medium `ink-subtle`; `primary` on `primary-light` when hovered), a 12 px gauge icon, **Quality** and the score in tabular figures. The word for the score is in its tooltip and its name for screen readers |
+| Window | The standard `Dialog` at `max-w-lg`: the ring (`success` / `primary` / `warning` stroke on a `line` track, the number in `ink`), the word, then one row per check with a `success` tick, a `warning-deep` circle or a `danger` cross beside its name, so the state never rests on colour alone |
+| Notes | The short-snippet note on `bg-alt`, the "reads a lot like" note in a `line` box, both 12 px `ink-muted` |
+| Improve with AI | Under a `line` rule: a `sm` primary button, or the locked Pro control. Each suggestion a `line` box: the area in 10 px uppercase `ink-subtle`, the problem in `ink`, the fix in `ink-muted` |
 
 ### Language check in the snippet editor
 

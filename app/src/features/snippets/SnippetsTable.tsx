@@ -8,6 +8,9 @@ import { SearchDetails } from '@/components/shared/SearchDetails';
 import { SnippetIcon } from '@/components/shared/SnippetIcon';
 import { LibraryEmptyActions } from '@/features/library/LibraryDialog';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { formatScore } from '@/lib/qualityScore';
+import { lowestSnippetScore, type LowestScore } from '@/lib/snippetQuality';
+import { useUnfinishedRule } from '@/lib/useUnfinishedRule';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
 import { DND_SNIPPET } from '@/features/org/FolderTree';
 import { SnippetContextMenu } from '@/features/snippets/SnippetContextMenu';
@@ -33,6 +36,7 @@ import {
 import { DEFAULT_TRIGGER_CONFIG } from '@/lib/triggerUtils';
 import {
   isTopByUsage,
+  snippetStatusWeak,
   sumUsage,
   validateSnippet,
   type TemplateValidation,
@@ -199,6 +203,19 @@ export function SnippetsTable() {
     }
     return map;
   }, [library]);
+  // The quality score of each snippet's weakest language, for the "Needs work"
+  // badge. Waits for the shared "looks unfinished" rule, so the badge never
+  // shows a score the editor would not.
+  const { rule: unfinishedRule } = useUnfinishedRule();
+  const weakScores = useMemo(() => {
+    const map = new Map<string, LowestScore>();
+    if (!unfinishedRule) return map;
+    for (const snippet of library) {
+      const lowest = lowestSnippetScore(snippet, unfinishedRule);
+      if (lowest && snippetStatusWeak(lowest.score)) map.set(snippet.id, lowest);
+    }
+    return map;
+  }, [library, unfinishedRule]);
   const pushSnippetToNotion = useSnippetStore((s) => s.pushSnippetToNotion);
   const notionPushingIds = useSnippetStore((s) => s.notionPushingIds);
   // Only the team whose Notion database the push writes to sees the column.
@@ -416,6 +433,12 @@ export function SnippetsTable() {
               issue = issues.get(variant.id);
               if (issue) break;
             }
+            // The weakest language across the group, the same way.
+            let weak: LowestScore | undefined;
+            for (const variant of group.variants) {
+              const found = weakScores.get(variant.id);
+              if (found && (!weak || found.score < weak.score)) weak = found;
+            }
             // Expansions across every language variant — the row represents the
             // whole group, so the count it shows has to as well.
             const groupUsage = sumUsage(group.variants);
@@ -488,6 +511,11 @@ export function SnippetsTable() {
                           <StatusBadge
                             status="top"
                             detail={`expanded ${groupUsage.toLocaleString()} times`}
+                          />
+                        ) : weak !== undefined ? (
+                          <StatusBadge
+                            status="weak"
+                            detail={`quality ${formatScore(weak.score)}/10${multiLang ? ` in ${LANG_LABEL[weak.language as Snippet['language']] ?? weak.language}` : ''}. Open it to see how to improve it.`}
                           />
                         ) : null}
                       </div>

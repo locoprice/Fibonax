@@ -1,6 +1,6 @@
 # Pro features: on for Pro accounts only
 
-Five features call the AI service, and every use costs real money. Since **v3.114.0** they are switched on, but only for a **Pro** account: anyone else sees each one where it lives, dimmed, with a lock and the tooltip **"Available to Pro users soon"**, and cannot start a request. The server checks the plan again on every call (`is_pro()`).
+Six features call the AI service, and every use costs real money. Since **v3.114.0** they are switched on, but only for a **Pro** account: anyone else sees each one where it lives, dimmed, with a lock and the tooltip **"Available to Pro users soon"**, and cannot start a request. The server checks the plan again on every call (`is_pro()`).
 
 One switch per feature, in `app/src/lib/proFeatures.ts`. A switch says the feature is built and its server function deployed; `isProFeatureAvailable` adds the plan check (`isProPlan`, the same rule as `is_pro()`). The phone carries its own copy: `ASK_AVAILABLE` and `PICTURE_AVAILABLE`, read only through `askOn()` and `pictureOn()`, which add `isProAccount()`. `scripts/check-pro-gate.js` (CI) keeps the dashboard, the phone and the manual in step.
 
@@ -10,6 +10,7 @@ One switch per feature, in `app/src/lib/proFeatures.ts`. A switch says the featu
 | Draft with AI | `draft`, **on** | **Draft from text** in the snippet, prompt and Brain item editors | `draft-with-ai` | `user-docs/draft/overview.mdx` |
 | Translate from EN | `translate`, **on** | The Translate button in the snippet editor (IT, ES, FR) | `translate-body` | `user-docs/text-snippets/multilanguage.mdx` |
 | Suggest labels | `labels`, **on** | Under the label picker in the snippet editor | `suggest-labels` | `user-docs/text-snippets/create-and-organize.mdx` |
+| Improve with AI (v3.134.0) | `review`, **on** | The snippet editor's Quality window, under the score. The score itself is rules in the browser and free for everyone | `review-snippet`; needs `20261115120000_ai_call_review.sql` (the `review` kind in `ai_call_allow`) | `user-docs/text-snippets/quality.mdx`, section Improve with AI |
 | Read a picture | `picture`, **on**; `PICTURE_AVAILABLE` on the phone | The **Read a picture** row in the phone's Save to Brain; locked, it shows the Live Text / Google Lens tip | `read-picture` | `user-docs/apps/mobile.mdx` |
 | Add a picture (v3.94.0, calls no AI service: the cost is storage) | `snippetPictures`, off | **Add picture** in the snippet editor's Pictures section; the window is not mounted while locked. Pictures already in a snippet are still listed with Remove, and every fill surface shows them | none; needs the `snippet-pictures` bucket (`20261027130000_snippet_pictures_storage.sql`, **not applied**) and the `delete-account` deploy that empties it | `snippet-pictures.mdx`, a section of `user-docs/text-snippets/dynamic-fields.mdx` |
 | Use an email layout (v3.102.0, calls no service) | `emailLayout`, **on for everyone** | Nowhere locked: free to run, so no plan check (`FREE_FOR_ALL`) | none | `user-docs/text-snippets/email-layouts.mdx` |

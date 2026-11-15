@@ -166,6 +166,14 @@ export type BadgeStatus = 'top' | 'broken' | 'weak';
 /** Efficiency score at or below which a prompt needs work. */
 export const PROMPT_WEAK_SCORE = 4;
 
+/** Quality score at or below which a snippet needs work: the prompts' line. */
+export const SNIPPET_WEAK_SCORE = PROMPT_WEAK_SCORE;
+
+/** Whether a snippet's quality score earns the "Needs work" badge. */
+export function snippetStatusWeak(score: number): boolean {
+  return score <= SNIPPET_WEAK_SCORE;
+}
+
 export interface PromptSignalInput {
   usage_count: number;
   is_malformed: boolean;
