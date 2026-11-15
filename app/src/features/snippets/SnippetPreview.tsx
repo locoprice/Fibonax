@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { AlertCircle, AlertTriangle, Check, Copy } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Check, Copy, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { LinkReadError, linkReadApi } from '@/lib/api/linkReadApi';
 import { LayoutFrame } from '@/features/snippets/LayoutFrame';
 import { FillProgress } from '@/features/snippets/FillProgress';
@@ -203,6 +204,8 @@ export function SnippetPreview({
     () => fillFormApi() !== null && formulaEngine() !== null,
   );
   const [expanded, setExpanded] = useState(false);
+  // The result in a window of its own, at the width an email is read at.
+  const [fullSize, setFullSize] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const previewRef = useRef<HTMLElement | null>(null);
   const [engineError, setEngineError] = useState<string | null>(null);
@@ -479,12 +482,13 @@ export function SnippetPreview({
     row?.querySelector<HTMLElement>('input, summary, select')?.focus();
   }
 
-  async function handleCopy() {
-    if (!view?.preview && !view?.parts) return;
+  /** Copies the result. False when something in the panel has to be seen to first. */
+  async function handleCopy(): Promise<boolean> {
+    if (!view?.preview && !view?.parts) return true;
     setAttempted(true);
     if (view.errors?.length) {
       focusRow(view.errors[0]?.key ?? '');
-      return;
+      return false;
     }
     // The same check the page, the popup and the phone run before the text
     // goes out, with the same words.
@@ -492,10 +496,11 @@ export function SnippetPreview({
       const found = unfinishedItems(view.preview, view.fields);
       if (found.length > 0) {
         setCopyCheck(found);
-        return;
+        return false;
       }
     }
     await copyNow();
+    return true;
   }
 
   // Fix it: each box the warning named is marked with what was wrong in it and
@@ -559,6 +564,38 @@ export function SnippetPreview({
     [view, checkUnfinished],
   );
 
+  const hasResult = !!(view?.preview || view?.parts || view?.formatted);
+
+  // The result as it is drawn, in the panel (an email shrunk to fit) and in
+  // the full-size window (the email at the width it is read at).
+  function resultContent(fit: boolean): ReactNode {
+    if (view?.formatted && !view.parts) {
+      return emailLayout ? (
+        <LayoutFrame html={view.formatted} fitWidth={fit ? EMAIL_WIDTH : undefined} />
+      ) : (
+        <LayoutResult html={view.formatted} />
+      );
+    }
+    if (view?.parts) {
+      return view.parts.map((part, i) =>
+        'picture' in part ? (
+          <PreviewPicture key={`${i} ${part.picture.src}`} picture={part.picture} />
+        ) : (
+          <span key={i}>{part.text}</span>
+        ),
+      );
+    }
+    return view?.preview || 'The finished message appears here as you type.';
+  }
+
+  const copyLabel = copied === 'done' ? 'Copied' : copied === 'failed' ? 'Blocked' : 'Copy';
+  const copyClass = cn(
+    'inline-flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors',
+    'hover:border-primary/30 hover:text-primary disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-muted',
+    copied === 'failed' && 'border-danger/40 text-danger',
+  );
+  const copyIcon = copied === 'done' ? <Check className="h-3 w-3" aria-hidden /> : <Copy className="h-3 w-3" aria-hidden />;
+
   return (
     <aside
       ref={previewRef}
@@ -571,7 +608,8 @@ export function SnippetPreview({
       {/* ── Values ── */}
       {/* Takes the larger share: this pane is the one being operated, and a
           form of six fields should not need scrolling to reach half of them. */}
-      <div className="flex min-h-0 min-w-0 flex-[1.4] flex-col border-b border-r border-line">
+      {/* With nothing to fill it shrinks to its one line, so the result gets the room. */}
+      <div className={cn('flex min-h-0 min-w-0 flex-col border-b border-r border-line', !expanded && fields.length === 0 && !view?.linkable ? 'flex-none' : 'flex-[1.4]')}>
         <div className="flex shrink-0 items-center gap-2 px-4 pb-2 pt-4">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
             Fill in
@@ -672,45 +710,32 @@ export function SnippetPreview({
           </p>
           <button
             type="button"
-            onClick={handleCopy}
-            disabled={!view?.preview && !view?.parts}
-            className={cn(
-              'ml-auto inline-flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors',
-              'hover:border-primary/30 hover:text-primary disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-muted',
-              copied === 'failed' && 'border-danger/40 text-danger',
-            )}
+            onClick={() => setFullSize(true)}
+            disabled={!hasResult}
+            className={cn(copyClass, 'ml-auto')}
           >
-            {copied === 'done' ? (
-              <Check className="h-3 w-3" aria-hidden />
-            ) : (
-              <Copy className="h-3 w-3" aria-hidden />
-            )}
-            {copied === 'done' ? 'Copied' : copied === 'failed' ? 'Blocked' : 'Copy'}
+            <Maximize2 className="h-3 w-3" aria-hidden />
+            View full size
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleCopy()}
+            disabled={!view?.preview && !view?.parts}
+            className={copyClass}
+          >
+            {copyIcon}
+            {copyLabel}
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+        <div className="min-h-[140px] flex-1 overflow-y-auto px-4 pb-4">
           <div
             className={cn(
               'min-h-[max(100%,120px)] whitespace-pre-wrap break-words rounded-[10px] border border-line bg-card px-3 py-2.5 font-mono text-xs leading-relaxed',
-              view?.preview || view?.parts || view?.formatted ? 'text-ink' : 'italic text-ink-subtle',
+              hasResult ? 'text-ink' : 'italic text-ink-subtle',
             )}
           >
-            {view?.formatted && !view.parts ? (
-              emailLayout ? (
-                <LayoutFrame html={view.formatted} />
-              ) : (
-                <LayoutResult html={view.formatted} />
-              )
-            ) : view?.parts
-              ? view.parts.map((part, i) =>
-                  'picture' in part ? (
-                    <PreviewPicture key={`${i} ${part.picture.src}`} picture={part.picture} />
-                  ) : (
-                    <span key={i}>{part.text}</span>
-                  ),
-                )
-              : view?.preview || 'The finished message appears here as you type.'}
+            {resultContent(true)}
           </div>
           {view && formattedNote(view, 'copy') && (
             <p className="mt-2 text-[11px] leading-relaxed text-ink-subtle">{formattedNote(view, 'copy')}</p>
@@ -769,9 +794,36 @@ export function SnippetPreview({
           </label>
         </div>
       </div>
+
+      <Dialog open={fullSize} onOpenChange={setFullSize}>
+        <DialogContent className="flex max-h-[90vh] max-w-[760px] flex-col gap-3 p-5">
+          <div className="flex shrink-0 items-center gap-2 pr-8">
+            <DialogTitle className="text-sm">Result</DialogTitle>
+            <DialogDescription className="sr-only">The finished message at full size.</DialogDescription>
+            <button
+              type="button"
+              // A gap or a missing answer is shown in the panel, so the window steps aside for it.
+              onClick={() => void handleCopy().then((copiedNow) => { if (!copiedNow) setFullSize(false); })}
+              disabled={!view?.preview && !view?.parts}
+              className={cn(copyClass, 'ml-auto')}
+            >
+              {copyIcon}
+              {copyLabel}
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="whitespace-pre-wrap break-words rounded-[10px] border border-line bg-bg px-3 py-2.5 font-mono text-xs leading-relaxed text-ink">
+              {resultContent(false)}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }
+
+/** The width an email layout is drawn at before the panel shrinks it to fit. */
+const EMAIL_WIDTH = 640;
 
 interface UnfinishedListProps {
   title: string;
@@ -788,7 +840,7 @@ function UnfinishedList({ title, items, fields, actions }: UnfinishedListProps) 
   const limit = unfinishedShown();
   const shown = items.slice(0, limit);
   return (
-    <div role="status" className="rounded-[10px] border border-warning-deep/30 bg-warning-bg px-3 py-2.5">
+    <div role="status" className="rounded-[10px] border border-warning-deep/30 bg-warning-deep/10 px-3 py-2.5">
       <p className="flex items-center gap-1.5 text-[11px] font-semibold text-ink">
         <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-warning-deep" aria-hidden />
         {title}
