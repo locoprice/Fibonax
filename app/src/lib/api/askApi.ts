@@ -28,7 +28,7 @@ const ASK_ERRORS: Record<string, string> = {
   anthropic_request_failed: 'The answer service did not respond. Try again.',
   anthropic_bad_output: 'The answer came back unreadable. Try again.',
   question_too_short: 'Write a few more words.',
-  question_too_long: 'Shorten the question to 1,000 characters or fewer.',
+  question_too_long: 'Shorten it to 4,000 characters or fewer.',
   pro_check_failed: AI_PRO_CHECK_MESSAGE,
   pro_required: AI_PRO_MESSAGE,
   rate_limited: AI_LIMIT_MESSAGE,

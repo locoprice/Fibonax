@@ -29,9 +29,30 @@ export function verdictLabel(value: string): string {
   return ASK_VERDICTS.find((v) => v.value === value)?.label ?? value;
 }
 
-/** Mirrors the function's and the feedback table's limits. */
+/**
+ * Mirrors the function's limits. The top is a whole message someone received,
+ * so it can be answered question by question; feedback keeps its first 1000
+ * characters, the table's limit (askApi).
+ */
 export const ASK_QUESTION_MIN = 3;
-export const ASK_QUESTION_MAX = 1000;
+export const ASK_QUESTION_MAX = 4000;
+
+/**
+ * How far one question in a message is answered, in the words the list under
+ * it shows. Keep in step with the phone page's ASK_COVERAGE:
+ * scripts/check-ask-knowledge.js.
+ */
+export const ASK_COVERAGE = [
+  { value: 'full', label: 'Answered' },
+  { value: 'partial', label: 'Partly answered' },
+  { value: 'none', label: 'Not in Fibonax' },
+] as const;
+
+export type AskCoverage = (typeof ASK_COVERAGE)[number]['value'];
+
+export function coverageLabel(value: AskCoverage): string {
+  return ASK_COVERAGE.find((c) => c.value === value)?.label ?? value;
+}
 
 const sourceSchema = z.object({
   ref: z.string(),
@@ -46,16 +67,28 @@ const sourceSchema = z.object({
   used: z.boolean(),
 });
 
+/** One question found in what was asked, and the sources that answer it. */
+const questionSchema = z.object({
+  question: z.string(),
+  coverage: z.enum(['full', 'partial', 'none']),
+  sources: z.array(z.string()),
+});
+
 const responseSchema = z.object({
   ok: z.literal(true),
   status: z.enum(['answered', 'not_covered', 'no_sources']),
   answer: z.string(),
   missing: z.string(),
   conflicts: z.string(),
+  // Contextual replies. Optional so a reply from a function deployed before
+  // them still reads: one answer, no question list.
+  reply: z.boolean().default(false),
+  questions: z.array(questionSchema).default([]),
   sources: z.array(sourceSchema),
 });
 
 export type AskSource = z.infer<typeof sourceSchema>;
+export type AskQuestion = z.infer<typeof questionSchema>;
 export type AskResult = z.infer<typeof responseSchema>;
 
 /** The function's reply, or null when it does not have the expected shape. */
@@ -64,31 +97,53 @@ export function parseAskResponse(value: unknown): AskResult | null {
   return parsed.success ? parsed.data : null;
 }
 
-/** One piece of an answer: plain text, or a citation of a source. */
-export type AnswerPart = { type: 'text'; text: string } | { type: 'cite'; ref: string };
-
-const CITATION = /\[(S\d+)\]/g;
+/**
+ * The list of questions found is worth showing for an answer that covers more
+ * than one: a single question is the answer's own heading already, and when
+ * nothing is answered the panel says so in one line.
+ */
+export function showsQuestionList(result: AskResult): boolean {
+  return result.status === 'answered' && result.questions.length >= 2;
+}
 
 /**
- * Split an answer into text and citations, so a citation can be drawn as a
- * link to its source. A marker naming a source that was not sent stays as
- * plain text: it cannot be followed, and dropping it would hide that the model
- * cited something it was not given.
+ * One piece of an answer: plain text, a citation of a source, or a gap, a
+ * note in square brackets that the sender fills in before sending (a reply
+ * marks a question Fibonax cannot answer that way, never with a guess).
+ */
+export type AnswerPart =
+  | { type: 'text'; text: string }
+  | { type: 'cite'; ref: string }
+  | { type: 'gap'; text: string };
+
+const MARKER = /\[(S\d+)\]|\[([^[\]\n]{1,200})\]/g;
+const GAP = /\[(?!S\d+\])[^[\]\n]{1,200}\]/g;
+
+/**
+ * Split an answer into text, citations and gaps, so a citation can be drawn
+ * as a link to its source and a gap stands out. A marker naming a source that
+ * was not sent stays as plain text: it cannot be followed, and dropping it
+ * would hide that the model cited something it was not given.
  */
 export function splitCitations(answer: string, sources: readonly AskSource[]): AnswerPart[] {
   const known = new Set(sources.map((s) => s.ref));
   const parts: AnswerPart[] = [];
   let last = 0;
-  for (const match of answer.matchAll(CITATION)) {
-    const ref = match[1] ?? '';
+  for (const match of answer.matchAll(MARKER)) {
+    const ref = match[1];
     const at = match.index ?? 0;
-    if (!known.has(ref)) continue;
+    if (ref !== undefined && !known.has(ref)) continue;
     if (at > last) parts.push({ type: 'text', text: answer.slice(last, at) });
-    parts.push({ type: 'cite', ref });
+    parts.push(ref !== undefined ? { type: 'cite', ref } : { type: 'gap', text: match[0] });
     last = at + match[0].length;
   }
   if (last < answer.length) parts.push({ type: 'text', text: answer.slice(last) });
   return parts;
+}
+
+/** How many gaps an answer still holds, so copying it can say they need filling in. */
+export function countGaps(answer: string): number {
+  return (answer.match(GAP) ?? []).length;
 }
 
 /** The answer without citation markers, for copying into a message. */

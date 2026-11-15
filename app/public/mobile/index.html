@@ -958,7 +958,8 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .ask-row-q{display:block;font-size:12.5px;font-weight:500;opacity:.85;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ask-body{padding:6px 20px 8px;max-height:72dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.ask-q{font-size:15px;font-weight:700;color:var(--text);margin:4px 0 12px;word-break:break-word}
+.ask-q{font-size:15px;font-weight:700;color:var(--text);margin:4px 0 12px;word-break:break-word;
+  white-space:pre-wrap;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .ask-wait{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:14px;padding:18px 0}
 .ask-wait .spinner{width:18px;height:18px;border-width:2px;flex-shrink:0}
 .ask-msg{font-size:14px;font-weight:600;color:var(--text);margin:6px 0}
@@ -973,6 +974,18 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   font:inherit;font-size:11px;font-weight:700;flex-shrink:0}
 .ask-answer .ask-n{margin:0 2px;vertical-align:text-top;cursor:pointer}
 .ask-n.off{background:var(--bg-alt);color:var(--text2)}
+.ask-gap{background:var(--warn-bg);border-radius:5px;padding:0 4px;font-weight:600;
+  box-shadow:inset 0 0 0 1px var(--warn-deep);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.ask-qs{list-style:none;margin:0;padding:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ask-qs li{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-top:1px solid var(--bg-alt)}
+.ask-qs li:first-child{border-top:none}
+.ask-qs-i{flex-shrink:0;width:18px;height:18px;margin-top:1px;border-radius:50%;display:inline-flex;
+  align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:var(--warn-deep)}
+.ask-qs-i.full{background:var(--primary)}
+.ask-qs-tx{flex:1;min-width:0}
+.ask-qs-q{display:block;font-size:14px;color:var(--text);word-break:break-word}
+.ask-qs-m{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:12px;color:var(--text2);margin-top:3px}
+.ask-qs-m .ask-n{cursor:pointer}
 .ask-note{border-radius:var(--r-in);padding:10px 12px;font-size:13px;color:var(--text);margin:10px 0}
 .ask-note.warn{background:var(--warn-bg)}
 .ask-note.warn b{color:var(--warn-deep)}
@@ -14022,7 +14035,16 @@ var ASK_VERDICTS=[
   {value:'irrelevant',label:'Not relevant'},
   {value:'conflicting',label:'Conflicts with policy'}
 ];
-var ASK_MIN=3, ASK_MAX=1000;
+/* The top is a whole message someone received, answered question by
+   question. Feedback keeps its first 1000 characters, the table's limit. */
+var ASK_MIN=3, ASK_MAX=4000, ASK_FEEDBACK_MAX=1000;
+/* How far one question in a message is answered. Keep in step with
+   ASK_COVERAGE in app/src/lib/askKnowledge.ts: scripts/check-ask-knowledge.js. */
+var ASK_COVERAGE=[
+  {value:'full',label:'Answered'},
+  {value:'partial',label:'Partly answered'},
+  {value:'none',label:'Not in Fibonax'}
+];
 /* FiboChat needs Pro. For an account that is not Pro the row stays where it
    lives, locked, and nothing here can send a request. Keep in step with
    PRO_SOON_LABEL and the 'ask' switch in app/src/lib/proFeatures.ts:
@@ -14038,7 +14060,7 @@ var ASK_ERRORS={
   anthropic_request_failed:'The answer service did not respond. Try again.',
   anthropic_bad_output:'The answer came back unreadable. Try again.',
   question_too_short:'Write a few more words.',
-  question_too_long:'Shorten the question to 1,000 characters or fewer.',
+  question_too_long:'Shorten it to 4,000 characters or fewer.',
   search_failed:'Could not search your Fibonax. Try again.',
   sources_read_failed:'Could not read the matching items. Try again.'
 };
@@ -14065,8 +14087,30 @@ function askValid(b){
     &&typeof b.answer==='string'&&typeof b.missing==='string'&&typeof b.conflicts==='string'
     &&Array.isArray(b.sources);
 }
+/* Contextual replies: reply and questions are read when present, so an answer
+   from a function deployed before them still reads as one answer. */
+function askQuestions(b){
+  var list=Array.isArray(b.questions)?b.questions:[];
+  return list.filter(function(q){
+    return q&&typeof q.question==='string'&&['full','partial','none'].indexOf(q.coverage)!==-1
+      &&Array.isArray(q.sources);
+  });
+}
+function askCoverageLabel(value){
+  for(var i=0;i<ASK_COVERAGE.length;i++){if(ASK_COVERAGE[i].value===value)return ASK_COVERAGE[i].label;}
+  return value;
+}
 function askPlain(answer){
   return String(answer||'').replace(/\s*\[S\d+\]/g,'').replace(/[ \t]+\n/g,'\n').trim();
+}
+/* Notes in square brackets the sender fills in before sending. */
+function askGaps(answer){
+  return (String(answer||'').match(/\[(?!S\d+\])[^[\]\n]{1,200}\]/g)||[]).length;
+}
+function askCiteHtml(ref){
+  var s=askSourceByRef(ref);
+  if(!s)return null;
+  return '<button type="button" class="ask-n" data-ask-src="'+esc(ref)+'" aria-label="Source '+esc(ref.slice(1))+': '+esc(s.title)+'">'+esc(ref.slice(1))+'</button>';
 }
 function askSourceByRef(ref){
   var src=askState&&askState.result?askState.result.sources:[];
@@ -14080,14 +14124,25 @@ function askDate(iso){
   var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return 'Updated '+d.getDate()+' '+M[d.getMonth()]+' '+d.getFullYear();
 }
-/* The answer with citation markers drawn as buttons. A marker naming a source
-   that was not sent stays as plain text, as on the dashboard. */
+/* The answer with citation markers drawn as buttons and gaps marked. A marker
+   naming a source that was not sent stays as plain text, as on the dashboard. */
 function askAnswerHtml(answer){
-  return esc(answer).replace(/\[(S\d+)\]/g,function(m,ref){
-    var s=askSourceByRef(ref);
-    if(!s)return m;
-    return '<button type="button" class="ask-n" data-ask-src="'+ref+'" aria-label="Source '+ref.slice(1)+': '+esc(s.title)+'">'+ref.slice(1)+'</button>';
+  return esc(answer).replace(/\[(S\d+)\]|\[([^[\]\n]{1,200})\]/g,function(m,ref){
+    if(!ref)return '<span class="ask-gap">'+m+'</span>';
+    return askCiteHtml(ref)||m;
   });
+}
+/* Every question found in a message, each with how far Fibonax answers it. */
+function askQuestionsHtml(qs){
+  var h='<div class="ask-src-h">'+qs.length+' questions found</div><ul class="ask-qs">';
+  qs.forEach(function(q){
+    var mark=q.coverage==='full'?'✓':q.coverage==='partial'?'◐':'!';
+    var cites=q.sources.map(function(ref){return askCiteHtml(ref)||'';}).join('');
+    h+='<li><span class="ask-qs-i '+q.coverage+'" aria-hidden="true">'+mark+'</span>'
+      +'<span class="ask-qs-tx"><span class="ask-qs-q">'+esc(q.question)+'</span>'
+      +'<span class="ask-qs-m">'+esc(askCoverageLabel(q.coverage))+cites+'</span></span></li>';
+  });
+  return h+'</ul>';
 }
 function renderAsk(){
   var body=document.getElementById('sb-ask-body');
@@ -14109,9 +14164,11 @@ function renderAsk(){
     return;
   }
   var answered=r.status==='answered';
+  var qs=askQuestions(r), listed=answered&&qs.length>=2, reply=answered&&r.reply===true;
   if(answered){
-    h+='<span class="ask-badge">✓ From your Fibonax</span>'
-      +'<div class="ask-answer">'+askAnswerHtml(r.answer)+'</div>';
+    h+='<span class="ask-badge">✓ From your Fibonax</span>';
+    if(listed)h+=askQuestionsHtml(qs)+'<div class="ask-src-h">'+(reply?'Reply':'Answer')+'</div>';
+    h+='<div class="ask-answer">'+askAnswerHtml(r.answer)+'</div>';
   }else{
     h+='<div class="ask-msg">Your Fibonax has related items, but none of them answers this.</div>';
   }
@@ -14127,7 +14184,7 @@ function renderAsk(){
       +'<span class="ask-src-m">'+meta+(d?' · '+d:'')+'</span></span></li>';
   });
   h+='</ul>';
-  if(answered)h+='<button type="button" class="ask-btn" data-ask-act="copy">Copy answer</button>';
+  if(answered)h+='<button type="button" class="ask-btn" data-ask-act="copy">'+(reply?'Copy reply':'Copy answer')+'</button>';
   h+='<div class="ask-fb-h">'+(askState.sent?'Feedback sent':'Was this right?')+'</div><div class="ask-fb">';
   ASK_VERDICTS.forEach(function(v){
     var on=askState.sent===v.value;
@@ -14199,7 +14256,7 @@ function askSendFeedback(verdict){
       method:'POST',
       headers:authHeaders({'Content-Type':'application/json','Prefer':'return=minimal'}),
       body:JSON.stringify({
-        question:st.question,
+        question:st.question.slice(0,ASK_FEEDBACK_MAX),
         answer:String(r.answer||'').slice(0,8000),
         verdict:verdict,
         sources:r.sources.map(function(s){return {kind:s.kind,id:s.id,title:s.title,space_id:s.space_id||null,used:!!s.used};}),
@@ -14257,7 +14314,10 @@ function askOpenSource(ref){
     var a=act.getAttribute('data-ask-act');
     if(a==='retry')runAsk();
     else if(a==='copy'&&askState.result){
-      copyText(askPlain(askState.result.answer),function(){showToast('Answer copied ✓');},function(){showToast('Could not copy. Select the text and copy it instead.');});
+      var res=askState.result, copied=res.reply===true?'Reply copied':'Answer copied';
+      copyText(askPlain(res.answer),function(){
+        showToast(askGaps(res.answer)>0?copied+'. Fill in the parts in brackets before you send it.':copied+' ✓');
+      },function(){showToast('Could not copy. Select the text and copy it instead.');});
     }
   });
   document.querySelectorAll('.ask-row').forEach(function(row){

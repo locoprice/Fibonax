@@ -8,6 +8,13 @@
 //   (as the caller) → Claude answers from those sources only → answer + the
 //   sources it cited
 //
+// A whole message works too (contextual replies): an email or a chat someone
+// received, asking several things. Each question in it is searched on its own
+// (questions.ts says why), the model names every question it finds, and the
+// answer becomes a reply that addresses each one in turn. A question the
+// sources do not answer gets a bracketed note in the reply saying what to add,
+// never an invented answer, and is marked as not covered.
+//
 // Three guarantees, each enforced here rather than trusted to the model:
 //
 // 1. Nothing is read with more rights than the caller has. Search and source
@@ -35,6 +42,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
 import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.110.0';
+import { mergeRanked, searchQueries } from './questions.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -45,14 +53,19 @@ const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
-/** Mirrors the knowledge_feedback question length check. */
-const MAX_QUESTION_CHARS = 1000;
+/** A whole message fits. Feedback keeps its first 1000 characters, the table's limit. */
+const MAX_QUESTION_CHARS = 4000;
 /** Below this there is nothing to search for. */
 const MIN_QUESTION_CHARS = 3;
 /** Candidates asked of the search; the gate inside it usually returns fewer. */
 const SEARCH_LIMIT = 8;
 /** Sources handed to the model. More dilutes the answer and the citations. */
 const MAX_SOURCES = 6;
+/** For a message searched question by question, so each question keeps its best. */
+const MAX_SOURCES_MESSAGE = 10;
+/** Questions returned to the client, and the length of each. */
+const MAX_QUESTIONS_OUT = 12;
+const MAX_QUESTION_TEXT = 300;
 /** Per source, so one long document cannot crowd out the rest. */
 const MAX_SOURCE_CHARS = 4000;
 /** Mirrors the knowledge_feedback answer length check. */
@@ -60,7 +73,15 @@ const MAX_ANSWER_CHARS = 8000;
 
 const SYSTEM_PROMPT = `You answer questions for a team at work using only their own company knowledge base, called Fibonax. The team could work in any field; take the subject from the sources and assume no industry.
 
-You receive a question and a numbered list of sources (S1, S2, ...). Each source is a snippet (a reusable approved text) or a Brain item (a stored note, fact or document) that the team wrote.
+You receive a text and a numbered list of sources (S1, S2, ...). Each source is a snippet (a reusable approved text) or a Brain item (a stored note, fact or document) that the team wrote.
+
+The text is either a question someone on the team asks, or a whole message they received (an email, a chat, a form) that may ask several things.
+
+Every question:
+- Find every question or request in the text, in the order asked, including ones written without a question mark ("let me know if...", "I also need..."). List each in "questions" as one short plain question in the text's language. A single question is a list of one. Greetings, thanks and background are not questions.
+- For each one, give its own coverage (full, partial or none, by the rules below) and the sources that answer it, in "used_sources".
+- If the text is a message the team received, set "reply" to true and write "answer" as a reply to its writer, ready to send: a short greeting if the message had one, then every question answered in the order asked, then a short closing. Do not sign it with a name. Address every question: where the sources do not answer one, put a short note in square brackets in its place saying what the sender must add, such as [Add: whether parking is available], and never answer it yourself. Write the reply in the message's language.
+- If the text is a question asked of Fibonax, set "reply" to false and answer it directly.
 
 Rules:
 - Answer only from the sources. Never add a company policy, rule, price, deadline, procedure or position that is not written in a source, even if it seems likely. General knowledge may only be used to phrase things clearly, never to fill a gap.
@@ -80,8 +101,22 @@ const OUTPUT_SCHEMA = {
     used_sources: { type: 'array', items: { type: 'string' } },
     missing: { type: 'string' },
     conflicts: { type: 'string' },
+    reply: { type: 'boolean' },
+    questions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          question: { type: 'string' },
+          coverage: { type: 'string', enum: ['full', 'partial', 'none'] },
+          used_sources: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['question', 'coverage', 'used_sources'],
+        additionalProperties: false,
+      },
+    },
   },
-  required: ['coverage', 'answer', 'used_sources', 'missing', 'conflicts'],
+  required: ['coverage', 'answer', 'used_sources', 'missing', 'conflicts', 'reply', 'questions'],
   additionalProperties: false,
 } as const;
 
@@ -124,6 +159,41 @@ interface Source {
 }
 
 type Status = 'answered' | 'not_covered' | 'no_sources';
+type Coverage = 'full' | 'partial' | 'none';
+
+/** One question found in the text, as the client receives it. */
+interface QuestionOut {
+  question: string;
+  coverage: Coverage;
+  /** The sources that answer it, as S numbers. Empty when not covered. */
+  sources: string[];
+}
+
+/**
+ * The model's question list, checked against the sources actually sent. A
+ * question that claims coverage but cites none of them is not covered, the
+ * same rule as for the whole answer. When the answer itself is withheld,
+ * nothing is covered.
+ */
+function shapeQuestions(value: unknown, known: Set<string>, answered: boolean): QuestionOut[] {
+  if (!Array.isArray(value)) return [];
+  const out: QuestionOut[] = [];
+  for (const entry of value.slice(0, MAX_QUESTIONS_OUT)) {
+    const row = (entry ?? {}) as { question?: unknown; coverage?: unknown; used_sources?: unknown };
+    const question = text(row.question).slice(0, MAX_QUESTION_TEXT);
+    if (question === '') continue;
+    const sources = [...new Set(
+      (Array.isArray(row.used_sources) ? row.used_sources : [])
+        .map((ref) => text(ref).toUpperCase())
+        .filter((ref) => known.has(ref)),
+    )];
+    const claimed = text(row.coverage);
+    const coverage: Coverage =
+      answered && sources.length > 0 && (claimed === 'full' || claimed === 'partial') ? claimed : 'none';
+    out.push({ question, coverage, sources: coverage === 'none' ? [] : sources });
+  }
+  return out;
+}
 
 function json(payload: unknown, status: number): Response {
   return new Response(JSON.stringify(payload), {
@@ -134,6 +204,20 @@ function json(payload: unknown, status: number): Response {
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+/** Nothing in Fibonax matched: said without asking a model. */
+function noSources() {
+  return {
+    ok: true,
+    status: 'no_sources' satisfies Status,
+    answer: '',
+    missing: '',
+    conflicts: '',
+    reply: false,
+    questions: [],
+    sources: [],
+  };
 }
 
 /** The answer once the caller has used up their AI calls (ai_call_allow). */
@@ -182,7 +266,7 @@ function buildUserMessage(question: string, sources: Source[]): string {
     const status = STATUS_WORDS[s.review_status] ?? 'approved';
     return `[${s.ref}] ${label}: ${s.title} (status: ${status}${updated})\n"""\n${s.body.slice(0, MAX_SOURCE_CHARS)}\n"""`;
   });
-  return `Question:\n"""\n${question}\n"""\n\nSources:\n\n${blocks.join('\n\n')}`;
+  return `Text:\n"""\n${question}\n"""\n\nSources:\n\n${blocks.join('\n\n')}`;
 }
 
 Deno.serve(async (req: Request) => {
@@ -226,23 +310,28 @@ Deno.serve(async (req: Request) => {
 
   // ── Retrieve: search as the caller ───────────────────────────────
   // knowledge_search is SECURITY INVOKER over a security_invoker view, so this
-  // returns only what the caller could already open.
-  const { data: hits, error: searchError } = await userClient.rpc('knowledge_search', {
-    p_query: question,
-    p_limit: SEARCH_LIMIT,
-  });
+  // returns only what the caller could already open. A message is searched
+  // question by question, then as a whole (questions.ts); one question is
+  // searched once.
+  const queries = searchQueries(question);
+  const searches = await Promise.all(
+    queries.map((query) => userClient.rpc('knowledge_search', { p_query: query, p_limit: SEARCH_LIMIT })),
+  );
+  const searchError = searches.find((s) => s.error)?.error;
   if (searchError) {
     return json({ error: 'search_failed', detail: searchError.message }, 500);
   }
 
   // rank 0 is the browse fallback (no content words in the question), not a
   // match. A recency listing is not evidence for an answer.
-  const ranked = ((hits ?? []) as SearchRow[])
-    .filter((h) => h.rank > 0 && (h.kind === 'snippet' || h.kind === 'memory'))
-    .slice(0, MAX_SOURCES);
+  const ranked = mergeRanked(
+    searches.map((s) => ((s.data ?? []) as SearchRow[])
+      .filter((h) => h.rank > 0 && (h.kind === 'snippet' || h.kind === 'memory'))),
+    queries.length > 1 ? MAX_SOURCES_MESSAGE : MAX_SOURCES,
+  );
 
   if (ranked.length === 0) {
-    return json({ ok: true, status: 'no_sources' satisfies Status, answer: '', missing: '', conflicts: '', sources: [] }, 200);
+    return json(noSources(), 200);
   }
 
   // ── Read the sources, as the caller ──────────────────────────────
@@ -300,7 +389,7 @@ Deno.serve(async (req: Request) => {
   }));
 
   if (sources.length === 0) {
-    return json({ ok: true, status: 'no_sources' satisfies Status, answer: '', missing: '', conflicts: '', sources: [] }, 200);
+    return json(noSources(), 200);
   }
 
   if (!ANTHROPIC_API_KEY) {
@@ -348,6 +437,8 @@ Deno.serve(async (req: Request) => {
         answer: '',
         missing: '',
         conflicts: '',
+        reply: false,
+        questions: [],
         sources: sources.map((s) => publicSource(s, false)),
       }, 200);
     }
@@ -365,7 +456,10 @@ Deno.serve(async (req: Request) => {
   // ── Shape the reply ──────────────────────────────────────────────
   // Structured outputs guarantee the schema, not the semantics: citations are
   // checked against the sources actually sent.
-  let parsed: { coverage?: unknown; answer?: unknown; used_sources?: unknown; missing?: unknown; conflicts?: unknown };
+  let parsed: {
+    coverage?: unknown; answer?: unknown; used_sources?: unknown; missing?: unknown; conflicts?: unknown;
+    reply?: unknown; questions?: unknown;
+  };
   try {
     parsed = JSON.parse(raw);
   } catch {
@@ -393,6 +487,8 @@ Deno.serve(async (req: Request) => {
     answer: answered ? answer : '',
     missing: text(parsed.missing),
     conflicts: text(parsed.conflicts),
+    reply: answered && parsed.reply === true,
+    questions: shapeQuestions(parsed.questions, known, answered),
     sources: sources.map((s) => publicSource(s, used.has(s.ref))),
   }, 200);
 });
