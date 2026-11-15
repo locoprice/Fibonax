@@ -245,7 +245,8 @@ console.log('OK Step mode is still off, and off deliberately');
 // A long form says how far along it is, counted once here and drawn by every
 // surface. Under the threshold nothing shows. A field counts once it holds an
 // answer the text can use: spaces alone do not, a number that is not one does
-// not, and a date that opened on today does from the start.
+// not. A box that opens with an answer already in it (a default, a date on
+// today) is left out of the count, so the line starts at zero and can finish.
 if (typeof ff.progress !== 'function' || ff.PROGRESS_THRESHOLD !== 5) {
   fail('the progress line is no longer decided here, or its threshold moved from 5 fields');
 }
@@ -258,12 +259,30 @@ if (!fiveFields.progress.show || fiveFields.progress.total !== 5 || fiveFields.p
 }
 const partWay = ff.fillForm('{F1}{F2}{F3}{F4}{formtext: name=N; type=number}{formdate: name=D}',
   { F1: 'Ada', F2: '   ', N: 'abc' }, opt());
-if (partWay.progress.done !== 2 || partWay.progress.total !== 6 || partWay.progress.percent !== 33 ||
-    partWay.progress.label !== '2 of 6 filled in') {
-  fail('progress counted ' + JSON.stringify(partWay.progress) + ': expected the typed name and the date on today, not spaces or a bad number');
+if (partWay.progress.done !== 1 || partWay.progress.total !== 5 || partWay.progress.percent !== 20 ||
+    partWay.progress.label !== '1 of 5 filled in') {
+  fail('progress counted ' + JSON.stringify(partWay.progress) + ': expected the typed name out of the five boxes that open empty, not spaces, a bad number or the date on today');
 }
-if (JSON.stringify(partWay.progress.filled) !== '[true,false,false,false,false,true]') {
-  fail('the dots on the progress line read ' + JSON.stringify(partWay.progress.filled) + ', expected one per field, on for the name and the date');
+if (JSON.stringify(partWay.progress.filled) !== '[true,false,false,false,false]') {
+  fail('the dots on the progress line read ' + JSON.stringify(partWay.progress.filled) + ', expected one per box that opens empty, on for the name');
+}
+const PREFILLED = '{formtext: name=P1; default=a}{formtext: name=P2; default=b}{formtext: name=P3; type=number; default=3}{formdate: name=P4}{E1}{E2}{E3}';
+const opensZero = ff.fillForm(PREFILLED, {}, opt());
+if (!opensZero.progress.show || opensZero.progress.done !== 0 || opensZero.progress.total !== 3 ||
+    opensZero.progress.label !== '0 of 3 filled in') {
+  fail('a form with pre-filled answers opens on ' + JSON.stringify(opensZero.progress) + ', expected 0 of 3: only the boxes that open empty count');
+}
+const defaultEdited = ff.fillForm(PREFILLED, { P1: 'changed', P2: '', E1: 'x' }, opt());
+if (defaultEdited.progress.done !== 1 || defaultEdited.progress.total !== 3) {
+  fail('editing or clearing a pre-filled answer moved the progress line: ' + JSON.stringify(defaultEdited.progress));
+}
+const prefilledDone = ff.fillForm(PREFILLED, { E1: 'x', E2: 'y', E3: 'z' }, opt());
+if (prefilledDone.progress.percent !== 100 || prefilledDone.progress.label !== 'All 3 filled in') {
+  fail('a form with pre-filled answers cannot finish: ' + JSON.stringify(prefilledDone.progress));
+}
+const allPrefilled = ff.fillForm('{formtext: name=P1; default=a}{formtext: name=P2; default=b}{formtext: name=P3; default=c}{formtext: name=P4; default=d}{formdate: name=P5}', {}, opt());
+if (allPrefilled.progress.show || allPrefilled.progress.total !== 0) {
+  fail('a form with nothing left to fill shows the progress line: ' + JSON.stringify(allPrefilled.progress));
 }
 const allDone = ff.fillForm('{F1}{F2}{F3}{F4}{F5}', { F1: 'a', F2: 'b', F3: 'c', F4: 'd', F5: 'e' }, opt());
 if (allDone.progress.percent !== 100 || allDone.progress.label !== 'All 5 filled in') {

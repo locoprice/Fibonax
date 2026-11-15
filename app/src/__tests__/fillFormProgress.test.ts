@@ -62,11 +62,41 @@ describe('progress, as fill-form.js counts it', () => {
     });
   });
 
-  it('counts an answer the text can use, and a default from the start', () => {
+  it('counts an answer the text can use', () => {
     const body = '{F1}{F2}{F3}{F4}{formtext: name=N; type=number}{formdate: name=D}';
     const p = api.fillForm(body, { F1: 'Ada', F2: '  ', N: 'abc' }, { now: NOW }).progress;
-    expect([p.done, p.total, p.percent, p.label]).toEqual([2, 6, 33, '2 of 6 filled in']);
-    expect(p.filled).toEqual([true, false, false, false, false, true]);
+    expect([p.done, p.total, p.percent, p.label]).toEqual([1, 5, 20, '1 of 5 filled in']);
+    expect(p.filled).toEqual([true, false, false, false, false]);
+  });
+
+  describe('a form that opens with answers already in it', () => {
+    const PREFILLED =
+      '{formtext: name=P1; default=a}{formtext: name=P2; default=b}' +
+      '{formtext: name=P3; type=number; default=3}{formdate: name=P4}{E1}{E2}{E3}';
+
+    it('opens at zero, counting only the boxes that open empty', () => {
+      expect(api.fillForm(PREFILLED, {}, { now: NOW }).progress).toEqual({
+        show: true, done: 0, total: 3, percent: 0, label: '0 of 3 filled in', filled: [false, false, false],
+      });
+    });
+
+    it('does not move when a pre-filled answer is changed or cleared', () => {
+      const p = api.fillForm(PREFILLED, { P1: 'changed', P2: '', P4: '2026-09-01', E1: 'x' }, { now: NOW }).progress;
+      expect([p.done, p.total, p.label]).toEqual([1, 3, '1 of 3 filled in']);
+    });
+
+    it('can finish', () => {
+      const p = api.fillForm(PREFILLED, { E1: 'x', E2: 'y', E3: 'z' }, { now: NOW }).progress;
+      expect([p.percent, p.label]).toEqual([100, 'All 3 filled in']);
+    });
+
+    it('shows no line when nothing opens empty', () => {
+      const body =
+        '{formtext: name=P1; default=a}{formtext: name=P2; default=b}{formtext: name=P3; default=c}' +
+        '{formtext: name=P4; default=d}{formdate: name=P5}';
+      const p = api.fillForm(body, {}, { now: NOW }).progress;
+      expect([p.show, p.total]).toEqual([false, 0]);
+    });
   });
 
   it('says so when every field is filled', () => {

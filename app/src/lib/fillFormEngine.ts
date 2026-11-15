@@ -155,11 +155,11 @@ export type SbPictureTextKey = 'left-out' | 'left-out-done' | 'copy' | 'share' |
  * surfaces never disagree about what is left to do.
  */
 export interface SbFillProgress {
-  /** Whether the form is long enough to carry the line (PROGRESS_THRESHOLD fields or more). */
+  /** Whether the form carries the line: PROGRESS_THRESHOLD fields or more, and at least one that opens empty. */
   show: boolean;
-  /** Fields holding an answer the text can use. */
+  /** Counted fields holding an answer the text can use. */
   done: number;
-  /** Fields on the form. */
+  /** Fields that open empty. One that opens with an answer in it (a default, a date on today) is not counted. */
   total: number;
   /** `done` over `total`, 0 to 100. */
   percent: number;

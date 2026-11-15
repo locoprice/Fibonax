@@ -3062,12 +3062,19 @@ svg.brain-type-icon{stroke-width:1.8}
   // four cannot disagree about what is left to do. A field counts once it
   // holds an answer the text can use: something in the box and nothing wrong
   // with it (a number that is not one, a closing date before its opening one,
-  // an Other choice with an empty box). A date that opened on today counts
-  // from the start, which is honest: it is an answer, and the person may well
-  // leave it. A field that is not visible is not counted at all.
+  // an Other choice with an empty box). A field that is not visible is not
+  // counted at all.
   //
-  // Nothing shows under the threshold. A short form is read at a glance, and
-  // a line over three boxes is decoration.
+  // Neither is a box that opens with an answer already in it: a default the
+  // author wrote, a date or a time that opens on now. Counting those made a
+  // form look mostly done before anyone had typed, and counting them only
+  // once changed would leave a form with good defaults unable to finish. So
+  // the line is about the boxes that open empty, the ones that need the
+  // person: it starts at zero and it can always reach the end.
+  //
+  // Nothing shows under the threshold, which reads the length of the form:
+  // a short form is read at a glance, and a line over three boxes is
+  // decoration. Nothing shows either when no box opens empty.
   var PROGRESS_THRESHOLD = 5;
 
   /**
@@ -3082,10 +3089,12 @@ svg.brain-type-icon{stroke-width:1.8}
    */
   function progress(fields) {
     var list = Array.isArray(fields) ? fields : [];
-    var total = 0, done = 0, filled = [];
+    var total = 0, done = 0, shown = 0, filled = [];
     for (var i = 0; i < list.length; i++) {
       var f = list[i];
       if (!f || f.visible === false) continue;
+      shown++;
+      if (trim(f['default']) !== '') continue;
       total++;
       var ok = trim(f.value) !== '' && !f.error;
       filled.push(ok);
@@ -3093,7 +3102,7 @@ svg.brain-type-icon{stroke-width:1.8}
     }
     var all = total > 0 && done === total;
     return {
-      show: total >= PROGRESS_THRESHOLD,
+      show: shown >= PROGRESS_THRESHOLD && total > 0,
       done: done,
       total: total,
       percent: total ? Math.round(done / total * 100) : 0,
