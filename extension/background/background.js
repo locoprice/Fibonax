@@ -6,6 +6,8 @@ importScripts('../shared/memory-pack.js');
 importScripts('../shared/focus-timer.js');
 // What usually comes next after a snippet (sbRefreshNext below).
 importScripts('../shared/usage-analytics.js');
+// The prompt menu's list, as it is cached (refreshPromptCache below).
+importScripts('../shared/prompt-cache.js');
 
 var SUPA_URL = SB_SUPA_URL;
 
@@ -1118,6 +1120,31 @@ function initMenus() {
         sbRefreshNext(data.snippets);
       }
     });
+    refreshPromptCache();
+  });
+}
+
+// ── PROMPT CACHE ───────────────────────────────────────────────────
+// The """ menu reads the person's prompts from chrome.storage.local.sb_prompts.
+// The popup was its only writer, so a prompt created on the dashboard reached
+// the menu only after the popup had been opened. The worker now fills it on
+// every refresh, beside the snippets, through the mapping the popup uses
+// (shared/prompt-cache.js).
+//
+// supaFetchAll, not supaFetch: a read that fails must leave the list as it
+// was. supaFetch answers [] on any failure, and writing that would empty the
+// menu until the next refresh that worked.
+function refreshPromptCache() {
+  supaFetchAll('prompts', SBPromptCache.QUERY).then(function(rows) {
+    var patch = {};
+    patch[SBPromptCache.KEY] = SBPromptCache.toRows(rows);
+    chrome.storage.local.set(patch, function() {
+      if (chrome.runtime.lastError) {
+        console.warn('[Fibonax] prompt cache write:', chrome.runtime.lastError.message);
+      }
+    });
+  }, function(err) {
+    console.warn('[Fibonax] prompt cache refresh:', err && err.message);
   });
 }
 
@@ -1485,6 +1512,11 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
 // to expand a snippet), throttled so we don't refetch on every flick between
 // tabs. The 5-minute alarm above is the periodic backstop.
 var MENU_REFRESH_MIN_MS = 10000;
+// A trigger typed on a page asks for a refresh too (content.js,
+// _askLibraryRefresh): that is the moment a stale copy shows, as a snippet or
+// a prompt saved a minute ago that is missing from the menu. A shorter wait
+// than a tab switch, because here someone is looking at the list.
+var TRIGGER_REFRESH_MIN_MS = 3000;
 function forceRefreshMenus() {
   chrome.storage.local.set({ sb_menu_last_refresh: Date.now() });
   initMenus();
@@ -1495,10 +1527,11 @@ function forceRefreshMenus() {
   // alarm and on tab-switch / window-focus (throttled) — see call sites.
   sbRefreshActionIcon();
 }
-function maybeRefreshMenus() {
+function maybeRefreshMenus(minMs) {
+  var wait = typeof minMs === 'number' ? minMs : MENU_REFRESH_MIN_MS;
   chrome.storage.local.get('sb_menu_last_refresh', function(d) {
     var last = (d && d.sb_menu_last_refresh) ? d.sb_menu_last_refresh : 0;
-    if (Date.now() - last < MENU_REFRESH_MIN_MS) return;
+    if (Date.now() - last < wait) return;
     forceRefreshMenus();
   });
 }
@@ -1511,6 +1544,12 @@ chrome.windows.onFocusChanged.addListener(function(winId) {
 chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   if (msg && msg.type === 'REFRESH_MENUS') {
     initMenus();
+    sendResponse({ ok: true });
+  }
+  // A trigger was typed on a page: bring the copy up to date now, unless it
+  // was refreshed a moment ago.
+  if (msg && msg.type === 'SB_LIBRARY_REFRESH') {
+    maybeRefreshMenus(TRIGGER_REFRESH_MIN_MS);
     sendResponse({ ok: true });
   }
   // No `return true`: the response above is synchronous. Returning true kept the

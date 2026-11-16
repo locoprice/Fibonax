@@ -367,20 +367,13 @@ function syncSnippets(){
 
 // Push the dashboard Prompt List to chrome.storage.local so the content
 // script's """ picker can merge it with its built-in Base Prompts. Mirrors
-// syncSnippets(); maps the public.prompts row shape to the picker's item shape
-// (name -> title, content -> body).
+// syncSnippets(). The row shape is decided in shared/prompt-cache.js, which the
+// service worker writes through too, on its own refreshes.
 function syncPrompts(){
   try{
-    var mapped = (prompts||[]).map(function(p){
-      return {
-        id: p.id,
-        title: p.name || 'Untitled',
-        body: p.content || '',
-        shortcut: p.shortcut || '',
-        review_status: p.review_status || 'approved'
-      };
-    });
-    chrome.storage.local.set({sb_prompts:mapped}, function(){
+    var patch = {};
+    patch[SBPromptCache.KEY] = SBPromptCache.toRows(prompts);
+    chrome.storage.local.set(patch, function(){
       if(chrome.runtime.lastError) console.error('syncPrompts local:', chrome.runtime.lastError.message);
     });
   }catch(e){ console.error('syncPrompts:',e); }
