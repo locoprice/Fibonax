@@ -2358,7 +2358,7 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <div class="sb-field-group">
       <label for="sb-edit-title" class="sb-field-label">Name</label>
-      <input type="text" id="sb-edit-title" autocomplete="off" autocorrect="off" autocapitalize="sentences" enterkeyhint="done" spellcheck="false">
+      <input type="text" id="sb-edit-title" autocomplete="off" autocorrect="off" autocapitalize="characters" enterkeyhint="done" spellcheck="false">
     </div>
     <div class="sb-field-group">
       <label for="sb-edit-folder-btn" class="sb-field-label">Folder</label>
@@ -2396,7 +2396,7 @@ svg.brain-type-icon{stroke-width:1.8}
     <div class="sb-field-split">
       <div class="sb-field-group">
         <label for="sb-mem-name" class="sb-field-label">Name</label>
-        <input type="text" id="sb-mem-name" maxlength="64" placeholder="house-style" autocomplete="off" autocorrect="off" spellcheck="false">
+        <input type="text" id="sb-mem-name" maxlength="64" placeholder="HOUSE-STYLE" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
       </div>
       <div class="sb-field-group sb-mem-add-only">
         <label for="sb-mem-kind" class="sb-field-label">Kind</label>
@@ -11571,9 +11571,38 @@ var MEM_WARN_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18
 function spaceIcon(ico){
   return Object.prototype.hasOwnProperty.call(SPACE_ICON_SVGS,ico)?SPACE_ICON_SVGS[ico]:SPACE_ICON_SVGS.brain;
 }
+/* A name is written in capital letters, with no emoji: the rule of
+   app/src/lib/nameText.ts (sanitizeName), for a snippet, a prompt and a Brain
+   item alike. It governs what goes into a name box, never a name already
+   saved. */
 function memCleanName(v){
   var s=String(v==null?'':v);
-  return MEM_NAME_EMOJI?s.replace(MEM_NAME_EMOJI,''):s;
+  return (MEM_NAME_EMOJI?s.replace(MEM_NAME_EMOJI,''):s).toUpperCase();
+}
+/* Keeps a name box in capitals while it is typed in. The caret goes back where
+   it was, counted in cleaned text: a box whose value is replaced puts it at
+   the end, and the next letter typed mid-name would land there. A phone
+   keyboard that suggests words is still composing the word in hand, and
+   rewriting the box under it garbles the word, so the box is left alone until
+   the keyboard lets go of it. */
+function memWatchName(box){
+  function clean(){
+    var raw=box.value,out=memCleanName(raw);
+    if(out===raw)return;
+    var at=memCleanName(raw.slice(0,box.selectionStart==null?raw.length:box.selectionStart)).length;
+    box.value=out;
+    box.setSelectionRange(at,at);
+  }
+  box.addEventListener('input',function(e){if(!e.isComposing)clean();});
+  box.addEventListener('compositionend',clean);
+}
+/* The name a save sends. One the person did not touch goes back letter for
+   letter: a name saved before names were capitals is theirs to keep. Anything
+   else is cleaned once more, which also covers a keyboard still composing a
+   word when Save is tapped. */
+function memNameToSave(box,saved){
+  var raw=box.value.trim();
+  return raw===String(saved==null?'':saved).trim()?raw:memCleanName(raw).trim();
 }
 function memPlural(n,one,many){return n+' '+(n===1?one:many);}
 /* The dashboard's words for a Brain's size: "Empty", "1 item", "12 items". */
@@ -12220,7 +12249,7 @@ function memEditorDisplay(){
 function saveMemAdd(){
   if(memAddSaving)return;
   var bid=document.getElementById('sb-mem-brain').value;
-  var name=memCleanName(document.getElementById('sb-mem-name').value).trim();
+  var name=memNameToSave(document.getElementById('sb-mem-name'),memEditItem?memEditItem.name:null);
   var summary=document.getElementById('sb-mem-summary').value.trim();
   var body=document.getElementById('sb-mem-body').value;
   var kind=document.getElementById('sb-mem-kind').value;
@@ -12274,10 +12303,7 @@ function saveMemAdd(){
   });
 }
 (function(){
-  document.getElementById('sb-mem-name').addEventListener('input',function(){
-    var clean=memCleanName(this.value);
-    if(clean!==this.value)this.value=clean;
-  });
+  memWatchName(document.getElementById('sb-mem-name'));
   document.getElementById('sb-mem-body').addEventListener('input',memAddCount);
   document.getElementById('sb-mem-save').addEventListener('click',function(e){
     e.stopPropagation();
@@ -14984,7 +15010,7 @@ function openPromptEdit(p){
 }
 /* What the window holds now, in the shape it was opened with. */
 function editValues(){
-  var out={title:document.getElementById('sb-edit-title').value.trim(),folder_id:editFolderId,blocks:null};
+  var out={title:memNameToSave(document.getElementById('sb-edit-title'),editOriginal?editOriginal.title:null),folder_id:editFolderId,blocks:null};
   if(editKind==='snippet'){out.body=editReadRich();return out;}
   if(editOriginal&&editOriginal.blocks){
     out.blocks=editOriginal.blocks.slice();
@@ -15237,6 +15263,7 @@ document.getElementById('sb-modal-cancel').addEventListener('click',function(e){
   if(isDirty()&&!confirm('Discard changes?'))return;
   closeEditModal();
 });
+memWatchName(document.getElementById('sb-edit-title'));
 document.getElementById('sb-edit-rich').addEventListener('input',function(){editTailBreak();editWatchChips();});
 document.getElementById('sb-edit-modal').addEventListener('input',function(e){
   if(e.target.tagName==='TEXTAREA')editGrow(e.target);

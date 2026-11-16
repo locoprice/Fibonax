@@ -42,7 +42,7 @@ export interface SnippetsApi {
    * nothing be written.
    */
   setCheckUnfinished(id: string, on: boolean): Promise<SnippetRow>;
-  /** Insert a copy of an existing snippet with a "(copy)" name suffix. */
+  /** Insert a copy of an existing snippet with a "(COPY)" name suffix: names are in capitals. */
   duplicateSnippet(id: string): Promise<SnippetRow>;
   createFolder(payload: FolderFormValues): Promise<Folder>;
   updateFolder(id: string, patch: Partial<FolderFormValues>): Promise<Folder>;
@@ -506,7 +506,7 @@ export const snippetsApi: SnippetsApi = {
     const insert = {
       id: crypto.randomUUID(),
       user_id: userId,
-      title: `${source.title} (copy)`,
+      title: `${source.title} (COPY)`,
       shortcut: `${source.shortcut}_copy`,
       body: source.body,
       bodies: source.bodies ?? {},

@@ -63,7 +63,7 @@ import type {
 } from '@/types/database';
 import type { PromptFormValues } from '@/types/schemas';
 import type { ClassificationResult } from '@/lib/intentEngine';
-import { sanitizeName } from '@/lib/nameText';
+import { nameFromEvent, sanitizeName } from '@/lib/nameText';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -593,7 +593,7 @@ export function PromptBlockEditor() {
       // the saved text, unsaved. The shortcut, folder and labels stay its own.
       const handed = useDraftStore.getState().take('prompt', editingPrompt.id);
       if (handed?.kind === 'prompt') {
-        setName(handed.draft.name);
+        setName(sanitizeName(handed.draft.name));
         setBlocks((prev) => withBrainKept(promptDraftBlocks(handed.draft), prev));
         setDraftNotice({ mode: 'update', changes: handed.changes, text: '', similar: [] });
       }
@@ -601,7 +601,7 @@ export function PromptBlockEditor() {
       // A prompt joined from the Suggestions on Analytics opens here, unsaved.
       // Closing the editor clears the seed, so the next New prompt starts empty.
       const seed = useUiStore.getState().newPromptSeed;
-      setName(seed ? seed.name : '');
+      setName(seed ? sanitizeName(seed.name) : '');
       setShortcut('');
       setBlocks(seed ? seed.blocks : DEFAULT_BLOCKS);
       setStrategyType(null);
@@ -676,7 +676,7 @@ export function PromptBlockEditor() {
   function applyDraft(result: DraftResult, text: string) {
     if (result.kind !== 'prompt') return;
     const { draft } = result;
-    setName(draft.name);
+    setName(sanitizeName(draft.name));
     setShortcut(
       draft.shortcut ? uniqueToken(draft.shortcut, prompts.map((p) => p.shortcut ?? '')) : '',
     );
@@ -792,7 +792,7 @@ export function PromptBlockEditor() {
   }
 
   function loadExample() {
-    setName(EXAMPLE_PROMPT.name);
+    setName(sanitizeName(EXAMPLE_PROMPT.name));
     setBlocks((prev) => withBrainKept(EXAMPLE_PROMPT.blocks.map((b) => ({ ...b })), prev));
     setStrategyType(EXAMPLE_PROMPT.strategyType);
     setPreferredModel(EXAMPLE_PROMPT.preferredModel);
@@ -934,9 +934,11 @@ export function PromptBlockEditor() {
             type="text"
             value={name}
             onChange={(e) => {
-              setName(sanitizeName(e.target.value));
+              setName(nameFromEvent(e));
               if (nameError) setNameError(null);
             }}
+            onCompositionEnd={(e) => setName(nameFromEvent(e))}
+            autoCapitalize="characters"
             placeholder="Prompt name…"
             className="w-full bg-transparent text-sm font-semibold text-[#F5F5FA] placeholder:text-[#7A7A85] focus:outline-none"
           />
