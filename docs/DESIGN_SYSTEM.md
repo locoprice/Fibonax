@@ -605,6 +605,7 @@ The extension's Add context panel (`extension/content/memory-picker.js`, drawn i
 | --- | --- |
 | Choice | **Prompts**, **Brains**, **Both**: one track (`#F2F2F7`, 8 px radius, 2 px inset) of three equal 26 px parts. The chosen part is a raised white pill (6 px radius, a 1 px shadow) in bold `primary`; the others are medium `#3A3A3C`. A radio group: the arrow keys move the choice, focus shows a 2 px `primary` ring. The choice never rests on colour alone |
 | Search box | 30 px, 1 px `line` border, 8 px radius, 13 px text; `primary` border with a 2 px `primary-bdr` ring when focused. Its placeholder names what the choice searches |
+| Usually with | A Brain item ticked because it usually goes in with a prompt carries a pill beside its **Brain** tag: `primary` on `primary-bg`, 9 px bold, `r-pill`, reading **Usually with** and the prompt's name, cut with an ellipsis at 190 px, the full sentence on hover. The reason is in words, never in colour alone |
 | Height | 412 px at most (340 for title, list and footer as before, plus the two rows). While the panel is open the list keeps the tallest height it has had, so the search box never moves under the cursor |
 
 ### Settings page in the Analytics shell (v3.115.0)

@@ -4739,6 +4739,7 @@ function sbMemoryPreferredLangs(preferred) {
   // What the panel adds: 'prompt', 'brains' or 'both'. One choice for every
   // site, kept on this device like the budgets below.
   var MODE_KEY = 'sb_injector_mode';
+  var PAIRS_KEY = 'sb_injector_pairs';
 
   var picker = SBMemoryPicker.create({
     search: function(query, kinds, cb) {
@@ -4804,6 +4805,31 @@ function sbMemoryPreferredLangs(preferred) {
         patch[MODE_KEY] = mode;
         chrome.storage.local.set(patch);
       } catch(e) {}
+    },
+    // Usually added together: which Brain items went in beside which prompt.
+    // Ids and counts only, never a name or a word of text, and on this device
+    // only, like everything else here. A failure means no suggestion.
+    loadPairs: function(cb) {
+      try {
+        chrome.storage.local.get(PAIRS_KEY, function(d) {
+          cb((d && d[PAIRS_KEY]) || null);
+        });
+      } catch(e) { cb(null); }
+    },
+    savePairs: function(store) {
+      try {
+        var patch = {};
+        patch[PAIRS_KEY] = store;
+        chrome.storage.local.set(patch);
+      } catch(e) {}
+    },
+    // The Brain items a prompt usually goes in with, read by id when that
+    // prompt is ticked: what the list shows, never their text.
+    getFacts: function(ids, cb) {
+      ask('memory_facts', { ids: ids }, function(e, r) {
+        if (e) { cb(e); return; }
+        cb(null, r.rows || []);
+      });
     }
   });
   picker.mount();

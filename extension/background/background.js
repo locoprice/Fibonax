@@ -417,8 +417,44 @@ function knowledgeSearch(query, limit, kinds) {
   });
 }
 
+/**
+ * Brain items by id, as the Context panel lists them: name, summary and size,
+ * in the shape of a knowledge_search row, never the text. The panel asks for
+ * the items a prompt usually goes in with ("usually added together").
+ *
+ * Live items only, as everywhere else: a trashed or archived item is not
+ * suggested. The reader's own JWT, so RLS decides what comes back. Ids are
+ * checked against the uuid pattern before they reach the filter, and the list
+ * is short by design.
+ */
+function memoryFacts(ids) {
+  var wanted = (Array.isArray(ids) ? ids : []).map(String).filter(function(id) {
+    return MEMORY_ID_RE.test(id);
+  }).slice(0, 21);
+  if (!wanted.length) return Promise.resolve([]);
+  return supaFetch('memory_shards',
+    'select=id,name,summary,token_estimate,review_status&deleted_at=is.null&review_status=neq.archived' +
+    '&id=in.(' + wanted.join(',') + ')').then(function(rows) {
+    return (rows || []).map(function(row) {
+      return {
+        kind: 'memory', source_id: row.id, title: row.name, summary: row.summary || '',
+        tokens: row.token_estimate || 0, rank: 0, review_status: row.review_status
+      };
+    });
+  });
+}
+
 chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   if (!msg) return;
+
+  if (msg.type === 'memory_facts') {
+    memoryFacts(msg.ids).then(function(rows) {
+      try { sendResponse({ ok: true, rows: rows }); } catch(e) {}
+    }, function() {
+      try { sendResponse({ ok: false }); } catch(e) {}
+    });
+    return true;
+  }
 
   if (msg.type === 'knowledge_search') {
     knowledgeSearch(msg.query, msg.limit, msg.kinds).then(function(rows) {
