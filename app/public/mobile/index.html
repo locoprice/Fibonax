@@ -1412,6 +1412,30 @@ svg.brain-type-icon{stroke-width:1.8}
   background:var(--warn-bg);color:var(--warn-deep);
   font-size:12.5px;font-weight:600;line-height:1.45}
 .mbrain-warn svg{width:16px;height:16px;margin-top:1px}
+/* Under All Brains: why an AI's memory should stay small, and the prompt that
+   cleans it. Closed, it is one row; the words match the dashboard's tip. */
+.mclean{margin:0 16px 24px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r-card);box-shadow:var(--shadow-sm)}
+.mclean>summary{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 16px;
+  list-style:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mclean>summary::-webkit-details-marker{display:none}
+.mclean>summary:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:var(--r-card)}
+.mclean-ico{display:flex;align-items:center;justify-content:center;width:34px;height:34px;flex-shrink:0;
+  border-radius:var(--r-in);background:var(--primary-lt);color:var(--primary-copy)}
+.mclean-ico svg,.mclean-chev{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.mclean-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mclean-t strong{font-size:15px;color:var(--text)}
+.mclean-t small{font-size:13px;color:var(--text2);line-height:1.4}
+.mclean-chev{color:var(--text3);flex-shrink:0;transition:transform .2s}
+.mclean[open] .mclean-chev{transform:rotate(180deg)}
+.mclean-body{padding:0 16px 16px;border-top:1px solid var(--border)}
+.mclean-body p{margin:13px 0;font-size:14px;color:var(--text2);line-height:1.5}
+.mclean-body pre{margin:0 0 13px;padding:13px;white-space:pre-wrap;word-break:break-word;
+  font-family:inherit;font-size:13px;line-height:1.5;color:var(--text);
+  background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--r-in)}
+.mclean-body .mbrain-act{width:100%}
+@media(prefers-reduced-motion:reduce){.mclean-chev{transition:none}}
 /* Second line of an empty state: what to do about it. */
 .empty .empty-hint{margin-top:6px;font-size:13px;color:var(--text3)}
 .empty .spinner{margin:0 auto 14px}
@@ -1990,6 +2014,18 @@ svg.brain-type-icon{stroke-width:1.8}
     <div class="fhead" id="mem-head" hidden></div>
     <div class="msec"><span class="msec-t" id="mem-sec-t">All Brains</span><span class="msec-a" id="mem-meta" hidden></span></div>
     <div id="mem-list"></div>
+    <details class="mclean" id="mem-clean" hidden>
+      <summary>
+        <span class="mclean-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/><path d="M19 17v4M17 19h4"/></svg></span>
+        <span class="mclean-t"><strong>Keep your AI&#39;s memory small</strong><small>Clean it once in a while. Copy a prompt that does it for you.</small></span>
+        <svg class="mclean-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </summary>
+      <div class="mclean-body">
+        <p>The top layer of an AI&#39;s memory has to stay small. When it grows too big, the AI has too much to remember and starts to lose track. Once in a while, open the AI you use, paste this prompt and answer its questions.</p>
+        <pre id="mem-clean-prompt"></pre>
+        <button type="button" class="mbrain-act is-primary" id="mem-clean-copy"><span>Copy prompt</span></button>
+      </div>
+    </details>
 
     <!-- Page footer -->
     <div class="mpage-footer">
@@ -11760,6 +11796,20 @@ function memEmptyHtml(emo,title,hint){
   return '<div class="empty"><div class="emo">'+emo+'</div><p>'+esc(title)+'</p>'
     +(hint?'<p class="empty-hint">'+esc(hint)+'</p>':'')+'</div>';
 }
+/* The memory clean-up prompt, word for word the dashboard's
+   (app/src/features/memory/memoryCleanup.ts, held by memoryCleanup.test.ts). */
+var MEM_CLEANUP_PROMPT="Look at everything you remember about me.\n\nGoal: a short, correct memory.\n\n1. List every memory, one line each.\n2. Mark each one: KEEP, FIX (wrong or outdated) or DELETE (a one-off, or something you can find again in my chats).\n3. Ask me about anything you're not sure of, with clickable options.\n4. Then show me the cleaned version, under 30 lines, and tell me where to click to change it.\n\nReminder: a lighter memory is better, and it leaves you more room in the future.";
+(function(){
+  document.getElementById('mem-clean-prompt').textContent=MEM_CLEANUP_PROMPT;
+  var btn=document.getElementById('mem-clean-copy'), t;
+  btn.addEventListener('click',function(){
+    copyText(MEM_CLEANUP_PROMPT,function(){
+      btn.firstElementChild.textContent='Copied!';
+      clearTimeout(t);
+      t=setTimeout(function(){btn.firstElementChild.textContent='Copy prompt';},1800);
+    },memCopyFailed);
+  });
+})();
 /* Paste & save, in one place on All Brains and in every open Brain. */
 function memPasteActHtml(){
   return '<button type="button" class="mbrain-act is-wide" data-mem-act="paste">'
@@ -11805,6 +11855,7 @@ function renderMemory(){
   document.getElementById('memory-count-unit').textContent=n===1?'Brain':'Brains';
   var brain=curBrain?memBrainById(curBrain):null;
   renderMemHead(brain);
+  document.getElementById('mem-clean').hidden=!memLoaded||!!brain;
   document.getElementById('mem-sec-t').textContent=brain?'Contents':'All Brains';
   var meta=document.getElementById('mem-meta');
   meta.hidden=true;

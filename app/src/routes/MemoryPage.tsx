@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LibraryButton, LibraryDialog, LibraryEmptyActions } from '@/features/library/LibraryDialog';
 import { BrainFilters } from '@/features/memory/BrainFilters';
+import { MemoryCleanupTip } from '@/features/memory/MemoryCleanupTip';
 import { SpaceDialog } from '@/features/memory/SpaceDialog';
 import { SpaceIcon } from '@/features/memory/spaceIcon';
 import { TrashPanel, type TrashPanelRow } from '@/features/memory/TrashPanel';
@@ -290,6 +291,8 @@ export function MemoryPage() {
             })}
           </div>
         )}
+
+        {loaded ? <MemoryCleanupTip /> : null}
       </div>
 
       <SpaceDialog
