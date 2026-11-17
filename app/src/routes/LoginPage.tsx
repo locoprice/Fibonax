@@ -15,6 +15,8 @@ import { GoogleSignIn } from '@/components/auth/GoogleSignIn';
 import { AuthMethodTabs } from '@/components/auth/AuthMethodTabs';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { authErrorMessage } from '@/lib/authCallback';
+import { humanCheckMessage, humanToken } from '@/lib/humanCheck';
+import { HumanCheckSlot, useHumanCheck } from '@/components/auth/HumanCheckSlot';
 
 type LoginView = 'email' | 'sent' | 'password' | 'recovery' | 'recovery_sent';
 
@@ -38,6 +40,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(() =>
     authErrorMessage(params.get('error')),
   );
+  const humanCheck = useHumanCheck();
 
   useEffect(() => {
     void init();
@@ -94,14 +97,20 @@ export function LoginPage() {
     // opened in this same browser.
     setRememberMe(remember);
 
+    const captchaToken = await humanToken(humanCheck, setError);
+    if (!captchaToken) {
+      setLoading(false);
+      return;
+    }
+
     const { error: err } = await supabase.auth.signInWithOtp({
       email: trimmed,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback`, captchaToken },
     });
 
     if (err) {
       analytics.track('auth_failed', { method: 'magic_link', error: err.message });
-      setError(err.message);
+      setError(humanCheckMessage(err.message));
     } else {
       analytics.track('magic_link_sent', { email: trimmed });
       goTo('sent');
@@ -155,9 +164,16 @@ export function LoginPage() {
 
     setRememberMe(remember);
 
+    const captchaToken = await humanToken(humanCheck, setError);
+    if (!captchaToken) {
+      setLoading(false);
+      return;
+    }
+
     const { error: err } = await supabase.auth.signInWithPassword({
       email: trimmed,
       password,
+      options: { captchaToken },
     });
 
     if (err) {
@@ -165,7 +181,7 @@ export function LoginPage() {
       setError(
         err.message === 'Invalid login credentials'
           ? 'Incorrect email or password. Try an email magic link instead.'
-          : err.message,
+          : humanCheckMessage(err.message),
       );
       setLoading(false);
     } else {
@@ -193,15 +209,22 @@ export function LoginPage() {
 
     setRememberMe(true);
 
+    const captchaToken = await humanToken(humanCheck, setError);
+    if (!captchaToken) {
+      setLoading(false);
+      return;
+    }
+
     const { error: err } = await supabase.auth.signInWithOtp({
       email: trimmed,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(PASSWORD_SETTINGS_PATH)}`,
+        captchaToken,
       },
     });
 
     if (err) {
-      setError(err.message);
+      setError(humanCheckMessage(err.message));
     } else {
       goTo('recovery_sent');
     }
@@ -492,6 +515,8 @@ export function LoginPage() {
             </div>
           )}
         </div>
+
+        <HumanCheckSlot check={humanCheck} />
       </main>
     </div>
   );

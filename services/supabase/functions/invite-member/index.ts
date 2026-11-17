@@ -216,12 +216,14 @@ Deno.serve(async (req: Request) => {
 
   if (existingUserId) {
     // The account exists, so GoTrue's invite endpoint would reject it. A magic
-    // link signs them in and lands them on /invite. This anon client keeps the
-    // default implicit flow — no PKCE verifier, so the link is portable.
-    const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // link signs them in and lands them on /invite. This client keeps the
+    // default implicit flow (no PKCE verifier), so the link is portable. It
+    // carries the service key because GoTrue asks every sign-in email for a
+    // Cloudflare Turnstile token, and only an admin key is let through without.
+    const linkClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false },
     });
-    const { error } = await anonClient.auth.signInWithOtp({
+    const { error } = await linkClient.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
     });

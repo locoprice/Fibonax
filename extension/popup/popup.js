@@ -3474,98 +3474,30 @@ on('sq','paste', function(){ setTimeout(function(){
 },0); });
 
 // ── AUTH GATE (AUTH-EXT-001 phase A) ──────────────────────────────
-// OTP flow: pending state persists in chrome.storage.local under 'sb_otp_pending'
-// so closing the popup mid-flow (e.g. to fetch the code from Gmail) doesn't reset it.
-// Pending state expires after OTP_TTL_MS to avoid showing a stale code screen.
-var OTP_TTL_MS = 55 * 60 * 1000; // Supabase OTPs are valid for 60 min; bail at 55.
-
+// The extension signs in only through the dashboard (AUTH-EXT-002). Sign-in
+// emails and passwords are guarded by a Cloudflare Turnstile check, which a
+// Manifest V3 popup cannot load, so the old email-code box here was retired.
 var SB_DASHBOARD_LINK_URL = 'https://app.fibonax.com/extension-link';
 
 (function initAuthGate() {
   var gate    = document.getElementById('sb-auth');
-  var ssoPane = document.getElementById('sb-auth-sso');
   var ssoBtn  = document.getElementById('sb-auth-sso-btn');
-  var showOtp = document.getElementById('sb-auth-show-otp');
-  var hideOtp = document.getElementById('sb-auth-hide-otp');
-  var otpPane = document.getElementById('sb-auth-otp');
-  var emailEl = document.getElementById('sb-auth-email');
-  var codeEl  = document.getElementById('sb-auth-code');
-  var subEl   = document.getElementById('sb-auth-sub');
-  var primary = document.getElementById('sb-auth-primary');
-  var backEl  = document.getElementById('sb-auth-back');
-  var msgEl      = document.getElementById('sb-auth-msg');
-  var rememberEl = document.getElementById('sb-auth-remember');
-  var rememberRow = document.getElementById('sb-auth-remember-row');
-  if (!gate || !primary) return;
+  var msgEl   = document.getElementById('sb-auth-msg');
+  if (!gate || !ssoBtn) return;
 
-  var state = 'email'; // 'email' | 'code'
-  var pendingEmail = '';
   var booted = false;
 
-  function setPending(email) {
-    pendingEmail = email || '';
-    if (email) {
-      chrome.storage.local.set({ sb_otp_pending: { email: email, sentAt: Date.now() } });
-    } else {
-      chrome.storage.local.remove('sb_otp_pending');
-    }
-  }
-
-  function loadPending(cb) {
-    chrome.storage.local.get('sb_otp_pending', function(d) {
-      var p = d && d.sb_otp_pending;
-      if (p && p.email && p.sentAt && (Date.now() - p.sentAt) < OTP_TTL_MS) {
-        cb(p.email);
-      } else {
-        if (p) chrome.storage.local.remove('sb_otp_pending');
-        cb(null);
-      }
-    });
-  }
+  // A code box left half way by an older version has nothing to resume now.
+  chrome.storage.local.remove('sb_otp_pending');
 
   function setMsg(text, ok) {
     msgEl.textContent = text || '';
     msgEl.className = 'sb-auth-msg' + (ok ? ' ok' : '');
   }
 
-  function renderState() {
-    if (state === 'email') {
-      emailEl.style.display = '';
-      codeEl.style.display = 'none';
-      backEl.style.display = 'none';
-      if (rememberRow) rememberRow.style.display = 'flex';
-      primary.textContent = 'Send code';
-      subEl.textContent = "Enter your work email — we'll send a one-time code.";
-      setTimeout(function() { emailEl.focus(); }, 30);
-    } else {
-      emailEl.style.display = 'none';
-      codeEl.style.display = '';
-      backEl.style.display = '';
-      if (rememberRow) rememberRow.style.display = 'none';
-      primary.textContent = 'Verify';
-      subEl.textContent = 'Enter the code sent to ' + pendingEmail + '.';
-      setTimeout(function() { codeEl.focus(); }, 30);
-    }
-  }
-
   function showGate() {
     gate.classList.add('on');
-    emailEl.value = '';
-    codeEl.value = '';
     setMsg('');
-    // Resume pending OTP if one was issued recently and the popup was closed mid-flow.
-    loadPending(function(email) {
-      if (email) {
-        pendingEmail = email;
-        state = 'code';
-        renderState();
-        setMsg('Code sent earlier — paste the code from your inbox.', true);
-      } else {
-        pendingEmail = '';
-        state = 'email';
-        renderState();
-      }
-    });
   }
 
   function hideGate() {
@@ -3589,71 +3521,11 @@ var SB_DASHBOARD_LINK_URL = 'https://app.fibonax.com/extension-link';
     try { if (window.sbInitChatCapture) window.sbInitChatCapture(); } catch(e) {}
   }
 
-  primary.addEventListener('click', function() {
-    if (primary.disabled) return;
-    setMsg('');
-    if (state === 'email') {
-      var email = (emailEl.value || '').trim().toLowerCase();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setMsg('Enter a valid email'); return; }
-      primary.disabled = true;
-      primary.textContent = 'Sending…';
-      sbRequestOtp(email, function(err) {
-        primary.disabled = false;
-        primary.textContent = 'Send code';
-        if (err) { setMsg(err); return; }
-        setPending(email);
-        state = 'code';
-        renderState();
-        setMsg('Code sent — check your inbox.', true);
-      });
-    } else {
-      var code = (codeEl.value || '').trim();
-      if (!/^\d{6,10}$/.test(code)) { setMsg('Enter the code from your email'); return; }
-      primary.disabled = true;
-      primary.textContent = 'Verifying…';
-      if (!pendingEmail) { setMsg('Session lost — request a new code'); state = 'email'; renderState(); return; }
-      sbVerifyOtp(pendingEmail, code, rememberEl ? rememberEl.checked : true, function(err, session) {
-        primary.disabled = false;
-        primary.textContent = 'Verify';
-        if (err || !session) { setMsg(err || 'Invalid code'); return; }
-        setPending(null); // clear pending OTP — we're authed
-        hideGate();
-        bootOnce(session);
-      });
-    }
-  });
-
-  backEl.addEventListener('click', function() {
-    setPending(null);
-    state = 'email';
-    codeEl.value = '';
-    setMsg('');
-    renderState();
-  });
-
-  emailEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') primary.click(); });
-  codeEl.addEventListener('keydown',  function(e) { if (e.key === 'Enter') primary.click(); });
-
   // ── SSO via dashboard (AUTH-EXT-002) ────────────────────────────
-  function showSsoPane() {
-    if (ssoPane) ssoPane.style.display = 'flex';
-    if (otpPane) otpPane.style.display = 'none';
-    setMsg('');
-  }
-  function showOtpPane() {
-    if (ssoPane) ssoPane.style.display = 'none';
-    if (otpPane) otpPane.style.display = 'flex';
-    setMsg('');
-  }
-
-  if (ssoBtn) {
-    ssoBtn.addEventListener('click', function() {
-      try { chrome.tabs.create({ url: SB_DASHBOARD_LINK_URL }); } catch(e) { window.open(SB_DASHBOARD_LINK_URL, '_blank'); }
-      setMsg('Open the dashboard tab to confirm — popup will sign in automatically.', true);
-    });
-  }
-  if (showOtp) showOtp.addEventListener('click', showOtpPane);
-  if (hideOtp) hideOtp.addEventListener('click', showSsoPane);
+  ssoBtn.addEventListener('click', function() {
+    try { chrome.tabs.create({ url: SB_DASHBOARD_LINK_URL }); } catch(e) { window.open(SB_DASHBOARD_LINK_URL, '_blank'); }
+    setMsg('Finish signing in on the dashboard tab. This window signs in by itself.', true);
+  });
 
   // React to a session that arrives via SSO handoff (background.js stores it).
   chrome.storage.onChanged.addListener(function(changes, area) {
@@ -3677,7 +3549,7 @@ var SB_DASHBOARD_LINK_URL = 'https://app.fibonax.com/extension-link';
         if (!alive) window.sbSignOut();
       });
     }
-    else { showGate(); showSsoPane(); }
+    else { showGate(); }
   });
 
   // Expose a sign-out hook for the existing settings menu to call.

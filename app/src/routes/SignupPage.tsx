@@ -21,6 +21,8 @@ import {
   passwordErrorMessage,
   PASSWORD_MIN_LENGTH,
 } from '@/lib/passwordAuth';
+import { humanCheckMessage, humanToken } from '@/lib/humanCheck';
+import { HumanCheckSlot, useHumanCheck } from '@/components/auth/HumanCheckSlot';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -38,6 +40,7 @@ export function SignupPage() {
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const humanCheck = useHumanCheck();
 
   useEffect(() => {
     void init();
@@ -75,14 +78,20 @@ export function SignupPage() {
     // Signup has no remember-me checkbox — always persistent.
     setRememberMe(true);
 
+    const captchaToken = await humanToken(humanCheck, setError);
+    if (!captchaToken) {
+      setLoading(false);
+      return;
+    }
+
     const { error: err } = await supabase.auth.signInWithOtp({
       email: trimmed,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback`, captchaToken },
     });
 
     if (err) {
       analytics.track('auth_failed', { method: 'magic_link', error: err.message });
-      setError(err.message);
+      setError(humanCheckMessage(err.message));
     } else {
       analytics.track('magic_link_sent', { email: trimmed });
       setView('sent');
@@ -137,15 +146,21 @@ export function SignupPage() {
     // Signup has no remember-me checkbox, always persistent.
     setRememberMe(true);
 
+    const captchaToken = await humanToken(humanCheck, setError);
+    if (!captchaToken) {
+      setLoading(false);
+      return;
+    }
+
     const { data, error: err } = await supabase.auth.signUp({
       email: trimmed,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback`, captchaToken },
     });
 
     if (err) {
       analytics.track('auth_failed', { method: 'password', error: err.message });
-      setError(passwordErrorMessage(err));
+      setError(humanCheckMessage(passwordErrorMessage(err)));
     } else if (isExistingAccountSignup(data.user)) {
       setError(
         'This email already has an account. Sign in, then set a password in Settings → Security.',
@@ -395,6 +410,8 @@ export function SignupPage() {
           )}
 
         </div>
+
+        <HumanCheckSlot check={humanCheck} />
       </main>
     </div>
   );
