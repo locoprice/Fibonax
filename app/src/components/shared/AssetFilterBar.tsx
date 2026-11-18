@@ -86,6 +86,8 @@ FilterButton.displayName = 'FilterButton';
 
 interface FilterChipProps {
   label: string;
+  /** The label is a name a person gave (a folder): it is never translated. */
+  keepLabel?: boolean;
   /** Left out while it is not known yet, so a count never reads as an answer. */
   count?: number;
   icon?: ReactNode;
@@ -100,6 +102,7 @@ const CHIP_BASE =
 
 export function FilterChip({
   label,
+  keepLabel,
   count,
   icon,
   badge,
@@ -112,7 +115,7 @@ export function FilterChip({
   const content = (
     <>
       {icon}
-      <span className="max-w-[160px] truncate">{label}</span>
+      <span className="max-w-[160px] truncate" translate={keepLabel ? 'no' : undefined}>{label}</span>
       {badge}
       {count === undefined ? null : (
         <span

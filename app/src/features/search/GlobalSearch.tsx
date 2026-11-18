@@ -359,9 +359,9 @@ export function GlobalSearch() {
                             )}
                           >
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-ink">{hit.name}</p>
+                              <p className="truncate text-sm font-medium text-ink" translate="no">{hit.name}</p>
                               {hit.detail ? (
-                                <p className="truncate text-xs text-ink-subtle">{hit.detail}</p>
+                                <p className="truncate text-xs text-ink-subtle" translate="no">{hit.detail}</p>
                               ) : null}
                             </div>
                           </button>

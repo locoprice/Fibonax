@@ -779,6 +779,7 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
         aria-placeholder={placeholder}
         data-placeholder={placeholder}
         contentEditable={!disabled}
+        translate="no"
         suppressContentEditableWarning
         spellCheck
         onInput={(e) => handleInput((e.nativeEvent as InputEvent).isComposing)}

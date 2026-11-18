@@ -250,7 +250,7 @@ export function FolderShareModal({ folder, onClose, onShared }: FolderShareModal
             <Globe className="mt-px h-3.5 w-3.5 shrink-0 text-ink-subtle" />
             <span>
               This folder belongs to{' '}
-              <span className="font-semibold text-ink">{targetOrg.name}</span>, so it is shared
+              <span className="font-semibold text-ink" translate="no">{targetOrg.name}</span>, so it is shared
               there. A folder stays with one team.
             </span>
           </div>
@@ -478,14 +478,14 @@ function PrincipalRow({ selected, onSelect, avatar, title, subtitle, badge }: Pr
       {avatar}
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex items-center gap-1.5">
-          <span className="truncate text-sm font-medium text-ink">{title}</span>
+          <span className="truncate text-sm font-medium text-ink" translate="no">{title}</span>
           {badge && (
             <span className="shrink-0 rounded-full bg-bg-alt px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-subtle">
               {badge}
             </span>
           )}
         </span>
-        <span className="truncate text-[11px] text-ink-subtle">{subtitle}</span>
+        <span className="truncate text-[11px] text-ink-subtle" translate="no">{subtitle}</span>
       </span>
       {selected && <Check className="h-4 w-4 shrink-0 text-primary" />}
     </button>

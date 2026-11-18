@@ -633,3 +633,14 @@ No new tokens on any surface. The chip is the pricing page's: `primary` text on 
 - **Phone** (`#home-rate` in `app/public/mobile/index.html`): a pill at the foot of Home, after **Your Brains**: `card`, `border`, 24 px radius, 48 px tall, the rate at 14 px bold with the chip and a chevron. A tap opens it in place over 300 ms (`grid-template-rows`, not at all under `prefers-reduced-motion`): the rate at 55 px mono in `primary`, the example, the date, the disclaimer and a 48 px **See the packs** button, with gaps of 8 and 13 px. Once open it scrolls clear of the bottom bar. Below 350 px the chip drops under the rate.
 - **Landing homepage** (`.rate-pill`, `.rd-*`): a white pill (`card`, `border`, `r-pill`, 44 px) under "See the pricing page for allowances and rates" in the dark closing section; it opens a 520 px window (`card`, 4 px `primary` top edge, `r`, the contact window's backdrop and motion) with the same content and **See the packs**. On phones the window sits at the bottom of the screen. Escape and a click outside close it, Tab stays inside, focus returns to the pill.
 - **Pricing page**: the rate card gains a **Rate details** button (`r-pill`, `border`, `primary` text, 44 px) that opens the same window, taken from the homepage as the shared `rate`, `rate-css` and `rate-js` fragments; a click anywhere on the card does the same. There **See the packs** scrolls to the plans.
+
+### Language choice (2026-11)
+
+The globe in the dashboard's top bar, left of the theme switch, and the Language card in Settings > Account.
+
+| Part | Rule |
+|---|---|
+| Trigger | 32 px high, 10 px radius, 1 px `line` border on `bg-alt`, a 14 px globe and the language code in 12 px semibold (`EN`, `IT`); `ink-muted` in English, `primary` once another language is on. In Settings the same trigger shows the language's own name. While Google loads, the globe is a spinner |
+| Menu | 288 px wide, up to 420 px high, 12 px radius, `card` with a 1 px `line` border, under the trigger and right-aligned, above it when the room below is short |
+| List | Search box first. English ("Original") on top, then the browser's own languages, a hairline, then every language A to Z. Each row shows the language's own name with the English name in `ink-subtle` beside it; the chosen one is `primary` on `primary-light` with a check. Names are never translated |
+| Footer | 11 px `ink-subtle`: "Translated by Google. Your snippets, prompts and Brains stay as you wrote them." A failure shows above it in `danger` |

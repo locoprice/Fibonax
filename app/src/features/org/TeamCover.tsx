@@ -167,7 +167,7 @@ export function TeamCover() {
           {activeOrg ? (
             <TeamSwitcher name={orgName} />
           ) : (
-            <span className="text-2xl font-bold tracking-tight text-ink">{orgName}</span>
+            <span className="text-2xl font-bold tracking-tight text-ink" translate="no">{orgName}</span>
           )}
         </h1>
 

@@ -241,7 +241,7 @@ function LabelRow({ label, usage, depth }: LabelRowProps) {
         >
           <option value="">No parent</option>
           {eligibleParents.map((parent) => (
-            <option key={parent.id} value={parent.id}>
+            <option key={parent.id} value={parent.id} translate="no">
               {parent.name}
             </option>
           ))}
@@ -394,7 +394,7 @@ export function LabelManagerDialog() {
           >
             <option value="">No parent</option>
             {parentOptions.map((parent) => (
-              <option key={parent.id} value={parent.id}>
+              <option key={parent.id} value={parent.id} translate="no">
                 {parent.name}
               </option>
             ))}

@@ -70,6 +70,7 @@ const LANG_LABEL: Record<Snippet['language'], string> = {
 function LangPill({ lang }: { lang: Snippet['language'] }) {
   return (
     <span
+      translate="no"
       className={
         'inline-block rounded-md px-3 py-2 text-xs font-medium ' +
         LANG_STYLE[lang]
@@ -105,6 +106,7 @@ function LangSwitcher({
           <button
             key={lang}
             type="button"
+            translate="no"
             onClick={() => onSelect(lang)}
             aria-pressed={isActive}
             title={`Show ${LANG_LABEL[lang]} version`}
@@ -139,7 +141,7 @@ function ShortcutTag({ trigger }: { trigger: string }) {
     ? trigger.slice(snippetTrigger.length)
     : trigger;
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex items-center gap-1" translate="no">
       <code className="inline-flex items-center rounded-md bg-bg-alt px-2 py-0.5 font-mono text-xs font-semibold text-ink-muted">
         {snippetTrigger}
       </code>
@@ -503,7 +505,7 @@ export function SnippetsTable() {
                             aria-label="Pinned"
                           />
                         )}
-                        <span className="truncate">{displayName}</span>
+                        <span className="truncate" translate="no">{displayName}</span>
                         <ReviewStatusBadge status={row.review_status} />
                         {issue !== undefined ? (
                           <StatusBadge status="broken" detail={issue.message} />
@@ -547,18 +549,23 @@ export function SnippetsTable() {
                 <td className="px-3 py-3 2xl:px-5">
                   <ShortcutTag trigger={trigger} />
                 </td>
-                <td className="px-3 py-3 2xl:px-5 text-ink-muted">{row.folder_name ?? '—'}</td>
+                <td className="px-3 py-3 2xl:px-5 text-ink-muted" translate="no">{row.folder_name ?? '—'}</td>
                 <td
                   className="px-3 py-3 2xl:px-5 text-ink-muted"
                   title={`${updateScope}\n${attributionTitle(resolveUserName, row.user_id, row.updated_by, row.updated_at)}`}
                 >
                   <span className="block text-sm font-medium leading-5">Last edited on {format(new Date(row.updated_at), 'MMM d, yyyy')}</span>
                   <span className="block max-w-64 break-words text-xs leading-5">
-                    {updateScope}
-                    {lastEditor !== 'Unknown' && <> · by {lastEditor}</>}
+                    <span translate="no">{updateScope}</span>
+                    {lastEditor !== 'Unknown' && (
+                      <>
+                        <span translate="no"> · </span>by<span translate="no"> {lastEditor}</span>
+                      </>
+                    )}
                   </span>
                 </td>
                 <td
+                  translate="no"
                   className="px-3 py-3 2xl:px-5 text-right font-mono text-xs tabular-nums text-ink-muted"
                   title={
                     multiLang

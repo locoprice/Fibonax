@@ -54,7 +54,7 @@ export function OnboardingModal({ open, onClose }: Props): ReactElement | null {
         </div>
 
         {/* Animation */}
-        <div className="overflow-y-auto px-5 py-5">
+        <div className="overflow-y-auto px-5 py-5" translate="no">
           <OnboardingAnimation key={replayKey} />
         </div>
 

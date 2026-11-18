@@ -250,7 +250,7 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
                     </span>
                   ) : null}
                   <Icon className="h-3.5 w-3.5 shrink-0 text-ink-subtle" />
-                  <span className="min-w-0 flex-1 truncate text-sm text-ink">{source.title}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-ink" translate="no">{source.title}</span>
                   <ReviewStatusBadge status={source.review_status} />
                   <span className="shrink-0 text-[11px] text-ink-subtle">
                     {source.kind === 'snippet' ? 'Snippet' : 'Brain'}

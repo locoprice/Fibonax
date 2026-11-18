@@ -174,13 +174,14 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-primary-light text-primary">
             <PromptIcon className="h-4 w-4" />
           </div>
-          <h3 className="truncate text-sm font-semibold text-ink">{prompt.name}</h3>
+          <h3 className="truncate text-sm font-semibold text-ink" translate="no">{prompt.name}</h3>
           <ReviewStatusBadge status={prompt.review_status} />
           {status !== null && <StatusBadge status={status} detail={statusDetail} />}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {prompt.strategy_type && strategyColor && (
             <span
+              translate="no"
               className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 font-mono text-[11px] font-semibold ${strategyColor}`}
             >
               {prompt.strategy_type}
@@ -244,7 +245,7 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
           </span>
         )}
         {prompt.output_type && (
-          <Badge variant="outline" className="text-[11px]">
+          <Badge variant="outline" className="text-[11px]" translate="no">
             {prompt.output_type}
           </Badge>
         )}
@@ -252,7 +253,7 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
 
       <CardContent className="flex flex-1 flex-col px-0 pb-0 pt-3">
         {/* Content preview */}
-        <p className="line-clamp-3 flex-1 text-sm leading-relaxed text-ink-muted">
+        <p className="line-clamp-3 flex-1 text-sm leading-relaxed text-ink-muted" translate={preview ? 'no' : undefined}>
           {preview || (
             <span className="italic text-ink-subtle">No content yet — click to edit.</span>
           )}

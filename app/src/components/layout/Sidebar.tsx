@@ -42,6 +42,8 @@ import { useUiStore } from '@/stores/uiStore';
 interface NavItem {
   to: string;
   label: string;
+  /** A product name: stays as written when the page is shown in another language. */
+  keepName?: boolean;
   icon: LucideIcon;
   end?: boolean;
   /** When provided, renders a count pill — filled (primary) when active, muted otherwise. */
@@ -133,9 +135,9 @@ export function Sidebar() {
   const avatarUrl = pickHttpsUrl(user?.user_metadata, 'avatar_url');
 
   const PRIMARY: NavItem[] = [
-    { to: '/', label: 'Snippets', icon: SnippetIcon, end: true, count: snippetCount },
-    { to: '/prompts', label: 'Prompts', icon: PromptIcon, count: promptCount },
-    { to: '/memory', label: 'Brains', icon: BrainIcon, count: brainCount },
+    { to: '/', label: 'Snippets', keepName: true, icon: SnippetIcon, end: true, count: snippetCount },
+    { to: '/prompts', label: 'Prompts', keepName: true, icon: PromptIcon, count: promptCount },
+    { to: '/memory', label: 'Brains', keepName: true, icon: BrainIcon, count: brainCount },
     {
       to: '/team',
       label: 'Team',
@@ -235,7 +237,7 @@ export function Sidebar() {
                   {({ isActive }) => (
                     <>
                       <item.icon className="h-4 w-4 shrink-0" />
-                      <span>{item.label}</span>
+                      <span translate={item.keepName ? 'no' : undefined}>{item.label}</span>
                       {item.beta && (
                         <span className="ml-auto shrink-0 rounded-full bg-sand px-1.5 py-1 text-[10px] font-semibold leading-none uppercase tracking-wide text-sand-ink">
                           Beta
@@ -314,7 +316,7 @@ export function Sidebar() {
             )}
           >
             {/* Email header */}
-            <div className="px-3 py-2.5 text-xs text-[#8E8E93]">{email}</div>
+            <div className="px-3 py-2.5 text-xs text-[#8E8E93]" translate="no">{email}</div>
 
             {/* Settings */}
             <div className="border-t border-white/[0.08]">
@@ -443,13 +445,13 @@ export function Sidebar() {
                 className="h-8 w-8 shrink-0 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-xs font-bold text-primary">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-xs font-bold text-primary" translate="no">
                 {initial}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium text-ink">{displayName}</div>
-              <div className="truncate text-xs text-ink-subtle">{email}</div>
+              <div className="truncate text-sm font-medium text-ink" translate="no">{displayName}</div>
+              <div className="truncate text-xs text-ink-subtle" translate="no">{email}</div>
             </div>
           </button>
         </RailTooltip>

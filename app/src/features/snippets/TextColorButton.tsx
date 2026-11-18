@@ -157,7 +157,7 @@ export function TextColorButton({ value, disabled, onPick }: TextColorButtonProp
           )}
         >
           <span aria-hidden className="flex w-3.5 flex-col items-center">
-            <span className="text-[13px] font-semibold leading-none">A</span>
+            <span className="text-[13px] font-semibold leading-none" translate="no">A</span>
             <span className={cn('mt-[3px] h-[3px] w-3.5 rounded-full', value ? TEXT_COLORS[value].fill : 'bg-current')} />
           </span>
           <ChevronDown className={cn('h-3 w-3 transition-transform', open && 'rotate-180')} aria-hidden />
@@ -200,6 +200,7 @@ export function TextColorButton({ value, disabled, onPick }: TextColorButtonProp
                     'flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] border border-line text-[12px] font-semibold',
                     key ? TEXT_COLORS[key].text : 'text-ink',
                   )}
+                  translate="no"
                 >
                   A
                 </span>

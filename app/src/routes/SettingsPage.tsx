@@ -10,6 +10,7 @@ import { DeleteAccountPanel } from '@/features/settings/DeleteAccountPanel';
 import { FiboTokenRatePanel } from '@/features/settings/FiboTokenRatePanel';
 import { ImportExportPanel } from '@/features/settings/ImportExportPanel';
 import { InactivityPanel } from '@/features/settings/InactivityPanel';
+import { LanguagePanel } from '@/features/settings/LanguagePanel';
 import { InlineTriggerPanel } from '@/features/settings/InlineTriggerPanel';
 import { IntegrationsPanel } from '@/features/settings/IntegrationsPanel';
 import { MonthlyRecapPanel } from '@/features/settings/MonthlyRecapPanel';
@@ -81,6 +82,7 @@ export function SettingsPage() {
                 <ImportExportPanel />
               </div>
               <div className="grid gap-5">
+                <LanguagePanel />
                 <InlineTriggerPanel />
                 <AutoInsertPanel />
                 <InactivityPanel />

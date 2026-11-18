@@ -92,6 +92,7 @@ function DocumentCard({
           <button
             type="button"
             onClick={onOpen}
+            translate="no"
             className="block max-w-full truncate text-left text-sm font-semibold text-ink hover:text-primary"
             title={`Open ${doc.name}`}
           >
@@ -174,7 +175,7 @@ function ItemCard({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-semibold text-ink">{item.name}</span>
+              <span className="truncate text-sm font-semibold text-ink" translate="no">{item.name}</span>
               <ReviewStatusBadge status={item.review_status} />
               {item.pinned ? (
                 <Pin className="h-3 w-3 shrink-0 fill-current text-primary" aria-label="Always attached" />
@@ -213,7 +214,7 @@ function ItemCard({
       </div>
 
       {item.summary ? (
-        <p className="text-sm text-ink-muted">{item.summary}</p>
+        <p className="text-sm text-ink-muted" translate="no">{item.summary}</p>
       ) : (
         <p className="text-sm italic text-ink-subtle">
           No summary. Add one so this can be listed without loading its body.
@@ -229,7 +230,7 @@ function ItemCard({
           {expanded ? 'Hide body' : 'Show body'}
         </button>
         {expanded ? (
-          <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] bg-bg-alt p-3 font-mono text-xs leading-relaxed text-ink">
+          <pre translate="no" className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] bg-bg-alt p-3 font-mono text-xs leading-relaxed text-ink">
             {item.body}
           </pre>
         ) : null}
@@ -544,11 +545,11 @@ export function MemorySpacePage() {
             <SpaceIcon icon={space?.ico} className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-ink">
+            <h1 className="truncate text-2xl font-bold tracking-tight text-ink" translate="no">
               {space?.name ?? 'Brain'}
             </h1>
             {space?.description ? (
-              <p className="mt-0.5 truncate text-sm text-ink-muted">{space.description}</p>
+              <p className="mt-0.5 truncate text-sm text-ink-muted" translate="no">{space.description}</p>
             ) : null}
           </div>
         </div>

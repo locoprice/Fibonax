@@ -365,7 +365,7 @@ function FolderRow({
       >
         <span className="flex min-w-0 items-center gap-2">
           <FolderIcon icon={folder.icon} />
-          <span className="truncate">{folder.name}</span>
+          <span className="truncate" translate="no">{folder.name}</span>
           {share && <FolderShareBadge info={share} />}
         </span>
         <span className="ml-2 shrink-0 text-xs text-ink-subtle">{count}</span>

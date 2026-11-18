@@ -64,7 +64,7 @@ export function TeamUsage({ team, error, engine, onRetry }: TeamUsageProps) {
                     <td className="max-w-0 px-3 py-3">
                       <span className="flex min-w-0 items-center gap-2">
                         <span className="truncate font-medium text-ink">
-                          {m.name}
+                          <span translate="no">{m.name}</span>
                           {m.isMe ? <span className="ml-1.5 font-normal text-ink-muted">(you)</span> : null}
                         </span>
                         {m.mostActive ? (

@@ -444,7 +444,7 @@ export function InvitationRows({ org, invitations, onChanged }: InvitationRowsPr
                 <Mail className="h-4 w-4" />
               </span>
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate text-sm text-ink">{invitation.email}</span>
+                <span className="truncate text-sm text-ink" translate="no">{invitation.email}</span>
                 <span className="truncate text-xs text-ink-subtle">
                   {ROLE_LABEL[invitation.role]} ·{' '}
                   {invitation.invited_by_name ? `invited by ${invitation.invited_by_name} · ` : ''}

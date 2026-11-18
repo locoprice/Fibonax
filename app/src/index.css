@@ -137,3 +137,24 @@
       linear-gradient(160deg, #262a32, #1c1f26);
   }
 }
+
+/* Google's page translator (lib/pageTranslate.ts). The dashboard has its own
+   language choice in the top bar, so Google's bar across the top of the page,
+   its hover bubble and its loading mark stay hidden, and the page is not
+   pushed down to make room for the bar. */
+body > .skiptranslate,
+body > iframe.skiptranslate,
+#goog-gt-tt,
+body > [class*='VIpgJd-ZVi9od-aZ2wEe'] {
+  display: none !important;
+}
+html.translated-ltr body,
+html.translated-rtl body {
+  top: 0 !important;
+}
+/* Google tints the sentence under the pointer; the dashboard shows no tint. */
+font.VIpgJd-yAWNEb-VIpgJd-fmcmS-sn54Q,
+font[style*='vertical-align'] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}

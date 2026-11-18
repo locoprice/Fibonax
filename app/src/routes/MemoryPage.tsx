@@ -90,7 +90,7 @@ function SpaceCard({
 
       <Link to={`/memory/${space.id}`} className="flex flex-col gap-1">
         <span className="flex items-center gap-2 text-sm font-semibold text-ink">
-          {space.name}
+          <span translate="no">{space.name}</span>
           {space.is_default ? (
             <span className="rounded-full bg-bg-alt px-2 py-0.5 text-[10px] font-medium text-ink-subtle">
               default
@@ -102,7 +102,7 @@ function SpaceCard({
           {tokens > 0 ? ` · ${tokens.toLocaleString()} tokens` : ''}
         </span>
         {space.description ? (
-          <span className="mt-1 line-clamp-2 text-xs text-ink-subtle">{space.description}</span>
+          <span className="mt-1 line-clamp-2 text-xs text-ink-subtle" translate="no">{space.description}</span>
         ) : null}
         <span className="mt-1 text-[11px] text-ink-subtle">
           Updated {formatDistanceToNow(new Date(space.updated_at), { addSuffix: true })}
@@ -226,6 +226,7 @@ export function MemoryPage() {
     <div>
       <PageHeader
         title="Brains"
+        keepTitle
         tag="context assets"
         description="Facts, notes and documents your assistant can read."
         action={

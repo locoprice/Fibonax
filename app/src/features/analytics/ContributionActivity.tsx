@@ -75,7 +75,7 @@ function MonthLine({ month, showPrivate }: { month: ActivityMonth; showPrivate: 
             className="inline-flex max-w-[14rem] items-center gap-1.5 rounded-full bg-bg-alt px-2.5 py-1 text-xs text-ink"
             title={item.label}
           >
-            <span className="truncate">{item.label}</span>
+            <span className="truncate" translate="no">{item.label}</span>
             {showPrivate && (
               <span className="tabular-nums text-ink-muted">{item.count.toLocaleString()}</span>
             )}
@@ -102,7 +102,7 @@ function MonthGroup({ month, showPrivate }: { month: ActivityMonth; showPrivate:
       <div className="mt-2 space-y-1.5">
         {month.items.map((item) => (
           <div key={item.label} className="flex items-center gap-3">
-            <span className="w-32 shrink-0 truncate text-xs text-ink-muted" title={item.label}>
+            <span className="w-32 shrink-0 truncate text-xs text-ink-muted" title={item.label} translate="no">
               {item.label}
             </span>
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-bg-alt">

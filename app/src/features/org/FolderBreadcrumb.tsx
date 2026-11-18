@@ -30,6 +30,7 @@ export function FolderBreadcrumb({ folders, folderId, onNavigate }: FolderBreadc
           <button
             type="button"
             onClick={() => onNavigate(folder.id)}
+            translate="no"
             className="max-w-[220px] truncate rounded-[6px] px-1 py-0.5 font-medium text-ink-subtle transition-colors hover:bg-bg-alt hover:text-ink"
           >
             {folder.name}
