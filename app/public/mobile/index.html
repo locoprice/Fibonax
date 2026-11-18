@@ -267,6 +267,45 @@ body{
   font-size:10.5px;font-weight:800;line-height:18px;text-align:center;flex-shrink:0
 }
 .mfilters-count.sb-hidden{display:none}
+/* Filters that are on, as a row of chips under the search box. The row shows
+   while the panel is shut and something is on, so a narrowed list always says
+   what narrowed it. It gives way while the panel is out: the panel shows the
+   same choices, and a row growing above it would move the pills under a
+   thumb. It scrolls sideways past the band's edge instead of wrapping, and
+   each chip is 40px tall with a cross 40px wide. */
+.afc{
+  display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;pointer-events:none;margin:0 -20px;
+  transition:grid-template-rows .28s ease,opacity .2s ease,margin-top .28s ease,visibility 0s linear .28s
+}
+.lib-band:not(.filters-open) .afc.on{
+  grid-template-rows:1fr;opacity:1;visibility:visible;pointer-events:auto;margin-top:8px;
+  transition:grid-template-rows .28s ease,opacity .2s ease,margin-top .28s ease,visibility 0s}
+.afc-in{overflow:hidden;min-height:0}
+.afc-row{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:4px 20px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.afc-row::-webkit-scrollbar{display:none}
+.afc-chip{display:inline-flex;align-items:stretch;flex-shrink:0;height:40px;border-radius:9999px;
+  border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.12);color:#fff}
+.afc-body,.afc-x,.afc-clear{border:0;background:none;color:inherit;font-family:inherit;cursor:pointer;
+  -webkit-tap-highlight-color:transparent}
+.afc-body{display:inline-flex;align-items:center;gap:7px;padding:0 4px 0 14px;
+  border-radius:9999px 0 0 9999px;
+  font-size:13.5px;font-weight:650;letter-spacing:-.1px;white-space:nowrap}
+.afc-body:active,.afc-x:active,.afc-clear:active{background:rgba(255,255,255,.14)}
+.afc-ico{display:flex;flex-shrink:0;font-size:15px;line-height:1}
+.afc-ico svg{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+/* A label's own colour can be as dark as the band, so its dot gets a ring. */
+.afc-chip .mlabel-dot{box-shadow:0 0 0 1.5px rgba(255,255,255,.9)}
+.afc-name{max-width:44vw;overflow:hidden;text-overflow:ellipsis}
+.afc-cnt{min-width:22px;padding:2px 7px;border-radius:9999px;background:rgba(255,255,255,.20);
+  font-size:11.5px;font-weight:700;line-height:1.35;text-align:center;font-variant-numeric:tabular-nums}
+.afc-x{display:inline-flex;align-items:center;justify-content:center;width:40px;flex-shrink:0;
+  border-radius:0 9999px 9999px 0}
+.afc-x svg{width:22px;height:22px;padding:5px;border-radius:50%;background:rgba(255,255,255,.16);
+  stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.afc-clear{flex-shrink:0;height:40px;padding:0 12px;border-radius:9999px;
+  font-size:13px;font-weight:700;color:#D8E3FF;white-space:nowrap}
 /* The panel drops out of the band as a light card. Row-sizing 0fr to 1fr
    animates to whatever the facets are, and the shut panel is also hidden from
    the keyboard, so nothing inside it can take focus unseen. */
@@ -294,17 +333,26 @@ body{
   font-size:11px;font-weight:700;color:var(--primary-copy);
   cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mfacet-clr.sb-hidden{display:none}
+/* A chip's body opens the panel on its own group, tinted for a moment. */
+.mfacet.is-target{animation:mfacet-target 1.4s ease-out}
+@keyframes mfacet-target{from{background:var(--primary-lt)}to{background:transparent}}
+/* The foot shuts the panel: one filled button that says how many results are
+   waiting, with Clear all beside it. Both are 40px tall. */
 .mfilters-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:11px 16px;
   border-top:1px solid var(--border);background:var(--bg)}
-.mfilters-sum{font-size:11.5px;font-weight:600;color:var(--text3)}
-.mfilters-clear{
-  border:1px solid var(--border);background:var(--card);
-  color:var(--text);font-family:inherit;font-size:11.5px;font-weight:700;
-  padding:6px 13px;border-radius:9999px;cursor:pointer;
+.mfilters-clear,.mfilters-show{
+  min-height:40px;padding:0 16px;border-radius:9999px;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:700;
   -webkit-tap-highlight-color:transparent}
+.mfilters-clear{border:1px solid var(--border);background:var(--card);color:var(--text)}
 .mfilters-clear:active{background:var(--bg-alt)}
 .mfilters-clear[disabled]{opacity:.4;cursor:default}
+.mfilters-show{border:1px solid var(--primary);background:var(--primary);color:#fff;
+  font-variant-numeric:tabular-nums}
+.mfilters-show:active{background:var(--primary-dk)}
+/* The band's pale focus ring disappears on the panel's white card. */
+.mfilters-panel :focus-visible{outline-color:var(--primary-border)}
 /* Inside the panel the rows wrap instead of scrolling sideways, so the arrows
    have nothing left to do. Colours need no override: the panel carries the
    light-page palette the chips were already built for. */
@@ -341,6 +389,8 @@ body{
   .lib-title{font-size:27px}
   .mfilters{padding:0 11px 0 10px}
   .mfilters-caret{display:none}
+  .afc{margin:0 -16px}
+  .afc-row{padding:4px 16px}
 }
 
 /* ── PAGE FOOTER ─────────────────────────────── */
@@ -491,7 +541,8 @@ body{
   .snip-card:hover,.prompt-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-color:#C8D3F0}
 }
 @media(prefers-reduced-motion:reduce){
-  .snip-card,.prompt-card,.mqa-tile,.mqa-ico,.mfilters,.mfilters-panel{transition:none}
+  .snip-card,.prompt-card,.mqa-tile,.mqa-ico,.mfilters,.mfilters-panel,.afc{transition:none}
+  .mfacet.is-target{animation:none}
 }
 .snip-icon-well,.prompt-icon{position:relative;box-shadow:0 0 0 1px rgba(27,79,216,.07) inset}
 .snip-icon-well{width:44px;height:44px;flex:0 0 44px;border-radius:13px;background:var(--primary-lt);color:var(--primary-copy);
@@ -11194,9 +11245,13 @@ function filterPromptsPreLabel(q){
     return false;
   });
 }
+/* How many prompts the search and the category leave, before labels: the
+   number on the chip of the category that is on. */
+var _promptsPreLabel=0;
 function filterPrompts(q){
   var pre=filterPromptsPreLabel(q);
   computePromptLabelCounts(pre);
+  _promptsPreLabel=pre.length;
   return pre.filter(function(p){return matchesLabels(promptLabelIds(p));});
 }
 function promptCategories(){
@@ -11212,6 +11267,7 @@ function renderPromptList(){
   var q=promptSearch.trim().toLowerCase();
   var total=allPrompts.length;
   var filtered=filterPrompts(q);
+  paintActiveFilters('prompts',{category:_promptsPreLabel,results:filtered.length});
   // Pinned prompts float to the top; each half keeps its updated_at order.
   var pinnedP=[],restP=[];
   filtered.forEach(function(p){(p.pinned?pinnedP:restP).push(p);});
@@ -11860,12 +11916,14 @@ function renderMemory(){
   var meta=document.getElementById('mem-meta');
   meta.hidden=true;
   if(!memLoaded){
+    paintActiveFilters('memory',{kind:0,results:null});
     list.innerHTML=memFailed
       ?memEmptyHtml('😕','Could not load your Brains','')
       :'<div class="empty"><div class="spinner"></div><p>Loading your Brains…</p></div>';
     return;
   }
   if(!n){
+    paintActiveFilters('memory',{kind:0,results:0});
     list.innerHTML=memEmptyHtml(BRAIN_SVG,'No Brains yet','Create one in the dashboard, or add a ready-made one from the starter library there.');
     return;
   }
@@ -11874,6 +11932,8 @@ function renderMemory(){
   if(brain){
     var all=memItemsOf(brain.id);
     var items=all.filter(function(it){return memKindOk(it)&&memMatchesItem(it,q);});
+    // A kind lists items of that kind, so its chip carries the items found.
+    paintActiveFilters('memory',{kind:items.length,results:items.length});
     if(narrowed){meta.textContent=items.length+' of '+all.length;meta.hidden=false;}
     list.innerHTML=!all.length
       ?memEmptyHtml('📝','Nothing in here yet','Tap Add text to write the first item.')
@@ -11883,6 +11943,7 @@ function renderMemory(){
     return;
   }
   if(!narrowed){
+    paintActiveFilters('memory',{kind:0,results:n});
     list.innerHTML=allBrains.map(memBrainCardHtml).join('');
     return;
   }
@@ -11890,6 +11951,7 @@ function renderMemory(){
   // kind is a kind of item, so it lists items only.
   var brains=(q&&curMemKind==='ALL')?allBrains.filter(function(b){return memMatchesBrain(b,q);}):[];
   var hits=allMemItems.filter(function(it){return memKindOk(it)&&memMatchesItem(it,q);});
+  paintActiveFilters('memory',{kind:hits.length,results:brains.length+hits.length});
   meta.textContent=(brains.length?memPlural(brains.length,'Brain','Brains')+' · ':'')
     +memPlural(hits.length,'item','items');
   meta.hidden=false;
@@ -13068,7 +13130,9 @@ function renderList(){
   // Counts are taken here, before the label filter narrows the set: a chip
   // should report what picking it would give, not what is already showing.
   computeLabelCounts(groups);
+  var inLang=groups.length;
   groups=groups.filter(function(g){return matchesLabels(groupLabelIds(g));});
+  paintActiveFilters('snippets',{lang:inLang,results:groups.length});
   // A filtered list that does not say so reads as a broken one, and the panel
   // that narrowed it is usually shut by the time you look.
   var snipMeta=document.getElementById('snip-meta');
@@ -15926,14 +15990,128 @@ function clearAllFilters(){
     renderPromptList();
   }
   if(curSurface()==='snippets'){
-    curFolder='ALL';curLang='ALL';
-    document.querySelectorAll('.lang-pill').forEach(function(x){
-      x.classList.toggle('on',x.getAttribute('data-l')==='ALL');
-    });
+    curFolder='ALL';setLangFilter('ALL');
     renderFolderChips();renderList();
   }
   refreshOpenFilterPanel();
   syncFilterHeader();
+}
+function setLangFilter(lang){
+  curLang=lang;
+  document.querySelectorAll('.lang-pill').forEach(function(x){
+    x.classList.toggle('on',x.getAttribute('data-l')===lang);
+  });
+}
+/* ── Filters that are on ── */
+/* The chips under the search box: one for each filter that is on, in the
+   order the panel lists them, each with the number its pill carries in the
+   panel. A folder shows what it holds; a language, a label, a category and a
+   kind show what they give after the filters before them. The list's own
+   renderer paints them, right after it counts, so the row, the list and the
+   numbers are always one picture. */
+var AFC_GLOBE='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/>'
+  +'<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+var AFC_NOUN={snippets:['snippet','snippets'],prompts:['prompt','prompts'],memory:['item','items']};
+function activeFilters(surface,counts){
+  var out=[];
+  if(surface==='memory'){
+    if(curMemKind!=='ALL'){
+      out.push({facet:'kind',id:curMemKind,name:MEM_KIND_LABEL[curMemKind]||curMemKind,count:counts.kind});
+    }
+    return out;
+  }
+  if(surface==='snippets'){
+    if(curFolder!=='ALL'){
+      var f=getFolderById(curFolder);
+      out.push({facet:'folders',id:curFolder,name:(f&&f.name)||'Untitled',
+        icon:folderIcon(f),count:folderCountDeep(curFolder)});
+    }
+    if(curLang!=='ALL'){
+      // The chip reads as the pill it stands for.
+      var pill=document.querySelector('.lang-pill[data-l="'+curLang+'"]');
+      out.push({facet:'languages',id:curLang,name:pill?pill.textContent:curLang,
+        icon:AFC_GLOBE,count:counts.lang});
+    }
+  }
+  curLabels.forEach(function(id){
+    if(id===NO_LABEL){
+      out.push({facet:'labels',id:id,name:'Unlabelled',count:_labelCounts.none});
+      return;
+    }
+    var l=allLabels.find(function(x){return x.id===id;});
+    if(l)out.push({facet:'labels',id:id,name:l.name||'Untitled',
+      dot:labelDot(l.color),count:_labelCounts.counts[id]||0});
+  });
+  if(surface==='prompts'&&curCategory!=='ALL'){
+    out.push({facet:'category',id:curCategory,name:curCategory,count:counts.category});
+  }
+  return out;
+}
+function activeFilterChipHtml(f,noun){
+  return '<span class="afc-chip" data-facet="'+esc(f.facet)+'" data-id="'+esc(f.id)+'">'
+    +'<button type="button" class="afc-body" aria-label="'
+    +esc(f.name+', '+memPlural(f.count,noun[0],noun[1])+'. Change this filter')+'">'
+    +(f.icon?'<span class="afc-ico" aria-hidden="true">'+f.icon+'</span>':'')
+    +(f.dot?'<span class="mlabel-dot" style="background:'+esc(f.dot)+'"></span>':'')
+    +'<span class="afc-name">'+esc(f.name)+'</span>'
+    +'<span class="afc-cnt">'+f.count+'</span></button>'
+    +'<button type="button" class="afc-x" aria-label="'+esc('Remove the '+f.name+' filter')+'">'
+    +'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>'
+    +'</span>';
+}
+/* What each row last drew. Typing in the search box redraws the list on every
+   pause, and a row that has not changed is left alone. */
+var _afcDrawn={};
+function paintActiveFilters(surface,counts){
+  var list=activeFilters(surface,counts);
+  document.querySelectorAll('.lib-band').forEach(function(hero){
+    if(heroSurface(hero)!==surface)return;
+    var show=hero.querySelector('.mfilters-show');
+    if(show){
+      show.textContent=counts.results===null?'Show results'
+        :'Show '+memPlural(counts.results,'result','results');
+    }
+    var bar=hero.querySelector('.afc');
+    if(!bar)return;
+    bar.classList.toggle('on',!!list.length);
+    // The last chips stay in place while the row folds away, hidden with it.
+    if(!list.length)return;
+    var html=list.map(function(f){return activeFilterChipHtml(f,AFC_NOUN[surface]);}).join('')
+      +(list.length>1?'<button type="button" class="afc-clear">Clear all</button>':'');
+    if(html===_afcDrawn[surface])return;
+    _afcDrawn[surface]=html;
+    bar.querySelector('.afc-row').innerHTML=html;
+  });
+}
+function removeActiveFilter(facet,id){
+  if(facet==='folders'){curFolder='ALL';renderFolderChips();}
+  else if(facet==='languages')setLangFilter('ALL');
+  else if(facet==='category')curCategory='ALL';
+  else if(facet==='kind')curMemKind='ALL';
+  else if(facet==='labels'){
+    var at=curLabels.indexOf(id);
+    if(at>-1)curLabels.splice(at,1);
+  }
+  renderCurrentSurface();refreshOpenFilterPanel();syncFilterHeader();
+}
+function setFilterPanelOpen(hero,open){
+  var btn=hero.querySelector('.mfilters'),panel=hero.querySelector('.mfilters-panel');
+  if(!btn||!panel)return;
+  panel.classList.toggle('open',open);
+  hero.classList.toggle('filters-open',open);
+  btn.setAttribute('aria-expanded',open?'true':'false');
+  if(open){renderFilterPanel(panel,heroSurface(hero));syncFilterHeader();}
+}
+/* A chip's body opens the panel on the group it belongs to. */
+function openFilterGroup(hero,facet){
+  setFilterPanelOpen(hero,true);
+  var sec=hero.querySelector('.mfacet[data-facet="'+facet+'"]');
+  if(!sec)return;
+  var box=sec.closest('.mfilters-scroll');
+  if(box)box.scrollTop+=sec.getBoundingClientRect().top-box.getBoundingClientRect().top;
+  sec.classList.add('is-target');
+  var pick=sec.querySelector('.on')||sec.querySelector('button');
+  if(pick)pick.focus({preventScroll:true});
 }
 /* Paint one hero's panel for its own surface. A facet that adopts a live node
    is also what pulls the chip rows out of the page body. */
@@ -15990,9 +16168,6 @@ function syncFilterHeader(){
       b.classList.toggle('sb-hidden',n===0);
     });
     hero.querySelectorAll('.mfilters-clear').forEach(function(b){b.disabled=n===0;});
-    hero.querySelectorAll('.mfilters-sum').forEach(function(el){
-      el.textContent=n?(n+' filter'+(n===1?'':'s')+' on'):'No filters on';
-    });
   });
 }
 function mountFilterHeader(){
@@ -16023,17 +16198,38 @@ function mountFilterHeader(){
     panel.setAttribute('aria-labelledby',id+'-btn');
     panel.innerHTML='<div class="mfilters-panel-in">'
       +'<div class="mfilters-scroll" data-filter-body></div>'
-      +'<div class="mfilters-foot"><span class="mfilters-sum"></span>'
-      +'<button type="button" class="mfilters-clear">Clear all</button></div>'
+      +'<div class="mfilters-foot">'
+      +'<button type="button" class="mfilters-clear">Clear all</button>'
+      +'<button type="button" class="mfilters-show">Show results</button></div>'
       +'</div>';
+    var bar=document.createElement('div');
+    bar.className='afc';
+    bar.setAttribute('role','group');
+    bar.setAttribute('aria-label','Filters that are on');
+    bar.innerHTML='<div class="afc-in"><div class="afc-row"></div></div>';
     btnSlot.appendChild(btn);
     panelSlot.appendChild(panel);
+    hero.insertBefore(bar,panelSlot);
     btn.addEventListener('click',function(){
-      var open=panel.classList.toggle('open');
-      btn.setAttribute('aria-expanded',open?'true':'false');
-      if(open){renderFilterPanel(panel,heroSurface(hero));syncFilterHeader();}
+      setFilterPanelOpen(hero,!panel.classList.contains('open'));
     });
     panel.querySelector('.mfilters-clear').addEventListener('click',clearAllFilters);
+    panel.querySelector('.mfilters-show').addEventListener('click',function(){
+      setFilterPanelOpen(hero,false);
+      btn.focus();
+    });
+    bar.addEventListener('click',function(e){
+      if(e.target.closest('.afc-clear')){clearAllFilters();btn.focus();return;}
+      var chip=e.target.closest('.afc-chip');
+      if(!chip)return;
+      var facet=chip.getAttribute('data-facet');
+      if(!e.target.closest('.afc-x')){openFilterGroup(hero,facet);return;}
+      var at=Array.prototype.indexOf.call(bar.querySelectorAll('.afc-chip'),chip);
+      removeActiveFilter(facet,chip.getAttribute('data-id'));
+      // Focus goes to the chip that took its place, or back to Filters.
+      var left=bar.classList.contains('on')?bar.querySelectorAll('.afc-x'):[];
+      (left[Math.min(at,left.length-1)]||btn).focus();
+    });
     // Paint once now: this is what lifts the chip rows out of the page body, so
     // they never flash as loose rows before the panel is first opened.
     renderFilterPanel(panel,surface);
