@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { analytics } from '@/lib/analytics';
 import { checkRateLimit } from '@/lib/rateLimiter';
 import { securityApi } from '@/lib/api/securityApi';
+import { leaveForMobile } from '@/lib/api/referralApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AuthBrandPanel } from '@/components/auth/AuthBrandPanel';
@@ -58,7 +59,7 @@ export function LoginPage() {
       window.matchMedia('(max-width: 1023px)').matches &&
       !next.startsWith('/invite')
     ) {
-      window.location.replace('/mobile/');
+      void leaveForMobile();
       return null;
     }
     return <Navigate to={next} replace />;

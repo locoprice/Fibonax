@@ -8,9 +8,11 @@ import {
   BookOpen,
   Briefcase,
   Bug,
+  Gift,
   Github,
   Lightbulb,
   LineChart,
+  Lock,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -26,6 +28,9 @@ import { cn } from '@/lib/utils';
 import { pickHttpsUrl } from '@/lib/branding';
 import { RESOURCE_LINKS } from '@/lib/links';
 import { useGettingStartedVisible } from '@/lib/useGettingStartedVisible';
+import { REFERRALS_OPEN, REFERRAL_SOON_LABEL, REFERRAL_TEXT } from '@/lib/referral';
+import { ReferFriendDialog } from '@/features/referral/ReferFriendDialog';
+import { PRO_SOON_CONTROL } from '@/components/shared/ProSoon';
 import { JotFormModal } from '@/components/layout/JotFormModal';
 import { NavCountPill } from '@/components/layout/NavCountPill';
 import { SidebarLine } from '@/components/layout/SidebarLine';
@@ -126,6 +131,8 @@ export function Sidebar() {
   // else opens it. The dialog is fixed-position, so it still covers the app.
   const [bugOpen, setBugOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [referOpen, setReferOpen] = useState(false);
+  const referOpener = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -297,6 +304,47 @@ export function Sidebar() {
         {!collapsed && <SidebarLine />}
       </div>
 
+      {/* Refer a friend opens its window. Locked until people can subscribe
+          to Pro (lib/referral.ts): the row shows where it will live, dimmed,
+          with a lock, and does nothing. */}
+      <div className="shrink-0 px-3 pb-2">
+        {REFERRALS_OPEN ? (
+          <RailTooltip collapsed={collapsed} label={REFERRAL_TEXT.row}>
+            <button
+              ref={referOpener}
+              type="button"
+              onClick={() => setReferOpen(true)}
+              aria-haspopup="dialog"
+              className={cn(navClass({ isActive: false, collapsed }), 'w-full text-left')}
+            >
+              <Gift className="h-4 w-4 shrink-0" />
+              <span>{REFERRAL_TEXT.row}</span>
+            </button>
+          </RailTooltip>
+        ) : (
+          <Tooltip
+            label={collapsed ? `${REFERRAL_TEXT.row}. ${REFERRAL_SOON_LABEL}` : REFERRAL_SOON_LABEL}
+            placement="right"
+            className="block"
+          >
+            <button
+              type="button"
+              aria-disabled="true"
+              className={cn(
+                navClass({ isActive: false, collapsed }),
+                'w-full text-left hover:text-ink-muted',
+                PRO_SOON_CONTROL,
+              )}
+            >
+              <Gift className="h-4 w-4 shrink-0" />
+              <span>{REFERRAL_TEXT.row}</span>
+              <Lock className="ml-auto h-3 w-3 shrink-0" aria-hidden />
+              <span className="sr-only">{REFERRAL_SOON_LABEL}</span>
+            </button>
+          </Tooltip>
+        )}
+      </div>
+
       {/* User block, click to open menu */}
       <div
         ref={menuRef}
@@ -462,6 +510,14 @@ export function Sidebar() {
         src={RESOURCE_LINKS.bugs ?? ''}
         title="Report a bug"
       />
+      {REFERRALS_OPEN && (
+        <ReferFriendDialog
+          open={referOpen}
+          onOpenChange={setReferOpen}
+          giverName={displayName.trim().split(/\s+/)[0] ?? displayName}
+          opener={referOpener}
+        />
+      )}
     </aside>
   );
 }

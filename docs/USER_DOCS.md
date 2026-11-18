@@ -78,6 +78,8 @@ These exist in the product but don't work for users, so the manual stays silent 
 - **Triggers card**: the Shortcut prefix buttons and the Snippet key / Prompt key choices are saved but never read by the extension.
 - **Add a picture** (snippet editor, Pictures section): built locked for Pro in v3.94.0 (switch `snippetPictures`); the `snippet-pictures` storage bucket is not applied. Its section is kept, unpublished, in `docs/pro-features/snippet-pictures.mdx`, to go into `text-snippets/dynamic-fields.mdx`.
 
+- **Refer a friend** (dashboard sidebar): built and switched off until people can subscribe to Pro (`REFERRALS_OPEN` in `app/src/lib/referral.ts`); the row shows locked and opens nothing. Its page is kept, unpublished, in `docs/pro-features/refer-a-friend.mdx`, to become `settings/refer-a-friend`.
+
 Documented as limits instead: the phone page ignores `{elseif:}` and `{else}`.
 
 The pull from Notion (Settings > Notion sync, and the extension's sync every five minutes) was retired in v3.86.0. Its page, `integrations/notion-sync`, now redirects to `settings/account`.

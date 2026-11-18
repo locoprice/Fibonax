@@ -14,6 +14,8 @@ import { Toast } from '@/components/ui/Toast';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useCompanyFavicon } from '@/lib/useCompanyFavicon';
+import { arrivalToast } from '@/lib/referral';
+import { placePendingReferral } from '@/lib/api/referralApi';
 import { APP_VERSION, RELEASE_DATE } from '@/lib/appInfo';
 import { SUPPORT_FORM_URL } from '@/lib/links';
 
@@ -31,6 +33,7 @@ export function DashboardLayout() {
   const onboardingOpen = useUiStore((s) => s.onboardingOpen);
   const openOnboarding = useUiStore((s) => s.openOnboarding);
   const closeOnboarding = useUiStore((s) => s.closeOnboarding);
+  const showToast = useUiStore((s) => s.showToast);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
 
@@ -64,6 +67,15 @@ export function DashboardLayout() {
       }
     }
   }, [openOnboarding]);
+
+  // A new account that arrived through a friend's invite link is placed under
+  // it here. Nothing is waiting for anyone else, and no call leaves.
+  useEffect(() => {
+    void placePendingReferral().then((status) => {
+      const toast = arrivalToast(status);
+      if (toast) showToast(toast.message, toast.type);
+    });
+  }, [showToast]);
 
   return (
     <div className="flex h-screen min-w-[1024px] flex-col bg-bg text-ink">

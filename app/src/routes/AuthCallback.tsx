@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { securityApi } from '@/lib/api/securityApi';
+import { leaveForMobile } from '@/lib/api/referralApi';
 import { callbackErrorCode, loginErrorPath, type AuthErrorCode } from '@/lib/authCallback';
 
 /**
@@ -63,7 +64,7 @@ export function AuthCallback() {
     // except /invite: that page is served on phones precisely because that is
     // where an invitation email usually gets opened.
     if (window.matchMedia('(max-width: 1023px)').matches && !next.startsWith('/invite')) {
-      window.location.replace('/mobile/');
+      void leaveForMobile();
       return null;
     }
     return <Navigate to={next} replace />;
