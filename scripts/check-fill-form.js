@@ -698,9 +698,10 @@ assert.equal(fmt.parts, null);
 console.log('OK A formatted text is filled from the same form, its plain copy keeping list lines');
 
 // ── OFTEN SENT NEXT (fill-form-ui.js) ───────────────────────────────
-// Whether the fill windows offer "Add Firma after it", decided once for the
-// page, the popup and the phone: only a snippet with nothing to fill, never
-// the same one, never a pair hidden in the last NEXT_HIDE_DAYS days.
+// Which snippets the fill windows offer as "Add Firma after it", decided once
+// for the page, the popup and the phone: only a snippet with nothing to fill,
+// never the same one, never a pair hidden in the last NEXT_HIDE_DAYS days.
+// Several can be ticked, and they go in in the order they were ticked.
 {
   const uiRoot = { SBFillForm: ff };
   new Function('window', require('fs').readFileSync(path.join(__dirname, '..', 'extension', 'shared', 'fill-form-ui.js'), 'utf8'))(uiRoot);
@@ -710,21 +711,59 @@ console.log('OK A formatted text is filled from the same form, its plain copy ke
     { id: 'f', title: 'Firma', body: 'Valentina\nFibonax' },
     { id: 'c', title: 'Card', body: 'Hi {formtext: name=N}' },
     { id: 'b', title: 'Button', body: 'Hi{button label="Go"}X = 1{/button}' },
+    { id: 'a', title: 'Alternativa', body: 'We can also offer <this>.' },
+    { id: 't', title: 'Thanks', body: 'Thank you.', body_html: '<div><b>Thank you.</b></div>' },
   ];
-  const map = { q: { id: 'f', count: 4 }, f: { id: 'c', count: 3 }, c: { id: 'b', count: 3 }, b: { id: 'b', count: 3 }, x: { id: 'gone', count: 5 } };
+  const ids = (list) => list.map((n) => n.id);
+  const map = {
+    q: [{ id: 'f', count: 4 }, { id: 'c', count: 4 }, { id: 'a', count: 3 }, { id: 'q', count: 3 }, { id: 'gone', count: 3 }, { id: 'f', count: 3 }],
+    f: [{ id: 'c', count: 3 }], c: [{ id: 'b', count: 3 }], b: [{ id: 'b', count: 3 }], x: [{ id: 'gone', count: 5 }],
+    old: { id: 'f', count: 4 },
+  };
   const NOW = Date.parse('2026-11-12T10:00:00Z');
-  assert.equal(UI.nextFor(map, 'q', lib, {}, NOW).id, 'f');
-  assert.equal(UI.nextFor(map, 'f', lib, {}, NOW), null, 'a next snippet with a form is not offered');
-  assert.equal(UI.nextFor(map, 'c', lib, {}, NOW), null, 'a next snippet with a button is not offered');
-  assert.equal(UI.nextFor(map, 'b', lib, {}, NOW), null, 'never the same snippet');
-  assert.equal(UI.nextFor(map, 'x', lib, {}, NOW), null, 'a next snippet no longer in the library is not offered');
+  assert.deepEqual(ids(UI.nextsFor(map, 'q', lib, {}, NOW)), ['f', 'a'],
+    'in the order given: no form, no button, never itself, none gone from the library, none twice');
+  assert.deepEqual(UI.nextsFor(map, 'f', lib, {}, NOW), [], 'a next snippet with a form is not offered');
+  assert.deepEqual(UI.nextsFor(map, 'c', lib, {}, NOW), [], 'a next snippet with a button is not offered');
+  assert.deepEqual(UI.nextsFor(map, 'b', lib, {}, NOW), [], 'never the same snippet');
+  assert.deepEqual(UI.nextsFor(map, 'x', lib, {}, NOW), [], 'a next snippet no longer in the library is not offered');
+  assert.deepEqual(UI.nextsFor(map, 'none', lib, {}, NOW), [], 'nothing to offer is an empty list');
+  assert.deepEqual(ids(UI.nextsFor(map, 'old', lib, {}, NOW)), ['f'], 'an answer kept from before the list is still read');
   const hidden = UI.hideNext({ 'old>one': '2026-09-01T00:00:00Z' }, 'q', 'f', NOW);
   assert.deepEqual(Object.keys(hidden), ['q>f'], 'hiding drops pairs older than NEXT_HIDE_DAYS');
-  assert.equal(UI.nextFor(map, 'q', lib, hidden, NOW), null, 'a hidden pair stays hidden');
-  assert.equal(UI.nextFor(map, 'q', lib, hidden, NOW + 31 * 86400000).id, 'f', 'and comes back after NEXT_HIDE_DAYS');
-  assert.equal(UI.nextText(lib[1]).text, 'Valentina\nFibonax');
+  assert.deepEqual(ids(UI.nextsFor(map, 'q', lib, hidden, NOW)), ['a'], 'a hidden pair stays hidden, the others stay');
+  assert.deepEqual(ids(UI.nextsFor(map, 'q', lib, hidden, NOW + 31 * 86400000)), ['f', 'a'], 'and comes back after NEXT_HIDE_DAYS');
+
+  // The ticked ones, in the order they were ticked.
+  const none = [];
+  let order = UI.nextToggle(none, 'a', true);
+  order = UI.nextToggle(order, 'f', true);
+  assert.deepEqual(order, ['a', 'f'], 'the second tick goes after the first');
+  assert.deepEqual(none, [], 'the list handed in is never changed');
+  assert.deepEqual(UI.nextToggle(order, 'a', true), ['f', 'a'], 'ticked again, it goes to the end');
+  assert.deepEqual(UI.nextToggle(order, 'a', false), ['f'], 'unticked, it leaves and the rest move up');
+  assert.deepEqual(UI.nextToggle(order, 'zz', false), ['a', 'f'], 'unticking one that is not ticked changes nothing');
+
+  // What they add after the first text, in that order.
+  const [firma, alt, thanks] = [lib[1], lib[4], lib[5]];
+  assert.equal(UI.nextText(firma).text, 'Valentina\nFibonax');
   assert.equal(UI.NEXT_SEPARATOR, '\n\n');
+  assert.deepEqual(UI.nextAddition([alt, firma], false),
+    { text: '\n\nWe can also offer <this>.\n\nValentina\nFibonax', html: null }, 'Alternativa first, then Firma');
+  assert.equal(UI.nextAddition([firma, alt], false).text, '\n\nValentina\nFibonax\n\nWe can also offer <this>.', 'ticked the other way round');
+  assert.equal(UI.nextAddition([alt, thanks, firma], true).html,
+    '<br><br>We can also offer &lt;this&gt;.<br><br><div><b>Thank you.</b></div><br><br>Valentina<br>Fibonax',
+    'formatted: each in its own formatted form, a plain one escaped');
+  assert.deepEqual(UI.nextAddition([firma], false), { text: '\n\nValentina\nFibonax', html: null }, 'one alone, as before');
+  assert.deepEqual(UI.nextAddition([], true), { text: '', html: '' }, 'none ticked adds nothing');
+  assert.deepEqual([[firma], [alt, firma], [alt, thanks, firma]].map(UI.nextNames),
+    ['Firma', 'Alternativa and Firma', 'Alternativa, Thanks and Firma']);
+
   assert.deepEqual(['tick', 'why', 'card', 'card-hint', 'add', 'hide'].map((k) => UI.nextWords(k, 'Firma')),
     ['Add Firma after it', 'Often sent next', 'Often sent with Firma', 'Add it right after this text.', 'Add Firma', 'Don’t suggest Firma after this snippet']);
-  console.log('OK Often sent next: only a snippet with nothing to fill, never a hidden pair, the same words everywhere');
+  assert.deepEqual([1, 2, 3, 4, 5].map((n) => UI.nextWords('place', n)),
+    ['Goes in 1st', 'Goes in 2nd', 'Goes in 3rd', 'Goes in 4th', 'Goes in 5th']);
+  assert.deepEqual(['card-many', 'card-many-hint', 'add-none'].map((k) => UI.nextWords(k)).concat(UI.nextWords('add-many', 2)),
+    ['Often sent with this one', 'Tick the ones to add. They go in the order you tick them.', 'Tick one to add', 'Add 2 snippets']);
+  console.log('OK Often sent next: only snippets with nothing to fill, never a hidden pair, added in the order ticked, the same words everywhere');
 }

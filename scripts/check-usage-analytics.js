@@ -285,15 +285,31 @@ check('every rule names a library item', UA.MISSING_RULES.map((r) => r.key + ':'
 
 // What usually comes next, for "Add Firma after it" in the fill windows.
 const nx = UA.nextAfter({ now: NOW, events: runs });
-check('next after each snippet, from the same runs', nx, { s1: { id: 's2', count: 4 }, s2: { id: 's3', count: 3 } });
+check('next after each snippet, from the same runs', nx, { s1: [{ id: 's2', count: 4 }], s2: [{ id: 's3', count: 3 }] });
 check('a pair seen twice is not enough', UA.nextAfter({ now: NOW, events: runs }).s4, undefined);
 check('a snippet no longer in the library breaks the run',
   UA.nextAfter({ now: NOW, events: runs, ids: ['s1', 's3'] }), {});
 const tie = [];
 [10, 11, 12].forEach((d) => tie.push(sev('a', d, 9, 0), sev('c', d, 9, 1)));
 [13, 14, 15].forEach((d) => tie.push(sev('a', d, 9, 0), sev('b', d, 9, 1)));
-check('a tie goes to the id that sorts first', UA.nextAfter({ now: NOW, events: tie }).a, { id: 'b', count: 3 });
-check('prompts read through idField', UA.nextAfter({ now: NOW, events: pRuns, idField: 'prompt_id' }), { p1: { id: 'p2', count: 3 } });
+check('several come next, a tie in the order the ids sort', UA.nextAfter({ now: NOW, events: tie }).a, [{ id: 'b', count: 3 }, { id: 'c', count: 3 }]);
+check('the most used comes first',
+  UA.nextAfter({ now: NOW, events: tie.concat([sev('a', 16, 9, 0), sev('c', 16, 9, 1)]) }).a, [{ id: 'c', count: 4 }, { id: 'b', count: 3 }]);
+const many = [];
+['n1', 'n2', 'n3', 'n4', 'n5', 'n6'].forEach((id, i) => [1, 2, 3].forEach((d) => many.push(sev('m', d + i * 3, 9, 0), sev(id, d + i * 3, 9, 1))));
+check('no more than NEXT_LIMIT', [UA.NEXT_LIMIT, UA.nextAfter({ now: NOW, events: many }).m.map((x) => x.id)], [5, ['n1', 'n2', 'n3', 'n4', 'n5']]);
+// Snippets added with a tick are logged in the same moment as the first one.
+const sec = (id, d, s) => ({ snippet_id: id, created_at: new Date(Date.UTC(2026, 9, d, 9, 0, s)).toISOString() });
+const bundle = [];
+[5, 6, 7].forEach((d) => bundle.push(sec('q', d, 0), sec('alt', d, 1), sec('sig', d, 2)));
+check('ticked together: each one counts as coming right after the first',
+  UA.nextAfter({ now: NOW, events: bundle }), { alt: [{ id: 'sig', count: 3 }], q: [{ id: 'alt', count: 3 }, { id: 'sig', count: 3 }] });
+const apart = [];
+[5, 6, 7].forEach((d) => apart.push(sec('q', d, 0), sec('alt', d, 20), sec('sig', d, 40)));
+check('sent one by one: only the one right after',
+  UA.nextAfter({ now: NOW, events: apart }), { alt: [{ id: 'sig', count: 3 }], q: [{ id: 'alt', count: 3 }] });
+check('prompts read through idField', UA.nextAfter({ now: NOW, events: pRuns, idField: 'prompt_id' }), { p1: [{ id: 'p2', count: 3 }] });
+check('the kept answer has a shape number', UA.NEXT_VERSION, 2);
 
 if (failed) {
   console.error('\n' + failed + ' usage analytics check(s) failed');

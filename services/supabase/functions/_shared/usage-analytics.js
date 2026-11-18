@@ -792,6 +792,11 @@
   var TOGETHER_GAP_MIN = 10;
   var TOGETHER_MIN = 3;
   var TOGETHER_LIMIT = 3;
+  // "Often sent next" (nextAfter): how many are offered after one snippet, how
+  // close together uses logged by one insert sit, and the shape of its answer.
+  var NEXT_LIMIT = 5;
+  var NEXT_BUNDLE_MS = 3000;
+  var NEXT_VERSION = 2;
   var MISSING_LIMIT = 3;
   var DISMISS_DAYS = 30;
 
@@ -901,6 +906,13 @@
   // twice in a row is one step. An item `known` does not hold (one no longer in
   // the library) still ends a run: it sat between. Only runs of two or more.
   function runsOf(events, idField, known, startMs, now) {
+    return stepRunsOf(events, idField, known, startMs, now).map(function (run) {
+      return run.map(function (step) { return step.id; });
+    });
+  }
+
+  // The same runs with the time of each step: { id, t }.
+  function stepRunsOf(events, idField, known, startMs, now) {
     var uses = [];
     for (var e = 0; e < events.length; e++) {
       var t = eventTime(events[e]);
@@ -919,8 +931,8 @@
       if (lastT !== null && use.t - lastT > gap) cut();
       lastT = use.t;
       if (use.id === null) { cut(); continue; }
-      if (run.length && run[run.length - 1] === use.id) continue;
-      run.push(use.id);
+      if (run.length && run[run.length - 1].id === use.id) continue;
+      run.push(use);
     }
     cut();
     return runs;
@@ -999,15 +1011,19 @@
 
   /**
    * What usually comes next after each snippet, for "Add Firma after it" in
-   * the fill windows: the snippet used right after it in the most runs (the
-   * same runs as "used together"), at least TOGETHER_MIN of them in the last
-   * SUGGEST_DAYS days. A tie goes to the id that sorts first, so every surface
-   * picks the same one. Pure:
+   * the fill windows: the snippets used right after it (the same runs as "used
+   * together"), each in at least TOGETHER_MIN runs in the last SUGGEST_DAYS
+   * days, the most used first and NEXT_LIMIT at most. Snippets added with a
+   * tick are logged in the same moment as the one they follow, so the ones
+   * logged within NEXT_BUNDLE_MS of the step before them count as coming right
+   * after it too: ticking two keeps offering both. A tie goes to the id that
+   * sorts first, so every surface lists them the same way. Pure:
    *   events   uses { snippet_id, created_at }
    *   ids      the snippets still in the library; leave out to take every id
    *   idField  'snippet_id' unless given
    *   now      a timestamp
-   * Returns { fromId: { id: nextId, count } }.
+   * Returns { fromId: [{ id: nextId, count }] }. A kept answer is read again
+   * when its `v` is not NEXT_VERSION: the list replaced a single { id, count }.
    */
   function nextAfter(input) {
     var inp = input || {};
@@ -1020,23 +1036,32 @@
       known = function (id) { return !!set[id]; };
     }
     var counts = {};
-    runsOf(Array.isArray(inp.events) ? inp.events : [], inp.idField || 'snippet_id', known, startMs, now).forEach(function (run) {
+    stepRunsOf(Array.isArray(inp.events) ? inp.events : [], inp.idField || 'snippet_id', known, startMs, now).forEach(function (run) {
       var seen = {};
       for (var i = 0; i < run.length - 1; i++) {
-        var k = run[i] + '>' + run[i + 1];
-        if (seen[k]) continue;
-        seen[k] = true;
-        counts[k] = (counts[k] || 0) + 1;
+        for (var j = i + 1; j < run.length; j++) {
+          // The step right after, then the ones that went in with it.
+          if (j > i + 1 && run[j].t - run[j - 1].t > NEXT_BUNDLE_MS) break;
+          if (run[j].id === run[i].id) continue;
+          var k = run[i].id + '>' + run[j].id;
+          if (seen[k]) continue;
+          seen[k] = true;
+          counts[k] = (counts[k] || 0) + 1;
+        }
       }
     });
-    var best = {};
+    var lists = {};
     Object.keys(counts).sort().forEach(function (k) {
       var n = counts[k];
       if (n < TOGETHER_MIN) return;
       var pair = k.split('>');
-      if (!best[pair[0]] || n > best[pair[0]].count) best[pair[0]] = { id: pair[1], count: n };
+      (lists[pair[0]] = lists[pair[0]] || []).push({ id: pair[1], count: n });
     });
-    return best;
+    // The keys came sorted, and the sort is stable: a tie keeps the id order.
+    Object.keys(lists).forEach(function (from) {
+      lists[from] = lists[from].sort(function (a, b) { return b.count - a.count; }).slice(0, NEXT_LIMIT);
+    });
+    return lists;
   }
 
   /**
@@ -1141,6 +1166,8 @@
     MISSING_RULES: MISSING_RULES.map(function (r) { return { key: r.key, kind: r.kind, libraryId: r.libraryId, title: r.title }; }),
     suggest: suggest,
     nextAfter: nextAfter,
+    NEXT_LIMIT: NEXT_LIMIT,
+    NEXT_VERSION: NEXT_VERSION,
     team: team,
     lastUseLine: lastUseLine
   };

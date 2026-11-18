@@ -113,17 +113,17 @@ var isPasting = false; // guards against paste events feeding the trigger buffer
 // ── OFTEN SENT NEXT ────────────────────────────────────────────────
 // What usually comes right after each snippet (chrome.storage.local.sb_next,
 // written by background.js from the use history), and the pairs the person
-// hid with the cross (sb_next_hidden). Whether to offer one, and the words,
-// come from fill-form-ui.js (SBFillFormUI.nextFor), as on the popup and the
+// hid with the cross (sb_next_hidden). Which ones to offer, and the words,
+// come from fill-form-ui.js (SBFillFormUI.nextsFor), as on the popup and the
 // phone.
 var nextMap = {};
 var nextHidden = {};
 function _nextMapOf(stored) { return stored && stored.map && typeof stored.map === 'object' ? stored.map : {}; }
 
-// The snippet to offer after this one, or null.
-function _nextFor(snip) {
+// The snippets to offer after this one, the most used first; empty when none.
+function _nextsFor(snip) {
   var ui = window.SBFillFormUI;
-  return ui && ui.nextFor && snip ? ui.nextFor(nextMap, snip.id, snippets, nextHidden) : null;
+  return ui && ui.nextsFor && snip ? ui.nextsFor(nextMap, snip.id, snippets, nextHidden) : [];
 }
 
 // The cross: this pair stays hidden on this browser for NEXT_HIDE_DAYS.
@@ -132,19 +132,6 @@ function _hideNext(snip, next) {
   try {
     chrome.storage.local.set({ sb_next_hidden: nextHidden });
   } catch (e) { console.error('[Fibonax] could not remember the hidden suggestion:', e); }
-}
-
-// The text the next snippet adds after the first, a blank line between them,
-// and the same in formatted form when `formatted` asks for it: the first part
-// went in formatted, so the second must too.
-function _nextAddition(next, formatted) {
-  var ui = window.SBFillFormUI;
-  var t = ui.nextText(next);
-  var html = null;
-  if (formatted) {
-    html = '<br><br>' + (t.formatted || xesc(t.text).replace(/\n/g, '<br>'));
-  }
-  return { text: ui.NEXT_SEPARATOR + t.text, html: html };
 }
 
 // Puts the caret at a character offset in a rich editor, as Undo counts them.
@@ -167,20 +154,25 @@ function _ceCaretAt(el, offset) {
 }
 
 // "Add Firma" on the card after a snippet without a form, the same whichever
-// way it came in: a typed trigger, the picker or the right-click menu.
-// `inField` says the first text is already in the field (a rich editor, or the
-// right-click menu in a plain box); otherwise it waits for the card, and Add
-// puts both in at once. `snapshot` is the field state Undo would use: in a
-// rich editor its end offset is where the first text ends. `finish` runs once
-// both are in (the caller's processing flag). Null when nothing is offered.
+// way it came in: a typed trigger, the picker or the right-click menu. With
+// several to offer, the card lists them to tick, and `picked` is the ticked
+// ones in the order they were ticked. `inField` says the first text is already
+// in the field (a rich editor, or the right-click menu in a plain box);
+// otherwise it waits for the card, and Add puts them all in at once.
+// `snapshot` is the field state Undo would use: in a rich editor its end
+// offset is where the first text ends. `finish` runs once they are in (the
+// caller's processing flag). Null when nothing is offered.
 function _cardNext(el, snip, text, inField, snapshot, finish) {
-  var next = _nextFor(snip);
-  if (!next) return null;
+  var list = _nextsFor(snip);
+  if (!list.length) return null;
+  var ui = window.SBFillFormUI;
   return {
-    title: next.title,
-    onHide: function() { _hideNext(snip, next); },
-    onAdd: function() {
-      var add = _nextAddition(next, _takesFormatting(el) && !!window.SBFillFormUI.nextText(next).formatted);
+    items: list,
+    onHide: function(next) { _hideNext(snip, next); },
+    onAdd: function(picked) {
+      // The first text went in formatted when one of these is: so do they all.
+      var formatted = _takesFormatting(el) && picked.some(function(next) { return !!ui.nextText(next).formatted; });
+      var add = ui.nextAddition(picked, formatted);
       if (inField) {
         if (snapshot && snapshot.type === 'ce' && typeof snapshot.endCharOffset === 'number') _ceCaretAt(el, snapshot.endCharOffset);
         insertText(el, add.text, add.html);
@@ -188,7 +180,7 @@ function _cardNext(el, snip, text, inField, snapshot, finish) {
         insertText(el, text + add.text);
       }
       logEvent(snip, 0);
-      logEvent(next, 0);
+      picked.forEach(function(next) { logEvent(next, 0); });
       if (typeof finish === 'function') finish();
     }
   };
@@ -2323,16 +2315,15 @@ function showOverlay(targetEl, snip, scLen, done) {
   bd.id = 'sb-bd';
   bd.style.cssText = 'position:fixed;inset:0;background:var(--sb-scrim);z-index:2147483646;';
 
-  // The snippet usually sent next, offered in the middle of the footer,
+  // The snippets usually sent next, offered in the middle of the footer,
   // between the keyboard hint and Insert. Unticked: nothing extra goes in
-  // unless the person ticks it.
-  var next = _nextFor(snip);
+  // unless the person ticks it, and what is ticked goes in in that order.
+  var nexts = _nextsFor(snip);
   el._sbNext = null;
-  if (next) {
-    var offer = window.SBFillFormUI.nextOffer(document, next, function() { _hideNext(snip, next); });
+  if (nexts.length) {
+    el._sbNext = window.SBFillFormUI.nextOffer(document, nexts, function(next) { _hideNext(snip, next); });
     var foot = el.querySelector('.sb-foot');
-    foot.insertBefore(offer.el, foot.querySelector('.sb-insert'));
-    el._sbNext = { snip: next, offer: offer };
+    foot.insertBefore(el._sbNext.el, foot.querySelector('.sb-insert'));
   }
 
   document.body.appendChild(bd);
@@ -2771,17 +2762,18 @@ function doInsert(targetEl, snip, checked) {
   var html = vm.formatted && _takesFormatting(targetEl) ? vm.formatted : null;
   note = _pictureNote(note, vm, html);
   var fillCount = Object.keys(vals).length;
-  // "Add Firma after it", when ticked: the next snippet goes in right after,
-  // a blank line between, in the same insert, and counts as a use of its own.
-  var nextSnip = overlayEl && overlayEl._sbNext && overlayEl._sbNext.offer.checked() ? overlayEl._sbNext.snip : null;
-  if (nextSnip) {
-    var addition = _nextAddition(nextSnip, !!html);
+  // "Add Firma after it", when ticked: each ticked snippet goes in right
+  // after, in the order it was ticked, a blank line before it, in the same
+  // insert, and counts as a use of its own.
+  var nextSnips = overlayEl && overlayEl._sbNext ? overlayEl._sbNext.picked() : [];
+  if (nextSnips.length) {
+    var addition = window.SBFillFormUI.nextAddition(nextSnips, !!html);
     text += addition.text;
     if (html) html += addition.html;
   }
   function logUses() {
     logEvent(snip, fillCount);
-    if (nextSnip) logEvent(nextSnip, 0);
+    nextSnips.forEach(function(next) { logEvent(next, 0); });
   }
   closeOverlay();
   if (!targetEl) return;
@@ -3458,11 +3450,13 @@ function showCelebration(text, onConfirm, onUndo, options) {
   var warning = typeof options.warning === 'string' ? options.warning : '';
   // What came of "Don't warn me about this snippet again", when it was ticked.
   var note = typeof options.note === 'string' ? options.note : '';
-  // The snippet usually sent next (_cardNext): "Often sent with Firma" and
-  // Add Firma. While it shows, the card waits for the person instead of
-  // counting down: the choice is theirs to make.
+  // The snippets usually sent next (_cardNext). One: "Often sent with Firma"
+  // and Add Firma. Several: the same rows as the fill window's footer, ticked
+  // in the order they are to go in, and one Add. While the offer shows, the
+  // card waits for the person instead of counting down: the choice is theirs.
   var next = options.next && window.SBFillFormUI ? options.next : null;
   var nw = next ? window.SBFillFormUI.nextWords : null;
+  var nextOne = next && next.items.length === 1 ? next.items[0] : null;
   var summary = _expansionSummary(text);
   var returnFocus = options.target || document.activeElement;
   var savedStart = returnFocus && typeof returnFocus.selectionStart === 'number' ? returnFocus.selectionStart : null;
@@ -3514,13 +3508,20 @@ function showCelebration(text, onConfirm, onUndo, options) {
       '</dl>' +
     '</div>' +
     '<div class="sb-cel-footer">' +
-      (next
+      (nextOne
         ? '<div class="sb-cel-next" id="sb-cel-next-row">' +
-            '<div class="sb-cel-next-words"><strong>' + _celEsc(nw('card', next.title)) + '</strong><span>' + _celEsc(nw('card-hint')) + '</span></div>' +
-            '<button type="button" id="sb-cel-next" class="sb-cel-primary">' + _celEsc(nw('add', next.title)) + '</button>' +
-            '<button type="button" id="sb-cel-next-hide" class="sb-cel-close" aria-label="' + _celEsc(nw('hide', next.title)) + '" title="' + _celEsc(nw('hide', next.title)) + '">' +
+            '<div class="sb-cel-next-words"><strong>' + _celEsc(nw('card', nextOne.title)) + '</strong><span>' + _celEsc(nw('card-hint')) + '</span></div>' +
+            '<button type="button" id="sb-cel-next" class="sb-cel-primary">' + _celEsc(nw('add', nextOne.title)) + '</button>' +
+            '<button type="button" id="sb-cel-next-hide" class="sb-cel-close" aria-label="' + _celEsc(nw('hide', nextOne.title)) + '" title="' + _celEsc(nw('hide', nextOne.title)) + '">' +
               '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>' +
             '</button>' +
+          '</div>'
+        : '') +
+      // The rows to tick go in between the two, once the card is built.
+      (next && !nextOne
+        ? '<div class="sb-cel-next sb-cel-next-many" id="sb-cel-next-row">' +
+            '<div class="sb-cel-next-words"><strong>' + _celEsc(nw('card-many')) + '</strong><span>' + _celEsc(nw('card-many-hint')) + '</span></div>' +
+            '<button type="button" id="sb-cel-next" class="sb-cel-primary" disabled>' + _celEsc(nw('add-none')) + '</button>' +
           '</div>'
         : '') +
       '<div class="sb-cel-actions">' +
@@ -3642,24 +3643,45 @@ function showCelebration(text, onConfirm, onUndo, options) {
   card.querySelector('#sb-cel-ok').addEventListener('click', confirm);
   card.querySelector('#sb-cel-skip').addEventListener('click', close);
   if (canUndo) card.querySelector('#sb-cel-undo').addEventListener('click', undo);
+  // The offer is gone, hidden with the cross: the card counts down as usual.
+  function nextGone() {
+    var row = card.querySelector('#sb-cel-next-row');
+    if (row) row.remove();
+    card.querySelector('#sb-cel-ok').className = 'sb-cel-primary';
+    card.querySelector('.sb-cel-track').hidden = false;
+    card.querySelector('#sb-cel-ok').focus();
+    paused = false;
+    countDown();
+  }
   if (next) {
     // Nothing counts down while the offer shows, so nothing is there to pause.
     paused = true;
-    // Add Firma: the card goes, and the caller puts the first text (when it
-    // is not in yet) and the next one in the field.
-    card.querySelector('#sb-cel-next').addEventListener('click', function() { settle(next.onAdd); });
-    // The cross hides this pair from now on, and the card counts down as usual.
-    card.querySelector('#sb-cel-next-hide').addEventListener('click', function() {
-      if (settled) return;
-      next.onHide();
-      var row = card.querySelector('#sb-cel-next-row');
-      if (row) row.remove();
-      card.querySelector('#sb-cel-ok').className = 'sb-cel-primary';
-      card.querySelector('.sb-cel-track').hidden = false;
-      card.querySelector('#sb-cel-ok').focus();
-      paused = false;
-      countDown();
-    });
+    var addBtn = card.querySelector('#sb-cel-next');
+    if (nextOne) {
+      // Add Firma: the card goes, and the caller puts the first text (when it
+      // is not in yet) and the next one in the field.
+      addBtn.addEventListener('click', function() { settle(function() { next.onAdd([nextOne]); }); });
+      // The cross hides this pair from now on.
+      card.querySelector('#sb-cel-next-hide').addEventListener('click', function() {
+        if (settled) return;
+        next.onHide(nextOne);
+        nextGone();
+      });
+    } else {
+      // Several: Add names what is ticked, and puts them in in that order.
+      var nextRows = window.SBFillFormUI.nextOffer(document, next.items, next.onHide, function(picked, left) {
+        if (settled) return;
+        if (!left) { nextGone(); return; }
+        addBtn.disabled = !picked.length;
+        addBtn.textContent = !picked.length ? nw('add-none') : picked.length === 1 ? nw('add', picked[0].title) : nw('add-many', picked.length);
+      });
+      addBtn.parentNode.insertBefore(nextRows.el, addBtn);
+      addBtn.addEventListener('click', function() {
+        // Read before the card goes: the rows answer only while they show.
+        var picked = nextRows.picked();
+        if (picked.length) settle(function() { next.onAdd(picked); });
+      });
+    }
   }
   bd.addEventListener('click', close);
   card.addEventListener('pointermove', pauseOnPointerMove);
@@ -4412,6 +4434,13 @@ document.addEventListener('input', function(e) {
     '#sb-celebrate .sb-cel-next-words strong{font-size:var(--sb-fs-14);font-weight:600;color:var(--sb-azure);overflow-wrap:anywhere;}' +
     '#sb-celebrate .sb-cel-next-words span{font-size:var(--sb-fs-12);color:var(--sb-ink-muted);}' +
     '#sb-celebrate .sb-cel-next .sb-cel-primary{min-width:0;}' +
+    // Several to offer: the two lines, the rows to tick, then Add, one under the other.
+    '#sb-celebrate .sb-cel-next-many{flex-direction:column;align-items:stretch;padding:var(--sb-s-3) var(--sb-s-4);}' +
+    '#sb-celebrate .sb-cel-next-many .ff-nexts{margin:0;}' +
+    '#sb-celebrate .sb-cel-next-many .ff-next{flex:1 1 100%;background:var(--sb-bg);}' +
+    '#sb-celebrate .sb-cel-next-many .ff-next-hide{width:36px;height:36px;min-height:0;padding:0;flex:none;border-radius:10px;font-weight:400;color:var(--sb-ink-muted);}' +
+    '#sb-celebrate .sb-cel-next-many .ff-next-hide:hover{background:var(--sb-bg-alt);color:var(--sb-azure);}' +
+    '#sb-celebrate .sb-cel-primary:disabled{background:var(--sb-bg-muted);color:var(--sb-ink-muted);cursor:default;}' +
     '#sb-celebrate .sb-cel-secondary+.sb-cel-secondary{margin-right:0;}' +
     '#sb-celebrate .sb-cel-track[hidden]{display:none;}' +
     '#sb-celebrate .sb-cel-track{height:var(--sb-s-1);margin-top:var(--sb-s-2);background:var(--sb-line);border-radius:var(--sb-r-pill);overflow:hidden;}' +
