@@ -410,6 +410,137 @@ const pending = [];
     vm.runInContext(BG.slice(from, to) + '\nknowledgeSearch("airport", 40);', bgSandbox);
     check('the Context panel runs one search', asked.map((a) => a.fn), ['knowledge_search']);
     check('the Context panel asks for Brain items and prompts', asked[0].params.p_kinds, ['memory', 'prompt']);
+
+    // Prompts / Brains / Both. The choice can narrow the search to one of the
+    // two kinds and nothing more: a snippet is never let in through it.
+    const kindsFor = (kinds) => {
+      asked.length = 0;
+      bgSandbox.kinds = kinds;
+      vm.runInContext('knowledgeSearch("airport", 40, kinds);', bgSandbox);
+      return asked[0].params.p_kinds;
+    };
+    check('Prompts searches prompts only', kindsFor(['prompt']), ['prompt']);
+    check('Brains searches Brain items only', kindsFor(['memory']), ['memory']);
+    check('Both searches the two', kindsFor(['memory', 'prompt']), ['memory', 'prompt']);
+    check('a snippet cannot be asked for through the choice', kindsFor(['snippet', 'prompt']), ['prompt']);
+    check('a choice naming neither kind gets both', kindsFor(['snippet']), ['memory', 'prompt']);
+    check('a choice that is not a list gets both', kindsFor('prompt'), ['memory', 'prompt']);
+  }
+
+  // The panel's side of the same choice, on the real memory-picker.js.
+  const choice = sandbox.SBMemoryPicker;
+  if (choice && typeof choice.kindsForMode === 'function' && typeof choice.carryChecked === 'function' &&
+      typeof choice.mergeCarried === 'function' && typeof choice.orderForInsert === 'function') {
+    check('Prompts asks for prompts', choice.kindsForMode('prompt'), ['prompt']);
+    check('Brains asks for Brain items', choice.kindsForMode('brains'), ['memory']);
+    check('Both asks for the two', choice.kindsForMode('both'), ['memory', 'prompt']);
+    check('a saved choice that is not one of ours falls back to Both', choice.normaliseMode('everything'), 'both');
+    check('nothing saved yet is Both', choice.normaliseMode(null), 'both');
+
+    const listed = [
+      { id: 'p1', kind: 'prompt' }, { id: 'm1', kind: 'memory' }, { id: 'm2', kind: 'memory' },
+    ];
+    const ticked = { p1: true, m2: true };
+    check('a new search keeps what is ticked', choice.carryChecked(listed, ticked, 'both').map((f) => f.id), ['p1', 'm2']);
+    check('switching to Brains drops a ticked prompt', choice.carryChecked(listed, ticked, 'brains').map((f) => f.id), ['m2']);
+    check('switching to Prompts drops a ticked Brain item', choice.carryChecked(listed, ticked, 'prompt').map((f) => f.id), ['p1']);
+    check('carried facts lead the new list, each listed once',
+      choice.mergeCarried([listed[2]], [listed[0], listed[2], listed[1]]).map((f) => f.id), ['m2', 'p1', 'm1']);
+
+    // Both, in the message: prompts first, then Brain items, each in rank order.
+    check('prompts go in before Brain items, ranked order kept inside each',
+      choice.orderForInsert([
+        { id: 'm1', kind: 'memory' }, { id: 'p1', kind: 'prompt' }, { id: 'm2', kind: 'memory' }, { id: 'p2', kind: 'prompt' },
+      ]).map((i) => i.id), ['p1', 'p2', 'm1', 'm2']);
+
+    // The choice is remembered under one key, on this device only.
+    const CONTENT = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content', 'content.js'), 'utf8');
+    check('the choice is saved as sb_injector_mode', /var MODE_KEY = 'sb_injector_mode';/.test(CONTENT), true);
+    check('the choice is read from and written to storage.local',
+      /chrome\.storage\.local\.get\(MODE_KEY/.test(CONTENT) && /patch\[MODE_KEY\] = mode;\s*chrome\.storage\.local\.set\(patch\)/.test(CONTENT), true);
+  } else {
+    console.error('X memory-picker.js no longer exposes kindsForMode / carryChecked / mergeCarried / orderForInsert');
+    failed++;
+  }
+
+  // Usually added together: the panel remembers which Brain items went in
+  // beside which prompt, and ticks them the next time that prompt is ticked.
+  if (choice && typeof choice.recordInsert === 'function' && typeof choice.usualPartners === 'function') {
+    const went = (...ids) => ids.map((id) => ({ id, kind: id[0] === 'p' ? 'prompt' : 'memory' }));
+    let tally = {};
+    tally = choice.recordInsert(tally, went('p1', 'm1', 'm2'), 1000);
+    check('once together is not a habit yet', choice.usualPartners(tally, 'p1'), []);
+    tally = choice.recordInsert(tally, went('p1', 'm1'), 2000);
+    check('twice together, in at least half the inserts, is', choice.usualPartners(tally, 'p1'), ['m1']);
+    tally = choice.recordInsert(tally, went('p1', 'm1', 'm2'), 3000);
+    check('the most usual item comes first', choice.usualPartners(tally, 'p1'), ['m1', 'm2']);
+    check('the tally keeps ids and counts, never a name or a text',
+      JSON.stringify(tally), '{"p1":{"n":3,"t":3000,"w":{"m1":3,"m2":2}}}');
+
+    const empty = {};
+    check('an insert with no prompt teaches nothing', choice.recordInsert(empty, went('m1', 'm2'), 1) === empty, true);
+    check('a prompt never seen brings nothing', choice.usualPartners(tally, 'p9'), []);
+    check('nothing saved yet brings nothing', choice.usualPartners(null, 'p1'), []);
+
+    // A prompt inserted alone, again and again, stops bringing the item.
+    let alone = tally;
+    for (let n = 0; n < 4; n++) alone = choice.recordInsert(alone, went('p1'), 4000 + n);
+    check('an item left out often enough is no longer brought', choice.usualPartners(alone, 'p1'), []);
+
+    // At most three items per prompt, and a long history is halved, not kept whole.
+    let many = {};
+    for (let n = 0; n < 30; n++) many = choice.recordInsert(many, went('p1', 'm1', 'm2', 'm3', 'm4'), n);
+    check('a prompt brings three items at most', choice.usualPartners(many, 'p1').length, 3);
+    check('an old tally is halved rather than growing for good', many.p1.n < 22 && many.p1.w.m1 < 22, true);
+
+    const CONTENT = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content', 'content.js'), 'utf8');
+    check('the tally is saved as sb_injector_pairs', /var PAIRS_KEY = 'sb_injector_pairs';/.test(CONTENT), true);
+    check('the tally is read from and written to storage.local',
+      /chrome\.storage\.local\.get\(PAIRS_KEY/.test(CONTENT) && /patch\[PAIRS_KEY\] = store;\s*chrome\.storage\.local\.set\(patch\)/.test(CONTENT), true);
+
+    const PANEL = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content', 'memory-picker.js'), 'utf8');
+    check('the panel learns only while Both is chosen', /if \(mode !== 'both' \|\| !deps\.loadPairs \|\| !deps\.savePairs\) return;/.test(PANEL), true);
+    // A ticked fact is never left out for scoring low: it was chosen by hand.
+    check('what is ticked goes in whatever it scored', /PACK\.buildContext\(\{ candidates: candidates, budget: budget, minRank: 0 \}\)/.test(PANEL), true);
+  } else {
+    console.error('X memory-picker.js no longer exposes recordInsert / usualPartners');
+    failed++;
+  }
+
+  // The items a prompt brings are read by id: live ones only, never their text.
+  {
+    const factsFrom = BG.indexOf('function memoryFacts(');
+    const factsTo = BG.indexOf('chrome.runtime.onMessage.addListener(', factsFrom);
+    if (factsFrom === -1 || factsTo <= factsFrom) {
+      console.error('X background.js: cannot slice memoryFacts, the markers moved');
+      failed++;
+    } else {
+      const GOOD = '33333333-3333-4333-8333-333333333333';
+      const read = [];
+      const factSandbox = {
+        MEMORY_ID_RE: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+        supaFetch: (table, qs) => {
+          read.push({ table, qs });
+          return Promise.resolve([{ id: GOOD, name: 'Refund policy', summary: null, token_estimate: 60, review_status: 'deprecated' }]);
+        },
+        ids: [GOOD, 'not-a-uuid', "x') or 1=1"],
+      };
+      vm.createContext(factSandbox);
+      const answer = vm.runInContext(BG.slice(factsFrom, factsTo) + '\nmemoryFacts(ids);', factSandbox);
+      check('a prompt\'s usual items are read from the Brain items only', read.map((r) => r.table), ['memory_shards']);
+      check('only uuid-shaped ids reach the filter', read[0].qs.includes('id=in.(' + GOOD + ')'), true);
+      check('their text is never read', /select=[^&]*\bbody\b/.test(read[0].qs), false);
+      check('trashed and archived items are never suggested',
+        read[0].qs.includes('deleted_at=is.null') && read[0].qs.includes('review_status=neq.archived'), true);
+      pending.push(answer.then((rows) => {
+        check('an item comes back shaped like a search row',
+          rows, [{ kind: 'memory', source_id: GOOD, title: 'Refund policy', summary: '', tokens: 60, rank: 0, review_status: 'deprecated' }]);
+      }));
+      const none = vm.runInContext('memoryFacts(["nope"]);', factSandbox);
+      pending.push(none.then((rows) => {
+        check('no usable id means no request at all', [rows, read.length], [[], 1]);
+      }));
+    }
   }
 
   // What happens to the rows the user ticks: each kind is read from its own table.

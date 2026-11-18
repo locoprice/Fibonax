@@ -34,7 +34,7 @@ The bar above your Brains works like the one on Prompts:
 
 ## Fill a Brain
 
-- **Add text**: write a fact, a note or a conversation. Give it a name, a one-line **Summary** and the **Body**. The editor shows how long it is in tokens, the unit AI assistants measure text in. **Draft from text** at the top of the editor names and summarises text you paste. See [Draft with AI](/draft/overview).
+- **Add text**: write a fact, a note or a conversation. Give it a name, a one-line **Summary** and the **Body**. Item names are in capital letters: whatever you type or paste turns into capitals. The editor shows how long it is in tokens, the unit AI assistants measure text in. **Draft from text** at the top of the editor names and summarises text you paste. See [Draft with AI](/draft/overview).
 - **Upload file**: PDF, Word (`.docx`), text (`.txt`, `.md`) or CSV files up to 20 MB. Fibonax reads the text and splits it into pieces your assistant can use.
 - **Always attached**: switch this on for items that should go into every context you add, like your house style.
 
@@ -56,6 +56,32 @@ On ChatGPT, Claude, Gemini, Grok, Perplexity, DeepSeek and Copilot, the extensio
 
 The list shows items from your Brains and your [prompts](/prompts/overview), never your snippets. A tag on each row says which it is: **Brain** or **Prompt**. You see exactly what will be sent, and you can edit or delete any of it before you send.
 
+### Choose what goes in
+
+Three buttons at the top of the list decide what it shows and adds:
+
+- **Prompts**: your prompts only.
+- **Brains**: items from your Brains only.
+- **Both**: the two together. This is how it starts. When you add both kinds, the prompts go in first and the Brain items follow.
+
+Your choice is remembered on that computer, for every chat site.
+
+### Search the list
+
+Type in the search box under the three buttons to find a prompt or a Brain item by name, whatever your message says. The list updates as you type. Tick what you want, then search again for the next one: what you ticked stays ticked at the top of the list. Click **Insert** when you have everything.
+
+Empty the box, or press <kbd>Esc</kbd>, to go back to the items that match your message. **Refresh** reads your message again.
+
+### Usually added together
+
+With **Both** chosen, Fibonax notices which Brain items you add together with a prompt. Once you have added the same items with a prompt at least twice, and at least half the times you used it, they tick themselves when you tick that prompt. Each one says why, for example **Usually with Customer reply**.
+
+- A prompt brings up to three items. One that would not fit the token budget is listed but not ticked.
+- Untick any of them before you click **Insert**. Leave an item out often enough and it stops being suggested.
+- Untick the prompt and the items it brought are unticked with it.
+
+Fibonax keeps only a count of which items went in together, on that computer. It is not sent anywhere, so each computer learns your habits on its own.
+
 ### From the extension popup
 
 Click the Fibonax icon in the toolbar, open **Brains** and click a Brain. **Copy whole Brain** copies everything in it, in the same form the Context button adds. Paste it into the AI chat at the start of your message. To copy one item, click it. A search on the list of Brains also looks inside every Brain.
@@ -76,10 +102,21 @@ Give a prompt a Brain in its Context block, and the Brain goes in with the promp
 
 Each of these suggests the Brain that fits best: the one whose name, description and items share the most words with what you're saving. A line under the Brain list says why, or that no Brain fits yet, in which case the Brain you used last stays selected. You can always pick another. A Brain's description helps here: list the words its items use.
 
+## Keep your AI's memory small
+
+AI apps such as ChatGPT, Claude and Gemini keep their own memory about you. Its top layer has to stay small: when it grows too big, the AI has too much to remember and starts to lose track. Clean it once in a while.
+
+Under your Brains, on the dashboard and on the phone page, open **Keep your AI's memory small** and click **Copy prompt**. Paste it into the AI you use and answer its questions. It asks the AI to:
+
+1. List every memory, one line each.
+2. Mark each one to keep, fix or delete.
+3. Ask you about anything it's not sure of.
+4. Show you the cleaned version, under 30 lines, and tell you where to click to change it.
+
 ## Trash
 
 Items, files and whole Brains go to the trash first. Open **Trash** to restore them, or delete them for good. Deleting a Brain for good removes everything in it, files included.
 
 <Note>
-  You manage Brains in the dashboard. The phone page reads, copies and adds to them; creating, renaming and deleting Brains, editing items and uploading files happen on a computer.
+  You manage Brains in the dashboard. The phone page reads, copies and adds to them, and edits an item's name and text; creating, renaming and deleting Brains, moving or deleting items and uploading files happen on a computer.
 </Note>

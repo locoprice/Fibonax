@@ -1,4 +1,4 @@
-// ── FIBONAX AUTH v2.93.0 — Email-OTP + dashboard SSO handoff (AUTH-EXT-002/003)
+// ── FIBONAX AUTH v2.93.0: dashboard SSO handoff (AUTH-EXT-002/003)
 //    + server-side session liveness (sbCheckSessionAlive) and login-activity
 //    logging for the Settings → Security dashboard feature.
 //    v2.93.0: SSO handoff redeems a one-time token_hash (sbVerifyTokenHash) so
@@ -46,23 +46,9 @@ function sbClearSession(cb) {
   });
 }
 
-// POST /auth/v1/otp — sends a 6-digit code via email.
-function sbRequestOtp(email, cb) {
-  fetch(SB_SUPA_URL + '/auth/v1/otp', {
-    method: 'POST',
-    headers: { 'apikey': SB_SUPA_ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email, create_user: true })
-  }).then(function(r) {
-    if (r.ok) { cb(null); return; }
-    return r.text().then(function(t) {
-      var status = r.status;
-      var msg = 'Could not send code';
-      try { var j = JSON.parse(t); msg = j.msg || j.error_description || j.error || msg; } catch(e) {}
-      console.error('[Fibonax] OTP request failed — HTTP ' + status + ':', msg);
-      cb(status === 429 ? 'Too many requests — wait a few minutes and try again.' : msg);
-    });
-  }).catch(function(e) { cb(e.message || 'Network error'); });
-}
+// The extension has no email-code sign-in of its own: Supabase checks every
+// sign-in email for a Cloudflare Turnstile token, which only the dashboard can
+// produce. Signing in goes through the dashboard handoff below.
 
 // Shared acceptance of a successful /auth/v1/verify response: build + persist
 // the session, base the remember-me window, mirror trigger metadata, log the
@@ -81,30 +67,6 @@ function _sbAcceptVerifiedSession(j, fallbackEmail, rememberUntil, method, cb) {
     sbLogLoginEvent(session.access_token, method);
     cb(null, session);
   });
-}
-
-// POST /auth/v1/verify — exchanges (email, OTP code) for tokens.
-// rememberMe: true → store 30-day expiry; false → expire with access token (no auto-refresh).
-function sbVerifyOtp(email, token, rememberMe, cb) {
-  fetch(SB_SUPA_URL + '/auth/v1/verify', {
-    method: 'POST',
-    headers: { 'apikey': SB_SUPA_ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email, token: token, type: 'email' })
-  }).then(function(r) {
-    return r.text().then(function(t) {
-      var j = null;
-      try { j = JSON.parse(t); } catch(e) {}
-      if (!r.ok || !j || !j.access_token) {
-        var msg = (j && (j.msg || j.error_description || j.error)) || 'Invalid code';
-        cb(msg, null);
-        return;
-      }
-      var rememberUntil = rememberMe !== false
-        ? Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60
-        : 0;
-      _sbAcceptVerifiedSession(j, email, rememberUntil, 'email_otp', cb);
-    });
-  }).catch(function(e) { cb(e.message || 'Network error', null); });
 }
 
 // POST /auth/v1/verify with a one-time token_hash minted server-side by the

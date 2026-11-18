@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ASK_COVERAGE,
   ASK_VERDICTS,
   answerPlainText,
+  countGaps,
+  coverageLabel,
   feedbackSources,
   parseAskResponse,
+  showsQuestionList,
   splitCitations,
   verdictLabel,
   type AskSource,
@@ -49,6 +53,40 @@ describe('parseAskResponse', () => {
     expect(result?.sources.map((s) => s.review_status)).toEqual(['approved', 'deprecated']);
   });
 
+  it('reads an answer from a function without contextual replies as one answer, no question list', () => {
+    const result = parseAskResponse({ ok: true, status: 'answered', answer: 'x [S1]', missing: '', conflicts: '', sources: SOURCES });
+    expect(result?.reply).toBe(false);
+    expect(result?.questions).toEqual([]);
+  });
+
+  it('reads a reply and the questions found in the message', () => {
+    const result = parseAskResponse({
+      ok: true,
+      status: 'answered',
+      answer: 'Hi Sam, refunds take 14 days [S1]. [Add: weekend support hours]',
+      missing: 'Weekend support hours.',
+      conflicts: '',
+      reply: true,
+      questions: [
+        { question: 'How long does a refund take?', coverage: 'full', sources: ['S1'] },
+        { question: 'Is weekend support available?', coverage: 'none', sources: [] },
+      ],
+      sources: SOURCES,
+    });
+    expect(result?.reply).toBe(true);
+    expect(result?.questions.map((q) => q.coverage)).toEqual(['full', 'none']);
+    expect(result && showsQuestionList(result)).toBe(true);
+  });
+
+  it('rejects a question with a coverage it does not know', () => {
+    expect(
+      parseAskResponse({
+        ok: true, status: 'answered', answer: 'x', missing: '', conflicts: '', sources: SOURCES,
+        questions: [{ question: 'Q?', coverage: 'mostly', sources: [] }],
+      }),
+    ).toBeNull();
+  });
+
   it('rejects anything else rather than rendering half an answer', () => {
     expect(parseAskResponse(null)).toBeNull();
     expect(parseAskResponse({ ok: false })).toBeNull();
@@ -80,6 +118,48 @@ describe('splitCitations', () => {
       { type: 'cite', ref: 'S2' },
       { type: 'text', text: ' apply.' },
     ]);
+  });
+});
+
+describe('gaps in a reply', () => {
+  it('marks a note in brackets as a gap, and keeps citations and unknown markers as before', () => {
+    expect(splitCitations('Refunds take 14 days [S1]. [Add: weekend hours] See [S9].', SOURCES)).toEqual([
+      { type: 'text', text: 'Refunds take 14 days ' },
+      { type: 'cite', ref: 'S1' },
+      { type: 'text', text: '. ' },
+      { type: 'gap', text: '[Add: weekend hours]' },
+      { type: 'text', text: ' See [S9].' },
+    ]);
+  });
+
+  it('counts the gaps left to fill, never a citation', () => {
+    expect(countGaps('Yes [S1]. [Aggiungi: orari] and [Add: price]')).toBe(2);
+    expect(countGaps('Yes [S1][S2].')).toBe(0);
+  });
+
+  it('copies a reply with its gaps, so the sender sees what is left', () => {
+    expect(answerPlainText('Yes [S1]. [Add: price]')).toBe('Yes. [Add: price]');
+  });
+});
+
+describe('the question list', () => {
+  const base = { ok: true as const, missing: '', conflicts: '', reply: true, sources: SOURCES };
+  const two = [
+    { question: 'A?', coverage: 'full' as const, sources: ['S1'] },
+    { question: 'B?', coverage: 'partial' as const, sources: ['S2'] },
+  ];
+
+  it('shows for an answer covering two questions or more', () => {
+    expect(showsQuestionList({ ...base, status: 'answered', answer: 'x [S1]', questions: two })).toBe(true);
+    expect(showsQuestionList({ ...base, status: 'answered', answer: 'x [S1]', questions: two.slice(0, 1) })).toBe(false);
+  });
+
+  it('does not show when nothing was answered', () => {
+    expect(showsQuestionList({ ...base, status: 'not_covered', answer: '', questions: two })).toBe(false);
+  });
+
+  it('names each coverage in plain words', () => {
+    expect(ASK_COVERAGE.map((c) => coverageLabel(c.value))).toEqual(['Answered', 'Partly answered', 'Not in Fibonax']);
   });
 });
 

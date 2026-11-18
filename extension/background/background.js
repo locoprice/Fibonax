@@ -6,6 +6,8 @@ importScripts('../shared/memory-pack.js');
 importScripts('../shared/focus-timer.js');
 // What usually comes next after a snippet (sbRefreshNext below).
 importScripts('../shared/usage-analytics.js');
+// The prompt menu's list, as it is cached (refreshPromptCache below).
+importScripts('../shared/prompt-cache.js');
 
 var SUPA_URL = SB_SUPA_URL;
 
@@ -396,22 +398,66 @@ function withPromptBrains(rows) {
  * Brain items and prompts. Snippets are text to expand, not context, and
  * listing them buried the Brain items. The search leaves prompts out unless
  * they are asked for by name, which is why 'prompt' is spelled out here.
+ *
+ * `kinds` narrows that to one of the two, for the panel's Prompts and Brains
+ * choices. It can only narrow: anything else in it is ignored, and a list
+ * that names neither gets both, so a snippet still never reaches the panel.
  */
-function knowledgeSearch(query, limit) {
+function knowledgeSearch(query, limit, kinds) {
+  var offered = ['memory', 'prompt'];
+  var wanted = offered.filter(function(kind) {
+    return Array.isArray(kinds) && kinds.indexOf(kind) !== -1;
+  });
   return supaRpc('knowledge_search', {
     p_query: query || null,
-    p_kinds: ['memory', 'prompt'],
+    p_kinds: wanted.length ? wanted : offered,
     p_label_ids: null,
     p_container_ids: null,
     p_limit: typeof limit === 'number' ? limit : 40
   });
 }
 
+/**
+ * Brain items by id, as the Context panel lists them: name, summary and size,
+ * in the shape of a knowledge_search row, never the text. The panel asks for
+ * the items a prompt usually goes in with ("usually added together").
+ *
+ * Live items only, as everywhere else: a trashed or archived item is not
+ * suggested. The reader's own JWT, so RLS decides what comes back. Ids are
+ * checked against the uuid pattern before they reach the filter, and the list
+ * is short by design.
+ */
+function memoryFacts(ids) {
+  var wanted = (Array.isArray(ids) ? ids : []).map(String).filter(function(id) {
+    return MEMORY_ID_RE.test(id);
+  }).slice(0, 21);
+  if (!wanted.length) return Promise.resolve([]);
+  return supaFetch('memory_shards',
+    'select=id,name,summary,token_estimate,review_status&deleted_at=is.null&review_status=neq.archived' +
+    '&id=in.(' + wanted.join(',') + ')').then(function(rows) {
+    return (rows || []).map(function(row) {
+      return {
+        kind: 'memory', source_id: row.id, title: row.name, summary: row.summary || '',
+        tokens: row.token_estimate || 0, rank: 0, review_status: row.review_status
+      };
+    });
+  });
+}
+
 chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   if (!msg) return;
 
+  if (msg.type === 'memory_facts') {
+    memoryFacts(msg.ids).then(function(rows) {
+      try { sendResponse({ ok: true, rows: rows }); } catch(e) {}
+    }, function() {
+      try { sendResponse({ ok: false }); } catch(e) {}
+    });
+    return true;
+  }
+
   if (msg.type === 'knowledge_search') {
-    knowledgeSearch(msg.query, msg.limit).then(function(rows) {
+    knowledgeSearch(msg.query, msg.limit, msg.kinds).then(function(rows) {
       try { sendResponse({ ok: true, rows: rows || [] }); } catch(e) {}
     }, function() {
       try { sendResponse({ ok: false }); } catch(e) {}
@@ -1110,6 +1156,31 @@ function initMenus() {
         sbRefreshNext(data.snippets);
       }
     });
+    refreshPromptCache();
+  });
+}
+
+// ── PROMPT CACHE ───────────────────────────────────────────────────
+// The """ menu reads the person's prompts from chrome.storage.local.sb_prompts.
+// The popup was its only writer, so a prompt created on the dashboard reached
+// the menu only after the popup had been opened. The worker now fills it on
+// every refresh, beside the snippets, through the mapping the popup uses
+// (shared/prompt-cache.js).
+//
+// supaFetchAll, not supaFetch: a read that fails must leave the list as it
+// was. supaFetch answers [] on any failure, and writing that would empty the
+// menu until the next refresh that worked.
+function refreshPromptCache() {
+  supaFetchAll('prompts', SBPromptCache.QUERY).then(function(rows) {
+    var patch = {};
+    patch[SBPromptCache.KEY] = SBPromptCache.toRows(rows);
+    chrome.storage.local.set(patch, function() {
+      if (chrome.runtime.lastError) {
+        console.warn('[Fibonax] prompt cache write:', chrome.runtime.lastError.message);
+      }
+    });
+  }, function(err) {
+    console.warn('[Fibonax] prompt cache refresh:', err && err.message);
   });
 }
 
@@ -1477,6 +1548,11 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
 // to expand a snippet), throttled so we don't refetch on every flick between
 // tabs. The 5-minute alarm above is the periodic backstop.
 var MENU_REFRESH_MIN_MS = 10000;
+// A trigger typed on a page asks for a refresh too (content.js,
+// _askLibraryRefresh): that is the moment a stale copy shows, as a snippet or
+// a prompt saved a minute ago that is missing from the menu. A shorter wait
+// than a tab switch, because here someone is looking at the list.
+var TRIGGER_REFRESH_MIN_MS = 3000;
 function forceRefreshMenus() {
   chrome.storage.local.set({ sb_menu_last_refresh: Date.now() });
   initMenus();
@@ -1487,10 +1563,11 @@ function forceRefreshMenus() {
   // alarm and on tab-switch / window-focus (throttled) — see call sites.
   sbRefreshActionIcon();
 }
-function maybeRefreshMenus() {
+function maybeRefreshMenus(minMs) {
+  var wait = typeof minMs === 'number' ? minMs : MENU_REFRESH_MIN_MS;
   chrome.storage.local.get('sb_menu_last_refresh', function(d) {
     var last = (d && d.sb_menu_last_refresh) ? d.sb_menu_last_refresh : 0;
-    if (Date.now() - last < MENU_REFRESH_MIN_MS) return;
+    if (Date.now() - last < wait) return;
     forceRefreshMenus();
   });
 }
@@ -1503,6 +1580,12 @@ chrome.windows.onFocusChanged.addListener(function(winId) {
 chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
   if (msg && msg.type === 'REFRESH_MENUS') {
     initMenus();
+    sendResponse({ ok: true });
+  }
+  // A trigger was typed on a page: bring the copy up to date now, unless it
+  // was refreshed a moment ago.
+  if (msg && msg.type === 'SB_LIBRARY_REFRESH') {
+    maybeRefreshMenus(TRIGGER_REFRESH_MIN_MS);
     sendResponse({ ok: true });
   }
   // No `return true`: the response above is synchronous. Returning true kept the

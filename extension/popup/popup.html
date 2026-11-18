@@ -611,14 +611,9 @@ html,body{
 .sb-auth-logo{width:48px;height:48px;margin-bottom:16px}
 .sb-auth-title{font-size:18px;font-weight:700;color:var(--sb-ink);margin-bottom:6px}
 .sb-auth-sub{font-size:var(--sb-fs-13);color:var(--sb-ink-muted);text-align:center;margin-bottom:24px;max-width:340px;line-height:1.5}
-.sb-auth-input{width:100%;max-width:320px;padding:11px 14px;border:1px solid var(--sb-line);border-radius:var(--sb-r-lg);font-size:14px;font-family:inherit;color:var(--sb-ink);background:var(--sb-bg);outline:none;margin-bottom:10px;transition:border-color var(--sb-dur-base),box-shadow var(--sb-dur-base)}
-.sb-auth-input:focus{border-color:var(--sb-azure);box-shadow:var(--sb-shadow-glow)}
-.sb-auth-input.code{font-family:var(--sb-mono);text-align:center;letter-spacing:6px;font-size:18px;font-weight:600}
 .sb-auth-btn{width:100%;max-width:320px;padding:11px 14px;background:var(--sb-azure);color:#fff;border:none;border-radius:var(--sb-r-lg);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background var(--sb-dur-base)}
 .sb-auth-btn:hover:not(:disabled){background:var(--sb-azure-dark)}
 .sb-auth-btn:disabled{opacity:.5;cursor:not-allowed}
-.sb-auth-link{margin-top:14px;font-size:12px;color:var(--sb-ink-muted);background:none;border:none;cursor:pointer;font-family:inherit;text-decoration:underline}
-.sb-auth-link:hover{color:var(--sb-azure)}
 .sb-auth-msg{margin-top:14px;font-size:12px;color:var(--sb-danger);max-width:320px;text-align:center;min-height:1em}
 .sb-auth-msg.ok{color:var(--sb-ok)}
 
@@ -641,30 +636,12 @@ html,body{
 </head>
 <body data-sb-surface="extension">
 
-<!-- ═══ AUTH GATE (dashboard SSO + email-OTP fallback) ═══ -->
+<!-- ═══ AUTH GATE (signs in through the dashboard, which runs the bot check) ═══ -->
 <div class="sb-auth on" id="sb-auth">
   <div class="sb-auth-logo"><img src="../assets/icons/icon128.png" alt=""></div>
   <div class="sb-auth-title">Sign in to Fibonax</div>
-
-  <div id="sb-auth-sso" style="display:flex;flex-direction:column;align-items:center;width:100%">
-    <div class="sb-auth-sub">One click — uses your dashboard sign-in.<br>Opens a new tab to app.fibonax.com.</div>
-    <button class="sb-auth-btn" id="sb-auth-sso-btn">Sign in via dashboard</button>
-    <button class="sb-auth-link" id="sb-auth-show-otp">Use email code instead</button>
-  </div>
-
-  <div id="sb-auth-otp" style="display:none;flex-direction:column;align-items:center;width:100%">
-    <div class="sb-auth-sub" id="sb-auth-sub">Enter your work email — we'll send a one-time code.</div>
-    <input class="sb-auth-input" id="sb-auth-email" type="email" placeholder="you@company.com" autocomplete="email">
-    <div id="sb-auth-remember-row" style="display:flex;align-items:center;gap:8px;width:100%;max-width:320px;margin-bottom:10px">
-      <input type="checkbox" id="sb-auth-remember" checked style="width:16px;height:16px;accent-color:var(--sb-azure);cursor:pointer;flex-shrink:0">
-      <label for="sb-auth-remember" style="font-size:12px;color:var(--sb-ink-muted);cursor:pointer;line-height:1.4;user-select:none">Keep me signed in on this device</label>
-    </div>
-    <input class="sb-auth-input code" id="sb-auth-code" type="text" placeholder="········" maxlength="10" inputmode="numeric" autocomplete="one-time-code" style="display:none">
-    <button class="sb-auth-btn" id="sb-auth-primary">Send code</button>
-    <button class="sb-auth-link" id="sb-auth-back" style="display:none">Use a different email</button>
-    <button class="sb-auth-link" id="sb-auth-hide-otp">Back to one-click sign in</button>
-  </div>
-
+  <div class="sb-auth-sub">One click, using your dashboard sign-in.<br>Opens a new tab to app.fibonax.com.</div>
+  <button class="sb-auth-btn" id="sb-auth-sso-btn">Sign in via dashboard</button>
   <div class="sb-auth-msg" id="sb-auth-msg"></div>
 </div>
 
@@ -1001,6 +978,7 @@ html,body{
 <script src="../shared/saint-of-day.js"></script>
 <script src="../shared/review-prompt.js"></script>
 <script src="../shared/usage-analytics.js"></script>
+<script src="../shared/prompt-cache.js"></script>
 <script src="../shared/focus-timer.js"></script>
 <script src="../shared/focus-carousel.js"></script>
 <script src="../shared/fibotoken-rate.js"></script>

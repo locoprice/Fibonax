@@ -1,8 +1,8 @@
 // Pro lock gate (docs/pro-features/README.md).
 //
-// Five features call the AI service and cost real money per use: Ask
-// Fibonax, Draft with AI, Translate from EN, Suggest labels and Read a
-// picture. Each runs only for a Pro account; anyone else sees it locked
+// Six features call the AI service and cost real money per use: Ask
+// Fibonax, Draft with AI, Translate from EN, Suggest labels, Improve with AI
+// and Read a picture. Each runs only for a Pro account; anyone else sees it locked
 // ("Available to Pro users soon") and cannot start a request. Add a picture (storage) is locked
 // the same way; Use an email layout costs nothing to run and is on for
 // everyone. Their switches live in app/src/lib/proFeatures.ts; the phone
@@ -45,10 +45,10 @@ const MOBILE = read('app/public/mobile/index.html');
 const DOCS_JSON = read('user-docs/docs.json');
 
 // ── The switches ───────────────────────────────────────────────────────────
-const FEATURES = ['ask', 'draft', 'translate', 'labels', 'picture', 'snippetPictures', 'emailLayout'];
+const FEATURES = ['ask', 'draft', 'translate', 'labels', 'review', 'picture', 'snippetPictures', 'emailLayout'];
 const on = {};
-for (const m of LIB.matchAll(/^\s*(ask|draft|translate|labels|picture|snippetPictures|emailLayout):\s*(true|false),/gm)) on[m[1]] = m[2] === 'true';
-check('proFeatures.ts declares a switch for each of the seven features', FEATURES.every((f) => f in on), JSON.stringify(on));
+for (const m of LIB.matchAll(/^\s*(ask|draft|translate|labels|review|picture|snippetPictures|emailLayout):\s*(true|false),/gm)) on[m[1]] = m[2] === 'true';
+check('proFeatures.ts declares a switch for each of the eight features', FEATURES.every((f) => f in on), JSON.stringify(on));
 
 // ── 1. One label ───────────────────────────────────────────────────────────
 const label = (LIB.match(/export const PRO_SOON_LABEL = '([^']+)'/) || [])[1];
@@ -66,7 +66,7 @@ check('the phone says the same words as the dashboard to a free account',
   Boolean(proText) && MOBILE.includes("var AI_PRO_TEXT='" + proText + "';")
   && Boolean(proCheckText) && MOBILE.includes("var AI_PRO_CHECK_TEXT='" + proCheckText + "';"));
 check('the phone answers pro_required in Ask and in Read a picture', (MOBILE.match(/ {2}pro_required:AI_PRO_TEXT,/g) || []).length === 2);
-for (const fn of ['ask-sprintbrain', 'draft-with-ai', 'translate-body', 'suggest-labels', 'read-picture']) {
+for (const fn of ['ask-sprintbrain', 'draft-with-ai', 'translate-body', 'suggest-labels', 'review-snippet', 'read-picture']) {
   const source = read('services/supabase/functions/' + fn + '/index.ts');
   const proAt = source.indexOf("userClient.rpc('is_pro')");
   const limitAt = source.indexOf("userClient.rpc('ai_call_allow'");
@@ -103,6 +103,7 @@ const ENTRY_POINTS = [
   ['draft', 'app/src/components/shared/DraftWithAi.tsx'],
   ['translate', 'app/src/features/snippets/NewSnippetDialog.tsx'],
   ['labels', 'app/src/features/labels/LabelSuggestions.tsx'],
+  ['review', 'app/src/features/snippets/SnippetQualityButton.tsx'],
   ['snippetPictures', 'app/src/features/snippets/NewSnippetDialog.tsx'],
   ['emailLayout', 'app/src/features/snippets/FormattedBodyBox.tsx'],
 ];
@@ -140,6 +141,7 @@ const CALLERS = [
   ['askApi.ask(', ['app/src/features/search/AskAnswer.tsx']],
   ['translateApi.translateBody(', ['app/src/features/snippets/NewSnippetDialog.tsx']],
   ['labelSuggestApi.suggestForSnippet(', ['app/src/features/labels/LabelSuggestions.tsx']],
+  ['snippetReviewApi.review(', ['app/src/features/snippets/SnippetQualityButton.tsx']],
 ];
 for (const [call, allowed] of CALLERS) {
   const found = SOURCES.filter((file) => read(file).includes(call)).sort();
@@ -203,6 +205,19 @@ if (on.picture) {
 } else {
   check('picture is locked, so the phone page leaves Read a picture out', !pictureDocumented);
   check('picture is locked, so its manual section is kept in docs/pro-features', exists('docs/pro-features/read-picture.mdx'));
+}
+
+// Improve with AI is a section of the snippet quality page once on, kept in
+// docs/pro-features while locked.
+{
+  const QUALITY_PAGE = read('user-docs/text-snippets/quality.mdx');
+  const reviewDocumented = QUALITY_PAGE.includes('## Improve with AI');
+  if (on.review) {
+    check('review is on, so the quality page documents Improve with AI', reviewDocumented);
+  } else {
+    check('review is locked, so the quality page leaves Improve with AI out', !reviewDocumented);
+    check('review is locked, so its manual section is kept in docs/pro-features', exists('docs/pro-features/improve-with-ai.mdx'));
+  }
 }
 
 // Pictures in snippets are a section of the dynamic-fields page once on, kept

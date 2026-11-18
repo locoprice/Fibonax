@@ -9,6 +9,7 @@ import { securityApi } from '@/lib/api/securityApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AuthBrandPanel } from '@/components/auth/AuthBrandPanel';
+import { BrandMark } from '@/components/layout/BrandMark';
 import { ErrorBanner } from '@/components/auth/ErrorBanner';
 import { OtpInput, OTP_LENGTH } from '@/components/auth/OtpInput';
 import { RecentSignups } from '@/components/auth/RecentSignups';
@@ -21,6 +22,8 @@ import {
   passwordErrorMessage,
   PASSWORD_MIN_LENGTH,
 } from '@/lib/passwordAuth';
+import { humanCheckMessage, humanToken } from '@/lib/humanCheck';
+import { HumanCheckSlot, useHumanCheck } from '@/components/auth/HumanCheckSlot';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -38,6 +41,7 @@ export function SignupPage() {
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const humanCheck = useHumanCheck();
 
   useEffect(() => {
     void init();
@@ -75,14 +79,20 @@ export function SignupPage() {
     // Signup has no remember-me checkbox — always persistent.
     setRememberMe(true);
 
+    const captchaToken = await humanToken(humanCheck, setError);
+    if (!captchaToken) {
+      setLoading(false);
+      return;
+    }
+
     const { error: err } = await supabase.auth.signInWithOtp({
       email: trimmed,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback`, captchaToken },
     });
 
     if (err) {
       analytics.track('auth_failed', { method: 'magic_link', error: err.message });
-      setError(err.message);
+      setError(humanCheckMessage(err.message));
     } else {
       analytics.track('magic_link_sent', { email: trimmed });
       setView('sent');
@@ -137,15 +147,21 @@ export function SignupPage() {
     // Signup has no remember-me checkbox, always persistent.
     setRememberMe(true);
 
+    const captchaToken = await humanToken(humanCheck, setError);
+    if (!captchaToken) {
+      setLoading(false);
+      return;
+    }
+
     const { data, error: err } = await supabase.auth.signUp({
       email: trimmed,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback`, captchaToken },
     });
 
     if (err) {
       analytics.track('auth_failed', { method: 'password', error: err.message });
-      setError(passwordErrorMessage(err));
+      setError(humanCheckMessage(passwordErrorMessage(err)));
     } else if (isExistingAccountSignup(data.user)) {
       setError(
         'This email already has an account. Sign in, then set a password in Settings → Security.',
@@ -174,9 +190,7 @@ export function SignupPage() {
 
         {/* Mobile logo — hidden when the brand panel is visible */}
         <div className="mb-8 flex items-center gap-2 lg:hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-primary text-[15px] font-extrabold text-white">
-            S
-          </div>
+          <BrandMark className="h-8 w-8" />
           <span className="text-[16px] font-bold tracking-tight text-ink">
             Fibonax
           </span>
@@ -395,6 +409,8 @@ export function SignupPage() {
           )}
 
         </div>
+
+        <HumanCheckSlot check={humanCheck} />
       </main>
     </div>
   );

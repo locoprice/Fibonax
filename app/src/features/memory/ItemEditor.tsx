@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { estimateTokens } from '@/lib/memory/engine';
-import { sanitizeName } from '@/lib/nameText';
+import { nameFromEvent, sanitizeName } from '@/lib/nameText';
 import type { MemoryItem, MemoryItemKind } from '@/types/database';
 import type { SaveMemoryItemInput } from '@/lib/api/memoryApi';
 import { ReviewStatusMenu } from '@/components/shared/ReviewStatusMenu';
@@ -100,7 +100,7 @@ export function ItemEditor({ target, spaceId, onClose, onSave, onOpenHistory, on
     // the saved text, unsaved.
     const handed = editing ? useDraftStore.getState().take('memory', editing.id) : null;
     if (handed?.kind === 'memory') {
-      setName(handed.draft.name);
+      setName(sanitizeName(handed.draft.name));
       setSummary(handed.draft.summary);
       setBody(handed.draft.body);
       setKind(handed.draft.kind);
@@ -117,7 +117,7 @@ export function ItemEditor({ target, spaceId, onClose, onSave, onOpenHistory, on
     await store.loadAllItems();
     const all = useMemoryStore.getState().allItems;
     const fields = memoryDraftFields(result.draft, all.map((item) => item.name));
-    setName(fields.name);
+    setName(sanitizeName(fields.name));
     setSummary(fields.summary);
     setBody(fields.body);
     setKind(fields.kind);
@@ -227,8 +227,10 @@ export function ItemEditor({ target, spaceId, onClose, onSave, onOpenHistory, on
                   value={name}
                   maxLength={NAME_MAX}
                   autoFocus
-                  placeholder="house-style"
-                  onChange={(event) => setName(sanitizeName(event.target.value))}
+                  placeholder="HOUSE-STYLE"
+                  autoCapitalize="characters"
+                  onChange={(event) => setName(nameFromEvent(event))}
+                  onCompositionEnd={(event) => setName(nameFromEvent(event))}
                 />
               </div>
 

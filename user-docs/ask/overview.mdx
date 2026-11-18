@@ -1,7 +1,7 @@
 ---
 title: "FiboChat"
 sidebarTitle: "FiboChat"
-description: "Ask a question in plain words and get an answer built only from your own snippets and Brains, with every source linked."
+description: "Ask a question in plain words, or paste a message you received, and get an answer or a reply built only from your own snippets and Brains, with every source linked."
 ---
 
 <Note>
@@ -39,9 +39,20 @@ Type your question in the search box on the Snippets, Prompts or Brains page, th
 - **Sources** lists every item the answer was built from, with when it was last updated. Items in grey were found but not used.
 - **Not in Fibonax** names the part of your question your content doesn't cover yet.
 - **Sources disagree** appears when two items say different things. Check both and fix the one that's out of date.
-- **Copy answer** copies the answer without the source numbers, ready to paste into a message.
+- **Copy answer** copies the answer without the source numbers, ready to paste into a message. For a pasted message it reads **Copy reply**.
 
 When nothing in your Fibonax covers the question, it says **Nothing in Fibonax covers this yet** instead of answering. When it finds related items that don't answer the question, it says so and lists them.
+
+## Reply to a message
+
+Got an email or a chat that asks several things at once? Paste the whole message where you would type a question, up to 4,000 characters, and open **FiboChat**. It finds every question in the message, even ones written without a question mark, like "let me know if…", and writes one reply that answers each of them in order.
+
+- The **questions found** list shows each question with how far your Fibonax answers it: **Answered**, **Partly answered** or **Not in Fibonax**. The small numbers after it open the items that answer it.
+- **Reply** is ready to send: a greeting, every question answered in the order it was asked, and a short closing, in the language of the message.
+- A question your Fibonax can't answer is never guessed. It shows in the reply as a note in brackets, highlighted, saying what to add, for example **[Add: whether parking is available]**.
+- **Copy reply** copies the reply without the source numbers. If a note in brackets is still there, Fibonax reminds you to fill it in before you send.
+
+To make the next reply complete, save the missing answer as a snippet or a Brain item.
 
 ## What it reads
 
@@ -52,7 +63,7 @@ It reads only what you can already open. Prompts are not used as sources: a prom
 
 It prefers approved items, says so when an item it used is not approved yet, treats a deprecated item as out of date, and ignores archived items. See [Review and approval](/review/overview).
 
-To answer, Fibonax sends your question and the matching items to Claude, the AI model made by Anthropic. Nothing else from your library is sent.
+To answer, Fibonax sends your question, or the message you pasted, and the matching items to Claude, the AI model made by Anthropic. Nothing else from your library is sent.
 
 Each person can use AI features 30 times an hour and 200 times a day, Ask and Draft with AI together. Past that, Fibonax says so; try again later. A question that finds nothing in your Fibonax doesn't count.
 

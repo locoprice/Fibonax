@@ -47,8 +47,12 @@ First applied to the pricing plan cards (see Landing pricing page).
 
 Valentina chose the light Concept B mockup (`concept-b.html`, "B + A, Selected
 direction") on 2026-10-23, replacing the dark palette applied earlier that day.
-The page is light; only the home screen's top band is navy. Azure stays the one
-action color. These values apply only to `/mobile/`.
+The page is light and every top bar is navy (Valentina, 2026-11-15: "navy
+everywhere"): the home band, the library bands, the header of a snippet's or a
+Brain item's page, the bar of the edit windows, and the installed app's own bars
+(`theme_color` in `manifest.webmanifest`, beside the page's `theme-color`).
+Azure stays the one action color and is never a bar. These values apply only to
+`/mobile/`.
 
 | Mobile token | Hex | Usage |
 | --- | --- | --- |
@@ -62,7 +66,7 @@ action color. These values apply only to `/mobile/`.
 | `mobile-primary-copy` | `#1B4FD8` | Azure text and icons |
 | `mobile-primary-border` | `#1B4FD8` | Focus rings and selected outlines |
 | `mobile-primary-bg` | `#EEF2FF` | Tinted Azure wells, chips and pinned cards |
-| `mobile-navy` | `#101C39` | Home band background |
+| `mobile-navy` | `#101C39` | Every top bar: home and library bands, detail page header, edit window bar, the installed app's bars |
 | `mobile-navy-soft` | `#203151` | Task cards on the home band |
 | `mobile-navy-line` | `#6B7C9C` | Task card borders on the home band |
 | `mobile-navy-copy` | `#C1CBE0` | Secondary text on the home band |
@@ -93,6 +97,10 @@ short bar under it.
 | `primary-bg`   | `#EEF2FF`              | Filled-tint badge / active row bg      |
 | `primary-bdr`  | `#BED0FF`              | Filled-tint badge border               |
 | `primary-glow` | `rgba(27,79,216,.14)`  | Focus ring shadow                      |
+
+### Brand mark (dashboard)
+
+The dashboard shows the Fibonax T, the same picture as the extension, the phone and the landing page: `components/layout/BrandMark.tsx` draws `/landing/leib-tour-icon.png` as a mask in `ink`, so it reads in light and dark. It replaced the SprintBrain "S" square on 2026-11-18 in the topbar, the login and signup pages and the Company branding preview. No new colour.
 
 **v1.1 removes Iris purple `#6C5CE7` entirely.** The `--sb-iris*` aliases in the extension's tokens file still resolve, but they all point at the azure values. Any new code must use `--sb-azure*` / `primary` directly.
 
@@ -275,7 +283,7 @@ A 20 × 20 pill with a 12 × 12 stroked glyph, rendered beside an asset's name o
 | -------- | ------ | ---------------------------- | -------------------------------------------------------------- |
 | `top`    | Trophy | `primary-light` / `primary`  | Expanded ≥ 5 times **and** ≥ 25% of the library leader's count  |
 | `broken` | Wrench | `danger-bg` / `danger`       | Template fails structural validation — renders wrong output     |
-| `weak`   | Wrench | `warning-bg` / `warning-deep`| Prompt scoring ≤ 4/10, and not yet used enough to earn a trophy |
+| `weak`   | Wrench | `warning-bg` / `warning-deep`| Prompt or snippet scoring ≤ 4/10, and not yet used enough to earn a trophy. A snippet's score is its weakest language's |
 
 **Usage means expansions, counted per snippet — not per row.** Counts come from `snippet_events` via the `snippet_usage_counts()` RPC, never from `snippet_stats.uses` (that column only tracks copy-shortcut from the popup). A translated snippet is several rows sharing a base trigger and each is expanded under its own id, so both the badge and the Usage column sum across the group — `time` is 151 expansions across four variants, not four separate small numbers.
 
@@ -551,6 +559,29 @@ The card under the page header of Prompts and Brains is one component, `app/src/
 - When filters hide everything, the empty state offers **Clear filters**. The gap between the bar and the content is 16 px (`gap-4`). Dashboard only: the phone and the extension keep their own surface conventions.
 
 
+### Phone edit window (2026-11)
+
+**Edit** on the phone (a snippet, a prompt, a Brain item) and **Add text** and **Save to Brain** share one frame, `.sb-edit-modal`: a `mobile-navy` bar with a 44 px close cross, the title, and the window's one action. Existing tokens only; no new colour, radius or shadow.
+
+- **The action** (`#sb-modal-save`, `#sb-mem-save`, `#sb-cap-save`) is a white pill on the bar: `mobile-card` ground, `mobile-primary-copy` text, `r-pill`, 36 px tall with a 44 px touch target, `mobile-primary-bg` while pressed, 55% opacity while saving. One per window.
+- **Fields** stack in one column with the frame's 14 px gap. The error line takes room only when it speaks.
+- **Text grows, the window scrolls.** A snippet's text and a prompt's boxes grow with what is written (233 px floor for the main text, 89 px for a prompt part), so there is never a box that scrolls inside a page that scrolls.
+- **Field chip** (`.sb-edit-chip`): the dashboard's body chip, `r-sm` (6 px), `mobile-primary-bg` ground, `mobile-primary-copy` text, 13 px bold. Not editable. The line above the text shows one of the snippet's own chips beside its words, so the meaning never rests on colour.
+- **What stays as it is** (`.sb-edit-note`): one `mobile-primary-bg` line with the Brain icon, `r-in`, 13 px semibold `mobile-primary-copy`. A prompt's Brain above its Context box; an item's Brain and kind at the top of its window, in place of two menus that could not be changed.
+- **Removed field** (`.sb-edit-guard`): asked the moment a chip leaves the text, pinned to the top of the window until answered. `mobile-warning-bg` ground, 1 px `mobile-warning` border, the warning triangle beside a bold sentence in `mobile-ink`, a `mobile-muted` line under it, then two 44 px buttons: **Put it back** filled Azure (the safe one), **Leave it out** on `mobile-card`. Icon and words carry the meaning, not the amber.
+- **Focus**: 2 px `mobile-primary-border` outline on the window's controls, `#D8E3FF` on the bar, as on the library pages.
+
+### Snippet quality (v3.134.0)
+
+The snippet rating (`lib/snippetQuality.ts`) is drawn by the same panel as the prompt editor's Efficiency Score: `components/shared/QualityPanel.tsx`, `tone="dark"` in the prompt side panel (its documented hexes) and `tone="light"` in the snippet editor (tokens, follows the theme). No new tokens.
+
+| Part | Value |
+| --- | --- |
+| Quality button | In the body footer, left of Translate and Clear: the footer chip look (`r-sm`, 1 px `line`, `card`, 11 px medium `ink-subtle`; `primary` on `primary-light` when hovered), a 12 px gauge icon, **Quality** and the score in tabular figures. The word for the score is in its tooltip and its name for screen readers |
+| Window | The standard `Dialog` at `max-w-lg`: the ring (`success` / `primary` / `warning` stroke on a `line` track, the number in `ink`), the word, then one row per check with a `success` tick, a `warning-deep` circle or a `danger` cross beside its name, so the state never rests on colour alone |
+| Notes | The short-snippet note on `bg-alt`, the "reads a lot like" note in a `line` box, both 12 px `ink-muted` |
+| Improve with AI | Under a `line` rule: a `sm` primary button, or the locked Pro control. Each suggestion a `line` box: the area in 10 px uppercase `ink-subtle`, the problem in `ink`, the fix in `ink-muted` |
+
 ### Language check in the snippet editor
 
 When a save would edit one language and leave the others with the old text, the editor says so while the text is being changed. No new tokens.
@@ -569,6 +600,17 @@ The Analytics section that ranks snippets or prompts by uses and splits off the 
 ### Pomodoro timer (v3.111.0)
 
 The extension's Pomodoro timer ("focus" inside the code). **Popup:** the clock is the first header icon (`.ic-btn`); while the timer runs it widens into a pill on `primary-bg` with the time left in `primary` (`24:59`, `Break 4:12`, `Paused`), so the state reads in words, never by colour alone. The **Pomodoro timer** pane uses the Settings pane header, with "The Italian way to boost productivity" under the title in `fs-11` `ink-muted`, and two columns on the golden ratio (`1.618fr 1fr`): the timer card on the left (`r-2xl`, `shadow-sm`, phase eyebrow in `primary`, clock at `fs-32`, 40 px buttons with one `primary` action per state), the counts table and the timer settings (Detox day among them) on the right, and the popup's footer bar (`.lfoot`) with the credit to Francesco Cirillo in `fs-10` `ink-muted`, the saint line's style. The extra-break question sits in a `primary-bg` box under the buttons; the 6 hour and detox day reminder uses the amber ground of the unused-asset notice. **Break screen:** a modal `<dialog>` in a shadow root on every web page, full viewport on `--sb-scrim-strong`, with one white card (`r-2xl`, `shadow-xl`, max 420 px) holding the eyebrow, the clock, the warning, the idea and the **Skip this break** text button. **Detox day pictures:** the Detox day section sits under the timer card, its thumbnail (the first picture) a golden rectangle of 89 x 55 px (two Fibonacci numbers, dashed `line-2` frame while empty) with the count beside it; the picture page (`extension/focus/photo.html`) is one 560 px card with the gallery in a `1.618/1` frame, up to 5 pictures (a Fibonacci number; 8 was tried and was too many). On the detox day the pictures fill the break screen and the popup's Start call behind the same white card. Every picture shows whole (`object-fit:contain`), never cropped, over a blurred copy of itself (`object-fit:cover`, 34 px blur, 55% opacity on the `--sb-ink` ground) that fills the bands it leaves. **Carousel** (`extension/shared/focus-carousel.js`, built once for all three places): with more than one picture, a control pill sits at the bottom centre on `--sb-toast-bg` with white (`--sb-bg`) previous and next arrows (36 px), one dot per picture (24 px target, 8 px dot, `aria-current` at full opacity, the others at 45%) and a pause button; the slides cross-fade in 600 ms and advance every 7 seconds, held while the pill is hovered or focused and off for `prefers-reduced-motion`. One picture shows no controls. Focus rings are white on the pill. No other new tokens. **Phone (`/mobile/`):** one column under the library band, in the mobile tokens: the clock at 55 px, buttons 48 px, every target at least 44 px, gaps of 8, 13 and 21 px, the 89 x 55 px thumbnail and the `1.618/1` picture frame. While the timer runs, the time left floats above the bottom bar in a white pill. The break screen and the detox day call are full-page modal dialogs on the same scrim. The carousel is the generated copy, its token names mapped on `.sbc`, its arrows and dots raised to 44 px for a thumb.
+
+### Context panel: what to add, and search
+
+The extension's Add context panel (`extension/content/memory-picker.js`, drawn in a shadow root on AI chat sites, so its colours are the literal token values) carries two rows between its title and its list. No new tokens.
+
+| Part | Value |
+| --- | --- |
+| Choice | **Prompts**, **Brains**, **Both**: one track (`#F2F2F7`, 8 px radius, 2 px inset) of three equal 26 px parts. The chosen part is a raised white pill (6 px radius, a 1 px shadow) in bold `primary`; the others are medium `#3A3A3C`. A radio group: the arrow keys move the choice, focus shows a 2 px `primary` ring. The choice never rests on colour alone |
+| Search box | 30 px, 1 px `line` border, 8 px radius, 13 px text; `primary` border with a 2 px `primary-bdr` ring when focused. Its placeholder names what the choice searches |
+| Usually with | A Brain item ticked because it usually goes in with a prompt carries a pill beside its **Brain** tag: `primary` on `primary-bg`, 9 px bold, `r-pill`, reading **Usually with** and the prompt's name, cut with an ellipsis at 190 px, the full sentence on hover. The reason is in words, never in colour alone |
+| Height | 412 px at most (340 for title, list and footer as before, plus the two rows). While the panel is open the list keeps the tallest height it has had, so the search box never moves under the cursor |
 
 ### Settings page in the Analytics shell (v3.115.0)
 

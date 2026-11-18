@@ -20,9 +20,14 @@ const OLD_NEVER: InactivityCandidate = {
   id: 's1', name: 'Deposit request', trigger: 'deposit',
   lastUsedAt: null, createdAt: '2024-11-02T10:00:00Z',
 };
+// Last used seven months before the run, whenever that is: past the 6-month
+// threshold and inside the 9-month one. A fixed date here stopped being
+// inside 9 months on 2026-11-14 and the suite went red by itself.
+const SEVEN_MONTHS_AGO = new Date();
+SEVEN_MONTHS_AGO.setMonth(SEVEN_MONTHS_AGO.getMonth() - 7);
 const OLD_USED: InactivityCandidate = {
   id: 's2', name: 'Late checkout', trigger: 'late',
-  lastUsedAt: '2026-02-14T09:00:00Z', createdAt: '2024-01-01T10:00:00Z',
+  lastUsedAt: SEVEN_MONTHS_AGO.toISOString(), createdAt: '2024-01-01T10:00:00Z',
 };
 const FRESH: InactivityCandidate = {
   id: 's3', name: 'Daily greeting', trigger: 'hi',
@@ -111,7 +116,7 @@ describe('InactiveAssetBanner', () => {
   });
 
   it('respects a wider threshold', () => {
-    // At 9 months the February date is inside the window, so only the 2024 one
+    // At 9 months the seven-month-old use is inside the window, so only the 2024 one
     // is named and the stepper goes away.
     const html = render(
       <InactiveAssetBanner

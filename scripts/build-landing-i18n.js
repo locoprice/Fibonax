@@ -154,19 +154,24 @@ function pricingShell(home, lang) {
   const rebase = html => html.replace(/src="([^"]+)"/g, (match, src) =>
     /^(?:https?:|data:|\/)/.test(src) ? match : `src="../${src}"`)
     .replaceAll('href="/"', 'href="../"')
-    .replaceAll('href="#features"', 'href="../#features"')
-    .replaceAll('href="#faq"', 'href="../#faq"')
+    .replace(/href="#(features|faq|layer-[a-z]+|sb-expansion)"/g, 'href="../#$1"')
     .replaceAll('href="pricing/"', 'href="./"')
     .replaceAll('href="/legal/', `href="${rootPrefix}legal/`);
-  let header = rebase(sharedPart(home, 'header'));
+  // The language links (phone menu and footer) lead to this page in the other
+  // language, not to the other homepage.
+  const pricingLanguageLinks = (html, navClass) => {
+    const pattern = new RegExp(`<nav class="${navClass}"[\\s\\S]*?<\\/nav>`);
+    if (!pattern.test(html)) throw new Error(`Expected a ${navClass} language block`);
+    return html.replace(pattern, block =>
+      block.replace(/href="[^"]*" hreflang="([^"]+)"/g, (_, code) => {
+        const target = code === 'en' ? 'pricing' : `${code}/pricing`;
+        const href = (path.posix.relative(currentDir, target) || '.') + '/';
+        return `href="${href}" hreflang="${code}"`;
+      }));
+  };
+  let header = pricingLanguageLinks(rebase(sharedPart(home, 'header')), 'nav-drawer-lang');
   header = header.replaceAll('href="./" class="nav-link"', 'href="./" class="nav-link" aria-current="page"');
-  let footer = sharedPart(home, 'footer');
-  footer = footer.replace(/<nav class="foot-lang"[\s\S]*?<\/nav>/, block =>
-    block.replace(/href="[^"]*" hreflang="([^"]+)"/g, (_, code) => {
-      const target = code === 'en' ? 'pricing' : `${code}/pricing`;
-      const href = (path.posix.relative(currentDir, target) || '.') + '/';
-      return `href="${href}" hreflang="${code}"`;
-    }));
+  const footer = pricingLanguageLinks(sharedPart(home, 'footer'), 'foot-lang');
   // The exchange rate window's button leads to the packs: one page away from
   // the homepage, an anchor on this one.
   const packsLink = 'href="pricing/#plans"';

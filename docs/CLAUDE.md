@@ -163,7 +163,7 @@ auth/auth.js  ────  importScripts'd by background.js  ────  Supa
 
 **`auth/auth.js`** — Supabase OTP + session management
 - Loaded via `importScripts()` in `background.js` and as a plain script by the popup
-- `sbRequestOtp(email)`, `sbVerifyOtp(email, code, rememberMe)`, `sbVerifyTokenHash(tokenHash)` — the dashboard SSO handoff (AUTH-EXT-003) redeems a one-time token_hash minted by the `mint-extension-session` edge function, so the extension owns a refresh-token family independent from the dashboard's
+- `sbVerifyTokenHash(tokenHash)`: the dashboard SSO handoff (AUTH-EXT-003) redeems a one-time token_hash minted by the `mint-extension-session` edge function, so the extension owns a refresh-token family independent from the dashboard's. It is the extension's only way in: the email-code sign-in was retired in v3.140.0, because Supabase asks every sign-in email for a Cloudflare Turnstile token and a Manifest V3 popup cannot load Turnstile
 - `sbRefreshToken()` is fail-open: only a definitive GoTrue rejection (or a closed remember-me window) clears the session; transient errors keep it. The 30-day remember window slides forward on every successful refresh
 - Stores the session in `chrome.storage.local` (`sb_session`, `sb_remember_until`)
 

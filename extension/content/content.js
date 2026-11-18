@@ -440,11 +440,17 @@ try {
       // A cleared cache (sign-out) arrives with no newValue and must empty the
       // in-memory list, otherwise the picker keeps serving the signed-out user
       // the library from the session that just ended.
-      if (changes.snippets) snippets = Array.isArray(changes.snippets.newValue) ? changes.snippets.newValue : [];
+      if (changes.snippets) {
+        snippets = Array.isArray(changes.snippets.newValue) ? changes.snippets.newValue : [];
+        _refreshOpenPicker('snippet');
+      }
       if (changes.sb_next) nextMap = _nextMapOf(changes.sb_next.newValue);
       if (changes.sb_next_hidden) nextHidden = changes.sb_next_hidden.newValue || {};
       if (changes.sb_session) hasSession = !!(changes.sb_session.newValue && changes.sb_session.newValue.user_id);
-      if (changes.sb_prompts && Array.isArray(changes.sb_prompts.newValue)) userPrompts = changes.sb_prompts.newValue;
+      if (changes.sb_prompts && Array.isArray(changes.sb_prompts.newValue)) {
+        userPrompts = changes.sb_prompts.newValue;
+        _refreshOpenPicker('prompt');
+      }
       if (changes.trigger  && changes.trigger.newValue)  trigger  = changes.trigger.newValue;
       if (changes.sb_default_lang && changes.sb_default_lang.newValue) defaultLang = changes.sb_default_lang.newValue;
       if (changes.triggerCfg && changes.triggerCfg.newValue) {
@@ -643,6 +649,7 @@ function checkBuf() {
       triggerPendingMode = 'snippet';
       triggerAffix = '';
       if (triggerDebounceTimer) clearTimeout(triggerDebounceTimer);
+      _askLibraryRefresh();
       return;
     }
     // Prompt trigger (e.g. """): unlike snippets there is no shortcut to type,
@@ -655,6 +662,7 @@ function checkBuf() {
       if (buf.length > promptSeq.length && buf[buf.length - promptSeq.length - 1] === promptSeq[0]) return;
       if (triggerDebounceTimer) { clearTimeout(triggerDebounceTimer); triggerDebounceTimer = null; }
       buf = '';
+      _askLibraryRefresh();
       showTriggerPicker(activeEl, 'prompt', promptSeq.length, '');
       return;
     }
@@ -688,6 +696,51 @@ function checkBuf() {
     }
     return;
   }
+}
+
+// ── A FRESH LIBRARY WHEN A TRIGGER IS TYPED ──────────────────────────
+// The page works from a copy of the library, and the service worker brought
+// that copy up to date on a tab switch and every 5 minutes only. A snippet or
+// a prompt saved a moment ago could therefore be missing from the menu for
+// minutes: saved on the phone, by a teammate, in another window, or in a tab
+// switched away from before the save had finished.
+//
+// Typing a trigger is the moment that copy is about to be read, so it is also
+// the moment to ask for a new one. The worker decides whether one is due (it
+// keeps its own short wait between refreshes), fetches, and writes the copy;
+// the storage listener above then redraws a menu that is open. Nothing waits
+// on the answer: the menu opens at once on what the page holds.
+function _askLibraryRefresh() {
+  try {
+    chrome.runtime.sendMessage({ type: 'SB_LIBRARY_REFRESH' }, function() {
+      // The worker may be restarting, or the extension reloading. The copy in
+      // hand still works, and reading lastError keeps the console quiet.
+      void chrome.runtime.lastError;
+    });
+  } catch (e) {
+    // The extension was reloaded under this page: expansion keeps working
+    // from the copy in hand until the page is reloaded.
+  }
+}
+
+// The library changed while a menu is open: draw it again with what was typed,
+// so a snippet or a prompt saved a moment ago appears in the list being looked
+// at. The highlighted row is kept when it is still there. An automatic insert
+// that was counting down starts its wait again on the new list; one that was
+// not (the setting is off, or an arrow key stopped it) is never started here.
+function _refreshOpenPicker(mode) {
+  if (!triggerPickerEl || triggerPickerMode !== mode) return;
+  var held = triggerPickerFiltered[triggerPickerIdx];
+  var heldId = held ? held.id : null;
+  var wasCounting = !!pickerAutoTimer;
+  _renderPickerItems(triggerPickerQuery);
+  if (heldId !== null) {
+    for (var i = 0; i < triggerPickerFiltered.length; i++) {
+      if (triggerPickerFiltered[i].id === heldId) { triggerPickerIdx = i; break; }
+    }
+    updateTriggerPickerHighlight();
+  }
+  if (wasCounting) _armPickerAuto();
 }
 
 // ── UNIQUE-PREFIX MATCHING ───────────────────────────────────────────
@@ -4683,10 +4736,14 @@ function sbMemoryPreferredLangs(preferred) {
   // searches instead of reading a step, so there is nothing left to configure
   // and nothing left to gate on.
   var BUDGET_KEY = 'sb_memory_budgets';
+  // What the panel adds: 'prompt', 'brains' or 'both'. One choice for every
+  // site, kept on this device like the budgets below.
+  var MODE_KEY = 'sb_injector_mode';
+  var PAIRS_KEY = 'sb_injector_pairs';
 
   var picker = SBMemoryPicker.create({
-    search: function(query, cb) {
-      ask('knowledge_search', { query: query, limit: 40 }, function(e, r) {
+    search: function(query, kinds, cb) {
+      ask('knowledge_search', { query: query, kinds: kinds, limit: 40 }, function(e, r) {
         if (e) { cb(e); return; }
         cb(null, r.rows || []);
       });
@@ -4732,6 +4789,47 @@ function sbMemoryPreferredLangs(preferred) {
           chrome.storage.local.set(patch);
         });
       } catch(e) {}
+    },
+    // Same promise as the budgets: storage.local, and a failure falls back to
+    // Both without a message.
+    loadMode: function(cb) {
+      try {
+        chrome.storage.local.get(MODE_KEY, function(d) {
+          cb((d && d[MODE_KEY]) || null);
+        });
+      } catch(e) { cb(null); }
+    },
+    saveMode: function(mode) {
+      try {
+        var patch = {};
+        patch[MODE_KEY] = mode;
+        chrome.storage.local.set(patch);
+      } catch(e) {}
+    },
+    // Usually added together: which Brain items went in beside which prompt.
+    // Ids and counts only, never a name or a word of text, and on this device
+    // only, like everything else here. A failure means no suggestion.
+    loadPairs: function(cb) {
+      try {
+        chrome.storage.local.get(PAIRS_KEY, function(d) {
+          cb((d && d[PAIRS_KEY]) || null);
+        });
+      } catch(e) { cb(null); }
+    },
+    savePairs: function(store) {
+      try {
+        var patch = {};
+        patch[PAIRS_KEY] = store;
+        chrome.storage.local.set(patch);
+      } catch(e) {}
+    },
+    // The Brain items a prompt usually goes in with, read by id when that
+    // prompt is ticked: what the list shows, never their text.
+    getFacts: function(ids, cb) {
+      ask('memory_facts', { ids: ids }, function(e, r) {
+        if (e) { cb(e); return; }
+        cb(null, r.rows || []);
+      });
     }
   });
   picker.mount();

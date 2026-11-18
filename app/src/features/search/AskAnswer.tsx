@@ -1,13 +1,18 @@
 import { BrainIcon } from '@/components/shared/BrainIcon';
 import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowLeft, Check, Copy, Loader2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, CircleAlert, CircleCheck, CircleDot, Copy, Loader2 } from 'lucide-react';
 import { SnippetIcon } from '@/components/shared/SnippetIcon';
 import { askApi } from '@/lib/api/askApi';
 import {
   ASK_VERDICTS,
   answerPlainText,
+  countGaps,
+  coverageLabel,
+  showsQuestionList,
   splitCitations,
+  type AskCoverage,
+  type AskQuestion,
   type AskResult,
   type AskSource,
   type AskVerdict,
@@ -22,6 +27,11 @@ import { cn } from '@/lib/utils';
 // The answer is built only from the reader's own snippets and Brains. Every
 // claim carries a numbered citation that opens its source, and when nothing in
 // Fibonax covers the question the panel says so instead of answering.
+//
+// A whole message pasted in (an email, a chat) is answered as a reply to its
+// writer: the questions found in it are listed first, each with how far
+// Fibonax answers it, and a question it cannot answer shows in the reply as a
+// note in brackets for the sender to fill in.
 
 type AskState =
   | { phase: 'loading' }
@@ -62,10 +72,11 @@ export function AskAnswer({ question, onBack, onOpenSource }: AskAnswerProps) {
     void run();
   }, [run]);
 
-  async function copyAnswer(answer: string) {
+  async function copyAnswer(result: AskResult) {
     try {
-      await navigator.clipboard.writeText(answerPlainText(answer));
-      showToast('Answer copied');
+      await navigator.clipboard.writeText(answerPlainText(result.answer));
+      const copied = result.reply ? 'Reply copied' : 'Answer copied';
+      showToast(countGaps(result.answer) > 0 ? `${copied}. Fill in the parts in brackets before you send it.` : copied);
     } catch {
       showToast('Could not copy. Select the text and copy it instead.', 'error');
     }
@@ -105,7 +116,7 @@ export function AskAnswer({ question, onBack, onOpenSource }: AskAnswerProps) {
       </div>
 
       <div className="overflow-y-auto px-4 py-3">
-        <p className="mb-3 text-sm font-semibold text-ink">{question}</p>
+        <p className="mb-3 line-clamp-3 whitespace-pre-wrap break-words text-sm font-semibold text-ink">{question}</p>
 
         {state.phase === 'loading' ? (
           <p className="flex items-center gap-2 py-6 text-sm text-ink-subtle" role="status">
@@ -127,7 +138,7 @@ export function AskAnswer({ question, onBack, onOpenSource }: AskAnswerProps) {
           <AskResultView
             result={state.result}
             onOpenSource={onOpenSource}
-            onCopy={(answer) => void copyAnswer(answer)}
+            onCopy={() => void copyAnswer(state.result)}
             sentVerdict={sentVerdict}
             sending={sending}
             onFeedback={(verdict) => void sendFeedback(verdict, state.result)}
@@ -141,7 +152,7 @@ export function AskAnswer({ question, onBack, onOpenSource }: AskAnswerProps) {
 interface AskResultViewProps {
   result: AskResult;
   onOpenSource: (source: AskSource) => void;
-  onCopy: (answer: string) => void;
+  onCopy: () => void;
   sentVerdict: AskVerdict | null;
   sending: boolean;
   onFeedback: (verdict: AskVerdict) => void;
@@ -161,6 +172,11 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
 
   const bySource = new Map(result.sources.map((s) => [s.ref, s]));
   const answered = result.status === 'answered';
+  const listed = showsQuestionList(result);
+
+  function cite(ref: string, key: number) {
+    return <CiteButton key={key} source={bySource.get(ref)} sourceRef={ref} onOpenSource={onOpenSource} />;
+  }
 
   return (
     <div className="space-y-3">
@@ -170,23 +186,23 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
             <Check className="h-3 w-3" />
             From your Fibonax
           </span>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
-            {splitCitations(result.answer, result.sources).map((part, i) => {
-              if (part.type === 'text') return <span key={i}>{part.text}</span>;
-              const source = bySource.get(part.ref);
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => source && onOpenSource(source)}
-                  title={source?.title}
-                  className="mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-[4px] bg-primary-light px-1 align-text-top text-[10px] font-semibold text-primary hover:bg-primary hover:text-white"
-                >
-                  {part.ref.slice(1)}
-                </button>
-              );
-            })}
-          </p>
+          {listed ? <QuestionList questions={result.questions} cite={cite} /> : null}
+          <div>
+            {listed ? <SectionHeading>{result.reply ? 'Reply' : 'Answer'}</SectionHeading> : null}
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">
+              {splitCitations(result.answer, result.sources).map((part, i) => {
+                if (part.type === 'text') return <span key={i}>{part.text}</span>;
+                if (part.type === 'gap') {
+                  return (
+                    <span key={i} className="box-decoration-clone rounded-[4px] bg-warning-bg px-1 font-medium text-ink ring-1 ring-inset ring-warning-deep">
+                      {part.text}
+                    </span>
+                  );
+                }
+                return cite(part.ref, i);
+              })}
+            </p>
+          </div>
         </>
       ) : (
         <p className="text-sm font-medium text-ink">
@@ -212,9 +228,7 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
       ) : null}
 
       <div>
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-          {answered ? 'Sources' : 'Related items'}
-        </p>
+        <SectionHeading>{answered ? 'Sources' : 'Related items'}</SectionHeading>
         <ul className="divide-y divide-line rounded-[10px] border border-line">
           {result.sources.map((source) => {
             const Icon = source.kind === 'snippet' ? SnippetIcon : BrainIcon;
@@ -253,11 +267,11 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
         {answered ? (
           <button
             type="button"
-            onClick={() => onCopy(result.answer)}
+            onClick={onCopy}
             className="mr-2 inline-flex items-center gap-1 rounded-[6px] bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary-dark"
           >
             <Copy className="h-3.5 w-3.5" />
-            Copy answer
+            {result.reply ? 'Copy reply' : 'Copy answer'}
           </button>
         ) : null}
         <span className="text-[11px] text-ink-subtle">{sentVerdict ? 'Feedback sent' : 'Was this right?'}</span>
@@ -279,6 +293,68 @@ function AskResultView({ result, onOpenSource, onCopy, sentVerdict, sending, onF
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SectionHeading({ children }: { children: string }) {
+  return <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">{children}</p>;
+}
+
+interface CiteButtonProps {
+  source: AskSource | undefined;
+  sourceRef: string;
+  onOpenSource: (source: AskSource) => void;
+}
+
+/** A source number that opens its source. */
+function CiteButton({ source, sourceRef, onOpenSource }: CiteButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => source && onOpenSource(source)}
+      title={source?.title}
+      aria-label={source ? `Source ${sourceRef.slice(1)}: ${source.title}` : `Source ${sourceRef.slice(1)}`}
+      className="mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-[4px] bg-primary-light px-1 align-text-top text-[10px] font-semibold text-primary hover:bg-primary hover:text-white"
+    >
+      {sourceRef.slice(1)}
+    </button>
+  );
+}
+
+const COVERAGE_ICON: Record<AskCoverage, { icon: typeof CircleCheck; className: string }> = {
+  full: { icon: CircleCheck, className: 'text-primary' },
+  partial: { icon: CircleDot, className: 'text-warning-deep' },
+  none: { icon: CircleAlert, className: 'text-warning-deep' },
+};
+
+interface QuestionListProps {
+  questions: readonly AskQuestion[];
+  cite: (ref: string, key: number) => JSX.Element;
+}
+
+/** Every question found in a message, each with how far Fibonax answers it. */
+function QuestionList({ questions, cite }: QuestionListProps) {
+  return (
+    <div>
+      <SectionHeading>{`${questions.length} questions found`}</SectionHeading>
+      <ul className="divide-y divide-line rounded-[10px] border border-line">
+        {questions.map((q, index) => {
+          const { icon: Icon, className } = COVERAGE_ICON[q.coverage];
+          return (
+            <li key={index} className="flex items-start gap-2.5 px-3 py-2">
+              <Icon className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', className)} aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <p className="break-words text-sm text-ink">{q.question}</p>
+                <p className="mt-0.5 text-[11px] text-ink-muted">
+                  {coverageLabel(q.coverage)}
+                  {q.sources.map((ref, i) => cite(ref, i))}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

@@ -31,6 +31,8 @@ export type ProFeature =
   | 'translate'
   /** Suggest labels, in the snippet editor. */
   | 'labels'
+  /** Improve with AI, in the snippet editor's Quality window. */
+  | 'review'
   /** Read a picture, in the phone's Save to Brain. On the phone only, which
       carries this switch as PICTURE_AVAILABLE. */
   | 'picture'
@@ -50,6 +52,7 @@ const AVAILABLE: Record<ProFeature, boolean> = {
   draft: true,
   translate: true,
   labels: true,
+  review: true,
   picture: true,
   snippetPictures: false,
   emailLayout: true,

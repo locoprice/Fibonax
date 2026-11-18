@@ -50,6 +50,10 @@ const LIBRARY = [
 
 // ── minimal host: only what content.js touches while loading ────────
 const listeners = {};
+// What the page sent to the service worker, and who listens for a change to
+// the stored library (runLibraryRefreshCases).
+const sent = [];
+const storageListeners = [];
 const noop = function () {};
 const stubEl = {
   id: '', style: {}, dataset: {}, textContent: '',
@@ -76,9 +80,10 @@ const sandbox = {
     storage: {
       local: { get: (k, cb) => cb && cb({ snippets: LIBRARY }), set: (o, cb) => cb && cb() },
       sync:  { get: (k, cb) => cb && cb({}), set: (o, cb) => cb && cb(), remove: noop },
-      onChanged: { addListener: noop },
+      onChanged: { addListener: (fn) => { storageListeners.push(fn); } },
     },
-    runtime: { id: 'gate', lastError: null, sendMessage: noop, onMessage: { addListener: noop } },
+    // Messages are recorded and never answered, as before: no callback runs.
+    runtime: { id: 'gate', lastError: null, sendMessage: (msg) => { sent.push(msg); }, onMessage: { addListener: noop } },
   },
 };
 sandbox.window = sandbox;
@@ -290,6 +295,143 @@ async function runPickerEnterCase() {
     fail('picker case: Enter on the menu -> ' + JSON.stringify(fired) + ', expected the 4-character "::ti" removed');
   }
   return 1;
+}
+
+// A snippet or a prompt saved a moment ago must be in the menu. The page works
+// from a copy of the library, and until v3.137.1 nothing brought that copy up
+// to date when a trigger was typed: a new snippet stayed out of the menu until
+// the next tab switch or the 5 minute timer, a new prompt until the popup was
+// opened. Typing a trigger now asks the worker for a fresh copy, and a menu
+// that is open redraws when the copy changes.
+async function runLibraryRefreshCases() {
+  const refreshes = () => sent.filter((m) => m && m.type === 'SB_LIBRARY_REFRESH').length;
+  const stored = (changes) => storageListeners.forEach((fn) => fn(changes, 'local'));
+  const ids = () => sandbox.triggerPickerFiltered.map((s) => s.id);
+  const NEW = { id: 'airbnb', shortcut: 'airbnb_update', title: 'AIRBNB UPDATE', lang: 'EN', body: 'NEW BODY' };
+  let count = 0;
+
+  if (!storageListeners.length) fail('refresh case: content.js no longer listens for a change to the stored library');
+
+  // 1. The snippet trigger asks for a fresh copy, once.
+  await reset();
+  sent.length = 0;
+  await typeText('::', FAST);
+  if (refreshes() !== 1) {
+    fail('refresh case: typing the snippet trigger asked for a fresh library ' + refreshes() + ' time(s), expected 1.\n' +
+      '  Without it a snippet saved a moment ago is missing from the menu for minutes.');
+  }
+  count++;
+
+  // 2. The menu is open on "No matches"; the new snippet arrives and is listed.
+  await typeText('air', 260);
+  if (!sandbox.triggerPickerEl) fail('refresh case: the suggestion menu did not open for "::air"');
+  if (ids().length !== 0) fail('refresh case: fixture drift, "::air" should match nothing before the refresh');
+  stored({ snippets: { newValue: LIBRARY.concat([NEW]) } });
+  if (JSON.stringify(ids()) !== '["airbnb"]') {
+    fail('refresh case: a snippet that arrived while the menu was open is not in it: ' + JSON.stringify(ids()) +
+      '\n  The menu must redraw when the stored library changes.');
+  }
+  if (refreshes() !== 1) fail('refresh case: letters typed after the trigger asked for the library again');
+  count++;
+
+  // 3. The highlighted row stays the highlighted row when the list grows above it.
+  await reset();
+  stored({ snippets: { newValue: LIBRARY } });
+  await typeText('::for', 260);
+  key('ArrowDown');
+  const heldId = ids()[sandbox.triggerPickerIdx];
+  stored({ snippets: { newValue: [{ id: 'fora', shortcut: 'fora', title: 'FORA', lang: 'EN', body: 'B' }].concat(LIBRARY) } });
+  if (ids()[sandbox.triggerPickerIdx] !== heldId || ids().indexOf('fora') === -1) {
+    fail('refresh case: the highlighted snippet changed when the list was redrawn: was ' + heldId +
+      ', now ' + ids()[sandbox.triggerPickerIdx] + ' in ' + JSON.stringify(ids()));
+  }
+  count++;
+
+  // 4. The same for prompts: the trigger asks, and a new prompt joins the open menu.
+  await reset();
+  stored({ snippets: { newValue: LIBRARY } });
+  sent.length = 0;
+  await typeText('"""', FAST);
+  if (refreshes() !== 1) fail('refresh case: typing the prompt trigger asked for a fresh library ' + refreshes() + ' time(s), expected 1');
+  if (!sandbox.triggerPickerEl || sandbox.triggerPickerMode !== 'prompt') fail('refresh case: the prompt menu did not open for """');
+  stored({ sb_prompts: { newValue: [{ id: 'p-new', title: 'NEW PROMPT', body: 'text', shortcut: '' }] } });
+  if (ids().indexOf('p-new') === -1) {
+    fail('refresh case: a prompt that arrived while the menu was open is not in it: ' + JSON.stringify(ids()));
+  }
+  count++;
+
+  // 5. A change to snippets leaves an open prompt menu alone, and the reverse.
+  const before = JSON.stringify(ids());
+  stored({ snippets: { newValue: LIBRARY.concat([NEW]) } });
+  if (JSON.stringify(ids()) !== before || sandbox.triggerPickerMode !== 'prompt') {
+    fail('refresh case: a snippet change redrew the prompt menu');
+  }
+  stored({ sb_prompts: { newValue: [] }, snippets: { newValue: LIBRARY } });
+  count++;
+
+  await reset();
+  return count;
+}
+
+// The worker's side of the same fix, read from the shipped files: it answers
+// the page's request, keeps a short wait of its own, and fills the prompt list
+// through the mapping the popup uses, never emptying it on a read that failed.
+function runWorkerRefreshCases() {
+  const read = (...parts) => fs.readFileSync(path.join(__dirname, '..', ...parts), 'utf8');
+  const BG = read('extension', 'background', 'background.js');
+  const POPUP = read('extension', 'popup', 'popup.js');
+  const POPUP_HTML = read('extension', 'popup', 'popup.html');
+  const cache = require(path.join(__dirname, '..', 'extension', 'shared', 'prompt-cache.js'));
+  let count = 0;
+  const must = (ok, msg) => { if (!ok) fail('worker refresh: ' + msg); count++; };
+
+  must(JSON.stringify(cache.toRows([{ id: 'p1', name: 'Reply', content: 'Text', shortcut: null, review_status: null }])) ===
+    '[{"id":"p1","title":"Reply","body":"Text","shortcut":"","review_status":"approved"}]',
+    'a prompt row no longer maps to the menu row (name -> title, content -> body)');
+  must(JSON.stringify(cache.toRows(null)) === '[]', 'no prompts must map to an empty list, not throw');
+  must(cache.KEY === 'sb_prompts', 'the prompt list moved away from sb_prompts, which content.js reads');
+  must(/review_status=neq\.archived/.test(cache.QUERY) && /order=updated_at\.desc/.test(cache.QUERY),
+    'the worker must leave archived prompts out and keep the popup\'s order');
+  ['id', 'name', 'content', 'shortcut', 'review_status'].forEach((col) => {
+    must(new RegExp('select=[^&]*\\b' + col + '\\b').test(cache.QUERY), 'the worker no longer asks for the prompt column ' + col);
+  });
+
+  must(BG.includes("importScripts('../shared/prompt-cache.js');"), 'background.js no longer loads shared/prompt-cache.js');
+  must(POPUP_HTML.includes('<script src="../shared/prompt-cache.js"></script>'), 'popup.html no longer loads shared/prompt-cache.js');
+  must(/SBPromptCache\.toRows\(prompts\)/.test(POPUP), 'the popup no longer writes the prompt list through the shared mapping');
+
+  // The worker's refresh, run for real against a stubbed read and store.
+  const from = BG.indexOf('function refreshPromptCache(');
+  const to = BG.indexOf('\n}\n', from) + 3;
+  must(from !== -1 && to > from, 'cannot slice refreshPromptCache out of background.js');
+  const run = (answer) => {
+    const written = [];
+    const box = {
+      console: { warn: noop },
+      SBPromptCache: cache,
+      supaFetchAll: (table, qs) => { box.asked = { table, qs }; return answer; },
+      chrome: { runtime: { lastError: null }, storage: { local: { set: (patch, cb) => { written.push(patch); if (cb) cb(); } } } },
+    };
+    vm.createContext(box);
+    vm.runInContext(BG.slice(from, to) + '\nrefreshPromptCache();', box);
+    return { box, written };
+  };
+  const good = run(Promise.resolve([{ id: 'p1', name: 'Reply', content: 'Text', shortcut: 'rep', review_status: 'approved' }]));
+  const bad = run(Promise.reject(new Error('prompts answered HTTP 500')));
+  return Promise.resolve().then(() => wait(20)).then(() => {
+    must(good.box.asked.table === 'prompts' && good.box.asked.qs === cache.QUERY, 'the worker reads prompts with another query than the shared one');
+    must(JSON.stringify(good.written) === '[{"sb_prompts":[{"id":"p1","title":"Reply","body":"Text","shortcut":"rep","review_status":"approved"}]}]',
+      'the worker did not write the prompt list the menu reads: ' + JSON.stringify(good.written));
+    must(bad.written.length === 0, 'a prompt read that failed must leave the stored list as it was, not empty it');
+
+    must(/refreshPromptCache\(\);/.test(BG.slice(BG.indexOf('function initMenus('), BG.indexOf('function refreshPromptCache('))),
+      'initMenus no longer refreshes the prompt list beside the snippets');
+    must(/msg\.type === 'SB_LIBRARY_REFRESH'\) \{\s*maybeRefreshMenus\(TRIGGER_REFRESH_MIN_MS\);/.test(BG),
+      'the worker no longer answers the page\'s request for a fresh library');
+    const waitMs = /var TRIGGER_REFRESH_MIN_MS = (\d+);/.exec(BG);
+    must(waitMs && Number(waitMs[1]) <= 5000, 'the wait between trigger refreshes must stay short (5 seconds at most)');
+    return count;
+  });
 }
 
 // "Insert automatically" (AUTO-INSERT-001). Off by default. When on, the trigger
@@ -671,6 +813,7 @@ function runFormInsertionCases() {
       '  Confirming from the suggestion menu would clip the wrong characters and\n' +
       '  leave part of the trigger in the message.');
   }
-  const extra = runFormInsertionCases() + (await runPickerEnterCase()) + (await runAutoInsertCases()) + (await runPlaceholderCases()) + (await runLexicalDeleteCases());
+  const extra = runFormInsertionCases() + (await runPickerEnterCase()) + (await runAutoInsertCases()) + (await runPlaceholderCases()) + (await runLexicalDeleteCases()) +
+    (await runLibraryRefreshCases()) + (await runWorkerRefreshCases());
   console.log('OK Trigger expansion passed all ' + (cases.length + spanCases.length + 1 + extra) + ' cases');
 })();

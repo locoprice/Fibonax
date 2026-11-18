@@ -13,6 +13,9 @@
 //   3. The edge function only answers from what it found: no sources means no
 //      model call, and an answer that cites nothing is not an answer.
 //   4. Both surfaces call the same function and write the same table.
+//   5. Contextual replies: both surfaces take a message of the same length as
+//      the function, name each question's coverage in the same words, and the
+//      function checks each question's citations like the answer's.
 const fs = require('fs');
 const path = require('path');
 
@@ -86,6 +89,42 @@ check('the phone writes feedback to knowledge_feedback', /\/rest\/v1\/knowledge_
 check(
   'the phone offers Ask under all three search fields',
   ['srch', 'prompt-srch', 'mem-srch'].every((id) => MOBILE.includes('class="ask-row sb-hidden" data-ask-for="' + id + '"')),
+);
+
+// ── 5. Contextual replies ──────────────────────────────────────────────────
+const appMax = (APP.match(/export const ASK_QUESTION_MAX = (\d+);/) || [])[1];
+const mobileMax = (MOBILE.match(/var ASK_MIN=\d+, ASK_MAX=(\d+)/) || [])[1];
+const fnMax = (FN.match(/const MAX_QUESTION_CHARS = (\d+);/) || [])[1];
+check(
+  'the dashboard, the phone and the function take a message of the same length',
+  appMax !== undefined && appMax === mobileMax && appMax === fnMax,
+  'dashboard ' + appMax + ', phone ' + mobileMax + ', function ' + fnMax,
+);
+const appCoverage = pairs(APP, 'export const ASK_COVERAGE');
+const mobileCoverage = pairs(MOBILE, 'var ASK_COVERAGE=');
+check(
+  'the dashboard names each question\'s coverage full, partial, none',
+  JSON.stringify(appCoverage.map((p) => p[0])) === JSON.stringify(['full', 'partial', 'none']),
+  JSON.stringify(appCoverage),
+);
+check(
+  'the phone names coverage with the same words as the dashboard',
+  JSON.stringify(mobileCoverage) === JSON.stringify(appCoverage),
+  'phone ' + JSON.stringify(mobileCoverage) + ' vs dashboard ' + JSON.stringify(appCoverage),
+);
+const feedbackLimit = (MIGRATION.match(/knowledge_feedback_question_length check \(char_length\(btrim\(question\)\) between \d+ and (\d+)\)/) || [])[1];
+check(
+  'both surfaces cut feedback to the length the table accepts',
+  feedbackLimit !== undefined
+    && new RegExp('question\\.slice\\(0, ' + feedbackLimit + '\\)').test(API)
+    && new RegExp('ASK_FEEDBACK_MAX=' + feedbackLimit + '\\b').test(MOBILE)
+    && /question:st\.question\.slice\(0,ASK_FEEDBACK_MAX\)/.test(MOBILE),
+  'table limit ' + feedbackLimit,
+);
+check('the function searches a message question by question', /searchQueries\(question\)/.test(FN) && /mergeRanked\(/.test(FN));
+check(
+  'a question that cites no source sent is not covered',
+  /function shapeQuestions\(/.test(FN) && /\.filter\(\(ref\) => known\.has\(ref\)\)/.test(FN.slice(FN.indexOf('function shapeQuestions('))),
 );
 
 if (failed > 0) {

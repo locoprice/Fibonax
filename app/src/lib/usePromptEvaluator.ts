@@ -9,36 +9,11 @@ import type {
   IntentCategory,
 } from '@/types/database';
 import { assembleBlocks, foldReasoningIntoConstraints } from '@/lib/promptUtils';
+import { scoreCriteria, type EvalCriterion, type EvalResult } from '@/lib/qualityScore';
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
-export type CriterionStatus = 'pass' | 'partial' | 'fail';
-
-export interface EvalCriterion {
-  id: string;
-  label: string;
-  description: string;
-  /** Resolved status used for the icon + colour. */
-  status: CriterionStatus;
-  /** 0–1 graded value (partial credit). Drives the weighted score. */
-  value: number;
-  /** Relative importance in the weighted average. */
-  weight: number;
-  /** Why the criterion landed on this status — explains the score. */
-  rationale: string;
-  /** Concrete improvement example, shown for partial/fail. */
-  example?: string;
-  /** One-click auto-fix label (enable a block / apply a metadata default). */
-  suggestionLabel?: string;
-}
-
-export interface EvalResult {
-  /** Weighted 0–10, one decimal. */
-  score: number;
-  /** Weighted 0–100 (integer). */
-  pct: number;
-  criteria: EvalCriterion[];
-}
+export type { CriterionStatus, EvalCriterion, EvalResult } from '@/lib/qualityScore';
 
 export interface EvaluatorInput {
   blocks: PromptBlock[];
@@ -330,13 +305,7 @@ export function evaluatePrompt(input: EvaluatorInput): EvalResult {
     ),
   ];
 
-  const totalWeight = criteria.reduce((sum, c) => sum + c.weight, 0);
-  const earned = criteria.reduce((sum, c) => sum + c.value * c.weight, 0);
-  const ratio = totalWeight > 0 ? earned / totalWeight : 0;
-  const pct = Math.round(ratio * 100);
-  const score = Math.round(ratio * 100) / 10; // 0–10, one decimal
-
-  return { score, pct, criteria };
+  return scoreCriteria(criteria);
 }
 
 // ── Corpus benchmark ─────────────────────────────────────────────────────────

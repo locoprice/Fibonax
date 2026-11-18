@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
-import { sanitizeName } from '@/lib/nameText';
+import { nameFromEvent, sanitizeName } from '@/lib/nameText';
 import {
   Dialog,
   DialogContent,
@@ -60,6 +60,8 @@ import { FormattedBodyBox, type BodyBoxHandle, type MakeFieldRequest } from '@/f
 import { FormTextDialog } from '@/features/snippets/FormTextDialog';
 import { FormTimeDialog } from '@/features/snippets/FormTimeDialog';
 import { SnippetPreview } from '@/features/snippets/SnippetPreview';
+import { SnippetQualityButton } from '@/features/snippets/SnippetQualityButton';
+import { snippetGroupKey } from '@/lib/snippetGrouping';
 import { cn, countWords } from '@/lib/utils';
 import { findMenuTokenAt, nextMenuName } from '@/lib/formMenuToken';
 import {
@@ -742,7 +744,7 @@ export function NewSnippetDialog() {
         const { title, body, language } = handed.draft;
         setForm((prev) => ({
           ...prev,
-          name: title,
+          name: sanitizeName(title),
           content: body,
           bodies: { ...prev.bodies, [language]: body },
           language,
@@ -754,7 +756,7 @@ export function NewSnippetDialog() {
       // The trigger follows the name until the person types their own. Closing
       // the dialog clears the seed, so the next New snippet starts empty.
       const seed = useUiStore.getState().newSnippetSeed;
-      setForm(seed ?? EMPTY_FORM);
+      setForm(seed ? { ...seed, name: sanitizeName(seed.name) } : EMPTY_FORM);
       autoTriggerRef.current = seed ? seed.trigger : '';
       setLabelIds([]);
     }
@@ -842,6 +844,13 @@ export function NewSnippetDialog() {
   // keeping a second copy of the body in sync with it. Counts the active
   // language's body, so it follows the language pill on a translated snippet.
   const bodyWordCount = countWords(form.content);
+
+  // The Quality window's "reads a lot like" note compares against every other
+  // snippet, one per group, leaving out this snippet's own translations.
+  const qualityOthers = useMemo(() => {
+    const own = editingSnippet ? snippetGroupKey(editingSnippet) : null;
+    return snippetCandidates(own ? snippets.filter((s) => snippetGroupKey(s) !== own) : snippets);
+  }, [snippets, editingSnippet]);
 
   // Translate fills a slot from the English body: offered on IT/ES/FR only. EN
   // is the source, and MULTI is a deliberate mix with no single target.
@@ -1171,8 +1180,7 @@ export function NewSnippetDialog() {
    * Clearing the trigger hands it back to the name, so there is a way out that
    * isn't "reopen the dialog".
    */
-  function handleNameChange(raw: string) {
-    const value = sanitizeName(raw);
+  function handleNameChange(value: string) {
     const syncing =
       mode === 'create' &&
       (form.trigger === '' || form.trigger === autoTriggerRef.current);
@@ -1307,7 +1315,7 @@ export function NewSnippetDialog() {
     });
     setForm((prev) => ({
       ...prev,
-      name: fields.name,
+      name: sanitizeName(fields.name),
       trigger: fields.trigger,
       content: fields.content,
       bodies: { [fields.language]: fields.content },
@@ -2267,8 +2275,10 @@ export function NewSnippetDialog() {
                 <Input
                   id="snippet-name"
                   value={form.name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="Quote — English"
+                  onChange={(e) => handleNameChange(nameFromEvent(e))}
+                  onCompositionEnd={(e) => handleNameChange(nameFromEvent(e))}
+                  placeholder="QUOTE ENGLISH"
+                  autoCapitalize="characters"
                   autoFocus
                   disabled={saving}
                   className={errors.name ? 'border-danger focus:border-danger focus:ring-danger/20' : ''}
@@ -2606,6 +2616,15 @@ export function NewSnippetDialog() {
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2.5">
+                  {/* Quality: the snippet rating for the language being
+                      edited, and the window that says why. */}
+                  <SnippetQualityButton
+                    name={form.name}
+                    body={form.content}
+                    language={form.language}
+                    others={qualityOthers}
+                    disabled={saving}
+                  />
                   {/* Translate fills this slot from the English body. Shown only
                       on IT/ES/FR: EN is the source, and MULTI is a deliberate
                       mix with no single target language. Disabled when there is
