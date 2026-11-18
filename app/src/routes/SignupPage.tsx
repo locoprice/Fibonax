@@ -9,6 +9,7 @@ import { securityApi } from '@/lib/api/securityApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AuthBrandPanel } from '@/components/auth/AuthBrandPanel';
+import { BrandMark } from '@/components/layout/BrandMark';
 import { ErrorBanner } from '@/components/auth/ErrorBanner';
 import { OtpInput, OTP_LENGTH } from '@/components/auth/OtpInput';
 import { RecentSignups } from '@/components/auth/RecentSignups';
@@ -189,9 +190,7 @@ export function SignupPage() {
 
         {/* Mobile logo — hidden when the brand panel is visible */}
         <div className="mb-8 flex items-center gap-2 lg:hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-primary text-[15px] font-extrabold text-white">
-            S
-          </div>
+          <BrandMark className="h-8 w-8" />
           <span className="text-[16px] font-bold tracking-tight text-ink">
             Fibonax
           </span>

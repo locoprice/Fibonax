@@ -1,6 +1,7 @@
 import { useSettingsStore } from '@/stores/settingsStore';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { MasterSearch } from '@/features/search/MasterSearch';
+import { BrandMark } from '@/components/layout/BrandMark';
 
 /**
  * Top bar — design system v1.1.
@@ -15,12 +16,10 @@ export function Topbar() {
 
   return (
     <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-line bg-card px-6">
-      {/* Brand — small azure square + wordmark, co-branded with the user's
-          company mark (Settings → Company branding) when one is set. */}
+      {/* Brand: the Fibonax T and the wordmark, co-branded with the user's
+          company mark (Settings, Company branding) when one is set. */}
       <div className="flex shrink-0 items-center gap-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-primary text-sm font-extrabold text-white">
-          S
-        </div>
+        <BrandMark className="h-7 w-7" />
         <span className="text-[15px] font-bold tracking-tight text-ink">Fibonax</span>
         {(companyLogo || companyName) && (
           <>

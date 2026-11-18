@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Check, ImagePlus, Trash2, UploadCloud } from 'lucide-react';
+import { BrandMark } from '@/components/layout/BrandMark';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -113,9 +114,7 @@ export function BrandingPanel() {
       <CardContent className="space-y-5">
         {/* Live preview — mirrors the topbar co-brand */}
         <div className="flex h-[52px] items-center gap-2.5 rounded-[12px] border border-line bg-bg px-4">
-          <div className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-primary text-xs font-extrabold text-white">
-            S
-          </div>
+          <BrandMark className="h-6 w-6" />
           <span className="text-sm font-bold tracking-tight text-ink">Fibonax</span>
           {logoUrl || trimmed ? (
             <>

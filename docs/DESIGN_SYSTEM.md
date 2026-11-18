@@ -98,6 +98,10 @@ short bar under it.
 | `primary-bdr`  | `#BED0FF`              | Filled-tint badge border               |
 | `primary-glow` | `rgba(27,79,216,.14)`  | Focus ring shadow                      |
 
+### Brand mark (dashboard)
+
+The dashboard shows the Fibonax T, the same picture as the extension, the phone and the landing page: `components/layout/BrandMark.tsx` draws `/landing/leib-tour-icon.png` as a mask in `ink`, so it reads in light and dark. It replaced the SprintBrain "S" square on 2026-11-18 in the topbar, the login and signup pages and the Company branding preview. No new colour.
+
 **v1.1 removes Iris purple `#6C5CE7` entirely.** The `--sb-iris*` aliases in the extension's tokens file still resolve, but they all point at the azure values. Any new code must use `--sb-azure*` / `primary` directly.
 
 ### Language palette (must stay identical across all surfaces)
