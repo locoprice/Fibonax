@@ -84,19 +84,36 @@ img,svg{display:block;max-width:100%}
   .nav-links .btn-github{display:none}
 }
 
-/* ACCOUNT DROPDOWN */
-.nav-account{position:relative}
+/* ACCOUNT AND PRODUCT DROPDOWNS */
+.nav-account,.nav-product{position:relative}
 .nav-account-trigger{gap:6px}
 .nav-account-chevron{transition:transform .18s ease}
-.nav-account-trigger[aria-expanded="true"] .nav-account-chevron{transform:rotate(180deg)}
-.nav-account-menu{
+[aria-expanded="true"]>.nav-account-chevron{transform:rotate(180deg)}
+.nav-account-menu,.nav-product-menu{
   position:absolute;top:calc(100% + 8px);right:0;min-width:180px;
   background:var(--card);border:1px solid var(--border);border-radius:var(--r-btn);
   box-shadow:var(--shadow-md);padding:6px;
   opacity:0;visibility:hidden;transform:translateY(-6px);
   transition:opacity .16s ease,transform .16s ease,visibility .16s;
   z-index:60}
-.nav-account-menu.nav-account-open{opacity:1;visibility:visible;transform:translateY(0)}
+.nav-menu-open{opacity:1;visibility:visible;transform:translateY(0)}
+.nav-product-trigger{display:inline-flex;align-items:center;gap:6px;
+  border:none;background:transparent;font-family:inherit;cursor:pointer}
+.nav-product-trigger[aria-expanded="true"]{color:var(--text);background:var(--bg-alt)}
+.nav-product-menu{left:0;right:auto;width:320px;padding:8px}
+.nav-product-sep{height:1px;margin:6px 10px;background:var(--border)}
+/* One item shape for the desktop Product menu and the phone menu's Product
+   group, so both read the same and share one translation per line. */
+.nav-product-item{display:flex;align-items:center;gap:12px;padding:10px;
+  border-radius:var(--r-btn);color:var(--text);transition:background .15s}
+.nav-product-item:hover{background:var(--bg-alt)}
+.nav-product-item:focus-visible,.nav-product-trigger:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.nav-product-icon{display:grid;place-items:center;width:36px;height:36px;flex-shrink:0;
+  color:var(--primary);background:var(--primary-lt);border-radius:10px}
+.nav-product-icon svg{width:18px;height:18px}
+.nav-product-text{display:flex;flex-direction:column;min-width:0;line-height:1.35}
+.nav-product-title{font-size:14.5px;font-weight:600}
+.nav-product-desc{font-size:13px;color:var(--text2)}
 .nav-account-item{
   display:flex;align-items:center;gap:10px;padding:9px 12px;
   font-size:14px;font-weight:500;color:var(--text);border-radius:8px;
@@ -291,7 +308,7 @@ body.cm-locked{overflow:hidden}
 @media(max-width:1000px){
   .nav-inner{padding:12px 16px;gap:12px}
   .nav-link,.nav-links .btn-primary svg{display:none}
-  .nav-account{display:none}
+  .nav-account,.nav-product{display:none}
   .nav-burger{display:inline-flex}
   .nav-drawer{
     display:flex;flex-direction:column;
@@ -309,14 +326,36 @@ body.cm-locked{overflow:hidden}
     background:transparent;border:1px solid var(--border);color:var(--text2);
     cursor:pointer;transition:background .15s,color .15s}
   .nav-drawer-close:hover{background:var(--bg-alt);color:var(--text)}
-  .nav-drawer-links{display:flex;flex-direction:column;padding:4px 0}
-  .nav-drawer-links>a{display:flex;align-items:center;gap:12px;
-    padding:16px 4px;font-size:17px;font-weight:600;color:var(--text);
-    border-bottom:1px solid var(--border)}
-  .nav-drawer-links>a:last-child{border-bottom:none}
+  .nav-drawer-links{display:flex;flex-direction:column;gap:2px;padding:8px 0 24px}
+  .nav-drawer-links>a,.nav-drawer-group{display:flex;align-items:center;gap:12px;
+    width:100%;min-height:52px;padding:12px;font-family:inherit;font-size:17px;font-weight:600;
+    color:var(--text);text-align:left;background:transparent;border:none;
+    border-radius:var(--r-btn);cursor:pointer;transition:background .15s}
   .nav-drawer-links>a svg{color:var(--text3);flex-shrink:0}
-  .nav-drawer-links>a:hover{background:var(--bg-alt)}
-  .nav-drawer-ctas{display:flex;gap:10px;margin-top:auto;padding-top:20px}
+  .nav-drawer-links>a:hover,.nav-drawer-group:hover{background:var(--bg-alt)}
+  .nav-drawer-links>a:focus-visible,.nav-drawer-group:focus-visible,
+  .nav-drawer-lang a:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+  .nav-drawer-group .nav-account-chevron{margin-left:auto;color:var(--text3)}
+  /* The Product group opens in place. Rows 0fr to 1fr animate the height;
+     visibility keeps the closed links out of the Tab order. */
+  .nav-drawer-sub{display:grid;grid-template-rows:0fr;visibility:hidden;
+    transition:grid-template-rows .24s ease,visibility .24s}
+  .nav-drawer-sub.nav-drawer-sub-open{grid-template-rows:1fr;visibility:visible}
+  .nav-drawer-sub-inner{min-height:0;overflow:hidden}
+  .nav-drawer-sub-list{display:flex;flex-direction:column;gap:2px;
+    margin:2px 0 8px;padding:6px;background:var(--bg-alt);border-radius:var(--r)}
+  .nav-drawer-sub .nav-product-item{min-height:56px}
+  .nav-drawer-sub .nav-product-item:hover{background:var(--card)}
+  .nav-drawer-sub .nav-product-icon{background:var(--card)}
+  .nav-drawer-sep{height:1px;margin:8px 12px;background:var(--border)}
+  .nav-drawer-lang{display:flex;gap:4px;margin-top:auto;padding:4px;
+    background:var(--bg-alt);border-radius:var(--r-btn)}
+  .nav-drawer-lang>*{flex:1;display:grid;place-items:center;min-height:44px;
+    font-size:14px;font-weight:500;color:var(--text2);border-radius:9px;transition:color .15s}
+  .nav-drawer-lang a:hover{color:var(--text)}
+  .nav-drawer-lang .nav-drawer-lang-current{color:var(--text);font-weight:600;
+    background:var(--card);box-shadow:var(--shadow-sm)}
+  .nav-drawer-ctas{display:flex;gap:10px;padding-top:12px}
   .nav-drawer-ctas .btn{flex:1;padding:13px 16px}
 }
 @media(max-width:640px){
@@ -540,7 +579,17 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
       <span class="brand-name">Fibonax</span>
     </a>
     <div class="nav-links">
-      <a href="../#features" class="nav-link">Features</a>
+      <div class="nav-product">
+        <button type="button" class="nav-link nav-product-trigger" id="nav-product-trigger" aria-expanded="false" aria-controls="nav-product-menu"><span>Product</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="nav-account-chevron"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="nav-product-menu" id="nav-product-menu">
+          <a href="../#layer-snippets" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></span><span class="nav-product-text"><span class="nav-product-title">Snippets</span><span class="nav-product-desc">Text you reuse every day</span></span></a>
+          <a href="../#layer-prompts" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg></span><span class="nav-product-text"><span class="nav-product-title">Prompts</span><span class="nav-product-desc">Your best AI instructions</span></span></a>
+          <a href="../#layer-brains" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg></span><span class="nav-product-text"><span class="nav-product-title">Brains</span><span class="nav-product-desc">Context every AI can use</span></span></a>
+          <div class="nav-product-sep" aria-hidden="true"></div>
+          <a href="../#sb-expansion" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5Z"/></svg></span><span class="nav-product-text"><span class="nav-product-title">How it works</span><span class="nav-product-desc">Watch a shortcut expand</span></span></a>
+          <a href="../#features" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="nav-product-text"><span class="nav-product-title">All features</span><span class="nav-product-desc">Everything Fibonax does</span></span></a>
+        </div>
+      </div>
       <a href="../#faq" class="nav-link">FAQ</a>
       <a href="./" class="nav-link" aria-current="page">Pricing</a>
       <a href="https://app.fibonax.com/mobile/" class="nav-link">Mobile</a>
@@ -575,8 +624,8 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
      like `filter`, that makes .nav the containing block for any
      position:fixed descendant — inset:0 would then fill .nav's own ~62px
      bar instead of the viewport. Keep this outside .nav.
-     The Features/Mobile/GitHub/Sign-in/Add-to-Chrome/Sign-up fragments below
-     are byte-identical to their desktop counterparts in <nav> on purpose:
+     The Product item/Pricing/Mobile/Sign-in/Add-to-Chrome/Sign-up fragments
+     below are byte-identical to their desktop counterparts in <nav> on purpose:
      app/public/landing/locales/{it,es}.json matches translations by exact
      substring, so reusing the same fragment here just needs its locale
      `count` bumped to 2 instead of asking for a second translation of text
@@ -592,16 +641,32 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     </button>
   </div>
   <div class="nav-drawer-links">
-    <a href="../#features" class="nav-link">Features</a>
+    <button type="button" class="nav-drawer-group" id="nav-drawer-product-trigger" aria-expanded="false" aria-controls="nav-drawer-product"><span>Product</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="nav-account-chevron"><polyline points="6 9 12 15 18 9"/></svg></button>
+    <div class="nav-drawer-sub" id="nav-drawer-product">
+      <div class="nav-drawer-sub-inner">
+        <div class="nav-drawer-sub-list">
+          <a href="../#layer-snippets" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></span><span class="nav-product-text"><span class="nav-product-title">Snippets</span><span class="nav-product-desc">Text you reuse every day</span></span></a>
+          <a href="../#layer-prompts" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/></svg></span><span class="nav-product-text"><span class="nav-product-title">Prompts</span><span class="nav-product-desc">Your best AI instructions</span></span></a>
+          <a href="../#layer-brains" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg></span><span class="nav-product-text"><span class="nav-product-title">Brains</span><span class="nav-product-desc">Context every AI can use</span></span></a>
+          <a href="../#sb-expansion" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5Z"/></svg></span><span class="nav-product-text"><span class="nav-product-title">How it works</span><span class="nav-product-desc">Watch a shortcut expand</span></span></a>
+          <a href="../#features" class="nav-product-item"><span class="nav-product-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="nav-product-text"><span class="nav-product-title">All features</span><span class="nav-product-desc">Everything Fibonax does</span></span></a>
+        </div>
+      </div>
+    </div>
     <a href="../#faq" class="nav-link">FAQ</a>
-      <a href="./" class="nav-link" aria-current="page">Pricing</a>
+    <a href="./" class="nav-link" aria-current="page">Pricing</a>
     <a href="https://app.fibonax.com/mobile/" class="nav-link">Mobile</a>
-    <a href="https://github.com/locoprice/Fibonax" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>Star on GitHub</a>
+    <div class="nav-drawer-sep" aria-hidden="true"></div>
     <a href="https://app.fibonax.com/login">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       <span>Sign in</span>
     </a>
   </div>
+  <nav class="nav-drawer-lang" aria-label="Language">
+    <span class="nav-drawer-lang-current" aria-current="true">English</span>
+    <a href="../it/pricing/" hreflang="it">Italiano</a>
+    <a href="../es/pricing/" hreflang="es">Español</a>
+  </nav>
   <div class="nav-drawer-ctas">
     <a href="https://chromewebstore.google.com/detail/khdpimdpkgmmaimpbfjgglnpaemmopoo" class="btn btn-primary" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Add to Chrome</a>
     <a href="https://app.fibonax.com/signup" class="btn btn-ghost"><span>Sign up</span></a>
@@ -698,7 +763,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
         <p class="plan-kind">Monthly subscription</p>
         <h3 class="plan-name" id="plan-monthly">PRO</h3>
         <p class="plan-price"><span class="plan-amount" data-pricing="monthlyEuros">€9.90</span><span class="plan-per">/month</span></p>
-        <p class="plan-tagline">No FiboTokens to count.</p>
+        <p class="plan-tagline">No FiboTokens to count. Unlimited assets.</p>
         <a class="btn btn-ghost plan-cta" href="#compare" data-compare-open>Compare plans</a>
         <ul class="plan-list">
           <li><span>Unlimited snippet, prompt and Brain uses</span></li>
@@ -915,30 +980,47 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   </div>
 </div>
 <script>
+// Desktop dropdowns (Product and Account). Opening one closes the other.
 (function(){
-  var trigger=document.getElementById('nav-account-trigger');
-  var menu=document.getElementById('nav-account-menu');
-  if(!trigger||!menu)return;
+  var menus=[['nav-product-trigger','nav-product-menu'],['nav-account-trigger','nav-account-menu']]
+    .map(function(ids){
+      return {trigger:document.getElementById(ids[0]),menu:document.getElementById(ids[1])};
+    })
+    .filter(function(m){return m.trigger&&m.menu;});
 
-  function openMenu(){
-    menu.classList.add('nav-account-open');
-    trigger.setAttribute('aria-expanded','true');
+  function isOpen(m){return m.trigger.getAttribute('aria-expanded')==='true';}
+  function setOpen(m,open){
+    m.menu.classList.toggle('nav-menu-open',open);
+    m.trigger.setAttribute('aria-expanded',String(open));
   }
-  function closeMenu(){
-    menu.classList.remove('nav-account-open');
-    trigger.setAttribute('aria-expanded','false');
-  }
-  function isOpen(){return trigger.getAttribute('aria-expanded')==='true';}
 
-  trigger.addEventListener('click',function(e){
-    e.stopPropagation();
-    isOpen()?closeMenu():openMenu();
+  menus.forEach(function(m){
+    m.trigger.addEventListener('click',function(e){
+      e.stopPropagation();
+      var open=!isOpen(m);
+      menus.forEach(function(other){setOpen(other,false);});
+      setOpen(m,open);
+    });
+    m.menu.querySelectorAll('a').forEach(function(link){
+      link.addEventListener('click',function(){setOpen(m,false);});
+    });
+    // Tabbing past the last link closes the menu instead of leaving it
+    // open over the page. A click elsewhere has no relatedTarget and is
+    // handled by the document listener below.
+    m.trigger.parentNode.addEventListener('focusout',function(e){
+      if(isOpen(m)&&e.relatedTarget&&!m.trigger.parentNode.contains(e.relatedTarget))setOpen(m,false);
+    });
   });
   document.addEventListener('click',function(e){
-    if(isOpen()&&!menu.contains(e.target)&&e.target!==trigger)closeMenu();
+    menus.forEach(function(m){
+      if(isOpen(m)&&!m.menu.contains(e.target))setOpen(m,false);
+    });
   });
   document.addEventListener('keydown',function(e){
-    if(e.key==='Escape'&&isOpen()){closeMenu();trigger.focus();}
+    if(e.key!=='Escape')return;
+    menus.forEach(function(m){
+      if(isOpen(m)){setOpen(m,false);m.trigger.focus();}
+    });
   });
 })();
 
@@ -946,9 +1028,18 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var burger=document.getElementById('nav-burger');
   var drawer=document.getElementById('nav-drawer');
   var closeBtn=document.getElementById('nav-drawer-close');
-  if(!burger||!drawer||!closeBtn)return;
+  var group=document.getElementById('nav-drawer-product-trigger');
+  var sub=document.getElementById('nav-drawer-product');
+  if(!burger||!drawer||!closeBtn||!group||!sub)return;
 
   function isOpen(){return burger.getAttribute('aria-expanded')==='true';}
+  function setGroup(open){
+    group.setAttribute('aria-expanded',String(open));
+    sub.classList.toggle('nav-drawer-sub-open',open);
+  }
+  group.addEventListener('click',function(){
+    setGroup(group.getAttribute('aria-expanded')!=='true');
+  });
 
   // Chromium applies a mouse click's own "focus the clicked element" default
   // action after the click handler returns, on a delay that outlasts one
@@ -971,6 +1062,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     drawer.setAttribute('aria-hidden','true');
     burger.setAttribute('aria-expanded','false');
     document.body.classList.remove('nav-drawer-locked');
+    setGroup(false);
   }
 
   burger.addEventListener('click',function(){
@@ -1052,7 +1144,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.140.1';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.141.0';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.

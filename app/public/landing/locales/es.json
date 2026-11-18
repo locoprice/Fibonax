@@ -17,9 +17,54 @@
       "count": 1
     },
     {
-      "find": "<a href=\"#features\" class=\"nav-link\">Features</a>",
-      "replace": "<a href=\"#features\" class=\"nav-link\">Funciones</a>",
+      "find": "<span>Product</span>",
+      "replace": "<span>Producto</span>",
       "count": 2
+    },
+    {
+      "find": "<span class=\"nav-product-desc\">Text you reuse every day</span>",
+      "replace": "<span class=\"nav-product-desc\">Textos que reutilizas cada día</span>",
+      "count": 2
+    },
+    {
+      "find": "<span class=\"nav-product-desc\">Your best AI instructions</span>",
+      "replace": "<span class=\"nav-product-desc\">Tus mejores instrucciones para la IA</span>",
+      "count": 2
+    },
+    {
+      "find": "<span class=\"nav-product-desc\">Context every AI can use</span>",
+      "replace": "<span class=\"nav-product-desc\">Contexto que cualquier IA puede usar</span>",
+      "count": 2
+    },
+    {
+      "find": "<span class=\"nav-product-title\">How it works</span>",
+      "replace": "<span class=\"nav-product-title\">Cómo funciona</span>",
+      "count": 2
+    },
+    {
+      "find": "<span class=\"nav-product-desc\">Watch a shortcut expand</span>",
+      "replace": "<span class=\"nav-product-desc\">Mira cómo se expande un atajo</span>",
+      "count": 2
+    },
+    {
+      "find": "<span class=\"nav-product-title\">All features</span>",
+      "replace": "<span class=\"nav-product-title\">Todas las funciones</span>",
+      "count": 2
+    },
+    {
+      "find": "<span class=\"nav-product-desc\">Everything Fibonax does</span>",
+      "replace": "<span class=\"nav-product-desc\">Todo lo que hace Fibonax</span>",
+      "count": 2
+    },
+    {
+      "find": "<nav class=\"nav-drawer-lang\" aria-label=\"Language\">",
+      "replace": "<nav class=\"nav-drawer-lang\" aria-label=\"Idioma\">",
+      "count": 1
+    },
+    {
+      "find": "    <span class=\"nav-drawer-lang-current\" aria-current=\"true\">English</span>\n    <a href=\"/it/\" hreflang=\"it\">Italiano</a>\n    <a href=\"/es/\" hreflang=\"es\">Español</a>",
+      "replace": "    <a href=\"/\" hreflang=\"en\">English</a>\n    <a href=\"/it/\" hreflang=\"it\">Italiano</a>\n    <span class=\"nav-drawer-lang-current\" aria-current=\"true\">Español</span>",
+      "count": 1
     },
     {
       "find": "<a href=\"mailto:fibonaxai@gmail.com\" class=\"nav-link\" id=\"nav-contact-open\">Contact us</a>",
@@ -29,7 +74,7 @@
     {
       "find": "</svg>Star on GitHub</a>",
       "replace": "</svg>Star en GitHub</a>",
-      "count": 2
+      "count": 1
     },
     {
       "find": "</svg>Add to Chrome</a>",
@@ -657,8 +702,8 @@
       "count": 1
     },
     {
-      "find": ">Your reusable content, always ready when you need it.<",
-      "replace": ">Tu contenido reutilizable, siempre listo cuando lo necesitas.<",
+      "find": ">Execution assets<",
+      "replace": ">Activos de ejecución<",
       "count": 1
     },
     {
@@ -667,8 +712,8 @@
       "count": 1
     },
     {
-      "find": ">Your best instructions, structured and ready to execute.<",
-      "replace": ">Tus mejores instrucciones, estructuradas y listas para ejecutar.<",
+      "find": ">Reasoning assets<",
+      "replace": ">Activos de razonamiento<",
       "count": 1
     },
     {
@@ -677,8 +722,8 @@
       "count": 1
     },
     {
-      "find": ">Your persistent context.<",
-      "replace": ">Tu contexto persistente.<",
+      "find": ">Context assets<",
+      "replace": ">Activos de contexto<",
       "count": 1
     },
     {
@@ -1484,8 +1529,8 @@
       "count": 1
     },
     {
-      "find": "<p class=\"plan-tagline\">No FiboTokens to count.</p>",
-      "replace": "<p class=\"plan-tagline\">Sin FiboTokens que contar.</p>",
+      "find": "<p class=\"plan-tagline\">No FiboTokens to count. Unlimited assets.</p>",
+      "replace": "<p class=\"plan-tagline\">Sin FiboTokens que contar. Activos ilimitados.</p>",
       "count": 1
     },
     {
