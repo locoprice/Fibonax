@@ -87,6 +87,26 @@ with the first pinned snippet and prompt as cards, **Search snippets** and
 **Your Brains**. The bottom bar is white, and the active tab is Azure with a
 short bar under it.
 
+### Phone opening animation (2026-11-20)
+
+Valentina chose "A. The icon opens" from two mockups. A fresh start of
+`/mobile/` opens on a cover that redraws Android's own start screen, which
+cannot be changed beyond its icon and `background_color`: a `mobile-bg-alt`
+page, a white tile 57.2% of the screen width (236px at most, 38% corners) and
+the black T at 36.4% (150px at most), the shares measured on her phone. After
+0.15s the tile grows over the screen and turns `mobile-navy` while the T turns
+`#B4C9FF` (0.55s). Then the T glides onto the wordmark's own T while the cover
+fades and the hero and the body rise 14px (0.5s). About 1.2s in all, and it
+never waits for data.
+
+- Once per app start (`sessionStorage`), and only when the app lands on Home.
+  A share into Save to Brain, or a call already on screen, gets a 0.25s fade
+  instead. A device set to reduce motion gets no animation.
+- `manifest.webmanifest` keeps `background_color` `#F2F2F7`: the cover's page
+  is the same colour, so change both or neither.
+- The T is inlined in the page so it is there on the first frame. Code:
+  `#sb-open` and `playOpening()` in `app/public/mobile/index.html`.
+
 ### Primary (single — Azure)
 
 | Token          | Hex                    | Usage                                  |

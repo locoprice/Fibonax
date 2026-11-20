@@ -49,6 +49,38 @@ body{
 @keyframes spin{to{transform:rotate(360deg)}}
 #loading p{font-size:14px;color:var(--text2)}
 
+/* ── OPENING ANIMATION ────────────────────────── */
+/* The first second of a fresh start. While the app loads, Android shows its
+   icon on a light page; this cover opens on that same picture (the white tile
+   with the black T), so the two read as one. The tile then grows into the navy
+   of Home and the T glides to its place beside the wordmark. The sizes are
+   Android's own, as a share of the screen width. The T is inlined so it is
+   there on the very first frame. Once per app start: see playOpening(). */
+#sb-open{position:fixed;inset:0;z-index:10030;overflow:hidden;background:var(--bg-alt);
+  --sb-open-t:url(data:image/png;base64,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)}
+.sb-open-tile,.sb-open-t{position:absolute;left:50%;top:50%}
+.sb-open-tile{--d:min(57.2vw,236px);width:var(--d);height:var(--d);margin:calc(var(--d)/-2) 0 0 calc(var(--d)/-2);
+  border-radius:38%;background:#fff}
+.sb-open-t{--w:min(36.4vw,150px);width:var(--w);height:calc(var(--w)*26/30);
+  margin:calc(var(--w)*-13/30) 0 0 calc(var(--w)/-2);background:#000;
+  -webkit-mask:var(--sb-open-t) center/contain no-repeat;mask:var(--sb-open-t) center/contain no-repeat}
+.sb-open-tile::after,.sb-open-t::after{content:"";position:absolute;inset:0;opacity:0}
+.sb-open-tile::after{border-radius:inherit;background:var(--navy)}
+.sb-open-t::after{background:#B4C9FF}
+#sb-open.go{pointer-events:none;animation:sb-open-clear .01s .7s both}
+#sb-open.go .sb-open-tile{animation:sb-open-grow .55s cubic-bezier(.7,0,.2,1) .15s both,sb-open-fade .45s ease .7s both}
+#sb-open.go .sb-open-tile::after,#sb-open.go .sb-open-t::after{animation:sb-open-tint .55s ease .15s both}
+#sb-open.go .sb-open-t{animation:sb-open-fly .5s cubic-bezier(.6,0,.2,1) .7s both}
+#sb-open.out{pointer-events:none;animation:sb-open-fade .25s ease both}
+body.sb-opening .home-brandmark{visibility:hidden}
+body.sb-opening .home-hero,body.sb-opening .home-body{animation:sb-open-rise .5s cubic-bezier(.2,.7,.2,1) .7s both}
+@keyframes sb-open-grow{to{transform:scale(var(--k))}}
+@keyframes sb-open-tint{to{opacity:1}}
+@keyframes sb-open-clear{to{background-color:transparent}}
+@keyframes sb-open-fade{to{opacity:0}}
+@keyframes sb-open-fly{to{transform:translate(var(--tx),var(--ty)) scale(var(--s))}}
+@keyframes sb-open-rise{from{transform:translateY(14px)}}
+
 /* ── VIEWS ────────────────────────────────────── */
 .view{display:none}
 .view.active{display:flex;flex-direction:column;min-height:100dvh}
@@ -1730,6 +1762,19 @@ svg.brain-type-icon{stroke-width:1.8}
 </style>
 </head>
 <body>
+
+<!-- OPENING ANIMATION: Android's own start screen, redrawn so the app can open
+     from it. Taken away at once when this app session has already played it. -->
+<div id="sb-open" aria-hidden="true"><span class="sb-open-tile"></span><span class="sb-open-t"></span></div>
+<script>
+(function(){
+  var el=document.getElementById('sb-open'),played=false;
+  try{played=sessionStorage.getItem('sb_opened')==='1';}catch(e){}
+  if(played){el.parentNode.removeChild(el);return;}
+  // Never leave the page covered: if the app has not started it in 4 seconds, step aside.
+  setTimeout(function(){if(!el.className&&el.parentNode)el.parentNode.removeChild(el);},4000);
+})();
+</script>
 
 <div id="loading">
   <div style="font-size:40px;color:var(--primary-copy)"><svg class="snippet-icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></div>
@@ -17595,10 +17640,49 @@ function focusInit(){
   setInterval(renderFocus,1000);
 }
 
+/* OPENING ANIMATION. Plays once per app start, when the app lands on Home: the
+   cover drawn in the page's first lines (#sb-open) grows its tile into the navy
+   band and flies its T onto the Home wordmark's own T, measured where it really
+   sits. Landing anywhere else (a share into Save to Brain, a call already on
+   screen) skips the flight and the cover fades; a device set to reduce motion
+   gets no animation at all. */
+function playOpening(){
+  var el=document.getElementById('sb-open');
+  if(!el||el.className)return;
+  try{sessionStorage.setItem('sb_opened','1');}catch(e){}
+  function done(){
+    if(el.parentNode)el.parentNode.removeChild(el);
+    document.body.classList.remove('sb-opening');
+  }
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){done();return;}
+  var home=document.getElementById('view-home');
+  if(!home.classList.contains('active')||document.querySelector('dialog[open]')){
+    el.className='out';
+    el.addEventListener('animationend',done);
+    setTimeout(done,600);
+    return;
+  }
+  var t=el.querySelector('.sb-open-t');
+  var from=t.getBoundingClientRect();
+  var to=home.querySelector('.home-brandmark').getBoundingClientRect();
+  var tile=el.querySelector('.sb-open-tile').getBoundingClientRect().width;
+  var across=Math.sqrt(window.innerWidth*window.innerWidth+window.innerHeight*window.innerHeight);
+  el.style.setProperty('--tx',((to.left+to.width/2)-(from.left+from.width/2))+'px');
+  el.style.setProperty('--ty',((to.top+to.height/2)-(from.top+from.height/2))+'px');
+  el.style.setProperty('--s',to.width/from.width);
+  // Far enough for the rounded tile to pass the corners of the screen.
+  el.style.setProperty('--k',across/tile*0.96);
+  document.body.classList.add('sb-opening');
+  el.className='go';
+  t.addEventListener('animationend',function(e){if(e.animationName==='sb-open-fly')done();});
+  setTimeout(done,2000);
+}
+
 if(requireAuth()){
   applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();refreshAccountDetails();
   captureResume();
   focusInit();
+  playOpening();
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible'){
       sbCheckAlive();refreshAccountDetails();
