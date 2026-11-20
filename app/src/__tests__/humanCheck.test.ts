@@ -8,7 +8,6 @@ import {
   HumanCheckError,
   humanCheckMessage,
   humanToken,
-  siteKeyFor,
   type TurnstileApi,
 } from '@/lib/humanCheck';
 
@@ -41,11 +40,16 @@ function fakeTurnstile(renderResult: string | null = 'w1') {
   };
 }
 
-describe('siteKeyFor', () => {
-  it('uses the always-pass test key on a local dev server only', () => {
-    expect(siteKeyFor('localhost')).toBe('1x00000000000000000000AA');
-    expect(siteKeyFor('127.0.0.1')).toBe('1x00000000000000000000AA');
-    expect(siteKeyFor('app.fibonax.com')).not.toBe('1x00000000000000000000AA');
+describe('site key', () => {
+  // The live project refuses tokens from Cloudflare's test key, so a local dev
+  // server signs in with the real one. jsdom serves this page from localhost.
+  it('uses the real Fibonax key, on a local dev server too', async () => {
+    expect(window.location.hostname).toBe('localhost');
+    const t = fakeTurnstile();
+    const check = createHumanCheck(() => Promise.resolve(t.api));
+    check.attach(document.createElement('div'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(t.options()?.sitekey).toBe('0x4AAAAAAGFeLqBN8kj1GzgT');
   });
 });
 

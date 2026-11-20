@@ -7,11 +7,13 @@
 // Cloudflare is unsure. Each token works once, so every request asks for a
 // new one.
 
-/** Public site key, not a secret: Cloudflare ties it to the fibonax.com hostnames. */
-const PRODUCTION_SITE_KEY = '0x4AAAAAAGFeLqBN8kj1GzgT';
-
-/** Cloudflare's published test key. It always passes and works on localhost. */
-const TEST_SITE_KEY = '1x00000000000000000000AA';
+/**
+ * Public site key, not a secret. Cloudflare ties it to app.fibonax.com and
+ * localhost. The local dev server uses it too: the live Supabase project checks
+ * every token against this widget's secret and refuses one from Cloudflare's
+ * test key.
+ */
+const SITE_KEY = '0x4AAAAAAGFeLqBN8kj1GzgT';
 
 const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
@@ -42,11 +44,6 @@ declare global {
   interface Window {
     turnstile?: TurnstileApi;
   }
-}
-
-/** The site key for the page's own hostname: the test key on a local dev server. */
-export function siteKeyFor(hostname: string): string {
-  return hostname === 'localhost' || hostname === '127.0.0.1' ? TEST_SITE_KEY : PRODUCTION_SITE_KEY;
 }
 
 /** Supabase's own wording for a refused token, in plain words. Other messages pass through. */
@@ -138,7 +135,7 @@ export interface HumanCheck {
 
 export function createHumanCheck(
   load: () => Promise<TurnstileApi> = loadTurnstile,
-  siteKey: () => string = () => siteKeyFor(window.location.hostname),
+  siteKey: () => string = () => SITE_KEY,
 ): HumanCheck {
   let ready: Promise<Widget> | null = null;
   // Cloudflare refuses a second widget in a container that still holds one, so
