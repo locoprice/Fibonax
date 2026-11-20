@@ -19,7 +19,7 @@ export function SidebarLine() {
   return (
     <figure className="w-full shrink-0 px-6 pb-3 text-[11px] leading-snug text-ink-subtle">
       <blockquote className="italic">{line.text}</blockquote>
-      {line.source && <figcaption className="mt-1">{line.source}</figcaption>}
+      {line.source && <figcaption className="mt-1" translate="no">{line.source}</figcaption>}
     </figure>
   );
 }

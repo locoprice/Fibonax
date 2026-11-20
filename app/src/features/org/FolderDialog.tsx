@@ -248,7 +248,7 @@ export function FolderDialog({
             >
               <option value="">No parent (top level)</option>
               {parentOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>
+                <option key={opt.id} value={opt.id} translate="no">
                   {opt.label}
                 </option>
               ))}

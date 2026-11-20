@@ -7,11 +7,13 @@
 // Cloudflare is unsure. Each token works once, so every request asks for a
 // new one.
 
-/** Public site key, not a secret: Cloudflare ties it to the fibonax.com hostnames. */
-const PRODUCTION_SITE_KEY = '0x4AAAAAAGFeLqBN8kj1GzgT';
-
-/** Cloudflare's published test key. It always passes and works on localhost. */
-const TEST_SITE_KEY = '1x00000000000000000000AA';
+/**
+ * Public site key, not a secret. Cloudflare ties it to app.fibonax.com and
+ * localhost. The local dev server uses it too: the live Supabase project checks
+ * every token against this widget's secret and refuses one from Cloudflare's
+ * test key.
+ */
+const SITE_KEY = '0x4AAAAAAGFeLqBN8kj1GzgT';
 
 const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
@@ -29,6 +31,7 @@ interface TurnstileRenderOptions {
   callback: (token: string) => void;
   'error-callback': () => boolean;
   'timeout-callback': () => void;
+  'before-interactive-callback': () => void;
 }
 
 export interface TurnstileApi {
@@ -42,11 +45,6 @@ declare global {
   interface Window {
     turnstile?: TurnstileApi;
   }
-}
-
-/** The site key for the page's own hostname: the test key on a local dev server. */
-export function siteKeyFor(hostname: string): string {
-  return hostname === 'localhost' || hostname === '127.0.0.1' ? TEST_SITE_KEY : PRODUCTION_SITE_KEY;
 }
 
 /** Supabase's own wording for a refused token, in plain words. Other messages pass through. */
@@ -82,8 +80,16 @@ interface Widget {
   remove(): void;
 }
 
-/** One widget in `container` that hands out a fresh single-use token per call. */
-export function createWidget(api: TurnstileApi, container: HTMLElement, siteKey: string): Widget {
+/**
+ * One widget in `container` that hands out a fresh single-use token per call.
+ * `onNeedsClick` runs when Cloudflare is about to draw its box.
+ */
+export function createWidget(
+  api: TurnstileApi,
+  container: HTMLElement,
+  siteKey: string,
+  onNeedsClick: () => void = () => undefined,
+): Widget {
   let pending: { resolve: (token: string) => void; reject: (err: Error) => void } | null = null;
   let used = false;
 
@@ -106,6 +112,7 @@ export function createWidget(api: TurnstileApi, container: HTMLElement, siteKey:
       return true;
     },
     'timeout-callback': () => settle(new HumanCheckError(HUMAN_CHECK_FAILED)),
+    'before-interactive-callback': onNeedsClick,
   });
   if (!id) throw new HumanCheckError(HUMAN_CHECK_LOAD_FAILED);
   const widgetId = id;
@@ -128,8 +135,8 @@ export function createWidget(api: TurnstileApi, container: HTMLElement, siteKey:
 }
 
 export interface HumanCheck {
-  /** Draws the widget into the page's slot. Called when the slot appears. */
-  attach(container: HTMLElement): void;
+  /** Draws the widget into a slot. Called when the slot appears. `onNeedsClick` runs when the box shows. */
+  attach(container: HTMLElement, onNeedsClick?: () => void): void;
   /** Takes the widget away. Called when the slot leaves the page. */
   detach(): void;
   /** A fresh token for the next Supabase call. Throws a HumanCheckError worded for people. */
@@ -138,7 +145,7 @@ export interface HumanCheck {
 
 export function createHumanCheck(
   load: () => Promise<TurnstileApi> = loadTurnstile,
-  siteKey: () => string = () => siteKeyFor(window.location.hostname),
+  siteKey: () => string = () => SITE_KEY,
 ): HumanCheck {
   let ready: Promise<Widget> | null = null;
   // Cloudflare refuses a second widget in a container that still holds one, so
@@ -147,8 +154,10 @@ export function createHumanCheck(
   let removed: Promise<void> = Promise.resolve();
 
   return {
-    attach(container) {
-      const attempt = removed.then(load).then((api) => createWidget(api, container, siteKey()));
+    attach(container, onNeedsClick) {
+      const attempt = removed
+        .then(load)
+        .then((api) => createWidget(api, container, siteKey(), onNeedsClick));
       ready = attempt;
       // A failed load is reported by getToken, when someone presses the button;
       // this only keeps the browser from logging it as unhandled meanwhile.

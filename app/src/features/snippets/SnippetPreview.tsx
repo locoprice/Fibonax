@@ -660,7 +660,7 @@ export function SnippetPreview({
                 : 'Add a field or a formula and it appears here to try out.'}
             </p>
           ) : (
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-2.5" translate="no">
               {(view?.sections ?? [{ title: 'Fields', keys: fields.map((f) => f.key) }]).map((section) => (
                 <details key={section.title} open className="rounded-xl border border-line bg-card">
                   <summary className="cursor-pointer px-3 py-3 text-xs font-semibold text-ink-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">{section.title}</summary>
@@ -734,6 +734,7 @@ export function SnippetPreview({
               'min-h-[max(100%,120px)] whitespace-pre-wrap break-words rounded-[10px] border border-line bg-card px-3 py-2.5 font-mono text-xs leading-relaxed',
               hasResult ? 'text-ink' : 'italic text-ink-subtle',
             )}
+            translate={hasResult ? 'no' : undefined}
           >
             {resultContent(true)}
           </div>
@@ -812,7 +813,10 @@ export function SnippetPreview({
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="whitespace-pre-wrap break-words rounded-[10px] border border-line bg-bg px-3 py-2.5 font-mono text-xs leading-relaxed text-ink">
+            <div
+              className="whitespace-pre-wrap break-words rounded-[10px] border border-line bg-bg px-3 py-2.5 font-mono text-xs leading-relaxed text-ink"
+              translate={hasResult ? 'no' : undefined}
+            >
               {resultContent(false)}
             </div>
           </div>

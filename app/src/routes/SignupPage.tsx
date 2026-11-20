@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, Link } from 'react-router-dom';
-import { MailCheck } from 'lucide-react';
+import { Gift, MailCheck } from 'lucide-react';
 import { supabase, setRememberMe } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { analytics } from '@/lib/analytics';
@@ -24,6 +24,7 @@ import {
 } from '@/lib/passwordAuth';
 import { humanCheckMessage, humanToken } from '@/lib/humanCheck';
 import { HumanCheckSlot, useHumanCheck } from '@/components/auth/HumanCheckSlot';
+import { REFERRAL_TEXT, pendingReferralCode } from '@/lib/referral';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,8 @@ export function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const humanCheck = useHumanCheck();
+  // Arrived through a friend's invite link (lib/referral.ts).
+  const [invited] = useState(() => pendingReferralCode() !== null);
 
   useEffect(() => {
     void init();
@@ -209,6 +212,13 @@ export function SignupPage() {
                 Create your account
               </h1>
 
+              {invited && (
+                <p className="flex items-start gap-2.5 rounded-[12px] bg-primary-light px-3.5 py-3 text-sm text-ink">
+                  <Gift className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                  {REFERRAL_TEXT.signupBanner}
+                </p>
+              )}
+
               <AuthMethodTabs value={view} onChange={goTo} disabled={loading} />
 
               {view === 'email' ? (
@@ -239,6 +249,7 @@ export function SignupPage() {
                   >
                     {loading ? 'Sending…' : 'Continue →'}
                   </Button>
+                  <HumanCheckSlot check={humanCheck} />
                 </form>
               ) : (
                 <form onSubmit={handleSubmitPassword} noValidate className="space-y-3">
@@ -278,6 +289,7 @@ export function SignupPage() {
                   >
                     {loading ? 'Creating…' : 'Create account →'}
                   </Button>
+                  <HumanCheckSlot check={humanCheck} />
                 </form>
               )}
 
@@ -409,8 +421,6 @@ export function SignupPage() {
           )}
 
         </div>
-
-        <HumanCheckSlot check={humanCheck} />
       </main>
     </div>
   );

@@ -318,7 +318,7 @@ export function LabelPicker({
                     <span
                       className={cn('h-2.5 w-2.5 shrink-0 rounded-full', labelSwatch(label.color).dot)}
                     />
-                    <span className="min-w-0 flex-1 truncate text-left">{label.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-left" translate="no">{label.name}</span>
                     {active && <Check className={cn('h-3.5 w-3.5 shrink-0', t.check)} />}
                   </button>
                 );

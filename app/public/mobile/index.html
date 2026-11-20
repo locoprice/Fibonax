@@ -49,6 +49,38 @@ body{
 @keyframes spin{to{transform:rotate(360deg)}}
 #loading p{font-size:14px;color:var(--text2)}
 
+/* ── OPENING ANIMATION ────────────────────────── */
+/* The first second of a fresh start. While the app loads, Android shows its
+   icon on a light page; this cover opens on that same picture (the white tile
+   with the black T), so the two read as one. The tile then grows into the navy
+   of Home and the T glides to its place beside the wordmark. The sizes are
+   Android's own, as a share of the screen width. The T is inlined so it is
+   there on the very first frame. Once per app start: see playOpening(). */
+#sb-open{position:fixed;inset:0;z-index:10030;overflow:hidden;background:var(--bg-alt);
+  --sb-open-t:url(data:image/png;base64,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)}
+.sb-open-tile,.sb-open-t{position:absolute;left:50%;top:50%}
+.sb-open-tile{--d:min(57.2vw,236px);width:var(--d);height:var(--d);margin:calc(var(--d)/-2) 0 0 calc(var(--d)/-2);
+  border-radius:38%;background:#fff}
+.sb-open-t{--w:min(36.4vw,150px);width:var(--w);height:calc(var(--w)*26/30);
+  margin:calc(var(--w)*-13/30) 0 0 calc(var(--w)/-2);background:#000;
+  -webkit-mask:var(--sb-open-t) center/contain no-repeat;mask:var(--sb-open-t) center/contain no-repeat}
+.sb-open-tile::after,.sb-open-t::after{content:"";position:absolute;inset:0;opacity:0}
+.sb-open-tile::after{border-radius:inherit;background:var(--navy)}
+.sb-open-t::after{background:#B4C9FF}
+#sb-open.go{pointer-events:none;animation:sb-open-clear .01s .7s both}
+#sb-open.go .sb-open-tile{animation:sb-open-grow .55s cubic-bezier(.7,0,.2,1) .15s both,sb-open-fade .45s ease .7s both}
+#sb-open.go .sb-open-tile::after,#sb-open.go .sb-open-t::after{animation:sb-open-tint .55s ease .15s both}
+#sb-open.go .sb-open-t{animation:sb-open-fly .5s cubic-bezier(.6,0,.2,1) .7s both}
+#sb-open.out{pointer-events:none;animation:sb-open-fade .25s ease both}
+body.sb-opening .home-brandmark{visibility:hidden}
+body.sb-opening .home-hero,body.sb-opening .home-body{animation:sb-open-rise .5s cubic-bezier(.2,.7,.2,1) .7s both}
+@keyframes sb-open-grow{to{transform:scale(var(--k))}}
+@keyframes sb-open-tint{to{opacity:1}}
+@keyframes sb-open-clear{to{background-color:transparent}}
+@keyframes sb-open-fade{to{opacity:0}}
+@keyframes sb-open-fly{to{transform:translate(var(--tx),var(--ty)) scale(var(--s))}}
+@keyframes sb-open-rise{from{transform:translateY(14px)}}
+
 /* ── VIEWS ────────────────────────────────────── */
 .view{display:none}
 .view.active{display:flex;flex-direction:column;min-height:100dvh}
@@ -267,6 +299,45 @@ body{
   font-size:10.5px;font-weight:800;line-height:18px;text-align:center;flex-shrink:0
 }
 .mfilters-count.sb-hidden{display:none}
+/* Filters that are on, as a row of chips under the search box. The row shows
+   while the panel is shut and something is on, so a narrowed list always says
+   what narrowed it. It gives way while the panel is out: the panel shows the
+   same choices, and a row growing above it would move the pills under a
+   thumb. It scrolls sideways past the band's edge instead of wrapping, and
+   each chip is 40px tall with a cross 40px wide. */
+.afc{
+  display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;pointer-events:none;margin:0 -20px;
+  transition:grid-template-rows .28s ease,opacity .2s ease,margin-top .28s ease,visibility 0s linear .28s
+}
+.lib-band:not(.filters-open) .afc.on{
+  grid-template-rows:1fr;opacity:1;visibility:visible;pointer-events:auto;margin-top:8px;
+  transition:grid-template-rows .28s ease,opacity .2s ease,margin-top .28s ease,visibility 0s}
+.afc-in{overflow:hidden;min-height:0}
+.afc-row{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:4px 20px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.afc-row::-webkit-scrollbar{display:none}
+.afc-chip{display:inline-flex;align-items:stretch;flex-shrink:0;height:40px;border-radius:9999px;
+  border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.12);color:#fff}
+.afc-body,.afc-x,.afc-clear{border:0;background:none;color:inherit;font-family:inherit;cursor:pointer;
+  -webkit-tap-highlight-color:transparent}
+.afc-body{display:inline-flex;align-items:center;gap:7px;padding:0 4px 0 14px;
+  border-radius:9999px 0 0 9999px;
+  font-size:13.5px;font-weight:650;letter-spacing:-.1px;white-space:nowrap}
+.afc-body:active,.afc-x:active,.afc-clear:active{background:rgba(255,255,255,.14)}
+.afc-ico{display:flex;flex-shrink:0;font-size:15px;line-height:1}
+.afc-ico svg{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+/* A label's own colour can be as dark as the band, so its dot gets a ring. */
+.afc-chip .mlabel-dot{box-shadow:0 0 0 1.5px rgba(255,255,255,.9)}
+.afc-name{max-width:44vw;overflow:hidden;text-overflow:ellipsis}
+.afc-cnt{min-width:22px;padding:2px 7px;border-radius:9999px;background:rgba(255,255,255,.20);
+  font-size:11.5px;font-weight:700;line-height:1.35;text-align:center;font-variant-numeric:tabular-nums}
+.afc-x{display:inline-flex;align-items:center;justify-content:center;width:40px;flex-shrink:0;
+  border-radius:0 9999px 9999px 0}
+.afc-x svg{width:22px;height:22px;padding:5px;border-radius:50%;background:rgba(255,255,255,.16);
+  stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.afc-clear{flex-shrink:0;height:40px;padding:0 12px;border-radius:9999px;
+  font-size:13px;font-weight:700;color:#D8E3FF;white-space:nowrap}
 /* The panel drops out of the band as a light card. Row-sizing 0fr to 1fr
    animates to whatever the facets are, and the shut panel is also hidden from
    the keyboard, so nothing inside it can take focus unseen. */
@@ -294,17 +365,26 @@ body{
   font-size:11px;font-weight:700;color:var(--primary-copy);
   cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mfacet-clr.sb-hidden{display:none}
+/* A chip's body opens the panel on its own group, tinted for a moment. */
+.mfacet.is-target{animation:mfacet-target 1.4s ease-out}
+@keyframes mfacet-target{from{background:var(--primary-lt)}to{background:transparent}}
+/* The foot shuts the panel: one filled button that says how many results are
+   waiting, with Clear all beside it. Both are 40px tall. */
 .mfilters-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:11px 16px;
   border-top:1px solid var(--border);background:var(--bg)}
-.mfilters-sum{font-size:11.5px;font-weight:600;color:var(--text3)}
-.mfilters-clear{
-  border:1px solid var(--border);background:var(--card);
-  color:var(--text);font-family:inherit;font-size:11.5px;font-weight:700;
-  padding:6px 13px;border-radius:9999px;cursor:pointer;
+.mfilters-clear,.mfilters-show{
+  min-height:40px;padding:0 16px;border-radius:9999px;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:700;
   -webkit-tap-highlight-color:transparent}
+.mfilters-clear{border:1px solid var(--border);background:var(--card);color:var(--text)}
 .mfilters-clear:active{background:var(--bg-alt)}
 .mfilters-clear[disabled]{opacity:.4;cursor:default}
+.mfilters-show{border:1px solid var(--primary);background:var(--primary);color:#fff;
+  font-variant-numeric:tabular-nums}
+.mfilters-show:active{background:var(--primary-dk)}
+/* The band's pale focus ring disappears on the panel's white card. */
+.mfilters-panel :focus-visible{outline-color:var(--primary-border)}
 /* Inside the panel the rows wrap instead of scrolling sideways, so the arrows
    have nothing left to do. Colours need no override: the panel carries the
    light-page palette the chips were already built for. */
@@ -341,6 +421,8 @@ body{
   .lib-title{font-size:27px}
   .mfilters{padding:0 11px 0 10px}
   .mfilters-caret{display:none}
+  .afc{margin:0 -16px}
+  .afc-row{padding:4px 16px}
 }
 
 /* ── PAGE FOOTER ─────────────────────────────── */
@@ -491,7 +573,8 @@ body{
   .snip-card:hover,.prompt-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-color:#C8D3F0}
 }
 @media(prefers-reduced-motion:reduce){
-  .snip-card,.prompt-card,.mqa-tile,.mqa-ico,.mfilters,.mfilters-panel{transition:none}
+  .snip-card,.prompt-card,.mqa-tile,.mqa-ico,.mfilters,.mfilters-panel,.afc{transition:none}
+  .mfacet.is-target{animation:none}
 }
 .snip-icon-well,.prompt-icon{position:relative;box-shadow:0 0 0 1px rgba(27,79,216,.07) inset}
 .snip-icon-well{width:44px;height:44px;flex:0 0 44px;border-radius:13px;background:var(--primary-lt);color:var(--primary-copy);
@@ -1679,6 +1762,19 @@ svg.brain-type-icon{stroke-width:1.8}
 </style>
 </head>
 <body>
+
+<!-- OPENING ANIMATION: Android's own start screen, redrawn so the app can open
+     from it. Taken away at once when this app session has already played it. -->
+<div id="sb-open" aria-hidden="true"><span class="sb-open-tile"></span><span class="sb-open-t"></span></div>
+<script>
+(function(){
+  var el=document.getElementById('sb-open'),played=false;
+  try{played=sessionStorage.getItem('sb_opened')==='1';}catch(e){}
+  if(played){el.parentNode.removeChild(el);return;}
+  // Never leave the page covered: if the app has not started it in 4 seconds, step aside.
+  setTimeout(function(){if(!el.className&&el.parentNode)el.parentNode.removeChild(el);},4000);
+})();
+</script>
 
 <div id="loading">
   <div style="font-size:40px;color:var(--primary-copy)"><svg class="snippet-icon" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/></svg></div>
@@ -4536,29 +4632,37 @@ svg.brain-type-icon{stroke-width:1.8}
 .detail:has(.d-fields) .ff-progress{margin:0;}
 #view-detail #prev-text{max-height:none;overflow:visible;}
 
-/* "Add Firma after it": the snippet usually sent next, offered in the fill
-   window's footer between the keyboard hint and Insert. Azure tint, a 44px
-   tick target, the cross to hide the pair. Words carry the meaning, never the
-   colour alone. */
-.ff-next{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);--ffn-muted:var(--sb-ink-muted,var(--text2,#6E6E73));display:flex!important;align-items:center;gap:4px;min-width:0;margin:0 auto;padding:2px 4px 2px 12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);box-sizing:border-box;font-family:inherit;text-align:left;}
+/* "Add Firma after it": the snippets usually sent next, one row each, as a
+   list under the fill window's preview (and on the page's card). Azure tint,
+   a 44px tick target, the cross to hide the pair. A ticked row among several
+   says where it goes ("Goes in 2nd"): words carry the meaning, never the
+   colour alone. The preview shows what the ticked ones add, in azure. */
+.ff-nexts{display:flex!important;flex-wrap:wrap;justify-content:center;gap:6px;min-width:0;margin:0 auto;box-sizing:border-box;}
+.ff-next{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);--ffn-muted:var(--sb-ink-muted,var(--text2,#6E6E73));display:flex!important;align-items:center;gap:4px;min-width:0;margin:0;padding:2px 4px 2px 12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);box-sizing:border-box;font-family:inherit;text-align:left;}
 .ff-next .ff-next-tick{display:flex!important;flex:1 1 auto;align-items:center;gap:10px;min-height:44px;min-width:0;margin:0;padding:0;cursor:pointer;font:inherit;color:var(--ffn-primary);}
 .ff-next .ff-next-tick input{all:revert;width:18px;height:18px;margin:0;flex:none;accent-color:var(--ffn-primary);cursor:pointer;}
 .ff-next .ff-next-tick input:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
 .ff-next .ff-next-tick>span{display:flex;flex-direction:column;min-width:0;}
 .ff-next .ff-next-title{font-size:14px;line-height:1.3;font-weight:600;color:var(--ffn-primary);overflow-wrap:anywhere;}
 .ff-next .ff-next-why{font-size:12px;line-height:1.3;color:var(--ffn-muted);}
+.ff-next[data-place] .ff-next-why{font-weight:600;color:var(--ffn-primary);}
 .ff-next .ff-next-hide{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;border-radius:10px;color:var(--ffn-muted);cursor:pointer;}
 .ff-next .ff-next-hide:hover{background:var(--sb-bg,var(--card,#fff));color:var(--ffn-primary);}
 .ff-next .ff-next-hide:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
 .ff-next svg{display:block;}
-@media(max-width:480px){#sb-overlay .ff-next{width:100%;margin:0;}}
-/* The phone: a row of its own above Copy and Share, and the page below it
-   scrolls far enough to clear the taller footer. */
-.copy-foot>.ff-next{flex:1 1 100%;margin:0;background:var(--card,#fff);}
-#view-detail:has(.copy-foot>.ff-next) .det-body{padding-bottom:calc(170px + env(safe-area-inset-bottom));}
-/* The popup: a row of its own above the Copy buttons, across both columns. */
-.detail>.ff-next{margin:8px 0 0;}
-.detail:has(.d-fields)>.ff-next{grid-column:1/-1;margin:0;}
+/* The list under a preview: a heading, then one full-width row per snippet. */
+.ff-nexts--list{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;margin:0;padding:12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);}
+.ff-nexts--list .ff-nexts-head{margin:0 0 2px;font-size:13px;line-height:1.4;font-weight:600;color:var(--ffn-primary);}
+.ff-nexts--list>.ff-next{background:var(--sb-bg,var(--card,#fff));}
+.ff-next-added{color:var(--sb-azure,var(--primary,#1B4FD8));}
+/* The page's fill window: under the preview box, which gives up the room. */
+#sb-overlay[role=dialog] .sb-preview>.ff-nexts--list{flex:none;max-height:50%;overflow-y:auto;margin-top:12px;}
+/* The phone: under the preview, at the end of the page, so it shows on
+   Fill in and on Preview alike. */
+#det-body>.ff-nexts--list{margin:16px 0 0;}
+/* The popup: under the preview, across both columns when there are fields. */
+.detail>.ff-nexts--list{margin:8px 0 0;}
+.detail:has(.d-fields)>.ff-nexts--list{grid-column:1/-1;margin:0;}
 
 /* Pictures in a preview, and the line that says where they go. Host pages style
    img freely, so the sizes hold with !important. */
@@ -5112,46 +5216,65 @@ svg.brain-type-icon{stroke-width:1.8}
   }
 
   // ── OFTEN SENT NEXT ─────────────────────────────────────────────
-  // The snippet a person usually sends right after this one, offered where
-  // the snippet is used: in the fill window's footer, between the keyboard
-  // hint and Insert, and on the page's card after a snippet without a form.
-  // Which one comes next is decided from the use history by
-  // SBUsageAnalytics.nextAfter ({ fromId: { id, count } }); this decides
-  // whether to offer it and draws the offer, for the page, the popup and the
-  // phone alike. Only a snippet with nothing to fill is offered: it goes in as
-  // it is, a blank line after the first. The cross hides that pair for
+  // The snippets a person usually sends right after this one, offered where
+  // the snippet is used: as a list under the fill window's preview, which
+  // shows what each ticked one adds, and on the page's card after a snippet
+  // without a form.
+  // Which ones come next is decided from the use history by
+  // SBUsageAnalytics.nextAfter ({ fromId: [{ id, count }] }); this decides
+  // which of them to offer and draws the offer, for the page, the popup and
+  // the phone alike. Only a snippet with nothing to fill is offered: it goes
+  // in as it is, a blank line before it. Several can be ticked, and they go in
+  // in the order they were ticked. The cross hides that pair for
   // NEXT_HIDE_DAYS on the device.
   var NEXT_HIDE_DAYS = 30;
   var NEXT_SEPARATOR = '\n\n';
+  var NEXT_PLACES = ['1st', '2nd', '3rd', '4th', '5th'];
 
+  // `title` is the snippet's name; a number for 'place' and 'add-many'.
   function nextWords(key, title) {
     var t = String(title || 'it');
     switch (key) {
       case 'tick': return 'Add ' + t + ' after it';
       case 'why': return 'Often sent next';
+      case 'list': return 'Often sent next: tick to add after your text';
+      case 'place': return 'Goes in ' + (NEXT_PLACES[Number(title) - 1] || t + 'th');
       case 'card': return 'Often sent with ' + t;
       case 'card-hint': return 'Add it right after this text.';
+      case 'card-many': return 'Often sent with this one';
+      case 'card-many-hint': return 'Tick the ones to add. They go in the order you tick them.';
       case 'add': return 'Add ' + t;
+      case 'add-many': return 'Add ' + t + ' snippets';
+      case 'add-none': return 'Tick one to add';
       case 'hide': return 'Don’t suggest ' + t + ' after this snippet';
       default: return '';
     }
   }
 
   /**
-   * The snippet to offer after `fromId`, or null. `map` is nextAfter's answer,
-   * `library` the snippets this surface can expand ({ id, body, fieldCfg or
-   * field_cfg, lang }), `hidden` the pairs the cross hid ({ 'from>to': iso }).
+   * The snippets to offer after `fromId`, the most used first; empty when there
+   * is none. `map` is nextAfter's answer, `library` the snippets this surface
+   * can expand ({ id, body, fieldCfg or field_cfg, lang }), `hidden` the pairs
+   * the cross hid ({ 'from>to': iso }).
    */
-  function nextFor(map, fromId, library, hidden, now) {
-    var hit = map && fromId ? map[fromId] : null;
-    if (!hit || !hit.id || hit.id === fromId) return null;
-    var at = hidden && hidden[fromId + '>' + hit.id] ? Date.parse(hidden[fromId + '>' + hit.id]) : NaN;
-    if (!isNaN(at) && (now || Date.now()) - at < NEXT_HIDE_DAYS * 86400000) return null;
-    var next = null;
-    for (var i = 0; library && i < library.length; i++) { if (library[i] && library[i].id === hit.id) { next = library[i]; break; } }
-    if (!next || !root.SBFillForm) return null;
-    var vm = root.SBFillForm.fillForm(next.body || '', {}, { fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang });
-    return vm.fields.length || vm.buttons.length ? null : next;
+  function nextsFor(map, fromId, library, hidden, now) {
+    var hits = map && fromId ? map[fromId] : null;
+    // An answer kept from before the list holds a single { id, count }.
+    hits = Array.isArray(hits) ? hits : (hits ? [hits] : []);
+    var t = now || Date.now();
+    var out = [];
+    hits.forEach(function(hit) {
+      if (!hit || !hit.id || hit.id === fromId || !root.SBFillForm) return;
+      if (out.some(function(n) { return n.id === hit.id; })) return;
+      var at = hidden && hidden[fromId + '>' + hit.id] ? Date.parse(hidden[fromId + '>' + hit.id]) : NaN;
+      if (!isNaN(at) && t - at < NEXT_HIDE_DAYS * 86400000) return;
+      var next = null;
+      for (var i = 0; library && i < library.length; i++) { if (library[i] && library[i].id === hit.id) { next = library[i]; break; } }
+      if (!next) return;
+      var vm = root.SBFillForm.fillForm(next.body || '', {}, { fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang });
+      if (!vm.fields.length && !vm.buttons.length) out.push(next);
+    });
+    return out;
   }
 
   /** The hidden pairs with this one added and the ones past NEXT_HIDE_DAYS dropped. */
@@ -5167,41 +5290,103 @@ svg.brain-type-icon{stroke-width:1.8}
   }
 
   /**
-   * The offer in a fill window's footer: a tick box "Add Firma after it", the
-   * line "Often sent next" and a cross that hides the pair (onHide). Returns
-   * { el, checked } where checked() says whether the box is ticked. It starts
-   * unticked: nothing extra goes in unless the person asks.
+   * The ticked ids in the order they were ticked, after one more tick: `id`
+   * joins at the end when `on`, and leaves when not. Never changes `order`.
    */
-  function nextOffer(doc, next, onHide) {
-    var box = doc.createElement('div');
-    box.className = 'ff-next';
-    var label = doc.createElement('label');
-    label.className = 'ff-next-tick';
-    var tick = doc.createElement('input');
-    tick.type = 'checkbox';
-    var words = doc.createElement('span');
-    var strong = doc.createElement('span');
-    strong.className = 'ff-next-title';
-    strong.textContent = nextWords('tick', next.title);
-    var why = doc.createElement('span');
-    why.className = 'ff-next-why';
-    why.textContent = nextWords('why');
-    words.appendChild(strong); words.appendChild(why);
-    label.appendChild(tick); label.appendChild(words);
-    var hide = doc.createElement('button');
-    hide.type = 'button';
-    hide.className = 'ff-next-hide';
-    hide.setAttribute('aria-label', nextWords('hide', next.title));
-    hide.title = nextWords('hide', next.title);
-    hide.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
-    hide.addEventListener('click', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      tick.checked = false;
-      box.remove();
-      if (typeof onHide === 'function') onHide();
+  function nextToggle(order, id, on) {
+    var out = (order || []).filter(function(x) { return x !== id; });
+    if (on) out.push(id);
+    return out;
+  }
+
+  /**
+   * The offer: one row per snippet in `list`, each a tick box "Add Firma after
+   * it", the line "Often sent next" and a cross that hides that pair
+   * (onHide(next)). Every row starts unticked: nothing extra goes in unless
+   * the person asks. With several rows, a ticked one says where it goes
+   * ("Goes in 2nd"). onChange(picked, left) runs after each tick and each
+   * cross, `left` being the rows still shown. `opts.list` draws it as the list
+   * under a fill window's preview, headed "Often sent next: tick to add after
+   * your text"; the heading leaves with the last row. Returns { el, picked }
+   * where picked() is the ticked snippets in the order they were ticked.
+   */
+  function nextOffer(doc, list, onHide, onChange, opts) {
+    var asList = !!(opts && opts.list);
+    var group = doc.createElement('div');
+    group.className = asList ? 'ff-nexts ff-nexts--list' : 'ff-nexts';
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', nextWords(asList ? 'list' : 'why'));
+    if (asList) {
+      // A div: the page's window resets every p to the text around it.
+      var head = doc.createElement('div');
+      head.className = 'ff-nexts-head';
+      head.setAttribute('aria-hidden', 'true');
+      head.textContent = nextWords('list');
+      group.appendChild(head);
+    }
+    var rows = [];
+    var order = [];
+
+    function picked() {
+      if (!group.isConnected) return [];
+      return order.map(function(id) {
+        return rows.filter(function(row) { return row.next.id === id; })[0].next;
+      });
+    }
+    function paint() {
+      rows.forEach(function(row) {
+        var at = order.indexOf(row.next.id);
+        var placed = at !== -1 && rows.length > 1;
+        row.why.textContent = placed ? nextWords('place', at + 1) : nextWords('why');
+        if (placed) row.el.setAttribute('data-place', String(at + 1));
+        else row.el.removeAttribute('data-place');
+      });
+      if (typeof onChange === 'function') onChange(picked(), rows.length);
+    }
+
+    (list || []).forEach(function(next) {
+      var box = doc.createElement('div');
+      box.className = 'ff-next';
+      var label = doc.createElement('label');
+      label.className = 'ff-next-tick';
+      var tick = doc.createElement('input');
+      tick.type = 'checkbox';
+      var words = doc.createElement('span');
+      var strong = doc.createElement('span');
+      strong.className = 'ff-next-title';
+      strong.textContent = nextWords('tick', next.title);
+      var why = doc.createElement('span');
+      why.className = 'ff-next-why';
+      why.textContent = nextWords('why');
+      words.appendChild(strong); words.appendChild(why);
+      label.appendChild(tick); label.appendChild(words);
+      var hide = doc.createElement('button');
+      hide.type = 'button';
+      hide.className = 'ff-next-hide';
+      hide.setAttribute('aria-label', nextWords('hide', next.title));
+      hide.title = nextWords('hide', next.title);
+      hide.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+      var row = { next: next, el: box, tick: tick, why: why };
+      tick.addEventListener('change', function() {
+        order = nextToggle(order, next.id, tick.checked);
+        paint();
+      });
+      hide.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        order = nextToggle(order, next.id, false);
+        rows = rows.filter(function(r) { return r !== row; });
+        box.remove();
+        // The cross went with its row: the first row left takes the focus.
+        if (rows.length) rows[0].tick.focus();
+        else group.remove();
+        if (typeof onHide === 'function') onHide(next);
+        paint();
+      });
+      box.appendChild(label); box.appendChild(hide);
+      rows.push(row);
+      group.appendChild(box);
     });
-    box.appendChild(label); box.appendChild(hide);
-    return { el: box, checked: function() { return box.isConnected && tick.checked; } };
+    return { el: group, picked: picked };
   }
 
   /** The next snippet's text as it goes in, and its formatted form when it has one. */
@@ -5212,10 +5397,55 @@ svg.brain-type-icon{stroke-width:1.8}
     return { text: vm.preview, formatted: vm.formatted || null };
   }
 
+  function nextEscape(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /**
+   * What the ticked snippets add after the first text, in the order given, a
+   * blank line before each. `html` is the same in formatted form, for a first
+   * text that goes in formatted (wantHtml); null otherwise.
+   */
+  function nextAddition(list, wantHtml) {
+    var text = '', html = '';
+    (list || []).forEach(function(next) {
+      var t = nextText(next);
+      text += NEXT_SEPARATOR + t.text;
+      if (wantHtml) html += '<br><br>' + (t.formatted || nextEscape(t.text).replace(/\n/g, '<br>'));
+    });
+    return { text: text, html: wantHtml ? html : null };
+  }
+
+  /**
+   * What the ticked snippets add, shown at the end of a preview box, after a
+   * blank line, so the preview reads as the message that goes out. Run it after
+   * each tick and after each redraw of the box; none ticked takes it away.
+   */
+  function nextPreview(box, list) {
+    if (!box) return;
+    for (var i = box.children.length - 1; i >= 0; i--) {
+      if (box.children[i].className === 'ff-next-added') box.removeChild(box.children[i]);
+    }
+    var text = nextAddition(list, false).text;
+    if (!text) return;
+    var add = box.ownerDocument.createElement('span');
+    add.className = 'ff-next-added';
+    add.textContent = text;
+    box.appendChild(add);
+  }
+
+  /** The names for a toast: "Firma", "Alternativa and Firma", "A, B and C". */
+  function nextNames(list) {
+    var names = (list || []).map(function(n) { return String(n.title || 'a snippet'); });
+    if (names.length < 2) return names.join('');
+    return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+  }
+
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
     unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
     NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
-    nextWords: nextWords, nextFor: nextFor, hideNext: hideNext, nextOffer: nextOffer, nextText: nextText };
+    nextWords: nextWords, nextsFor: nextsFor, hideNext: hideNext, nextToggle: nextToggle, nextOffer: nextOffer,
+    nextText: nextText, nextAddition: nextAddition, nextPreview: nextPreview, nextNames: nextNames };
 })(typeof window !== 'undefined' ? window : this);
 </script>
 <!-- SB_FILL_FORM_UI:END -->
@@ -7248,6 +7478,11 @@ svg.brain-type-icon{stroke-width:1.8}
   var TOGETHER_GAP_MIN = 10;
   var TOGETHER_MIN = 3;
   var TOGETHER_LIMIT = 3;
+  // "Often sent next" (nextAfter): how many are offered after one snippet, how
+  // close together uses logged by one insert sit, and the shape of its answer.
+  var NEXT_LIMIT = 5;
+  var NEXT_BUNDLE_MS = 3000;
+  var NEXT_VERSION = 2;
   var MISSING_LIMIT = 3;
   var DISMISS_DAYS = 30;
 
@@ -7357,6 +7592,13 @@ svg.brain-type-icon{stroke-width:1.8}
   // twice in a row is one step. An item `known` does not hold (one no longer in
   // the library) still ends a run: it sat between. Only runs of two or more.
   function runsOf(events, idField, known, startMs, now) {
+    return stepRunsOf(events, idField, known, startMs, now).map(function (run) {
+      return run.map(function (step) { return step.id; });
+    });
+  }
+
+  // The same runs with the time of each step: { id, t }.
+  function stepRunsOf(events, idField, known, startMs, now) {
     var uses = [];
     for (var e = 0; e < events.length; e++) {
       var t = eventTime(events[e]);
@@ -7375,8 +7617,8 @@ svg.brain-type-icon{stroke-width:1.8}
       if (lastT !== null && use.t - lastT > gap) cut();
       lastT = use.t;
       if (use.id === null) { cut(); continue; }
-      if (run.length && run[run.length - 1] === use.id) continue;
-      run.push(use.id);
+      if (run.length && run[run.length - 1].id === use.id) continue;
+      run.push(use);
     }
     cut();
     return runs;
@@ -7455,15 +7697,19 @@ svg.brain-type-icon{stroke-width:1.8}
 
   /**
    * What usually comes next after each snippet, for "Add Firma after it" in
-   * the fill windows: the snippet used right after it in the most runs (the
-   * same runs as "used together"), at least TOGETHER_MIN of them in the last
-   * SUGGEST_DAYS days. A tie goes to the id that sorts first, so every surface
-   * picks the same one. Pure:
+   * the fill windows: the snippets used right after it (the same runs as "used
+   * together"), each in at least TOGETHER_MIN runs in the last SUGGEST_DAYS
+   * days, the most used first and NEXT_LIMIT at most. Snippets added with a
+   * tick are logged in the same moment as the one they follow, so the ones
+   * logged within NEXT_BUNDLE_MS of the step before them count as coming right
+   * after it too: ticking two keeps offering both. A tie goes to the id that
+   * sorts first, so every surface lists them the same way. Pure:
    *   events   uses { snippet_id, created_at }
    *   ids      the snippets still in the library; leave out to take every id
    *   idField  'snippet_id' unless given
    *   now      a timestamp
-   * Returns { fromId: { id: nextId, count } }.
+   * Returns { fromId: [{ id: nextId, count }] }. A kept answer is read again
+   * when its `v` is not NEXT_VERSION: the list replaced a single { id, count }.
    */
   function nextAfter(input) {
     var inp = input || {};
@@ -7476,23 +7722,32 @@ svg.brain-type-icon{stroke-width:1.8}
       known = function (id) { return !!set[id]; };
     }
     var counts = {};
-    runsOf(Array.isArray(inp.events) ? inp.events : [], inp.idField || 'snippet_id', known, startMs, now).forEach(function (run) {
+    stepRunsOf(Array.isArray(inp.events) ? inp.events : [], inp.idField || 'snippet_id', known, startMs, now).forEach(function (run) {
       var seen = {};
       for (var i = 0; i < run.length - 1; i++) {
-        var k = run[i] + '>' + run[i + 1];
-        if (seen[k]) continue;
-        seen[k] = true;
-        counts[k] = (counts[k] || 0) + 1;
+        for (var j = i + 1; j < run.length; j++) {
+          // The step right after, then the ones that went in with it.
+          if (j > i + 1 && run[j].t - run[j - 1].t > NEXT_BUNDLE_MS) break;
+          if (run[j].id === run[i].id) continue;
+          var k = run[i].id + '>' + run[j].id;
+          if (seen[k]) continue;
+          seen[k] = true;
+          counts[k] = (counts[k] || 0) + 1;
+        }
       }
     });
-    var best = {};
+    var lists = {};
     Object.keys(counts).sort().forEach(function (k) {
       var n = counts[k];
       if (n < TOGETHER_MIN) return;
       var pair = k.split('>');
-      if (!best[pair[0]] || n > best[pair[0]].count) best[pair[0]] = { id: pair[1], count: n };
+      (lists[pair[0]] = lists[pair[0]] || []).push({ id: pair[1], count: n });
     });
-    return best;
+    // The keys came sorted, and the sort is stable: a tie keeps the id order.
+    Object.keys(lists).forEach(function (from) {
+      lists[from] = lists[from].sort(function (a, b) { return b.count - a.count; }).slice(0, NEXT_LIMIT);
+    });
+    return lists;
   }
 
   /**
@@ -7597,6 +7852,8 @@ svg.brain-type-icon{stroke-width:1.8}
     MISSING_RULES: MISSING_RULES.map(function (r) { return { key: r.key, kind: r.kind, libraryId: r.libraryId, title: r.title }; }),
     suggest: suggest,
     nextAfter: nextAfter,
+    NEXT_LIMIT: NEXT_LIMIT,
+    NEXT_VERSION: NEXT_VERSION,
     team: team,
     lastUseLine: lastUseLine
   };
@@ -10245,6 +10502,25 @@ function extractFields(body) {
   return vars;
 }
 
+/* Singular or plural: a word right after a number carries its plural ending
+   in brackets, "1 item(s)", "3 DAY(S)", "2 giorn(o/i)". The finished message
+   keeps the ending for any number but 1 and drops it for 1. Mirrors
+   sbCountEndings in extension/formula-engine.js; scripts/check-snippets.js
+   holds the two to the same answers. */
+var SB_COUNT_LETTER='A-Za-z\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u024F';
+var SB_COUNT_WORD='(\\d+(?:[.,]\\d+)*)';
+var SB_COUNT_TAIL='(['+SB_COUNT_LETTER+']+)\\((['+SB_COUNT_LETTER+']{0,4})(?:\\/(['+SB_COUNT_LETTER+']{0,4}))?\\)';
+var SB_COUNT_RE=new RegExp('(^|[^0-9'+SB_COUNT_LETTER+'])'+SB_COUNT_WORD+'([ \\u00A0]+)'+SB_COUNT_TAIL,'g');
+var SB_COUNT_HTML_RE=new RegExp('(^|[^0-9'+SB_COUNT_LETTER+'])'+SB_COUNT_WORD+
+  '((?:<[^>]*>)*(?:[ \\u00A0]|&nbsp;)+(?:<[^>]*>)*)'+SB_COUNT_TAIL,'g');
+function sbCountEndings(text,html){
+  return String(text).replace(html?SB_COUNT_HTML_RE:SB_COUNT_RE,function(all,pre,num,gap,word,one,many){
+    var both=typeof many==='string';
+    if(!one&&!many)return all;
+    var single=/^1(?:[.,]0{1,2})?$/.test(num);
+    return pre+num+gap+word+(both?(single?one:many):(single?'':one));
+  });
+}
 function resolveBody(body,vals,opts){
   if(!body)return '';
   /* opts.html resolves a formatted layout: every printed value is escaped. */
@@ -10254,8 +10530,8 @@ function resolveBody(body,vals,opts){
      copy so the caller's opts is never mutated. Mirrors the engine, including
      `opts.fmtOverride` — the format the person filling the form picked in the
      Adjust panel, over the one the author wrote. */
-  var _o=opts||{},fmtMap,subOpts;
-  if(Object.prototype.hasOwnProperty.call(_o,'_fmtMap')){fmtMap=_o._fmtMap;subOpts=_o;}
+  var _o=opts||{},fmtMap,subOpts,outer=!Object.prototype.hasOwnProperty.call(_o,'_fmtMap');
+  if(!outer){fmtMap=_o._fmtMap;subOpts=_o;}
   else{
     fmtMap=sbFieldFormatMap(body,_o.fmtOverride,_o.lang);subOpts={};
     for(var _k in _o)if(Object.prototype.hasOwnProperty.call(_o,_k))subOpts[_k]=_o[_k];
@@ -10381,8 +10657,10 @@ function resolveBody(body,vals,opts){
   /* The author's **bold** and [yellow]…[/yellow] markers never reach the
      message. Mirrors the end of resolveBody in the engine: without it the phone
      copied the asterisks into the text. */
-  return out.replace(/\*\*([^*]+)\*\*/g,'$1')
-            .replace(/\[(blue|yellow|red)\]([\s\S]*?)\[\/(?:blue|yellow|red)\]/g,'$2');
+  out=out.replace(/\*\*([^*]+)\*\*/g,'$1')
+         .replace(/\[(blue|yellow|red)\]([\s\S]*?)\[\/(?:blue|yellow|red)\]/g,'$2');
+  /* Singular or plural is read off the whole message, never a fragment. */
+  return outer?sbCountEndings(out,html):out;
 }
 
 /* ── FILL-FORM ENGINE ADAPTER ───────────────────────────────────────
@@ -11194,9 +11472,13 @@ function filterPromptsPreLabel(q){
     return false;
   });
 }
+/* How many prompts the search and the category leave, before labels: the
+   number on the chip of the category that is on. */
+var _promptsPreLabel=0;
 function filterPrompts(q){
   var pre=filterPromptsPreLabel(q);
   computePromptLabelCounts(pre);
+  _promptsPreLabel=pre.length;
   return pre.filter(function(p){return matchesLabels(promptLabelIds(p));});
 }
 function promptCategories(){
@@ -11212,6 +11494,7 @@ function renderPromptList(){
   var q=promptSearch.trim().toLowerCase();
   var total=allPrompts.length;
   var filtered=filterPrompts(q);
+  paintActiveFilters('prompts',{category:_promptsPreLabel,results:filtered.length});
   // Pinned prompts float to the top; each half keeps its updated_at order.
   var pinnedP=[],restP=[];
   filtered.forEach(function(p){(p.pinned?pinnedP:restP).push(p);});
@@ -11860,12 +12143,14 @@ function renderMemory(){
   var meta=document.getElementById('mem-meta');
   meta.hidden=true;
   if(!memLoaded){
+    paintActiveFilters('memory',{kind:0,results:null});
     list.innerHTML=memFailed
       ?memEmptyHtml('😕','Could not load your Brains','')
       :'<div class="empty"><div class="spinner"></div><p>Loading your Brains…</p></div>';
     return;
   }
   if(!n){
+    paintActiveFilters('memory',{kind:0,results:0});
     list.innerHTML=memEmptyHtml(BRAIN_SVG,'No Brains yet','Create one in the dashboard, or add a ready-made one from the starter library there.');
     return;
   }
@@ -11874,6 +12159,8 @@ function renderMemory(){
   if(brain){
     var all=memItemsOf(brain.id);
     var items=all.filter(function(it){return memKindOk(it)&&memMatchesItem(it,q);});
+    // A kind lists items of that kind, so its chip carries the items found.
+    paintActiveFilters('memory',{kind:items.length,results:items.length});
     if(narrowed){meta.textContent=items.length+' of '+all.length;meta.hidden=false;}
     list.innerHTML=!all.length
       ?memEmptyHtml('📝','Nothing in here yet','Tap Add text to write the first item.')
@@ -11883,6 +12170,7 @@ function renderMemory(){
     return;
   }
   if(!narrowed){
+    paintActiveFilters('memory',{kind:0,results:n});
     list.innerHTML=allBrains.map(memBrainCardHtml).join('');
     return;
   }
@@ -11890,6 +12178,7 @@ function renderMemory(){
   // kind is a kind of item, so it lists items only.
   var brains=(q&&curMemKind==='ALL')?allBrains.filter(function(b){return memMatchesBrain(b,q);}):[];
   var hits=allMemItems.filter(function(it){return memKindOk(it)&&memMatchesItem(it,q);});
+  paintActiveFilters('memory',{kind:hits.length,results:brains.length+hits.length});
   meta.textContent=(brains.length?memPlural(brains.length,'Brain','Brains')+' · ':'')
     +memPlural(hits.length,'item','items');
   meta.hidden=false;
@@ -13068,7 +13357,9 @@ function renderList(){
   // Counts are taken here, before the label filter narrows the set: a chip
   // should report what picking it would give, not what is already showing.
   computeLabelCounts(groups);
+  var inLang=groups.length;
   groups=groups.filter(function(g){return matchesLabels(groupLabelIds(g));});
+  paintActiveFilters('snippets',{lang:inLang,results:groups.length});
   // A filtered list that does not say so reads as a broken one, and the panel
   // that narrowed it is usually shut by the time you look.
   var snipMeta=document.getElementById('snip-meta');
@@ -13626,6 +13917,7 @@ function updatePrev(){
   if(!curSnip)return;
   var vm=currentForm();
   window.SBFillFormUI.showPreview(document.getElementById('prev-text'),vm);
+  window.SBFillFormUI.nextPreview(document.getElementById('prev-text'),mobNext&&mobNext.id===curSnip.id?mobNext.offer.picked():[]);
   /* Where the pictures go: Copy takes them into an email, Share sends text. */
   window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote'),vm,'copy');
   window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote-share'),navigator.share?vm:null,'share');
@@ -13786,12 +14078,14 @@ function fillFromLink(){
 })();
 
 /* ── OFTEN SENT NEXT ────────────────────────────── */
-/* "Add Firma after it" above Copy and Share: the snippet usually sent right
-   after this one, the offer the extension's fill window shows. What comes next
+/* "Add Firma after it" listed under the preview: the snippets usually sent
+   right after this one, the offer the extension's fill window shows. What comes next
    is SBUsageAnalytics.nextAfter over your own uses on every device, read at
-   most every 6 hours and kept on this phone; whether to offer it, and its
-   words, come from the shared fill-form-ui module. Ticked, Copy and Share put
-   it after the text, a blank line between, and count a use of each. */
+   most every 6 hours and kept on this phone (and read again at once when the
+   kept answer has an older shape); which ones to offer, and their words, come
+   from the shared fill-form-ui module. Copy and Share put the ticked ones
+   after the text in the order they were ticked, a blank line before each, and
+   count a use of each. */
 var MOB_NEXT_KEY='sb_mob_next', MOB_NEXT_HIDDEN_KEY='sb_mob_next_hidden', MOB_NEXT_MS=6*60*60*1000;
 var mobNextMap={}, mobNext=null, mobNextLoading=false;
 function mobNextHidden(){
@@ -13804,7 +14098,7 @@ function loadMobNext(){
     var have=JSON.parse(localStorage.getItem(MOB_NEXT_KEY)||'null');
     if(have&&have.uid===USER_ID&&have.map){
       mobNextMap=have.map;
-      if(Date.now()-have.at<MOB_NEXT_MS){mountMobNext();return;}
+      if(have.v===SBUsageAnalytics.NEXT_VERSION&&Date.now()-have.at<MOB_NEXT_MS){mountMobNext();return;}
     }
   }catch(e){console.error('Could not read what usually comes next',e);}
   mobNextLoading=true;
@@ -13814,7 +14108,7 @@ function loadMobNext(){
     +'&user_id=eq.'+encodeURIComponent(USER_ID)+'&created_at=gte.'+encodeURIComponent(from)+'&order=id.asc')
     .then(function(events){
       mobNextMap=SBUsageAnalytics.nextAfter({events:events,ids:allSnips.map(function(s){return s.id;}),now:now});
-      try{localStorage.setItem(MOB_NEXT_KEY,JSON.stringify({uid:USER_ID,at:now,map:mobNextMap}));}
+      try{localStorage.setItem(MOB_NEXT_KEY,JSON.stringify({uid:USER_ID,at:now,v:SBUsageAnalytics.NEXT_VERSION,map:mobNextMap}));}
       catch(e){console.error('Could not keep what usually comes next',e);}
       mobNextLoading=false;
       mountMobNext();
@@ -13824,35 +14118,36 @@ function loadMobNext(){
       console.error('Could not read the use history for what usually comes next',err);
     });
 }
-/* Draws the offer for the snippet on screen, or takes it away. */
+/* Draws the offer for the snippet on screen, or takes it away: a list at the
+   end of the page, under the preview, so it shows on Fill in and on Preview
+   alike. The preview shows what each ticked one adds. */
 function mountMobNext(){
-  var foot=document.querySelector('#view-detail .copy-foot');
-  if(!foot)return;
-  var old=foot.querySelector('.ff-next');
+  var body=document.getElementById('det-body');
+  if(!body)return;
+  var old=body.querySelector(':scope > .ff-nexts');
   if(old)old.remove();
   mobNext=null;
+  if(window.SBFillFormUI)window.SBFillFormUI.nextPreview(document.getElementById('prev-text'),[]);
   if(!curSnip||!detailOpen()||!window.SBFillFormUI)return;
   var UI=window.SBFillFormUI, s=curSnip;
-  var next=UI.nextFor(mobNextMap,s.id,allSnips,mobNextHidden());
-  if(!next)return;
-  var offer=UI.nextOffer(document,next,function(){
+  var list=UI.nextsFor(mobNextMap,s.id,allSnips,mobNextHidden());
+  if(!list.length)return;
+  var offer=UI.nextOffer(document,list,function(next){
     try{localStorage.setItem(MOB_NEXT_HIDDEN_KEY,JSON.stringify(UI.hideNext(mobNextHidden(),s.id,next.id)));}
     catch(e){console.error('Could not remember the hidden suggestion',e);}
-    mobNext=null;
-  });
-  foot.insertBefore(offer.el,foot.firstChild);
-  mobNext={id:s.id,snip:next,offer:offer};
+  },function(picked){
+    UI.nextPreview(document.getElementById('prev-text'),picked);
+  },{list:true});
+  body.appendChild(offer.el);
+  mobNext={id:s.id,offer:offer};
 }
-/* The text, and its formatted copy, with the next snippet after it when ticked. */
+/* The text, and its formatted copy, with the ticked snippets after it, in the
+   order they were ticked. `next` lists them; empty when none is ticked. */
 function withMobNext(s,text,html){
-  var n=mobNext&&mobNext.id===s.id&&mobNext.offer.checked()?mobNext.snip:null;
-  if(!n)return {text:text,html:html||null,next:null};
-  var t=window.SBFillFormUI.nextText(n);
-  return {
-    text:text+window.SBFillFormUI.NEXT_SEPARATOR+t.text,
-    html:html?html+'<br><br>'+(t.formatted||esc(t.text).replace(/\n/g,'<br>')):null,
-    next:n
-  };
+  var list=mobNext&&mobNext.id===s.id?mobNext.offer.picked():[];
+  if(!list.length)return {text:text,html:html||null,next:[]};
+  var add=window.SBFillFormUI.nextAddition(list,!!html);
+  return {text:text+add.text,html:html?html+add.html:null,next:list};
 }
 
 /* ── COPY & SHARE ───────────────────────────────── */
@@ -13862,7 +14157,7 @@ document.getElementById('copy-btn').addEventListener('click',function(){
   checkThenGo(s,vm.preview,vm,document.getElementById('fform'),'copy-anyway',function(){
     var all=withMobNext(s,vm.preview,vm.formatted);
     logSnipUse(s,detailFilled());
-    if(all.next)logSnipUse(all.next,0);
+    all.next.forEach(function(n){logSnipUse(n,0);});
     copyWithPictures(all.text,all.html,function(){flashFootBtn(btn,'Copied!');});
   });
 });
@@ -13873,7 +14168,7 @@ document.getElementById('share-btn').addEventListener('click',function(){
     var all=withMobNext(s,vm.preview,null);
     shareOut(s.title||'Snippet',all.text,function(){
       logSnipUse(s,filled);
-      if(all.next)logSnipUse(all.next,0);
+      all.next.forEach(function(n){logSnipUse(n,0);});
       flashFootBtn(btn,'Shared!');
     });
   });
@@ -15926,14 +16221,128 @@ function clearAllFilters(){
     renderPromptList();
   }
   if(curSurface()==='snippets'){
-    curFolder='ALL';curLang='ALL';
-    document.querySelectorAll('.lang-pill').forEach(function(x){
-      x.classList.toggle('on',x.getAttribute('data-l')==='ALL');
-    });
+    curFolder='ALL';setLangFilter('ALL');
     renderFolderChips();renderList();
   }
   refreshOpenFilterPanel();
   syncFilterHeader();
+}
+function setLangFilter(lang){
+  curLang=lang;
+  document.querySelectorAll('.lang-pill').forEach(function(x){
+    x.classList.toggle('on',x.getAttribute('data-l')===lang);
+  });
+}
+/* ── Filters that are on ── */
+/* The chips under the search box: one for each filter that is on, in the
+   order the panel lists them, each with the number its pill carries in the
+   panel. A folder shows what it holds; a language, a label, a category and a
+   kind show what they give after the filters before them. The list's own
+   renderer paints them, right after it counts, so the row, the list and the
+   numbers are always one picture. */
+var AFC_GLOBE='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/>'
+  +'<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+var AFC_NOUN={snippets:['snippet','snippets'],prompts:['prompt','prompts'],memory:['item','items']};
+function activeFilters(surface,counts){
+  var out=[];
+  if(surface==='memory'){
+    if(curMemKind!=='ALL'){
+      out.push({facet:'kind',id:curMemKind,name:MEM_KIND_LABEL[curMemKind]||curMemKind,count:counts.kind});
+    }
+    return out;
+  }
+  if(surface==='snippets'){
+    if(curFolder!=='ALL'){
+      var f=getFolderById(curFolder);
+      out.push({facet:'folders',id:curFolder,name:(f&&f.name)||'Untitled',
+        icon:folderIcon(f),count:folderCountDeep(curFolder)});
+    }
+    if(curLang!=='ALL'){
+      // The chip reads as the pill it stands for.
+      var pill=document.querySelector('.lang-pill[data-l="'+curLang+'"]');
+      out.push({facet:'languages',id:curLang,name:pill?pill.textContent:curLang,
+        icon:AFC_GLOBE,count:counts.lang});
+    }
+  }
+  curLabels.forEach(function(id){
+    if(id===NO_LABEL){
+      out.push({facet:'labels',id:id,name:'Unlabelled',count:_labelCounts.none});
+      return;
+    }
+    var l=allLabels.find(function(x){return x.id===id;});
+    if(l)out.push({facet:'labels',id:id,name:l.name||'Untitled',
+      dot:labelDot(l.color),count:_labelCounts.counts[id]||0});
+  });
+  if(surface==='prompts'&&curCategory!=='ALL'){
+    out.push({facet:'category',id:curCategory,name:curCategory,count:counts.category});
+  }
+  return out;
+}
+function activeFilterChipHtml(f,noun){
+  return '<span class="afc-chip" data-facet="'+esc(f.facet)+'" data-id="'+esc(f.id)+'">'
+    +'<button type="button" class="afc-body" aria-label="'
+    +esc(f.name+', '+memPlural(f.count,noun[0],noun[1])+'. Change this filter')+'">'
+    +(f.icon?'<span class="afc-ico" aria-hidden="true">'+f.icon+'</span>':'')
+    +(f.dot?'<span class="mlabel-dot" style="background:'+esc(f.dot)+'"></span>':'')
+    +'<span class="afc-name">'+esc(f.name)+'</span>'
+    +'<span class="afc-cnt">'+f.count+'</span></button>'
+    +'<button type="button" class="afc-x" aria-label="'+esc('Remove the '+f.name+' filter')+'">'
+    +'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>'
+    +'</span>';
+}
+/* What each row last drew. Typing in the search box redraws the list on every
+   pause, and a row that has not changed is left alone. */
+var _afcDrawn={};
+function paintActiveFilters(surface,counts){
+  var list=activeFilters(surface,counts);
+  document.querySelectorAll('.lib-band').forEach(function(hero){
+    if(heroSurface(hero)!==surface)return;
+    var show=hero.querySelector('.mfilters-show');
+    if(show){
+      show.textContent=counts.results===null?'Show results'
+        :'Show '+memPlural(counts.results,'result','results');
+    }
+    var bar=hero.querySelector('.afc');
+    if(!bar)return;
+    bar.classList.toggle('on',!!list.length);
+    // The last chips stay in place while the row folds away, hidden with it.
+    if(!list.length)return;
+    var html=list.map(function(f){return activeFilterChipHtml(f,AFC_NOUN[surface]);}).join('')
+      +(list.length>1?'<button type="button" class="afc-clear">Clear all</button>':'');
+    if(html===_afcDrawn[surface])return;
+    _afcDrawn[surface]=html;
+    bar.querySelector('.afc-row').innerHTML=html;
+  });
+}
+function removeActiveFilter(facet,id){
+  if(facet==='folders'){curFolder='ALL';renderFolderChips();}
+  else if(facet==='languages')setLangFilter('ALL');
+  else if(facet==='category')curCategory='ALL';
+  else if(facet==='kind')curMemKind='ALL';
+  else if(facet==='labels'){
+    var at=curLabels.indexOf(id);
+    if(at>-1)curLabels.splice(at,1);
+  }
+  renderCurrentSurface();refreshOpenFilterPanel();syncFilterHeader();
+}
+function setFilterPanelOpen(hero,open){
+  var btn=hero.querySelector('.mfilters'),panel=hero.querySelector('.mfilters-panel');
+  if(!btn||!panel)return;
+  panel.classList.toggle('open',open);
+  hero.classList.toggle('filters-open',open);
+  btn.setAttribute('aria-expanded',open?'true':'false');
+  if(open){renderFilterPanel(panel,heroSurface(hero));syncFilterHeader();}
+}
+/* A chip's body opens the panel on the group it belongs to. */
+function openFilterGroup(hero,facet){
+  setFilterPanelOpen(hero,true);
+  var sec=hero.querySelector('.mfacet[data-facet="'+facet+'"]');
+  if(!sec)return;
+  var box=sec.closest('.mfilters-scroll');
+  if(box)box.scrollTop+=sec.getBoundingClientRect().top-box.getBoundingClientRect().top;
+  sec.classList.add('is-target');
+  var pick=sec.querySelector('.on')||sec.querySelector('button');
+  if(pick)pick.focus({preventScroll:true});
 }
 /* Paint one hero's panel for its own surface. A facet that adopts a live node
    is also what pulls the chip rows out of the page body. */
@@ -15990,9 +16399,6 @@ function syncFilterHeader(){
       b.classList.toggle('sb-hidden',n===0);
     });
     hero.querySelectorAll('.mfilters-clear').forEach(function(b){b.disabled=n===0;});
-    hero.querySelectorAll('.mfilters-sum').forEach(function(el){
-      el.textContent=n?(n+' filter'+(n===1?'':'s')+' on'):'No filters on';
-    });
   });
 }
 function mountFilterHeader(){
@@ -16023,17 +16429,38 @@ function mountFilterHeader(){
     panel.setAttribute('aria-labelledby',id+'-btn');
     panel.innerHTML='<div class="mfilters-panel-in">'
       +'<div class="mfilters-scroll" data-filter-body></div>'
-      +'<div class="mfilters-foot"><span class="mfilters-sum"></span>'
-      +'<button type="button" class="mfilters-clear">Clear all</button></div>'
+      +'<div class="mfilters-foot">'
+      +'<button type="button" class="mfilters-clear">Clear all</button>'
+      +'<button type="button" class="mfilters-show">Show results</button></div>'
       +'</div>';
+    var bar=document.createElement('div');
+    bar.className='afc';
+    bar.setAttribute('role','group');
+    bar.setAttribute('aria-label','Filters that are on');
+    bar.innerHTML='<div class="afc-in"><div class="afc-row"></div></div>';
     btnSlot.appendChild(btn);
     panelSlot.appendChild(panel);
+    hero.insertBefore(bar,panelSlot);
     btn.addEventListener('click',function(){
-      var open=panel.classList.toggle('open');
-      btn.setAttribute('aria-expanded',open?'true':'false');
-      if(open){renderFilterPanel(panel,heroSurface(hero));syncFilterHeader();}
+      setFilterPanelOpen(hero,!panel.classList.contains('open'));
     });
     panel.querySelector('.mfilters-clear').addEventListener('click',clearAllFilters);
+    panel.querySelector('.mfilters-show').addEventListener('click',function(){
+      setFilterPanelOpen(hero,false);
+      btn.focus();
+    });
+    bar.addEventListener('click',function(e){
+      if(e.target.closest('.afc-clear')){clearAllFilters();btn.focus();return;}
+      var chip=e.target.closest('.afc-chip');
+      if(!chip)return;
+      var facet=chip.getAttribute('data-facet');
+      if(!e.target.closest('.afc-x')){openFilterGroup(hero,facet);return;}
+      var at=Array.prototype.indexOf.call(bar.querySelectorAll('.afc-chip'),chip);
+      removeActiveFilter(facet,chip.getAttribute('data-id'));
+      // Focus goes to the chip that took its place, or back to Filters.
+      var left=bar.classList.contains('on')?bar.querySelectorAll('.afc-x'):[];
+      (left[Math.min(at,left.length-1)]||btn).focus();
+    });
     // Paint once now: this is what lifts the chip rows out of the page body, so
     // they never flash as loose rows before the panel is first opened.
     renderFilterPanel(panel,surface);
@@ -17270,10 +17697,49 @@ function focusInit(){
   setInterval(renderFocus,1000);
 }
 
+/* OPENING ANIMATION. Plays once per app start, when the app lands on Home: the
+   cover drawn in the page's first lines (#sb-open) grows its tile into the navy
+   band and flies its T onto the Home wordmark's own T, measured where it really
+   sits. Landing anywhere else (a share into Save to Brain, a call already on
+   screen) skips the flight and the cover fades; a device set to reduce motion
+   gets no animation at all. */
+function playOpening(){
+  var el=document.getElementById('sb-open');
+  if(!el||el.className)return;
+  try{sessionStorage.setItem('sb_opened','1');}catch(e){}
+  function done(){
+    if(el.parentNode)el.parentNode.removeChild(el);
+    document.body.classList.remove('sb-opening');
+  }
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){done();return;}
+  var home=document.getElementById('view-home');
+  if(!home.classList.contains('active')||document.querySelector('dialog[open]')){
+    el.className='out';
+    el.addEventListener('animationend',done);
+    setTimeout(done,600);
+    return;
+  }
+  var t=el.querySelector('.sb-open-t');
+  var from=t.getBoundingClientRect();
+  var to=home.querySelector('.home-brandmark').getBoundingClientRect();
+  var tile=el.querySelector('.sb-open-tile').getBoundingClientRect().width;
+  var across=Math.sqrt(window.innerWidth*window.innerWidth+window.innerHeight*window.innerHeight);
+  el.style.setProperty('--tx',((to.left+to.width/2)-(from.left+from.width/2))+'px');
+  el.style.setProperty('--ty',((to.top+to.height/2)-(from.top+from.height/2))+'px');
+  el.style.setProperty('--s',to.width/from.width);
+  // Far enough for the rounded tile to pass the corners of the screen.
+  el.style.setProperty('--k',across/tile*0.96);
+  document.body.classList.add('sb-opening');
+  el.className='go';
+  t.addEventListener('animationend',function(e){if(e.animationName==='sb-open-fly')done();});
+  setTimeout(done,2000);
+}
+
 if(requireAuth()){
   applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();refreshAccountDetails();
   captureResume();
   focusInit();
+  playOpening();
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible'){
       sbCheckAlive();refreshAccountDetails();

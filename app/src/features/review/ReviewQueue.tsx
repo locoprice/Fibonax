@@ -188,7 +188,7 @@ export function ReviewQueue() {
                     className="min-w-0 flex-1 text-left"
                   >
                     <span className="flex items-center gap-2">
-                      <span className="truncate text-sm font-medium text-ink hover:text-primary">{item.title}</span>
+                      <span className="truncate text-sm font-medium text-ink hover:text-primary" translate="no">{item.title}</span>
                       <ReviewStatusBadge status={item.review_status} />
                     </span>
                     <span className="mt-0.5 block text-xs text-ink-subtle">

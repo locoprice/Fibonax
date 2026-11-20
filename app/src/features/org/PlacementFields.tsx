@@ -55,7 +55,7 @@ export function PlacementFields({
         >
           <option value="">No department</option>
           {departments.map((department) => (
-            <option key={department.id} value={department.id}>
+            <option key={department.id} value={department.id} translate="no">
               {department.name}
             </option>
           ))}

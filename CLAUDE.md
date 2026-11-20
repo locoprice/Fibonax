@@ -216,7 +216,7 @@ Watch the file itself: it has no `.gitattributes`, so an edit can flip it to CRL
 
 **The rule:** whenever new text or new content is added to the English source `app/public/landing/index.html`, add the Italian and Spanish in the same change. Do not leave a gap, do not ship a placeholder, and do not wait for approval.
 
-**The authorisation covers the landing page only.** The dashboard, the extension popup and the mobile app are explicitly out of scope — do not add a translation layer to them or translate their interface text.
+**The authorisation covers the landing page only.** The dashboard, the extension popup and the mobile app are explicitly out of scope: do not write translations for them or add a translation file to them. The dashboard is shown in other languages by Google's page translator instead (see 🗺️ Dashboard Language).
 
 Marketing copy still carries the brand voice and is read by prospects and investors, so translate to that standard: faithful to the English meaning, natural in the target language, never a word-for-word rendering. Keep brand names, trigger literals (`::quote`), domains and proper nouns as they are. Translate the demo sample messages too — they are what a visitor reads to understand the product.
 
@@ -229,6 +229,19 @@ Marketing copy still carries the brand voice and is read by prospects and invest
 **Corollary:** never "fix" a failing translation gate by editing the `find` string to match the new English while leaving `replace` stale. That defeats the gate and ships mixed-language copy. Adding a language = one new `<lang>.json`, never a hand-copied HTML file.
 
 > Strings that are identical in the target language (brand names, `Mobile`, `Analytics`) need no entry at all. Everything else a reader actually reads as prose gets translated.
+
+---
+
+## 🗺️ Dashboard Language
+
+**The dashboard is written in English and can be shown in any language Google Translate offers.** A person picks one from the globe in the top bar or the Language card in Settings. Valentina chose this on 2026-11-16 (the way the GTranslate plugin works) over hand-written dashboard translations, which stay forbidden.
+
+- **How it works.** `app/src/lib/pageTranslate.ts` loads Google's page translator only when the choice is not English. `app/src/lib/translateGuard.ts` keeps the screen working while Google rewrites it (without it a removed message blanks the page and a changed count keeps its old number); `src/__tests__/translateGuard.test.ts` pins it. The languages are listed in `app/src/lib/pageTranslateLanguages.ts`.
+- **What a person wrote is never translated.** Every element that prints user content (a name, a title, a body, a shortcut, a folder, a label, an email, a person's name, an initial) carries `translate="no"`. So do product names (Fibonax, Snippets, Prompts, Brains), language codes and names, field codes, charts and the product demos. A new screen that prints user content gets the attribute in the same task.
+- **An editor that holds user text is always protected.** A `contentEditable` box without `translate="no"` would have Google's translation saved as the person's own text.
+- **Spaces go inside the protected piece.** Google drops the space between a translated word and a protected element, so write `<span translate="no"> · {name}</span>`, never a space outside it.
+- **The dashboard only.** The extension and the phone app stay in English.
+- **Verify by looking.** Open the changed screen with a language picked and read it. Google translates only a page that is in view.
 
 ---
 
@@ -274,7 +287,8 @@ Senior-engineer method — **Explore → Plan → Implement → Verify** (never 
 - Shipping a change to snippets, prompts or memory without the same change in the other two, or giving one of them a page shell, menu, component or wording the others do not have (see the Tripartite Parity section, and its list of what stays distinct).
 - Shipping a snippet capability that the editor can write but the expansion surfaces cannot use: the in-page overlay, the popup detail modal, the live preview and mobile (see ⚡ Authoring and Expansion Parity).
 - Deferring mobile to a later version, or calling a snippet change done while `app/public/mobile/index.html` still lacks it (see 📱 Mobile).
-- Translating the dashboard, extension popup or mobile interface — the translation authorisation covers the landing page only. See 🌐 Landing Translations.
+- Writing translations for the dashboard, extension popup or mobile interface: the translation authorisation covers the landing page only (see 🌐 Landing Translations). The dashboard's other languages come from Google's page translator (see 🗺️ Dashboard Language).
+- Printing something a person wrote on the dashboard without `translate="no"` (see 🗺️ Dashboard Language).
 - Shipping a user-visible change without its page in `user-docs/`, or editing the manual anywhere but this repository (see 📘 User Docs).
 - Shipping an editor element that can be inserted but not listed, edited, saved, cancelled, removed and undone (see ✏️ Edit and Remove for Every Element).
 

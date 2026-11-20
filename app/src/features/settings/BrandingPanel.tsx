@@ -115,7 +115,7 @@ export function BrandingPanel() {
         {/* Live preview — mirrors the topbar co-brand */}
         <div className="flex h-[52px] items-center gap-2.5 rounded-[12px] border border-line bg-bg px-4">
           <BrandMark className="h-6 w-6" />
-          <span className="text-sm font-bold tracking-tight text-ink">Fibonax</span>
+          <span className="text-sm font-bold tracking-tight text-ink" translate="no">Fibonax</span>
           {logoUrl || trimmed ? (
             <>
               <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-ink-subtle" aria-hidden="true" />

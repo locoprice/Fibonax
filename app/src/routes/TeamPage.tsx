@@ -443,8 +443,8 @@ function MemberTile({
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-sm font-medium text-ink">
-            {name}
-            {isYou && <span className="font-normal text-ink-subtle"> (you)</span>}
+            <span translate="no">{isYou ? `${name} ` : name}</span>
+            {isYou && <span className="font-normal text-ink-subtle">(you)</span>}
           </span>
           {member.is_department_lead && (
             <span className="shrink-0 rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-semibold text-primary">
@@ -453,13 +453,13 @@ function MemberTile({
           )}
         </span>
         {member.job_title && (
-          <span className="truncate text-xs text-ink-muted" title={member.job_title}>
+          <span className="truncate text-xs text-ink-muted" title={member.job_title} translate="no">
             {member.job_title}
           </span>
         )}
         <span className="truncate text-xs text-ink-subtle" title={named ? member.email : undefined}>
           {ROLE_LABEL[member.role]}
-          {named && ` · ${member.email}`}
+          {named && <span translate="no">{` · ${member.email}`}</span>}
         </span>
       </span>
       {onEdit && (
@@ -502,7 +502,7 @@ function SharedFolderRow({ folder, scope, faces, counts, canManage, onManage }: 
     <li className="flex items-center gap-3 px-5 py-3">
       <FolderIcon icon={folder.icon} className="h-[18px] w-[18px] text-ink-muted" />
       <span className="flex min-w-0 flex-1 items-baseline gap-2">
-        <span className="truncate text-sm font-medium text-ink">{folder.name}</span>
+        <span className="truncate text-sm font-medium text-ink" translate="no">{folder.name}</span>
         <span className="shrink-0 text-xs text-ink-subtle">
           {describeFolderContents(counts.snippets, counts.prompts)}
         </span>

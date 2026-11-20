@@ -113,6 +113,7 @@ export function SnippetsPage() {
           ) : undefined
         }
         title={selectedFolder ? selectedFolder.name : 'Snippets'}
+        keepTitle
         tag={selectedFolder ? undefined : 'execution assets'}
         description={
           selectedFolder

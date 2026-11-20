@@ -1,4 +1,5 @@
 import { useSettingsStore } from '@/stores/settingsStore';
+import { LanguagePicker } from '@/components/ui/LanguagePicker';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { MasterSearch } from '@/features/search/MasterSearch';
 import { BrandMark } from '@/components/layout/BrandMark';
@@ -7,7 +8,8 @@ import { BrandMark } from '@/components/layout/BrandMark';
  * Top bar — design system v1.1.
  * Spans the dashboard width at 60px; brand sits on the left (mirrors the
  * mockup at design_handoff_design_system/mockups/harmonized-final.html),
- * search anchors the middle, and the theme toggle stays on the right.
+ * search anchors the middle, and the language choice and the theme toggle
+ * stay on the right.
  */
 export function Topbar() {
   const profile = useSettingsStore((s) => s.profile);
@@ -20,7 +22,7 @@ export function Topbar() {
           company mark (Settings, Company branding) when one is set. */}
       <div className="flex shrink-0 items-center gap-2.5">
         <BrandMark className="h-7 w-7" />
-        <span className="text-[15px] font-bold tracking-tight text-ink">Fibonax</span>
+        <span className="text-[15px] font-bold tracking-tight text-ink" translate="no">Fibonax</span>
         {(companyLogo || companyName) && (
           <>
             <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-ink-subtle" aria-hidden="true" />
@@ -37,7 +39,7 @@ export function Topbar() {
                 />
               </span>
             ) : (
-              <span className="max-w-[200px] truncate text-[15px] font-bold tracking-tight text-ink">
+              <span className="max-w-[200px] truncate text-[15px] font-bold tracking-tight text-ink" translate="no">
                 {companyName}
               </span>
             )}
@@ -48,6 +50,7 @@ export function Topbar() {
       <MasterSearch />
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <LanguagePicker />
         <ThemeToggle />
       </div>
     </header>

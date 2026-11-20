@@ -53,7 +53,7 @@ export function UsageTrendChart({ report }: UsageTrendChartProps) {
       <p className="mt-0.5 text-sm text-ink-muted">
         {report.rangeLabel}, with {report.prevRangeLabel} dashed for comparison.
       </p>
-      <div className="mt-4 h-[260px] w-full text-primary">
+      <div className="mt-4 h-[260px] w-full text-primary" translate="no">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={report.series} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="var(--color-line)" vertical={false} />

@@ -2335,7 +2335,7 @@ export function NewSnippetDialog() {
                 >
                   <option value="">No folder</option>
                   {folders.map((f) => (
-                    <option key={f.id} value={f.id}>
+                    <option key={f.id} value={f.id} translate="no">
                       {f.name}
                     </option>
                   ))}
@@ -2476,6 +2476,7 @@ export function NewSnippetDialog() {
                       <button
                         key={s}
                         type="button"
+                        translate="no"
                         disabled={saving}
                         onClick={() => {
                           if (!form.alternative_queries.includes(s)) {
@@ -2535,6 +2536,7 @@ export function NewSnippetDialog() {
                       <button
                         key={lang}
                         type="button"
+                        translate="no"
                         disabled={saving}
                         onClick={() => changeLanguage(lang)}
                         title={status}

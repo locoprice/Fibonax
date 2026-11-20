@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { ActivityData, ActivityDay } from '@/types/database';
@@ -136,66 +136,54 @@ export function ActivityHeatmap({
         />
       </div>
 
-      <div className="overflow-x-auto pb-1">
-        <div className="inline-block">
-          {/* Month labels */}
-          <div className="flex" style={{ marginLeft: labelColWidth }}>
-            <div className="flex" style={{ gap: GAP }}>
-              {monthLabels.map((label, i) => (
-                <div
-                  key={i}
-                  className="overflow-visible whitespace-nowrap text-[10px] text-ink-muted"
-                  style={{ width: CELL, height: 14 }}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
+      {/* One grid: a label column, then one column per week. The weeks share
+          the width, so on a narrow card the squares shrink to fit instead of
+          scrolling sideways, and they never grow past CELL. */}
+      <div
+        className="grid pb-1"
+        style={{
+          maxWidth: labelColWidth + weeks.length * (CELL + GAP),
+          gridTemplateColumns: `${labelColWidth - GAP}px repeat(${weeks.length}, minmax(0, 1fr))`,
+          gap: GAP,
+        }}
+      >
+        {/* Month labels */}
+        <div />
+        {monthLabels.map((label, i) => (
+          <div
+            key={`m${i}`}
+            className="overflow-visible whitespace-nowrap text-[10px] leading-none text-ink-muted"
+            style={{ height: CELL }}
+          >
+            {label}
           </div>
+        ))}
 
-          {/* Weekday labels + grid */}
-          <div className="flex">
-            <div
-              className="flex flex-col justify-between pr-1.5 text-right"
-              style={{ width: labelColWidth, gap: GAP }}
-            >
-              {WEEKDAY_LABELS.map((label, i) => (
+        {/* Weekday labels + squares, one row per weekday */}
+        {WEEKDAY_LABELS.map((weekday, ri) => (
+          <Fragment key={`r${ri}`}>
+            <div className="self-center pr-1.5 text-right text-[9px] leading-none text-ink-muted">
+              {weekday}
+            </div>
+            {weeks.map((col, ci) => {
+              const day = col[ri];
+              return day ? (
                 <div
-                  key={i}
-                  className="text-[9px] leading-none text-ink-muted"
-                  style={{ height: CELL, lineHeight: `${CELL}px` }}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-
-            <div className="flex" style={{ gap: GAP }}>
-              {weeks.map((col, ci) => (
-                <div key={ci} className="flex flex-col" style={{ gap: GAP }}>
-                  {col.map((day, ri) =>
-                    day ? (
-                      <div
-                        key={ri}
-                        onMouseEnter={(e) => onCellEnter(e, day)}
-                        onMouseLeave={() => setHover(null)}
-                        className="rounded-[2px]"
-                        style={{
-                          width: CELL,
-                          height: CELL,
-                          backgroundColor: `var(--activity-${levelFor(day.count, max)})`,
-                          boxShadow: 'inset 0 0 0 1px var(--activity-cell-border)',
-                        }}
-                      />
-                    ) : (
-                      <div key={ri} style={{ width: CELL, height: CELL }} />
-                    ),
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+                  key={ci}
+                  onMouseEnter={(e) => onCellEnter(e, day)}
+                  onMouseLeave={() => setHover(null)}
+                  className="aspect-square rounded-[2px]"
+                  style={{
+                    backgroundColor: `var(--activity-${levelFor(day.count, max)})`,
+                    boxShadow: 'inset 0 0 0 1px var(--activity-cell-border)',
+                  }}
+                />
+              ) : (
+                <div key={ci} className="aspect-square" />
+              );
+            })}
+          </Fragment>
+        ))}
       </div>
 
       {/* Legend */}

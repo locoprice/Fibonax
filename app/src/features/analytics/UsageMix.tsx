@@ -16,7 +16,7 @@ function MixList({ title, rows, engine }: { title: string; rows: UsageRankRow[];
           {rows.map((r) => (
             <li key={r.key}>
               <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="truncate text-ink">{r.title}</span>
+                <span className="truncate text-ink" translate="no">{r.title}</span>
                 <span className="flex shrink-0 items-center gap-2">
                   <span className="tabular-nums text-ink-muted">
                     {engine.formatCount(r.uses)} · {r.share}%

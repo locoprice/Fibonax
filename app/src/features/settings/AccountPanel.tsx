@@ -209,7 +209,7 @@ export function AccountPanel() {
               className="h-16 w-16 shrink-0 rounded-full border border-line object-cover"
             />
           ) : (
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-light text-xl font-bold text-primary">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-light text-xl font-bold text-primary" translate="no">
               {initial}
             </div>
           )}

@@ -84,6 +84,7 @@ function FolderChips() {
             active={selected === folder.id}
             onClick={() => setSelected(selected === folder.id ? null : folder.id)}
             label={folder.name}
+            keepLabel
             count={count}
             icon={<FolderIcon icon={folder.icon} className="h-3.5 w-3.5" />}
             badge={share ? <FolderShareBadge info={share} /> : undefined}

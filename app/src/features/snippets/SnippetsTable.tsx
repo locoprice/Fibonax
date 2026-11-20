@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Loader2, Pin, Search, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -70,6 +70,7 @@ const LANG_LABEL: Record<Snippet['language'], string> = {
 function LangPill({ lang }: { lang: Snippet['language'] }) {
   return (
     <span
+      translate="no"
       className={
         'inline-block rounded-md px-3 py-2 text-xs font-medium ' +
         LANG_STYLE[lang]
@@ -105,6 +106,7 @@ function LangSwitcher({
           <button
             key={lang}
             type="button"
+            translate="no"
             onClick={() => onSelect(lang)}
             aria-pressed={isActive}
             title={`Show ${LANG_LABEL[lang]} version`}
@@ -139,11 +141,11 @@ function ShortcutTag({ trigger }: { trigger: string }) {
     ? trigger.slice(snippetTrigger.length)
     : trigger;
   return (
-    <span className="inline-flex items-center gap-1">
-      <code className="inline-flex items-center rounded-md bg-bg-alt px-2 py-0.5 font-mono text-xs font-semibold text-ink-muted">
+    <span className="flex min-w-0 items-start gap-1" translate="no">
+      <code className="shrink-0 rounded-md bg-bg-alt px-2 py-0.5 font-mono text-xs font-semibold text-ink-muted">
         {snippetTrigger}
       </code>
-      <code className="inline-flex items-center rounded-md bg-primary-light px-2 py-0.5 font-mono text-xs font-semibold text-primary">
+      <code className="min-w-0 break-all rounded-md bg-primary-light px-2 py-0.5 font-mono text-xs font-semibold text-primary">
         {shortcut}
       </code>
     </span>
@@ -170,6 +172,35 @@ function SortableColumnHeader({ column, label }: { column: SortColumn; label: st
       <Icon className={cn('h-3 w-3', !isActive && 'opacity-40')} />
     </button>
   );
+}
+
+/**
+ * How much room the list has. It decides which columns the list shows, so the
+ * list always fits the space it is given and never scrolls sideways. Measured
+ * on the list, not the screen: the sidebar and the folder rail both take room
+ * from it.
+ */
+type ListWidth = 'wide' | 'medium' | 'narrow';
+const WIDE_FROM = 960;
+const MEDIUM_FROM = 560;
+
+function useListWidth(): [(el: HTMLDivElement | null) => void, ListWidth] {
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState<ListWidth>('wide');
+
+  useLayoutEffect(() => {
+    if (!el) return;
+    const measure = () => {
+      const px = el.clientWidth;
+      setWidth(px >= WIDE_FROM ? 'wide' : px >= MEDIUM_FROM ? 'medium' : 'narrow');
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [el]);
+
+  return [setEl, width];
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 100] as const;
@@ -236,6 +267,11 @@ export function SnippetsTable() {
   const labelAssignments = useLabelStore((s) => s.snippetLabels);
   const resolveUserName = useUserNameResolver();
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [listRef, listWidth] = useListWidth();
+  // Folder and Updated have a column of their own on a wide list, Shortcut and
+  // Usage from a medium one. Below that, the same facts sit under the name.
+  const showFolderAndUpdated = listWidth === 'wide';
+  const showShortcutAndUsage = listWidth !== 'narrow';
 
   // Active language variant per group key — drives which variant's metadata and
   // edit target a grouped row shows. Defaults (no entry) resolve to EN/master.
@@ -344,24 +380,17 @@ export function SnippetsTable() {
     setSnippetsSelected(pageVariantIds, !allSelected);
   }
 
-  // The table is wider than its column on anything short of an ultrawide
-  // screen, especially with the folder rail open, so the card
-  // is a scroll box, not a clip box. `overflow-clip` used to cut the last four
-  // columns off with no way to reach them.
+  // The list always fits the room it has and never scrolls sideways. The
+  // columns have set widths (table-fixed), so a long name is cut short instead
+  // of widening the list, and on a narrower list the columns that no longer fit
+  // hand their facts to the name cell (useListWidth above).
   //
-  // Vertically it takes exactly the height of the rows it holds. It used to be
-  // capped at calc(100vh-380px), which put a second scrollbar inside a page
-  // that already scrolls, and how many rows are on screen is already the
-  // reader's own choice — 10, 25 or 100 from the footer below.
-  //
-  // The cost, and it is the whole cost: the sticky <th> no longer pins. Sticky
-  // resolves against the nearest scrollport, which is this element, and with no
-  // cap it has no vertical scroll range to pin within. The classes stay because
-  // they are correct the moment a cap comes back; today they do nothing, and
-  // the header scrolls away with the page like any other table's.
+  // Vertically it takes exactly the height of the rows it holds, and how many
+  // rows are on screen is the reader's own choice: 10, 25 or 100 from the
+  // footer below. The header scrolls away with the page like any other table's.
   return (
-    <div className="overflow-x-auto rounded-[16px] border border-line bg-card">
-      <table className="w-full border-collapse text-sm">
+    <div ref={listRef} className="overflow-hidden rounded-[16px] border border-line bg-card">
+      <table className="w-full table-fixed border-collapse text-sm">
         <thead>
           <tr className="text-left">
             {/* Master checkbox */}
@@ -378,21 +407,29 @@ export function SnippetsTable() {
             <th className="sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5">
               <SortableColumnHeader column="name" label="Name" />
             </th>
-            <th className="sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-              Shortcut
-            </th>
-            <th className="sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-              Folder
-            </th>
-            <th className="sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5">
-              <SortableColumnHeader column="updated_at" label="Updated" />
-            </th>
-            <th className="sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5 text-right">
-              <SortableColumnHeader column="usage_count" label="Usage" />
-            </th>
+            {showShortcutAndUsage && (
+              <th className="w-[20%] sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+                Shortcut
+              </th>
+            )}
+            {showFolderAndUpdated && (
+              <>
+                <th className="w-[13%] sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+                  Folder
+                </th>
+                <th className="w-[19%] sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5">
+                  <SortableColumnHeader column="updated_at" label="Updated" />
+                </th>
+              </>
+            )}
+            {showShortcutAndUsage && (
+              <th className="w-[92px] 2xl:w-[108px] sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-5 text-right">
+                <SortableColumnHeader column="usage_count" label="Usage" />
+              </th>
+            )}
             {canPushNotion && (
               <th
-                className="sticky top-0 z-10 border-b border-line bg-bg-alt px-3 py-3 2xl:px-4 text-center"
+                className="sticky top-0 z-10 w-14 border-b border-line bg-bg-alt px-3 py-3 2xl:w-16 2xl:px-4 text-center"
                 title="Mirror snippets to your team's Notion database (not team sharing)"
               >
                 <Send className="mx-auto h-3.5 w-3.5 text-ink-subtle" />
@@ -503,7 +540,7 @@ export function SnippetsTable() {
                             aria-label="Pinned"
                           />
                         )}
-                        <span className="truncate">{displayName}</span>
+                        <span className="truncate" translate="no" title={displayName}>{displayName}</span>
                         <ReviewStatusBadge status={row.review_status} />
                         {issue !== undefined ? (
                           <StatusBadge status="broken" detail={issue.message} />
@@ -541,24 +578,53 @@ export function SnippetsTable() {
                           ) : <LangPill lang={activeLang} />}
                         />
                       </div>
+                      {!showShortcutAndUsage && (
+                        <div className="pt-1.5">
+                          <ShortcutTag trigger={trigger} />
+                        </div>
+                      )}
+                      {!showFolderAndUpdated && (
+                        <p className="break-words pt-1 text-xs leading-5 text-ink-muted">
+                          {row.folder_name ? <span translate="no">{row.folder_name} · </span> : null}
+                          Edited {format(new Date(row.updated_at), 'MMM d, yyyy')}
+                          {!showShortcutAndUsage && (
+                            <>
+                              <span translate="no"> · {groupUsage.toLocaleString()} </span>
+                              {groupUsage === 1 ? 'use' : 'uses'}
+                            </>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-3 2xl:px-5">
-                  <ShortcutTag trigger={trigger} />
-                </td>
-                <td className="px-3 py-3 2xl:px-5 text-ink-muted">{row.folder_name ?? '—'}</td>
+                {showShortcutAndUsage && (
+                  <td className="px-3 py-3 2xl:px-5">
+                    <ShortcutTag trigger={trigger} />
+                  </td>
+                )}
+                {showFolderAndUpdated && (
+                  <>
+                <td className="break-words px-3 py-3 2xl:px-5 text-ink-muted" translate="no">{row.folder_name ?? '-'}</td>
                 <td
                   className="px-3 py-3 2xl:px-5 text-ink-muted"
                   title={`${updateScope}\n${attributionTitle(resolveUserName, row.user_id, row.updated_by, row.updated_at)}`}
                 >
                   <span className="block text-sm font-medium leading-5">Last edited on {format(new Date(row.updated_at), 'MMM d, yyyy')}</span>
                   <span className="block max-w-64 break-words text-xs leading-5">
-                    {updateScope}
-                    {lastEditor !== 'Unknown' && <> · by {lastEditor}</>}
+                    <span translate="no">{updateScope}</span>
+                    {lastEditor !== 'Unknown' && (
+                      <>
+                        <span translate="no"> · </span>by<span translate="no"> {lastEditor}</span>
+                      </>
+                    )}
                   </span>
                 </td>
+                  </>
+                )}
+                {showShortcutAndUsage && (
                 <td
+                  translate="no"
                   className="px-3 py-3 2xl:px-5 text-right font-mono text-xs tabular-nums text-ink-muted"
                   title={
                     multiLang
@@ -568,6 +634,7 @@ export function SnippetsTable() {
                 >
                   {groupUsage.toLocaleString()}
                 </td>
+                )}
                 {canPushNotion && (
                   <td className="px-3 py-3 2xl:px-4 text-center">
                     {notionPushingIds.has(row.id) ? (
@@ -610,7 +677,7 @@ export function SnippetsTable() {
         </tbody>
       </table>
       {/* Pagination footer — WordPress-style */}
-      <div className="flex items-center justify-between gap-4 border-t border-line bg-bg-alt px-5 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line bg-bg-alt px-5 py-2.5">
         {/* Left: range + total */}
         <span className="text-xs text-ink-subtle tabular-nums">
           {totalGroups === 0 ? '0 snippets' : (

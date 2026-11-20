@@ -70,6 +70,7 @@ export function FilterToolbar() {
           <button
             key={chip.value}
             type="button"
+            translate="no"
             onClick={() =>
               setLanguageFilter(chip.value === languageFilter ? null : chip.value)
             }

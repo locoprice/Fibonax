@@ -424,6 +424,36 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
     onLayoutChange(layoutOf(docRef.current));
   }, [value, draw, onChange, onLayoutChange, syncLayout]);
 
+  // An email layout keeps its own width (600 px is usual). In a box narrower
+  // than that it is fitted to the box instead of scrolling sideways: tables
+  // take the width they need, columns share the box and pictures shrink with
+  // their proportions kept. Only the view changes: the mark sits on the box,
+  // and serializeLayout saves what is inside it.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    if (mode !== 'email') {
+      delete root.dataset.fit;
+      return;
+    }
+    const measure = () => {
+      delete root.dataset.fit;
+      if (root.scrollWidth > root.clientWidth) root.dataset.fit = 'on';
+    };
+    measure();
+    const resize = new ResizeObserver(measure);
+    resize.observe(root);
+    const edits = new MutationObserver(measure);
+    edits.observe(root, { childList: true, characterData: true, subtree: true });
+    // A picture without a set size only takes its width once it has loaded.
+    root.addEventListener('load', measure, true);
+    return () => {
+      resize.disconnect();
+      edits.disconnect();
+      root.removeEventListener('load', measure, true);
+    };
+  }, [mode]);
+
   const readSelection = useCallback((): { start: number; end: number } | null => {
     const root = rootRef.current;
     const sel = window.getSelection();
@@ -779,6 +809,7 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
         aria-placeholder={placeholder}
         data-placeholder={placeholder}
         contentEditable={!disabled}
+        translate="no"
         suppressContentEditableWarning
         spellCheck
         onInput={(e) => handleInput((e.nativeEvent as InputEvent).isComposing)}
@@ -790,7 +821,9 @@ export const FormattedBodyBox = forwardRef<BodyBoxHandle, FormattedBodyBoxProps>
         onScroll={() => setFieldBar(null)}
         className={cn(
           'min-h-0 flex-1 px-3.5 py-3 text-sm leading-relaxed text-ink focus:outline-none',
-          mode === 'email' ? 'overflow-auto whitespace-normal' : 'overflow-y-auto',
+          mode === 'email'
+            ? 'overflow-y-auto whitespace-normal data-[fit=on]:[overflow-wrap:anywhere] [&[data-fit=on]_table]:!w-auto [&[data-fit=on]_td]:!w-auto [&[data-fit=on]_th]:!w-auto [&[data-fit=on]_img]:!h-auto [&[data-fit=on]_img]:!max-w-full'
+            : 'overflow-y-auto',
           '[&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6',
           // A field in coloured text shows that colour: its value prints in it.
           '[&_[data-color]_[data-token]]:[color:inherit]',

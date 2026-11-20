@@ -8,9 +8,11 @@ import {
   BookOpen,
   Briefcase,
   Bug,
+  Gift,
   Github,
   Lightbulb,
   LineChart,
+  Lock,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -26,6 +28,9 @@ import { cn } from '@/lib/utils';
 import { pickHttpsUrl } from '@/lib/branding';
 import { RESOURCE_LINKS } from '@/lib/links';
 import { useGettingStartedVisible } from '@/lib/useGettingStartedVisible';
+import { REFERRALS_OPEN, REFERRAL_SOON_LABEL, REFERRAL_TEXT } from '@/lib/referral';
+import { ReferFriendDialog } from '@/features/referral/ReferFriendDialog';
+import { PRO_SOON_CONTROL } from '@/components/shared/ProSoon';
 import { JotFormModal } from '@/components/layout/JotFormModal';
 import { NavCountPill } from '@/components/layout/NavCountPill';
 import { SidebarLine } from '@/components/layout/SidebarLine';
@@ -42,6 +47,8 @@ import { useUiStore } from '@/stores/uiStore';
 interface NavItem {
   to: string;
   label: string;
+  /** A product name: stays as written when the page is shown in another language. */
+  keepName?: boolean;
   icon: LucideIcon;
   end?: boolean;
   /** When provided, renders a count pill — filled (primary) when active, muted otherwise. */
@@ -124,6 +131,8 @@ export function Sidebar() {
   // else opens it. The dialog is fixed-position, so it still covers the app.
   const [bugOpen, setBugOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [referOpen, setReferOpen] = useState(false);
+  const referOpener = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
 
@@ -133,9 +142,9 @@ export function Sidebar() {
   const avatarUrl = pickHttpsUrl(user?.user_metadata, 'avatar_url');
 
   const PRIMARY: NavItem[] = [
-    { to: '/', label: 'Snippets', icon: SnippetIcon, end: true, count: snippetCount },
-    { to: '/prompts', label: 'Prompts', icon: PromptIcon, count: promptCount },
-    { to: '/memory', label: 'Brains', icon: BrainIcon, count: brainCount },
+    { to: '/', label: 'Snippets', keepName: true, icon: SnippetIcon, end: true, count: snippetCount },
+    { to: '/prompts', label: 'Prompts', keepName: true, icon: PromptIcon, count: promptCount },
+    { to: '/memory', label: 'Brains', keepName: true, icon: BrainIcon, count: brainCount },
     {
       to: '/team',
       label: 'Team',
@@ -235,7 +244,7 @@ export function Sidebar() {
                   {({ isActive }) => (
                     <>
                       <item.icon className="h-4 w-4 shrink-0" />
-                      <span>{item.label}</span>
+                      <span translate={item.keepName ? 'no' : undefined}>{item.label}</span>
                       {item.beta && (
                         <span className="ml-auto shrink-0 rounded-full bg-sand px-1.5 py-1 text-[10px] font-semibold leading-none uppercase tracking-wide text-sand-ink">
                           Beta
@@ -295,6 +304,47 @@ export function Sidebar() {
         {!collapsed && <SidebarLine />}
       </div>
 
+      {/* Refer a friend opens its window. Locked until people can subscribe
+          to Pro (lib/referral.ts): the row shows where it will live, dimmed,
+          with a lock, and does nothing. */}
+      <div className="shrink-0 px-3 pb-2">
+        {REFERRALS_OPEN ? (
+          <RailTooltip collapsed={collapsed} label={REFERRAL_TEXT.row}>
+            <button
+              ref={referOpener}
+              type="button"
+              onClick={() => setReferOpen(true)}
+              aria-haspopup="dialog"
+              className={cn(navClass({ isActive: false, collapsed }), 'w-full text-left')}
+            >
+              <Gift className="h-4 w-4 shrink-0" />
+              <span>{REFERRAL_TEXT.row}</span>
+            </button>
+          </RailTooltip>
+        ) : (
+          <Tooltip
+            label={collapsed ? `${REFERRAL_TEXT.row}. ${REFERRAL_SOON_LABEL}` : REFERRAL_SOON_LABEL}
+            placement="right"
+            className="block"
+          >
+            <button
+              type="button"
+              aria-disabled="true"
+              className={cn(
+                navClass({ isActive: false, collapsed }),
+                'w-full text-left hover:text-ink-muted',
+                PRO_SOON_CONTROL,
+              )}
+            >
+              <Gift className="h-4 w-4 shrink-0" />
+              <span>{REFERRAL_TEXT.row}</span>
+              <Lock className="ml-auto h-3 w-3 shrink-0" aria-hidden />
+              <span className="sr-only">{REFERRAL_SOON_LABEL}</span>
+            </button>
+          </Tooltip>
+        )}
+      </div>
+
       {/* User block, click to open menu */}
       <div
         ref={menuRef}
@@ -314,7 +364,7 @@ export function Sidebar() {
             )}
           >
             {/* Email header */}
-            <div className="px-3 py-2.5 text-xs text-[#8E8E93]">{email}</div>
+            <div className="px-3 py-2.5 text-xs text-[#8E8E93]" translate="no">{email}</div>
 
             {/* Settings */}
             <div className="border-t border-white/[0.08]">
@@ -443,13 +493,13 @@ export function Sidebar() {
                 className="h-8 w-8 shrink-0 rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-xs font-bold text-primary">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-xs font-bold text-primary" translate="no">
                 {initial}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium text-ink">{displayName}</div>
-              <div className="truncate text-xs text-ink-subtle">{email}</div>
+              <div className="truncate text-sm font-medium text-ink" translate="no">{displayName}</div>
+              <div className="truncate text-xs text-ink-subtle" translate="no">{email}</div>
             </div>
           </button>
         </RailTooltip>
@@ -460,6 +510,14 @@ export function Sidebar() {
         src={RESOURCE_LINKS.bugs ?? ''}
         title="Report a bug"
       />
+      {REFERRALS_OPEN && (
+        <ReferFriendDialog
+          open={referOpen}
+          onOpenChange={setReferOpen}
+          giverName={displayName.trim().split(/\s+/)[0] ?? displayName}
+          opener={referOpener}
+        />
+      )}
     </aside>
   );
 }

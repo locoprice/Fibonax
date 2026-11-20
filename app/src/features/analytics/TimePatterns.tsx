@@ -25,44 +25,42 @@ export function TimePatterns({ report, engine }: TimePatternsProps) {
         <CardDescription>Inserts by weekday and hour, in your local time.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <table className="border-separate" style={{ borderSpacing: 3 }}>
-            <caption className="sr-only">Inserts by weekday (rows) and hour of the day (columns)</caption>
-            <thead>
-              <tr>
-                <th scope="col" className="w-9" />
-                {Array.from({ length: 24 }, (_, h) => (
-                  <th
+        <table className="border-separate" style={{ borderSpacing: 3 }}>
+          <caption className="sr-only">Inserts by weekday (rows) and hour of the day (columns)</caption>
+          <thead>
+            <tr>
+              <th scope="col" className="w-9" />
+              {Array.from({ length: 24 }, (_, h) => (
+                <th
+                  key={h}
+                  scope="col"
+                  className="w-3.5 p-0 text-left text-[10px] font-normal text-ink-subtle"
+                >
+                  {HOUR_TICKS.includes(h) ? String(h).padStart(2, '0') : <span className="sr-only">{h}</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {p.grid.map((row, w) => (
+              <tr key={w}>
+                <th scope="row" className="pr-1.5 text-right text-[10px] font-normal text-ink-subtle">
+                  {p.weekdays[w]?.name}
+                </th>
+                {row.map((count, h) => (
+                  <td
                     key={h}
-                    scope="col"
-                    className="w-3.5 p-0 text-left text-[10px] font-normal text-ink-subtle"
+                    className="h-3.5 w-3.5 rounded-[2px] p-0"
+                    style={{ backgroundColor: `var(--activity-${level(count, p.max)})` }}
+                    title={`${p.weekdays[w]?.name} ${engine.hourLabel(h)}: ${n(count)} ${count === 1 ? 'insert' : 'inserts'}`}
                   >
-                    {HOUR_TICKS.includes(h) ? String(h).padStart(2, '0') : <span className="sr-only">{h}</span>}
-                  </th>
+                    <span className="sr-only">{count}</span>
+                  </td>
                 ))}
               </tr>
-            </thead>
-            <tbody>
-              {p.grid.map((row, w) => (
-                <tr key={w}>
-                  <th scope="row" className="pr-1.5 text-right text-[10px] font-normal text-ink-subtle">
-                    {p.weekdays[w]?.name}
-                  </th>
-                  {row.map((count, h) => (
-                    <td
-                      key={h}
-                      className="h-3.5 w-3.5 rounded-[2px] p-0"
-                      style={{ backgroundColor: `var(--activity-${level(count, p.max)})` }}
-                      title={`${p.weekdays[w]?.name} ${engine.hourLabel(h)}: ${n(count)} ${count === 1 ? 'insert' : 'inserts'}`}
-                    >
-                      <span className="sr-only">{count}</span>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
         <dl className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <dt className="text-xs text-ink-muted">Busiest weekday</dt>

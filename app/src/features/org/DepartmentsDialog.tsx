@@ -315,7 +315,7 @@ function DepartmentRow({ department, people }: { department: OrgDepartment; peop
       ) : (
         <div className="flex items-center gap-3">
           <span className="flex min-w-0 flex-1 items-baseline gap-2">
-            <span className="truncate text-sm font-medium text-ink">{department.name}</span>
+            <span className="truncate text-sm font-medium text-ink" translate="no">{department.name}</span>
             <span className="shrink-0 text-xs text-ink-subtle">
               {people === 0 ? 'Nobody yet' : peopleCount(people)}
             </span>

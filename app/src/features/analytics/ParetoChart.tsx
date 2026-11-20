@@ -56,6 +56,7 @@ export function ParetoChart({ report, engine }: ParetoChartProps) {
     <div>
       <div
         className="h-[240px] w-full"
+        translate="no"
         role="img"
         aria-label={`Chart of your ${noun} by uses. ${report.headline}.`}
       >

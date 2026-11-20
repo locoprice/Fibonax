@@ -8,7 +8,6 @@ import {
   HumanCheckError,
   humanCheckMessage,
   humanToken,
-  siteKeyFor,
   type TurnstileApi,
 } from '@/lib/humanCheck';
 
@@ -41,11 +40,16 @@ function fakeTurnstile(renderResult: string | null = 'w1') {
   };
 }
 
-describe('siteKeyFor', () => {
-  it('uses the always-pass test key on a local dev server only', () => {
-    expect(siteKeyFor('localhost')).toBe('1x00000000000000000000AA');
-    expect(siteKeyFor('127.0.0.1')).toBe('1x00000000000000000000AA');
-    expect(siteKeyFor('app.fibonax.com')).not.toBe('1x00000000000000000000AA');
+describe('site key', () => {
+  // The live project refuses tokens from Cloudflare's test key, so a local dev
+  // server signs in with the real one. jsdom serves this page from localhost.
+  it('uses the real Fibonax key, on a local dev server too', async () => {
+    expect(window.location.hostname).toBe('localhost');
+    const t = fakeTurnstile();
+    const check = createHumanCheck(() => Promise.resolve(t.api));
+    check.attach(document.createElement('div'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(t.options()?.sitekey).toBe('0x4AAAAAAGFeLqBN8kj1GzgT');
   });
 });
 
@@ -64,6 +68,14 @@ describe('createWidget', () => {
     createWidget(t.api, document.createElement('div'), 'key');
     expect(t.options()).toMatchObject({ sitekey: 'key', execution: 'execute', appearance: 'interaction-only' });
     expect(t.calls).toEqual(['render']);
+  });
+
+  it('says when Cloudflare is about to draw its box', () => {
+    const t = fakeTurnstile();
+    let shown = 0;
+    createWidget(t.api, document.createElement('div'), 'key', () => (shown += 1));
+    t.options()?.['before-interactive-callback']();
+    expect(shown).toBe(1);
   });
 
   it('hands out one token per request, resetting before every request after the first', async () => {
@@ -113,6 +125,18 @@ describe('createHumanCheck', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     t.solve('token-1');
     await expect(token).resolves.toBe('token-1');
+  });
+
+  it('tells the slot when the box is about to show, so it can make room under the button', async () => {
+    const t = fakeTurnstile();
+    const check = createHumanCheck(() => Promise.resolve(t.api), () => 'key');
+    let shown = false;
+    check.attach(document.createElement('div'), () => {
+      shown = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    t.options()?.['before-interactive-callback']();
+    expect(shown).toBe(true);
   });
 
   it('says the check did not load when Cloudflare cannot be reached', async () => {

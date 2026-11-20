@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { analytics } from '@/lib/analytics';
 import { checkRateLimit } from '@/lib/rateLimiter';
 import { securityApi } from '@/lib/api/securityApi';
+import { leaveForMobile } from '@/lib/api/referralApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AuthBrandPanel } from '@/components/auth/AuthBrandPanel';
@@ -58,7 +59,7 @@ export function LoginPage() {
       window.matchMedia('(max-width: 1023px)').matches &&
       !next.startsWith('/invite')
     ) {
-      window.location.replace('/mobile/');
+      void leaveForMobile();
       return null;
     }
     return <Navigate to={next} replace />;
@@ -292,6 +293,7 @@ export function LoginPage() {
                   >
                     {loading ? 'Sending…' : 'Continue →'}
                   </Button>
+                  <HumanCheckSlot check={humanCheck} />
                 </form>
               ) : (
                 <form onSubmit={onPassword} noValidate className="space-y-3">
@@ -333,6 +335,7 @@ export function LoginPage() {
                   >
                     {loading ? 'Signing in…' : 'Sign in →'}
                   </Button>
+                  <HumanCheckSlot check={humanCheck} />
                   <button
                     type="button"
                     className="text-xs text-ink-muted underline-offset-2 hover:underline"
@@ -474,6 +477,7 @@ export function LoginPage() {
                 >
                   {loading ? 'Sending…' : 'Send link →'}
                 </Button>
+                <HumanCheckSlot check={humanCheck} />
               </div>
 
               <button
@@ -514,8 +518,6 @@ export function LoginPage() {
             </div>
           )}
         </div>
-
-        <HumanCheckSlot check={humanCheck} />
       </main>
     </div>
   );

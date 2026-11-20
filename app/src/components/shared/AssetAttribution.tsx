@@ -85,7 +85,7 @@ export function AssetAttribution({
                 TONE[tone].value,
               )}
             >
-              <span className="truncate">{assetId}</span>
+              <span className="truncate" translate="no">{assetId}</span>
               {copied ? (
                 <Check className="h-3 w-3 shrink-0 self-center" aria-hidden />
               ) : (
@@ -102,6 +102,7 @@ export function AssetAttribution({
         >
           <dt className={cn('shrink-0', TONE[tone].label)}>{r.label}</dt>
           <dd
+            translate="no"
             className={cn('min-w-0 truncate text-right font-medium', TONE[tone].value)}
             title={r.value}
           >

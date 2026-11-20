@@ -44,68 +44,66 @@ export function TeamUsage({ team, error, engine, onRetry }: TeamUsageProps) {
             Nobody has used a shared snippet or prompt in this period. Share a folder with your team and its use shows up here.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
-                  <th scope="col" className="border-b border-line bg-bg-alt px-6 py-2.5 w-10">#</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5">Person</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 text-right">Uses</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 text-right">Snippets</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 text-right">Prompts</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 w-[20%]">Share</th>
-                  <th scope="col" className="border-b border-line bg-bg-alt px-6 py-2.5 text-right">vs before</th>
-                </tr>
-              </thead>
-              <tbody>
-                {team.members.map((m, i) => (
-                  <tr key={m.id} className={i === team.members.length - 1 ? '' : 'border-b border-line'}>
-                    <td className="px-6 py-3 tabular-nums text-ink-subtle">{m.rank}</td>
-                    <td className="max-w-0 px-3 py-3">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate font-medium text-ink">
-                          {m.name}
-                          {m.isMe ? <span className="ml-1.5 font-normal text-ink-muted">(you)</span> : null}
-                        </span>
-                        {m.mostActive ? (
-                          <Badge variant="primary" className="shrink-0 text-[11px]">
-                            Most active
-                          </Badge>
-                        ) : null}
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-ink-subtle">
+                <th scope="col" className="border-b border-line bg-bg-alt px-6 py-2.5 w-10">#</th>
+                <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5">Person</th>
+                <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 text-right">Uses</th>
+                <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 text-right">Snippets</th>
+                <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 text-right">Prompts</th>
+                <th scope="col" className="border-b border-line bg-bg-alt px-3 py-2.5 w-[20%]">Share</th>
+                <th scope="col" className="border-b border-line bg-bg-alt px-6 py-2.5 text-right">vs before</th>
+              </tr>
+            </thead>
+            <tbody>
+              {team.members.map((m, i) => (
+                <tr key={m.id} className={i === team.members.length - 1 ? '' : 'border-b border-line'}>
+                  <td className="px-6 py-3 tabular-nums text-ink-subtle">{m.rank}</td>
+                  <td className="max-w-0 px-3 py-3">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-medium text-ink">
+                        <span translate="no">{m.name}</span>
+                        {m.isMe ? <span className="ml-1.5 font-normal text-ink-muted">(you)</span> : null}
                       </span>
-                    </td>
-                    <td className="px-3 py-3 text-right font-mono text-xs tabular-nums text-ink">{n(m.uses)}</td>
-                    <td className="px-3 py-3 text-right font-mono text-xs tabular-nums text-ink">{n(m.snippets)}</td>
-                    <td className="px-3 py-3 text-right font-mono text-xs tabular-nums text-ink">{n(m.prompts)}</td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-alt" aria-hidden="true">
-                          <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, m.share)}%` }} />
-                        </div>
-                        <span className="w-12 shrink-0 text-right text-xs tabular-nums text-ink-muted">{m.share}%</span>
+                      {m.mostActive ? (
+                        <Badge variant="primary" className="shrink-0 text-[11px]">
+                          Most active
+                        </Badge>
+                      ) : null}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono text-xs tabular-nums text-ink">{n(m.uses)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-xs tabular-nums text-ink">{n(m.snippets)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-xs tabular-nums text-ink">{n(m.prompts)}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-alt" aria-hidden="true">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, m.share)}%` }} />
                       </div>
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      <ChangeBadge change={m.change} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t border-line text-sm">
-                  <td className="px-6 py-3" />
-                  <th scope="row" className="px-3 py-3 text-left font-semibold text-ink">Whole team</th>
-                  <td className="px-3 py-3 text-right font-mono text-xs font-semibold tabular-nums text-ink">{n(team.total.cur)}</td>
-                  <td className="px-3 py-3" />
-                  <td className="px-3 py-3" />
-                  <td className="px-3 py-3" />
+                      <span className="w-12 shrink-0 text-right text-xs tabular-nums text-ink-muted">{m.share}%</span>
+                    </div>
+                  </td>
                   <td className="px-6 py-3 text-right">
-                    <ChangeBadge change={team.total} />
+                    <ChangeBadge change={m.change} />
                   </td>
                 </tr>
-              </tfoot>
-            </table>
-          </div>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-line text-sm">
+                <td className="px-6 py-3" />
+                <th scope="row" className="px-3 py-3 text-left font-semibold text-ink">Whole team</th>
+                <td className="px-3 py-3 text-right font-mono text-xs font-semibold tabular-nums text-ink">{n(team.total.cur)}</td>
+                <td className="px-3 py-3" />
+                <td className="px-3 py-3" />
+                <td className="px-3 py-3" />
+                <td className="px-6 py-3 text-right">
+                  <ChangeBadge change={team.total} />
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         )}
       </CardContent>
     </Card>

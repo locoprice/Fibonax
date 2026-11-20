@@ -43,7 +43,7 @@ function ParetoRows({ rows, muted, engine }: { rows: ParetoRow[]; muted: boolean
         <li key={row.key} className={`${ROW_GRID} py-2.5`}>
           <span className="text-xs tabular-nums text-ink-subtle">{row.rank}</span>
           <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-ink">{row.title}</div>
+            <div className="truncate text-sm font-medium text-ink" translate="no">{row.title}</div>
             {row.detail ? <div className="truncate text-xs text-ink-subtle">{row.detail}</div> : null}
           </div>
           <span className="text-right text-sm font-semibold tabular-nums text-ink">

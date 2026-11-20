@@ -527,46 +527,65 @@
   }
 
   // ── OFTEN SENT NEXT ─────────────────────────────────────────────
-  // The snippet a person usually sends right after this one, offered where
-  // the snippet is used: in the fill window's footer, between the keyboard
-  // hint and Insert, and on the page's card after a snippet without a form.
-  // Which one comes next is decided from the use history by
-  // SBUsageAnalytics.nextAfter ({ fromId: { id, count } }); this decides
-  // whether to offer it and draws the offer, for the page, the popup and the
-  // phone alike. Only a snippet with nothing to fill is offered: it goes in as
-  // it is, a blank line after the first. The cross hides that pair for
+  // The snippets a person usually sends right after this one, offered where
+  // the snippet is used: as a list under the fill window's preview, which
+  // shows what each ticked one adds, and on the page's card after a snippet
+  // without a form.
+  // Which ones come next is decided from the use history by
+  // SBUsageAnalytics.nextAfter ({ fromId: [{ id, count }] }); this decides
+  // which of them to offer and draws the offer, for the page, the popup and
+  // the phone alike. Only a snippet with nothing to fill is offered: it goes
+  // in as it is, a blank line before it. Several can be ticked, and they go in
+  // in the order they were ticked. The cross hides that pair for
   // NEXT_HIDE_DAYS on the device.
   var NEXT_HIDE_DAYS = 30;
   var NEXT_SEPARATOR = '\n\n';
+  var NEXT_PLACES = ['1st', '2nd', '3rd', '4th', '5th'];
 
+  // `title` is the snippet's name; a number for 'place' and 'add-many'.
   function nextWords(key, title) {
     var t = String(title || 'it');
     switch (key) {
       case 'tick': return 'Add ' + t + ' after it';
       case 'why': return 'Often sent next';
+      case 'list': return 'Often sent next: tick to add after your text';
+      case 'place': return 'Goes in ' + (NEXT_PLACES[Number(title) - 1] || t + 'th');
       case 'card': return 'Often sent with ' + t;
       case 'card-hint': return 'Add it right after this text.';
+      case 'card-many': return 'Often sent with this one';
+      case 'card-many-hint': return 'Tick the ones to add. They go in the order you tick them.';
       case 'add': return 'Add ' + t;
+      case 'add-many': return 'Add ' + t + ' snippets';
+      case 'add-none': return 'Tick one to add';
       case 'hide': return 'Don’t suggest ' + t + ' after this snippet';
       default: return '';
     }
   }
 
   /**
-   * The snippet to offer after `fromId`, or null. `map` is nextAfter's answer,
-   * `library` the snippets this surface can expand ({ id, body, fieldCfg or
-   * field_cfg, lang }), `hidden` the pairs the cross hid ({ 'from>to': iso }).
+   * The snippets to offer after `fromId`, the most used first; empty when there
+   * is none. `map` is nextAfter's answer, `library` the snippets this surface
+   * can expand ({ id, body, fieldCfg or field_cfg, lang }), `hidden` the pairs
+   * the cross hid ({ 'from>to': iso }).
    */
-  function nextFor(map, fromId, library, hidden, now) {
-    var hit = map && fromId ? map[fromId] : null;
-    if (!hit || !hit.id || hit.id === fromId) return null;
-    var at = hidden && hidden[fromId + '>' + hit.id] ? Date.parse(hidden[fromId + '>' + hit.id]) : NaN;
-    if (!isNaN(at) && (now || Date.now()) - at < NEXT_HIDE_DAYS * 86400000) return null;
-    var next = null;
-    for (var i = 0; library && i < library.length; i++) { if (library[i] && library[i].id === hit.id) { next = library[i]; break; } }
-    if (!next || !root.SBFillForm) return null;
-    var vm = root.SBFillForm.fillForm(next.body || '', {}, { fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang });
-    return vm.fields.length || vm.buttons.length ? null : next;
+  function nextsFor(map, fromId, library, hidden, now) {
+    var hits = map && fromId ? map[fromId] : null;
+    // An answer kept from before the list holds a single { id, count }.
+    hits = Array.isArray(hits) ? hits : (hits ? [hits] : []);
+    var t = now || Date.now();
+    var out = [];
+    hits.forEach(function(hit) {
+      if (!hit || !hit.id || hit.id === fromId || !root.SBFillForm) return;
+      if (out.some(function(n) { return n.id === hit.id; })) return;
+      var at = hidden && hidden[fromId + '>' + hit.id] ? Date.parse(hidden[fromId + '>' + hit.id]) : NaN;
+      if (!isNaN(at) && t - at < NEXT_HIDE_DAYS * 86400000) return;
+      var next = null;
+      for (var i = 0; library && i < library.length; i++) { if (library[i] && library[i].id === hit.id) { next = library[i]; break; } }
+      if (!next) return;
+      var vm = root.SBFillForm.fillForm(next.body || '', {}, { fieldCfg: next.fieldCfg || next.field_cfg || {}, lang: next.lang });
+      if (!vm.fields.length && !vm.buttons.length) out.push(next);
+    });
+    return out;
   }
 
   /** The hidden pairs with this one added and the ones past NEXT_HIDE_DAYS dropped. */
@@ -582,41 +601,103 @@
   }
 
   /**
-   * The offer in a fill window's footer: a tick box "Add Firma after it", the
-   * line "Often sent next" and a cross that hides the pair (onHide). Returns
-   * { el, checked } where checked() says whether the box is ticked. It starts
-   * unticked: nothing extra goes in unless the person asks.
+   * The ticked ids in the order they were ticked, after one more tick: `id`
+   * joins at the end when `on`, and leaves when not. Never changes `order`.
    */
-  function nextOffer(doc, next, onHide) {
-    var box = doc.createElement('div');
-    box.className = 'ff-next';
-    var label = doc.createElement('label');
-    label.className = 'ff-next-tick';
-    var tick = doc.createElement('input');
-    tick.type = 'checkbox';
-    var words = doc.createElement('span');
-    var strong = doc.createElement('span');
-    strong.className = 'ff-next-title';
-    strong.textContent = nextWords('tick', next.title);
-    var why = doc.createElement('span');
-    why.className = 'ff-next-why';
-    why.textContent = nextWords('why');
-    words.appendChild(strong); words.appendChild(why);
-    label.appendChild(tick); label.appendChild(words);
-    var hide = doc.createElement('button');
-    hide.type = 'button';
-    hide.className = 'ff-next-hide';
-    hide.setAttribute('aria-label', nextWords('hide', next.title));
-    hide.title = nextWords('hide', next.title);
-    hide.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
-    hide.addEventListener('click', function(e) {
-      e.preventDefault(); e.stopPropagation();
-      tick.checked = false;
-      box.remove();
-      if (typeof onHide === 'function') onHide();
+  function nextToggle(order, id, on) {
+    var out = (order || []).filter(function(x) { return x !== id; });
+    if (on) out.push(id);
+    return out;
+  }
+
+  /**
+   * The offer: one row per snippet in `list`, each a tick box "Add Firma after
+   * it", the line "Often sent next" and a cross that hides that pair
+   * (onHide(next)). Every row starts unticked: nothing extra goes in unless
+   * the person asks. With several rows, a ticked one says where it goes
+   * ("Goes in 2nd"). onChange(picked, left) runs after each tick and each
+   * cross, `left` being the rows still shown. `opts.list` draws it as the list
+   * under a fill window's preview, headed "Often sent next: tick to add after
+   * your text"; the heading leaves with the last row. Returns { el, picked }
+   * where picked() is the ticked snippets in the order they were ticked.
+   */
+  function nextOffer(doc, list, onHide, onChange, opts) {
+    var asList = !!(opts && opts.list);
+    var group = doc.createElement('div');
+    group.className = asList ? 'ff-nexts ff-nexts--list' : 'ff-nexts';
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', nextWords(asList ? 'list' : 'why'));
+    if (asList) {
+      // A div: the page's window resets every p to the text around it.
+      var head = doc.createElement('div');
+      head.className = 'ff-nexts-head';
+      head.setAttribute('aria-hidden', 'true');
+      head.textContent = nextWords('list');
+      group.appendChild(head);
+    }
+    var rows = [];
+    var order = [];
+
+    function picked() {
+      if (!group.isConnected) return [];
+      return order.map(function(id) {
+        return rows.filter(function(row) { return row.next.id === id; })[0].next;
+      });
+    }
+    function paint() {
+      rows.forEach(function(row) {
+        var at = order.indexOf(row.next.id);
+        var placed = at !== -1 && rows.length > 1;
+        row.why.textContent = placed ? nextWords('place', at + 1) : nextWords('why');
+        if (placed) row.el.setAttribute('data-place', String(at + 1));
+        else row.el.removeAttribute('data-place');
+      });
+      if (typeof onChange === 'function') onChange(picked(), rows.length);
+    }
+
+    (list || []).forEach(function(next) {
+      var box = doc.createElement('div');
+      box.className = 'ff-next';
+      var label = doc.createElement('label');
+      label.className = 'ff-next-tick';
+      var tick = doc.createElement('input');
+      tick.type = 'checkbox';
+      var words = doc.createElement('span');
+      var strong = doc.createElement('span');
+      strong.className = 'ff-next-title';
+      strong.textContent = nextWords('tick', next.title);
+      var why = doc.createElement('span');
+      why.className = 'ff-next-why';
+      why.textContent = nextWords('why');
+      words.appendChild(strong); words.appendChild(why);
+      label.appendChild(tick); label.appendChild(words);
+      var hide = doc.createElement('button');
+      hide.type = 'button';
+      hide.className = 'ff-next-hide';
+      hide.setAttribute('aria-label', nextWords('hide', next.title));
+      hide.title = nextWords('hide', next.title);
+      hide.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+      var row = { next: next, el: box, tick: tick, why: why };
+      tick.addEventListener('change', function() {
+        order = nextToggle(order, next.id, tick.checked);
+        paint();
+      });
+      hide.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        order = nextToggle(order, next.id, false);
+        rows = rows.filter(function(r) { return r !== row; });
+        box.remove();
+        // The cross went with its row: the first row left takes the focus.
+        if (rows.length) rows[0].tick.focus();
+        else group.remove();
+        if (typeof onHide === 'function') onHide(next);
+        paint();
+      });
+      box.appendChild(label); box.appendChild(hide);
+      rows.push(row);
+      group.appendChild(box);
     });
-    box.appendChild(label); box.appendChild(hide);
-    return { el: box, checked: function() { return box.isConnected && tick.checked; } };
+    return { el: group, picked: picked };
   }
 
   /** The next snippet's text as it goes in, and its formatted form when it has one. */
@@ -627,8 +708,53 @@
     return { text: vm.preview, formatted: vm.formatted || null };
   }
 
+  function nextEscape(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /**
+   * What the ticked snippets add after the first text, in the order given, a
+   * blank line before each. `html` is the same in formatted form, for a first
+   * text that goes in formatted (wantHtml); null otherwise.
+   */
+  function nextAddition(list, wantHtml) {
+    var text = '', html = '';
+    (list || []).forEach(function(next) {
+      var t = nextText(next);
+      text += NEXT_SEPARATOR + t.text;
+      if (wantHtml) html += '<br><br>' + (t.formatted || nextEscape(t.text).replace(/\n/g, '<br>'));
+    });
+    return { text: text, html: wantHtml ? html : null };
+  }
+
+  /**
+   * What the ticked snippets add, shown at the end of a preview box, after a
+   * blank line, so the preview reads as the message that goes out. Run it after
+   * each tick and after each redraw of the box; none ticked takes it away.
+   */
+  function nextPreview(box, list) {
+    if (!box) return;
+    for (var i = box.children.length - 1; i >= 0; i--) {
+      if (box.children[i].className === 'ff-next-added') box.removeChild(box.children[i]);
+    }
+    var text = nextAddition(list, false).text;
+    if (!text) return;
+    var add = box.ownerDocument.createElement('span');
+    add.className = 'ff-next-added';
+    add.textContent = text;
+    box.appendChild(add);
+  }
+
+  /** The names for a toast: "Firma", "Alternativa and Firma", "A, B and C". */
+  function nextNames(list) {
+    var names = (list || []).map(function(n) { return String(n.title || 'a snippet'); });
+    if (names.length < 2) return names.join('');
+    return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+  }
+
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
     unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
     NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
-    nextWords: nextWords, nextFor: nextFor, hideNext: hideNext, nextOffer: nextOffer, nextText: nextText };
+    nextWords: nextWords, nextsFor: nextsFor, hideNext: hideNext, nextToggle: nextToggle, nextOffer: nextOffer,
+    nextText: nextText, nextAddition: nextAddition, nextPreview: nextPreview, nextNames: nextNames };
 })(typeof window !== 'undefined' ? window : this);

@@ -113,17 +113,17 @@ var isPasting = false; // guards against paste events feeding the trigger buffer
 // ── OFTEN SENT NEXT ────────────────────────────────────────────────
 // What usually comes right after each snippet (chrome.storage.local.sb_next,
 // written by background.js from the use history), and the pairs the person
-// hid with the cross (sb_next_hidden). Whether to offer one, and the words,
-// come from fill-form-ui.js (SBFillFormUI.nextFor), as on the popup and the
+// hid with the cross (sb_next_hidden). Which ones to offer, and the words,
+// come from fill-form-ui.js (SBFillFormUI.nextsFor), as on the popup and the
 // phone.
 var nextMap = {};
 var nextHidden = {};
 function _nextMapOf(stored) { return stored && stored.map && typeof stored.map === 'object' ? stored.map : {}; }
 
-// The snippet to offer after this one, or null.
-function _nextFor(snip) {
+// The snippets to offer after this one, the most used first; empty when none.
+function _nextsFor(snip) {
   var ui = window.SBFillFormUI;
-  return ui && ui.nextFor && snip ? ui.nextFor(nextMap, snip.id, snippets, nextHidden) : null;
+  return ui && ui.nextsFor && snip ? ui.nextsFor(nextMap, snip.id, snippets, nextHidden) : [];
 }
 
 // The cross: this pair stays hidden on this browser for NEXT_HIDE_DAYS.
@@ -132,19 +132,6 @@ function _hideNext(snip, next) {
   try {
     chrome.storage.local.set({ sb_next_hidden: nextHidden });
   } catch (e) { console.error('[Fibonax] could not remember the hidden suggestion:', e); }
-}
-
-// The text the next snippet adds after the first, a blank line between them,
-// and the same in formatted form when `formatted` asks for it: the first part
-// went in formatted, so the second must too.
-function _nextAddition(next, formatted) {
-  var ui = window.SBFillFormUI;
-  var t = ui.nextText(next);
-  var html = null;
-  if (formatted) {
-    html = '<br><br>' + (t.formatted || xesc(t.text).replace(/\n/g, '<br>'));
-  }
-  return { text: ui.NEXT_SEPARATOR + t.text, html: html };
 }
 
 // Puts the caret at a character offset in a rich editor, as Undo counts them.
@@ -167,20 +154,25 @@ function _ceCaretAt(el, offset) {
 }
 
 // "Add Firma" on the card after a snippet without a form, the same whichever
-// way it came in: a typed trigger, the picker or the right-click menu.
-// `inField` says the first text is already in the field (a rich editor, or the
-// right-click menu in a plain box); otherwise it waits for the card, and Add
-// puts both in at once. `snapshot` is the field state Undo would use: in a
-// rich editor its end offset is where the first text ends. `finish` runs once
-// both are in (the caller's processing flag). Null when nothing is offered.
+// way it came in: a typed trigger, the picker or the right-click menu. With
+// several to offer, the card lists them to tick, and `picked` is the ticked
+// ones in the order they were ticked. `inField` says the first text is already
+// in the field (a rich editor, or the right-click menu in a plain box);
+// otherwise it waits for the card, and Add puts them all in at once.
+// `snapshot` is the field state Undo would use: in a rich editor its end
+// offset is where the first text ends. `finish` runs once they are in (the
+// caller's processing flag). Null when nothing is offered.
 function _cardNext(el, snip, text, inField, snapshot, finish) {
-  var next = _nextFor(snip);
-  if (!next) return null;
+  var list = _nextsFor(snip);
+  if (!list.length) return null;
+  var ui = window.SBFillFormUI;
   return {
-    title: next.title,
-    onHide: function() { _hideNext(snip, next); },
-    onAdd: function() {
-      var add = _nextAddition(next, _takesFormatting(el) && !!window.SBFillFormUI.nextText(next).formatted);
+    items: list,
+    onHide: function(next) { _hideNext(snip, next); },
+    onAdd: function(picked) {
+      // The first text went in formatted when one of these is: so do they all.
+      var formatted = _takesFormatting(el) && picked.some(function(next) { return !!ui.nextText(next).formatted; });
+      var add = ui.nextAddition(picked, formatted);
       if (inField) {
         if (snapshot && snapshot.type === 'ce' && typeof snapshot.endCharOffset === 'number') _ceCaretAt(el, snapshot.endCharOffset);
         insertText(el, add.text, add.html);
@@ -188,51 +180,168 @@ function _cardNext(el, snip, text, inField, snapshot, finish) {
         insertText(el, text + add.text);
       }
       logEvent(snip, 0);
-      logEvent(next, 0);
+      picked.forEach(function(next) { logEvent(next, 0); });
       if (typeof finish === 'function') finish();
     }
   };
 }
 
 // ── PROMPT TEMPLATES ──────────────────────────────────────────────
-// The """ picker draws from two merged sources:
-//   - BASE_PROMPTS: built-in defaults ("Base Prompts"), always available even
-//     offline / before sign-in. Future Notion "Base Prompts" sync target.
-//   - userPrompts: the user's dashboard "Prompt List", synced from
-//     public.prompts -> chrome.storage.local.sb_prompts by the popup
-//     (mirrors how snippets reach the content script).
-// promptTemplates() lists Base Prompts first, then the dashboard Prompt List; a
-// dashboard prompt whose title matches a base one overrides it in place.
+// The """ picker draws from two sources:
+//   - userPrompts: the person's own prompts, written in the dashboard and
+//     synced from public.prompts -> chrome.storage.local.sb_prompts by the
+//     popup (mirrors how snippets reach the content script).
+//   - BASE_PROMPTS: the built-in prompts, always available, even offline or
+//     before sign-in.
+// promptTemplates() lists the person's own prompts first, then the built-in
+// ones. A saved prompt with the title of a built-in one replaces it.
+//
+// Every built-in prompt has the same five parts, in the same order: the task
+// in one line, what the AI asks for when the message does not say it, the
+// steps, a check of its own answer as the last step, and the layout of the
+// answer. It ends on a label and a new line, where the person's text goes.
 var BASE_PROMPTS = [
-  { id: 'formal', title: 'Formal tone', body: 'Please rewrite in a formal, professional tone:\n' },
-  { id: 'casual', title: 'Casual tone', body: 'Rewrite this in a friendly, casual tone:\n' },
-  { id: 'translate', title: 'Translate', body: 'Translate the following text to {language}:\n' },
-  { id: 'summarize', title: 'Summarize', body: 'Summarize the following in 2-3 sentences:\n' },
-  { id: 'expand', title: 'Expand / elaborate', body: 'Expand on the following with more detail:\n' },
-  { id: 'bullet', title: 'Convert to bullets', body: '\u2022 ' }
+  { id: 'summarize', title: 'Summarize', body: [
+    'Summarize the text below.',
+    '',
+    'Before you start: if I have not said who the summary is for or how long it should be, ask me in one short question, then wait. If I have, go straight ahead.',
+    '',
+    'Steps:',
+    '1. Read the whole text. Find its main point, the decisions made and anything still open.',
+    '2. Write the summary in plain words. Keep names, numbers and dates exact.',
+    '3. Check your summary against the text: remove anything the text does not say, and add any key point you missed.',
+    '',
+    'Answer in this order: the main point in one sentence, the key points as a short list, then open questions or next steps, if there are any.',
+    '',
+    'Text:',
+    ''
+  ].join('\n') },
+  { id: 'tone', title: 'Change the tone', body: [
+    'Rewrite the text below in a different tone.',
+    '',
+    'Before you start: if I have not said which tone I want (for example formal, friendly, firm or neutral) or who will read it, ask me in one short question, then wait. If I have, go straight ahead.',
+    '',
+    'Steps:',
+    '1. Note what the text says: every fact, name, number, date and request.',
+    '2. Rewrite it in the tone I asked for, at about the same length and in the same language.',
+    '3. Compare the two versions: nothing may be added, dropped or changed in meaning. Fix it if so.',
+    '',
+    'Answer with the rewritten text only, ready to send. Add one line below it only if you had to assume something.',
+    '',
+    'Text:',
+    ''
+  ].join('\n') },
+  { id: 'translate', title: 'Translate', body: [
+    'Translate the text below.',
+    '',
+    'Before you start: if I have not said which language to translate into, ask me, then wait. If I have, go straight ahead.',
+    '',
+    'Steps:',
+    '1. Read the whole text first, to catch its tone and who it is written for.',
+    '2. Translate the meaning, not word by word, so it reads as if a native speaker wrote it. Keep the tone, the layout and every name, number, date and link exactly.',
+    '3. Reread the translation on its own: fix anything that sounds translated or could be misread.',
+    '',
+    'Answer with the translation only. If a word or phrase has no clear equivalent, add a short note below saying what you chose and why.',
+    '',
+    'Text:',
+    ''
+  ].join('\n') },
+  { id: 'review', title: 'Review and improve', body: [
+    'Review the text below and make it better.',
+    '',
+    'Before you start: if I have not said what the text is for and who will read it, ask me in one short question, then wait. If I have, go straight ahead.',
+    '',
+    'Steps:',
+    '1. Read it as the reader would. Note what is unclear, missing, repeated, too long or easy to misread.',
+    '2. Rank what you found: what most gets in the way of the text doing its job comes first.',
+    '3. Write an improved version that fixes those points and keeps my meaning, my facts and my voice.',
+    '4. Check the new version against the original: no fact changed, nothing important lost.',
+    '',
+    'Answer in this order: the three changes that matter most, one line each, then the improved text in full.',
+    '',
+    'Text:',
+    ''
+  ].join('\n') },
+  { id: 'think', title: 'Think it through', body: [
+    'Help me think through the question or problem below.',
+    '',
+    'Before you start: if the goal, the limits (time, money, people) or what matters most to me is not clear, ask me up to three short questions, then wait. If it is clear, go straight ahead.',
+    '',
+    'Steps:',
+    '1. Say in one sentence what is really being decided or solved.',
+    '2. Lay out the realistic options, including doing nothing. For each: what speaks for it, what speaks against it, what it depends on.',
+    '3. Separate what you know from what you assume. Say which assumption would change the answer if it were wrong.',
+    '4. Challenge your own conclusion: make the strongest case against it, and change it if that case wins.',
+    '',
+    'Answer in this order: your recommendation in one or two sentences, the reasons, the main risk and how to reduce it, what to find out first.',
+    '',
+    'Question or problem:',
+    ''
+  ].join('\n') },
+  { id: 'plan', title: 'Plan the steps', body: [
+    'Turn the goal below into a plan I can follow.',
+    '',
+    'Before you start: if the deadline, who is involved or what is already done is not clear, ask me up to three short questions, then wait. If it is clear, go straight ahead.',
+    '',
+    'Steps:',
+    '1. Say in one sentence what "done" looks like.',
+    '2. Break the work into steps, in the order they must happen. Mark the steps that wait on another one and those that can run side by side.',
+    '3. For each step give: what to do, who does it, how long it takes, how to tell it is finished.',
+    '4. Check the plan: look for a missing step, a time that is too short and the point most likely to go wrong. Fix what you find.',
+    '',
+    'Answer with a numbered list of steps, then the main risk with a fallback, then the first thing to do today.',
+    '',
+    'Goal:',
+    ''
+  ].join('\n') },
+  { id: 'facts', title: 'Check the facts', body: [
+    'Check the text below for mistakes.',
+    '',
+    'Before you start: if I have not said what the text will be used for, ask me in one short question, then wait. If I have, go straight ahead.',
+    '',
+    'Steps:',
+    '1. List every claim that can be checked: facts, numbers, dates, names, quotes, calculations.',
+    '2. Judge each one: correct, wrong or cannot tell. Redo every calculation yourself.',
+    '3. Look for claims that contradict each other and for conclusions the text does not support.',
+    '4. Be honest about your limits: say "cannot tell" instead of guessing, and name what I should verify myself and where.',
+    '',
+    'Answer with a short list: each doubtful or wrong claim, what is wrong with it and the correction. End with one line on how far the rest can be trusted.',
+    '',
+    'Text:',
+    ''
+  ].join('\n') }
 ];
-var userPrompts = []; // dashboard Prompt List (chrome.storage.local.sb_prompts)
+var userPrompts = []; // the person's own prompts (chrome.storage.local.sb_prompts)
 
-// Each item is tagged with _group ('base' | 'list') so the picker can draw a
-// single divider at the base->dashboard boundary. Items are shallow copies so
+// Each item is tagged with _group ('list' for the person's own, 'base' for a
+// built-in one) so the picker can tell them apart. Items are shallow copies so
 // BASE_PROMPTS / userPrompts are never mutated.
 function promptTemplates() {
-  var merged = BASE_PROMPTS.map(function(p) { return Object.assign({}, p, { _group: 'base' }); });
-  if (!userPrompts.length) return merged;
-  var idxByTitle = {};
-  for (var i = 0; i < merged.length; i++) {
-    idxByTitle[(merged[i].title || '').toLowerCase()] = i;
+  var own = userPrompts.map(function(p) { return Object.assign({}, p, { _group: 'list' }); });
+  var taken = {};
+  for (var i = 0; i < own.length; i++) {
+    var key = (own[i].title || '').toLowerCase();
+    if (key) taken[key] = true;
   }
-  for (var j = 0; j < userPrompts.length; j++) {
-    var p = userPrompts[j];
-    var key = (p.title || '').toLowerCase();
-    if (key && idxByTitle[key] !== undefined) {
-      merged[idxByTitle[key]] = Object.assign({}, p, { _group: 'base' }); // override keeps the base slot
-    } else {
-      merged.push(Object.assign({}, p, { _group: 'list' }));
-    }
-  }
-  return merged;
+  var base = BASE_PROMPTS.filter(function(p) { return !taken[p.title.toLowerCase()]; })
+    .map(function(p) { return Object.assign({}, p, { _group: 'base' }); });
+  return own.concat(base);
+}
+
+// With prompts of the person's own in the menu, the built-in ones wait behind
+// one last row until it is picked, so nobody scrolls past them to reach their
+// own. Typing looks through both lists, so a built-in prompt stays one word
+// away, and a menu with no prompts of the person's own shows them directly.
+var PICKER_FOLD_ID = 'sb-built-in-prompts';
+var triggerPickerBaseOpen = false; // the folded row was opened in this menu
+
+function _foldBuiltIns(list, q) {
+  if (q || triggerPickerBaseOpen) return list;
+  var own = list.filter(function(p) { return p._group !== 'base'; });
+  var count = list.length - own.length;
+  if (!own.length || !count) return list;
+  own.push({ _fold: true, id: PICKER_FOLD_ID, title: 'Built-in prompts', count: count });
+  return own;
 }
 
 // ── INTERACTIVE STEPS ─────────────────────────────────────────────
@@ -241,15 +350,11 @@ function promptTemplates() {
 // by manifest.json before this file, owns the key and the block.
 var interactiveStepsOn = false;
 
-// What a picked prompt inserts. A saved prompt gets the Interactive Steps block
-// when the switch is on. A built-in Base Prompt is a one-line opener such as
-// "Summarize the following in 2-3 sentences:" and always goes in as written.
+// What a picked prompt inserts: its text, with the Interactive Steps block in
+// front when the switch is on. A built-in prompt follows the switch like a
+// saved one.
 function _promptInsertText(item) {
-  var body = item.body || '';
-  for (var i = 0; i < BASE_PROMPTS.length; i++) {
-    if (BASE_PROMPTS[i].id === item.id) return body;
-  }
-  return SBInteractiveSteps.apply(body, interactiveStepsOn);
+  return SBInteractiveSteps.apply(item.body || '', interactiveStepsOn);
 }
 
 // ── A BRAIN INSIDE A PROMPT ───────────────────────────────────────
@@ -2323,16 +2428,16 @@ function showOverlay(targetEl, snip, scLen, done) {
   bd.id = 'sb-bd';
   bd.style.cssText = 'position:fixed;inset:0;background:var(--sb-scrim);z-index:2147483646;';
 
-  // The snippet usually sent next, offered in the middle of the footer,
-  // between the keyboard hint and Insert. Unticked: nothing extra goes in
-  // unless the person ticks it.
-  var next = _nextFor(snip);
+  // The snippets usually sent next, listed under the preview, which shows
+  // what each ticked one adds. Unticked: nothing extra goes in unless the
+  // person ticks it, and what is ticked goes in in that order.
+  var nexts = _nextsFor(snip);
   el._sbNext = null;
-  if (next) {
-    var offer = window.SBFillFormUI.nextOffer(document, next, function() { _hideNext(snip, next); });
-    var foot = el.querySelector('.sb-foot');
-    foot.insertBefore(offer.el, foot.querySelector('.sb-insert'));
-    el._sbNext = { snip: next, offer: offer };
+  if (nexts.length) {
+    el._sbNext = window.SBFillFormUI.nextOffer(document, nexts, function(next) { _hideNext(snip, next); }, function(picked) {
+      window.SBFillFormUI.nextPreview(el.querySelector('#sb-prev'), picked);
+    }, { list: true });
+    el.querySelector('.sb-preview').appendChild(el._sbNext.el);
   }
 
   document.body.appendChild(bd);
@@ -2711,6 +2816,7 @@ function updatePrev(snip) {
   var vm = overlayForm(snip);
   if (!window.SBFillFormUI) { box.textContent = vm.preview; return; }
   window.SBFillFormUI.showPreview(box, vm);
+  window.SBFillFormUI.nextPreview(box, overlayEl._sbNext ? overlayEl._sbNext.picked() : []);
   window.SBFillFormUI.pictureNote(document.getElementById('sb-picnote'), vm, 'left-out');
   window.SBFillFormUI.refresh(overlayEl.querySelector('.sb-fields'), vm);
 }
@@ -2771,17 +2877,18 @@ function doInsert(targetEl, snip, checked) {
   var html = vm.formatted && _takesFormatting(targetEl) ? vm.formatted : null;
   note = _pictureNote(note, vm, html);
   var fillCount = Object.keys(vals).length;
-  // "Add Firma after it", when ticked: the next snippet goes in right after,
-  // a blank line between, in the same insert, and counts as a use of its own.
-  var nextSnip = overlayEl && overlayEl._sbNext && overlayEl._sbNext.offer.checked() ? overlayEl._sbNext.snip : null;
-  if (nextSnip) {
-    var addition = _nextAddition(nextSnip, !!html);
+  // "Add Firma after it", when ticked: each ticked snippet goes in right
+  // after, in the order it was ticked, a blank line before it, in the same
+  // insert, and counts as a use of its own.
+  var nextSnips = overlayEl && overlayEl._sbNext ? overlayEl._sbNext.picked() : [];
+  if (nextSnips.length) {
+    var addition = window.SBFillFormUI.nextAddition(nextSnips, !!html);
     text += addition.text;
     if (html) html += addition.html;
   }
   function logUses() {
     logEvent(snip, fillCount);
-    if (nextSnip) logEvent(nextSnip, 0);
+    nextSnips.forEach(function(next) { logEvent(next, 0); });
   }
   closeOverlay();
   if (!targetEl) return;
@@ -3458,11 +3565,13 @@ function showCelebration(text, onConfirm, onUndo, options) {
   var warning = typeof options.warning === 'string' ? options.warning : '';
   // What came of "Don't warn me about this snippet again", when it was ticked.
   var note = typeof options.note === 'string' ? options.note : '';
-  // The snippet usually sent next (_cardNext): "Often sent with Firma" and
-  // Add Firma. While it shows, the card waits for the person instead of
-  // counting down: the choice is theirs to make.
+  // The snippets usually sent next (_cardNext). One: "Often sent with Firma"
+  // and Add Firma. Several: the same rows as the fill window's footer, ticked
+  // in the order they are to go in, and one Add. While the offer shows, the
+  // card waits for the person instead of counting down: the choice is theirs.
   var next = options.next && window.SBFillFormUI ? options.next : null;
   var nw = next ? window.SBFillFormUI.nextWords : null;
+  var nextOne = next && next.items.length === 1 ? next.items[0] : null;
   var summary = _expansionSummary(text);
   var returnFocus = options.target || document.activeElement;
   var savedStart = returnFocus && typeof returnFocus.selectionStart === 'number' ? returnFocus.selectionStart : null;
@@ -3514,13 +3623,20 @@ function showCelebration(text, onConfirm, onUndo, options) {
       '</dl>' +
     '</div>' +
     '<div class="sb-cel-footer">' +
-      (next
+      (nextOne
         ? '<div class="sb-cel-next" id="sb-cel-next-row">' +
-            '<div class="sb-cel-next-words"><strong>' + _celEsc(nw('card', next.title)) + '</strong><span>' + _celEsc(nw('card-hint')) + '</span></div>' +
-            '<button type="button" id="sb-cel-next" class="sb-cel-primary">' + _celEsc(nw('add', next.title)) + '</button>' +
-            '<button type="button" id="sb-cel-next-hide" class="sb-cel-close" aria-label="' + _celEsc(nw('hide', next.title)) + '" title="' + _celEsc(nw('hide', next.title)) + '">' +
+            '<div class="sb-cel-next-words"><strong>' + _celEsc(nw('card', nextOne.title)) + '</strong><span>' + _celEsc(nw('card-hint')) + '</span></div>' +
+            '<button type="button" id="sb-cel-next" class="sb-cel-primary">' + _celEsc(nw('add', nextOne.title)) + '</button>' +
+            '<button type="button" id="sb-cel-next-hide" class="sb-cel-close" aria-label="' + _celEsc(nw('hide', nextOne.title)) + '" title="' + _celEsc(nw('hide', nextOne.title)) + '">' +
               '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>' +
             '</button>' +
+          '</div>'
+        : '') +
+      // The rows to tick go in between the two, once the card is built.
+      (next && !nextOne
+        ? '<div class="sb-cel-next sb-cel-next-many" id="sb-cel-next-row">' +
+            '<div class="sb-cel-next-words"><strong>' + _celEsc(nw('card-many')) + '</strong><span>' + _celEsc(nw('card-many-hint')) + '</span></div>' +
+            '<button type="button" id="sb-cel-next" class="sb-cel-primary" disabled>' + _celEsc(nw('add-none')) + '</button>' +
           '</div>'
         : '') +
       '<div class="sb-cel-actions">' +
@@ -3642,24 +3758,45 @@ function showCelebration(text, onConfirm, onUndo, options) {
   card.querySelector('#sb-cel-ok').addEventListener('click', confirm);
   card.querySelector('#sb-cel-skip').addEventListener('click', close);
   if (canUndo) card.querySelector('#sb-cel-undo').addEventListener('click', undo);
+  // The offer is gone, hidden with the cross: the card counts down as usual.
+  function nextGone() {
+    var row = card.querySelector('#sb-cel-next-row');
+    if (row) row.remove();
+    card.querySelector('#sb-cel-ok').className = 'sb-cel-primary';
+    card.querySelector('.sb-cel-track').hidden = false;
+    card.querySelector('#sb-cel-ok').focus();
+    paused = false;
+    countDown();
+  }
   if (next) {
     // Nothing counts down while the offer shows, so nothing is there to pause.
     paused = true;
-    // Add Firma: the card goes, and the caller puts the first text (when it
-    // is not in yet) and the next one in the field.
-    card.querySelector('#sb-cel-next').addEventListener('click', function() { settle(next.onAdd); });
-    // The cross hides this pair from now on, and the card counts down as usual.
-    card.querySelector('#sb-cel-next-hide').addEventListener('click', function() {
-      if (settled) return;
-      next.onHide();
-      var row = card.querySelector('#sb-cel-next-row');
-      if (row) row.remove();
-      card.querySelector('#sb-cel-ok').className = 'sb-cel-primary';
-      card.querySelector('.sb-cel-track').hidden = false;
-      card.querySelector('#sb-cel-ok').focus();
-      paused = false;
-      countDown();
-    });
+    var addBtn = card.querySelector('#sb-cel-next');
+    if (nextOne) {
+      // Add Firma: the card goes, and the caller puts the first text (when it
+      // is not in yet) and the next one in the field.
+      addBtn.addEventListener('click', function() { settle(function() { next.onAdd([nextOne]); }); });
+      // The cross hides this pair from now on.
+      card.querySelector('#sb-cel-next-hide').addEventListener('click', function() {
+        if (settled) return;
+        next.onHide(nextOne);
+        nextGone();
+      });
+    } else {
+      // Several: Add names what is ticked, and puts them in in that order.
+      var nextRows = window.SBFillFormUI.nextOffer(document, next.items, next.onHide, function(picked, left) {
+        if (settled) return;
+        if (!left) { nextGone(); return; }
+        addBtn.disabled = !picked.length;
+        addBtn.textContent = !picked.length ? nw('add-none') : picked.length === 1 ? nw('add', picked[0].title) : nw('add-many', picked.length);
+      });
+      addBtn.parentNode.insertBefore(nextRows.el, addBtn);
+      addBtn.addEventListener('click', function() {
+        // Read before the card goes: the rows answer only while they show.
+        var picked = nextRows.picked();
+        if (picked.length) settle(function() { next.onAdd(picked); });
+      });
+    }
   }
   bd.addEventListener('click', close);
   card.addEventListener('pointermove', pauseOnPointerMove);
@@ -3794,18 +3931,33 @@ function _renderPickerItems(query) {
     : allItems.slice();
 
   if (triggerPickerMode === 'snippet') filtered = _dedupByLangBase(filtered);
+  else filtered = _foldBuiltIns(filtered, q);
   triggerPickerFiltered = filtered;
 
   var itemsEl = triggerPickerEl.querySelector('.sb-tp-items');
   if (!itemsEl) return;
 
+  var hasOwn = triggerPickerMode === 'prompt' && userPrompts.length > 0;
   var h = '';
   for (var i = 0; i < triggerPickerFiltered.length; i++) {
     var item = triggerPickerFiltered[i];
-    // Divider at the base->dashboard boundary. Non-selectable (not .sb-tp-item),
-    // so it never enters nav/highlight/click — those query .sb-tp-item only.
-    if (i > 0 && item._group === 'list' && triggerPickerFiltered[i - 1]._group === 'base') {
-      h += '<div class="sb-tp-sep" style="margin:5px 4px 2px;padding:7px 8px 3px;border-top:1px solid #E4E4E7;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#A1A1AA;">My prompt base</div>';
+    // The folded row: a line above it, then a row that is picked like any
+    // other (it is a .sb-tp-item) and opens the built-in prompts in place.
+    if (item._fold) {
+      h += '<div class="sb-tp-sep" style="margin:5px 4px;border-top:1px solid #E4E4E7;"></div>'
+        + '<div class="sb-tp-item" data-idx="' + i + '" style="display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;font-size:13px;font-weight:500;color:var(--sb-ink-muted,#6E6E73);line-height:1.3;">'
+        + '<span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + xesc(item.title) + '</span>'
+        + '<span style="flex:none;font-size:12px;color:#A1A1AA">' + item.count + '</span>'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="flex:none"><path d="m6 9 6 6 6-6"/></svg>'
+        + '</div>';
+      continue;
+    }
+    // Heading where the built-in prompts start, shown only beside prompts of
+    // the person's own. Non-selectable (not .sb-tp-item), so it never enters
+    // nav/highlight/click: those query .sb-tp-item only.
+    if (hasOwn && item._group === 'base' && (i === 0 || triggerPickerFiltered[i - 1]._group !== 'base')) {
+      h += '<div class="sb-tp-sep" style="' + (i > 0 ? 'margin:5px 4px 2px;border-top:1px solid #E4E4E7;' : 'margin:0 4px 2px;')
+        + 'padding:7px 8px 3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#A1A1AA;">Built-in prompts</div>';
     }
     // Shortcut badge for BOTH snippets and prompts (when present) — surfaces the
     // prompt's direct-expansion shortcut in the browser so users learn it. Base
@@ -3837,6 +3989,7 @@ function _renderPickerItems(query) {
   }
   itemsEl.innerHTML = h;
   triggerPickerIdx = 0;
+  _syncPickerFoldHint();
 
   itemsEl.querySelectorAll('.sb-tp-item').forEach(function(itemEl) {
     function onPickerSelect(e) {
@@ -3884,14 +4037,17 @@ function showTriggerPicker(el, mode, seqLen, filterStr) {
   var left = Math.max(4, Math.min(coords.x, window.innerWidth - 360));
   var top  = coords.y + 4;
   var spaceBelow = window.innerHeight - top - 20;
+  div.style.left = left + 'px';
   if (spaceBelow < 160) {
-    // Flip above cursor
-    top = Math.max(4, coords.y - 4 - 320);
-    spaceBelow = 320;
+    // Flip above the cursor, held by its bottom edge: a short list still sits
+    // against the line being typed, and a list that grows (the built-in
+    // prompts opening) grows upward instead of over the text.
+    div.style.bottom    = (window.innerHeight - coords.y + 4) + 'px';
+    div.style.maxHeight = Math.max(160, Math.min(320, coords.y - 8)) + 'px';
+  } else {
+    div.style.top       = top + 'px';
+    div.style.maxHeight = Math.min(380, spaceBelow) + 'px';
   }
-  div.style.left      = left + 'px';
-  div.style.top       = top  + 'px';
-  div.style.maxHeight = Math.min(380, Math.max(160, spaceBelow)) + 'px';
 
   document.body.appendChild(div);
   triggerPickerEl = div;
@@ -3905,6 +4061,28 @@ var PICKER_HINT = 'Tab / Enter to insert';
 function _setPickerHint(text) {
   var hint = triggerPickerEl && triggerPickerEl.querySelector('.sb-tp-hint');
   if (hint) hint.textContent = text || PICKER_HINT;
+}
+
+// In the prompt menu the hint follows the highlighted row: the folded
+// "Built-in prompts" row opens, every other row inserts. A pick that is waiting
+// for its Brain keeps its own line.
+function _syncPickerFoldHint() {
+  if (triggerPickerMode !== 'prompt' || _heldPromptPick) return;
+  var row = triggerPickerFiltered[triggerPickerIdx];
+  _setPickerHint(row && row._fold ? 'Tab / Enter to open' : '');
+}
+
+// Opens the folded row in place: the built-in prompts take its spot under
+// their heading, the first of them highlighted, with the heading brought to the
+// top of the list when they do not all fit below it.
+function _openBuiltIns(idx) {
+  triggerPickerBaseOpen = true;
+  _renderPickerItems(triggerPickerQuery);
+  triggerPickerIdx = Math.min(idx, triggerPickerFiltered.length - 1);
+  updateTriggerPickerHighlight();
+  var itemsEl = triggerPickerEl && triggerPickerEl.querySelector('.sb-tp-items');
+  var heading = itemsEl && itemsEl.querySelector('.sb-tp-sep');
+  if (heading) itemsEl.scrollTop = heading.offsetTop - itemsEl.offsetTop;
 }
 
 // Stop a pending automatic insert and put the usual hint back.
@@ -3946,6 +4124,8 @@ function _pickerHasOnePrefixMatch() {
 function selectTriggerItem(idx) {
   if (idx < 0 || idx >= triggerPickerFiltered.length) return;
   var item  = triggerPickerFiltered[idx];
+  // The folded "Built-in prompts" row inserts nothing: it opens, menu open.
+  if (item._fold) { _openBuiltIns(idx); return; }
   // A prompt whose Brain is still on its way waits, menu open (_holdPromptPick).
   if (triggerPickerMode === 'prompt' && _promptHasBrain(item) && !_promptBrainCached(item.body || '')) {
     _holdPromptPick(item);
@@ -4061,6 +4241,7 @@ function closeTriggerPicker() {
   triggerPickerQuery     = '';
   triggerPickerFiltered  = [];
   triggerPickerDeleteLen = 0;
+  triggerPickerBaseOpen  = false;
   if (pickerAutoTimer) { clearTimeout(pickerAutoTimer); pickerAutoTimer = null; }
   triggerPending = false;
   triggerPendingMode = null;
@@ -4179,6 +4360,7 @@ function updateTriggerPickerHighlight() {
   if (items[triggerPickerIdx]) {
     items[triggerPickerIdx].scrollIntoView({ block: 'nearest' });
   }
+  _syncPickerFoldHint();
 }
 
 // Collapse sibling language variants (quoteEN/quoteES/quoteIT) into a single
@@ -4202,15 +4384,25 @@ function _dedupByLangBase(list) {
 }
 
 // Close picker on outside click/tap or page scroll
+// True when a press landed outside the open menu. Read from the path the press
+// took, not from where its target sits now: a row that redraws the list when
+// pressed (the folded "Built-in prompts" row) has left the menu by the time the
+// press reaches the document.
+function _pressOutsidePicker(e) {
+  if (!triggerPickerEl) return false;
+  var path = typeof e.composedPath === 'function' ? e.composedPath() : null;
+  return path && path.length ? path.indexOf(triggerPickerEl) === -1 : !triggerPickerEl.contains(e.target);
+}
+
 document.addEventListener('mousedown', function(e) {
-  // The caret is about to move — an armed match would expand at the new spot.
+  // The caret is about to move: an armed match would expand at the new spot.
   _cancelArmed();
-  if (triggerPickerEl && !triggerPickerEl.contains(e.target)) {
+  if (_pressOutsidePicker(e)) {
     setTimeout(function() { closeTriggerPicker(); }, 100);
   }
 });
 document.addEventListener('touchstart', function(e) {
-  if (triggerPickerEl && !triggerPickerEl.contains(e.target)) {
+  if (_pressOutsidePicker(e)) {
     setTimeout(function() { closeTriggerPicker(); }, 100);
   }
 }, {passive: true});
@@ -4412,6 +4604,13 @@ document.addEventListener('input', function(e) {
     '#sb-celebrate .sb-cel-next-words strong{font-size:var(--sb-fs-14);font-weight:600;color:var(--sb-azure);overflow-wrap:anywhere;}' +
     '#sb-celebrate .sb-cel-next-words span{font-size:var(--sb-fs-12);color:var(--sb-ink-muted);}' +
     '#sb-celebrate .sb-cel-next .sb-cel-primary{min-width:0;}' +
+    // Several to offer: the two lines, the rows to tick, then Add, one under the other.
+    '#sb-celebrate .sb-cel-next-many{flex-direction:column;align-items:stretch;padding:var(--sb-s-3) var(--sb-s-4);}' +
+    '#sb-celebrate .sb-cel-next-many .ff-nexts{margin:0;}' +
+    '#sb-celebrate .sb-cel-next-many .ff-next{flex:1 1 100%;background:var(--sb-bg);}' +
+    '#sb-celebrate .sb-cel-next-many .ff-next-hide{width:36px;height:36px;min-height:0;padding:0;flex:none;border-radius:10px;font-weight:400;color:var(--sb-ink-muted);}' +
+    '#sb-celebrate .sb-cel-next-many .ff-next-hide:hover{background:var(--sb-bg-alt);color:var(--sb-azure);}' +
+    '#sb-celebrate .sb-cel-primary:disabled{background:var(--sb-bg-muted);color:var(--sb-ink-muted);cursor:default;}' +
     '#sb-celebrate .sb-cel-secondary+.sb-cel-secondary{margin-right:0;}' +
     '#sb-celebrate .sb-cel-track[hidden]{display:none;}' +
     '#sb-celebrate .sb-cel-track{height:var(--sb-s-1);margin-top:var(--sb-s-2);background:var(--sb-line);border-radius:var(--sb-r-pill);overflow:hidden;}' +

@@ -8,10 +8,19 @@ interface PageHeaderProps {
   breadcrumb?: ReactNode;
   /** Short kind label set to the right of the title, on the same baseline. */
   tag?: string;
+  /**
+   * The title is a product name or something a person named (a folder, a
+   * Brain): it stays as written when the page is shown in another language.
+   */
+  keepTitle?: boolean;
 }
 
-export function PageHeader({ title, description, action, breadcrumb, tag }: PageHeaderProps) {
-  const heading = <h1 className="text-2xl font-bold tracking-tight text-ink">{title}</h1>;
+export function PageHeader({ title, description, action, breadcrumb, tag, keepTitle }: PageHeaderProps) {
+  const heading = (
+    <h1 className="text-2xl font-bold tracking-tight text-ink" translate={keepTitle ? 'no' : undefined}>
+      {title}
+    </h1>
+  );
   return (
     <div className="mb-6 flex items-end justify-between gap-4">
       <div className="min-w-0">

@@ -56,6 +56,7 @@ export function Avatar({
   return (
     <span
       role="img"
+      translate="no"
       title={title ?? label}
       aria-label={label}
       className={cn(

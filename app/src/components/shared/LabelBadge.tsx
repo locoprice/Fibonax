@@ -48,7 +48,7 @@ export function LabelBadge({ label, className, onRemove, path, variant = 'compac
         className,
       )}
     >
-      <span className={detail ? 'min-w-0 whitespace-normal break-words' : 'truncate'}>{detail ? path ?? label.name : label.name}</span>
+      <span translate="no" className={detail ? 'min-w-0 whitespace-normal break-words' : 'truncate'}>{detail ? path ?? label.name : label.name}</span>
       {onRemove && (
         <button
           type="button"

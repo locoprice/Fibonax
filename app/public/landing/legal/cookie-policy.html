@@ -122,6 +122,15 @@
     .header-nav { display: none; }
     .compare-grid { grid-template-columns: 1fr; }
   }
+  /* On a phone each cookie is a short stacked block, so the page never scrolls sideways. */
+  @media (max-width: 640px) {
+    .cookie-table, .cookie-table tbody, .cookie-table tr, .cookie-table td { display: block; }
+    .cookie-table thead { display: none; }
+    .cookie-table tr { padding: 0.875rem 0; border-bottom: 1px solid var(--border); }
+    .cookie-table tr:last-child { border-bottom: none; }
+    .cookie-table td { padding: 0.25rem 0; border-bottom: none; }
+    .cookie-table td:nth-child(4)::before { content: "Duration: "; color: var(--text-muted); }
+  }
 </style>
 </head>
 <body>

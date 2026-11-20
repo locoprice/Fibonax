@@ -44,7 +44,7 @@ function MoverList({
           {rows.map((m) => (
             <li key={m.key} className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
-                <div className="truncate text-sm text-ink">{m.title}</div>
+                <div className="truncate text-sm text-ink" translate="no">{m.title}</div>
                 <div className="truncate text-xs text-ink-subtle">
                   {engine.formatCount(m.change.prev)} → {engine.formatCount(m.change.cur)} inserts
                 </div>
@@ -89,7 +89,7 @@ export function SnippetRanking({ report, engine }: SnippetRankingProps) {
               <li key={row.key} className={`${ROW_GRID} py-2.5`}>
                 <span className="text-xs tabular-nums text-ink-subtle">{i + 1}</span>
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-ink">{row.title}</div>
+                  <div className="truncate text-sm font-medium text-ink" translate="no">{row.title}</div>
                   {row.detail ? <div className="truncate text-xs text-ink-subtle">{row.detail}</div> : null}
                 </div>
                 <Sparkline values={row.trend} className="text-primary" />

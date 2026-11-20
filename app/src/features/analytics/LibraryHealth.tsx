@@ -39,7 +39,7 @@ function SnippetList({ title, total, rows, sinceWord, empty }: {
         <ul className="mt-2 divide-y divide-line">
           {rows.map((r) => (
             <li key={r.key} className="flex items-center justify-between gap-3 py-2 text-sm">
-              <span className="min-w-0 truncate text-ink">{r.title}</span>
+              <span className="min-w-0 truncate text-ink" translate="no">{r.title}</span>
               <span className="shrink-0 text-xs tabular-nums text-ink-subtle">
                 {r.days === null ? '' : `${sinceWord} ${r.days} ${r.days === 1 ? 'day' : 'days'}`}
               </span>

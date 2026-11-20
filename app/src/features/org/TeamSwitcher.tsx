@@ -208,6 +208,7 @@ export function TeamSwitcher({ name }: { name: string }) {
                   'truncate text-[13px] font-medium',
                   isActive ? 'text-primary' : 'text-ink',
                 )}
+                translate="no"
               >
                 {org.name}
               </span>
@@ -270,7 +271,7 @@ export function TeamSwitcher({ name }: { name: string }) {
             : 'border-line bg-bg-alt/40 hover:border-primary/40 hover:bg-bg-alt',
         )}
       >
-        <span className="truncate text-2xl font-bold tracking-tight text-ink">{name}</span>
+        <span className="truncate text-2xl font-bold tracking-tight text-ink" translate="no">{name}</span>
 
         {orgs.length > 1 && (
           <span className="shrink-0 rounded-full bg-card px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-subtle">

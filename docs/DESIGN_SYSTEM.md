@@ -22,6 +22,18 @@ Standing rule from Valentina (2026-10-30): almost every element on every surface
 
 First applied to the pricing plan cards (see Landing pricing page).
 
+## No sideways scrolling
+
+Standing rule from Valentina (2026-11-20): no window, panel, list or page on any surface shows a horizontal scrollbar. Every layout fits the width it is given. Scrolling up and down is fine.
+
+- **Make it fit, never scroll it.** Give columns set widths and cut long text with "…" (full text in a tooltip), wrap long words (`break-words`, `overflow-wrap:anywhere`), share the width in fractions (`minmax(0, 1fr)`), and let fixed-size marks shrink down to fit.
+- **Fold, do not squeeze.** When columns no longer fit, their facts move under the main cell instead. The snippets list measures its own width (`useListWidth` in `SnippetsTable.tsx`): Folder and Updated have columns from 960 px, Shortcut and Usage from 560 px, and below that all four sit under the name.
+- **Tables on a phone stack.** Each row becomes a short block, its name on top and the other cells under it with their labels (the legal pages' permission and cookie tables, under 640 px).
+- **Email layouts** keep their own width in the snippet editor when the box has room; in a narrower box they are fitted to it (tables size to their content, pictures shrink with their proportions kept). Only the view changes, never what is saved. The preview panel keeps showing the true layout, scaled.
+- **Dashboard classes.** `overflow-y-auto` is the scroll class a box may carry. `overflow-x-auto`, `overflow-auto` and `overflow-scroll` are refused by `src/__tests__/noSidewaysScroll.test.ts`.
+- **Existing exception.** The phone's filter chips and folder and language tabs, and the popup's folder chips, slide sideways with no bar showing, by an earlier owner decision. Ask before adding another.
+- **Check it.** Measure at 1024, 1280, 1440 and 1920 px (phones at 360 to 430 px) for any box whose `scrollWidth` is larger than its `clientWidth`.
+
 ## Canonical tokens
 
 > **Hard rule**: Any new color, radius, shadow, or spacing value introduced in any package must be added to this table **first**, then referenced by name from the appropriate token file:
@@ -87,6 +99,26 @@ with the first pinned snippet and prompt as cards, **Search snippets** and
 **Your Brains**. The bottom bar is white, and the active tab is Azure with a
 short bar under it.
 
+### Phone opening animation (2026-11-20)
+
+Valentina chose "A. The icon opens" from two mockups. A fresh start of
+`/mobile/` opens on a cover that redraws Android's own start screen, which
+cannot be changed beyond its icon and `background_color`: a `mobile-bg-alt`
+page, a white tile 57.2% of the screen width (236px at most, 38% corners) and
+the black T at 36.4% (150px at most), the shares measured on her phone. After
+0.15s the tile grows over the screen and turns `mobile-navy` while the T turns
+`#B4C9FF` (0.55s). Then the T glides onto the wordmark's own T while the cover
+fades and the hero and the body rise 14px (0.5s). About 1.2s in all, and it
+never waits for data.
+
+- Once per app start (`sessionStorage`), and only when the app lands on Home.
+  A share into Save to Brain, or a call already on screen, gets a 0.25s fade
+  instead. A device set to reduce motion gets no animation.
+- `manifest.webmanifest` keeps `background_color` `#F2F2F7`: the cover's page
+  is the same colour, so change both or neither.
+- The T is inlined in the page so it is there on the first frame. Code:
+  `#sb-open` and `playOpening()` in `app/public/mobile/index.html`.
+
 ### Primary (single — Azure)
 
 | Token          | Hex                    | Usage                                  |
@@ -101,6 +133,10 @@ short bar under it.
 ### Brand mark (dashboard)
 
 The dashboard shows the Fibonax T, the same picture as the extension, the phone and the landing page: `components/layout/BrandMark.tsx` draws `/landing/leib-tour-icon.png` as a mask in `ink`, so it reads in light and dark. It replaced the SprintBrain "S" square on 2026-11-18 in the topbar, the login and signup pages and the Company branding preview. No new colour.
+
+### Bot check box (login and signup)
+
+Cloudflare's "Verify you are human" box appears only when Cloudflare needs a click. It sits right under the button the person just pressed (**Continue**, **Sign in**, **Send link**, **Create account**), centred, 12 px below it, and takes no room until it shows (`components/auth/HumanCheckSlot.tsx`, placed straight after each form's button). Until 2026-11-20 it sat at the foot of the page, under "Create an account", where people missed it. No new tokens.
 
 **v1.1 removes Iris purple `#6C5CE7` entirely.** The `--sb-iris*` aliases in the extension's tokens file still resolve, but they all point at the azure values. Any new code must use `--sb-azure*` / `primary` directly.
 
@@ -363,7 +399,7 @@ Motion is transform and opacity only, like the status badges.
 - **Master search bar** (SEARCH-001): the one text search on the dashboard, in the topbar between the brand and the theme toggle. `r-in` (10 px), 36 px tall, `bg-alt` at rest and `--card` on focus, capped at 360 px and allowed to shrink so a long company name never pushes the right-hand cluster off a 1024 px screen. It carries a ⌘K badge at rest and a clear cross once there is text. Typing filters the page in view; Enter or ⌘K opens the aggregated panel (560 px, `r-card`, `shadow-md`, results grouped Snippets / Prompts / Memory). The panel carries one control row under the input: **type chips** (`All`, the default, then `Snippets` / `Prompts` / `Brains`). There is no separate scope switch: a `<Section> only` scope gave the same answer as that section's chip, and the header bar already filters the page (or Brain) in view. The chips narrow what has already matched; they never change the matching rules, which live once in `searchIndex.ts`. Snippets, prompts and memory carry **no search box of their own**. A second one on a page is a defect, not a feature.
 - **Dashboard sidebar** active nav: `bg-primary-light` + 3 px primary left bar (painted via `::before`, reserved track so the row doesn't shift on toggle) + count pill when count > 0 (see Count pill).
 - **Dashboard sidebar, collapsed** (v3.29.0): the panel control on the WORKSPACE row folds the sidebar into a 64 px icon rail (65 px with its border), cloned from DeepL's. Rows keep their size and place: the label and count pill are clipped, not removed, so no icon moves on toggle and screen readers still read the label. Each icon names itself in a right-side tooltip, the company watermark hides, and the account menu keeps its open width over the canvas. The switch is instant and remembered per browser. It replaces the v3.8.0 hide and the v3.13.0 edge peek.
-- **Mobile library pages** (Snippets, Prompts, Brains; v3.91.0) are single-scroll canvases on the home band's template: navy band (`mobile-navy`, greeting + account button, page name with its count pill, translucent search field with the **Filters** pill beside it, the filter panel dropping out of the band as a light card) → floating quick-action bar (overlaps the band by `-26 px`) → section heading → cards (`r-card-lg`, 14 px padding, `mobile-line` hairline, `primary-bg` tint while pressed, lift on hover, visible focus ring) → floating tab bar. The blue gradient hero (`#1B4FD8 → #1440B0`) that these pages carried until v3.90.0 is retired.
+- **Mobile library pages** (Snippets, Prompts, Brains; v3.91.0) are single-scroll canvases on the home band's template: navy band (`mobile-navy`, greeting + account button, page name with its count pill, translucent search field with the **Filters** pill beside it, the filter panel dropping out of the band as a light card) → floating quick-action bar (overlaps the band by `-26 px`) → section heading → cards (`r-card-lg`, 14 px padding, `mobile-line` hairline, `primary-bg` tint while pressed, lift on hover, visible focus ring) → floating tab bar. The blue gradient hero (`#1B4FD8 → #1440B0`) that these pages carried until v3.90.0 is retired. Filters that are on show as a row of chips on the band, under the search field, while the panel is shut (`.afc`): glass pills 40 px tall (white at 12% with a 24% hairline, the search field's family), each with its icon or label dot, its name, the count its pill carries in the panel, and a cross 40 px wide. The row scrolls sideways past the band's edge, ends in **Clear all** from two chips up, folds away while the panel is out, and is absent when nothing is on. The panel's foot holds **Clear all** and a filled **Show N results** button, both 40 px tall.
 - **Extension popup** active folder: light-primary bg + 2 px primary left bar + **filled** azure count pill (not tinted). All Iris purples replaced with `#1B4FD8`.
 - **Extension toolbar icon, signed out** (2026-11): Chrome's action badge shows a white **!** on the popup's `--sb-danger` (`#DC2626`, 4.8:1), and the icon's tooltip reads "Fibonax: you're signed out. Click to sign in." Both go the moment a session is saved. The glyph and the tooltip carry the meaning, so it never rests on colour alone. The service worker has no CSS, so `background.js` (`sbUpdateSignInBadge`) names the hex beside the token. No new tokens.
 - **Shortcut tag** (dashboard): the trigger and shortcut render as two separate chips — a muted trigger chip (`bg-bg-alt` / `ink-muted`) beside the shortcut chip (`bg-primary-light` / `primary`). Supersedes the single-pill `.sctag` (prefix at `0.45` opacity); the extension popup + mobile still use the inline form pending alignment.
@@ -612,6 +648,19 @@ The extension's Add context panel (`extension/content/memory-picker.js`, drawn i
 | Usually with | A Brain item ticked because it usually goes in with a prompt carries a pill beside its **Brain** tag: `primary` on `primary-bg`, 9 px bold, `r-pill`, reading **Usually with** and the prompt's name, cut with an ellipsis at 190 px, the full sentence on hover. The reason is in words, never in colour alone |
 | Height | 412 px at most (340 for title, list and footer as before, plus the two rows). While the panel is open the list keeps the tallest height it has had, so the search box never moves under the cursor |
 
+### Prompt menu: own prompts first, built-in ones folded (2026-11)
+
+The in-page `"""` menu (`extension/content/content.js`, `#sb-trigger-picker`, shared with the `::` snippet menu) lists the person's own prompts first. No new tokens.
+
+| Part | Value |
+| --- | --- |
+| Folded row | The last row, under a 1 px `line` rule: **Built-in prompts** in 13 px medium `ink-muted`, then the count and a 14 px chevron down in the heading grey (`#A1A1AA`). It is a row like the others (same padding, hover and `primary-bg` highlight) and is reached with the arrow keys. Shown only when the person has prompts of their own and nothing is typed |
+| Hint | The header hint follows the highlighted row: **Tab / Enter to open** on the folded row, **Tab / Enter to insert** on every other |
+| Opened | The built-in prompts take the row's place under a **Built-in prompts** heading (10 px bold uppercase, the menu's heading style), the first one highlighted and the heading brought to the top of the list. It stays open until the menu closes |
+| Typing | Looks through both lists. Own matches come first, built-in matches under the same heading |
+| No own prompts | The built-in prompts are listed directly, with no row and no heading |
+| Above the cursor | A menu with no room below is held by its bottom edge, so a short list sits against the line being typed and a list that opens grows upward. Both menus |
+
 ### Settings page in the Analytics shell (v3.115.0)
 
 Settings wears the Analytics page's shell. The section switch (**Account**, **Security**, **Integrations**) is the same `Segmented` control as the Analytics period picker, in the `PageHeader` action slot; the header's description names what the open section holds. `?tab=security` still opens on Security. From `xl` the Account section is two columns on the golden ratio (`minmax(0,1.618fr) minmax(0,1fr)`, `items-start`, `gap-5`): who you are and what the dashboard shows on the left (Account, Company branding, Santo del Giorno), how snippets are inserted on the right (Triggers & Prefix, Insert automatically, Unused snippets and prompts), then the FiboToken exchange rate, chosen so the two columns end within about 80 px of each other. Delete account stays last, full width, `mt-6` below, and is the one card in the danger tint: `danger-bg` fill, `danger` border at 30%, footer rule at 20%, and its button a white `card` pill with `danger` text. Security puts Password full width, then Your devices and Recent login activity on the same golden columns. Below `xl` every section is one column in the same order. Card titles carry no icon, like the Analytics section cards. While the profile loads, the Account section shows two `animate-pulse` blocks in the column grid; when it cannot load, `LoadErrorCard` (shared with Analytics) says so with **Try again**. No new tokens.
@@ -633,3 +682,26 @@ No new tokens on any surface. The chip is the pricing page's: `primary` text on 
 - **Phone** (`#home-rate` in `app/public/mobile/index.html`): a pill at the foot of Home, after **Your Brains**: `card`, `border`, 24 px radius, 48 px tall, the rate at 14 px bold with the chip and a chevron. A tap opens it in place over 300 ms (`grid-template-rows`, not at all under `prefers-reduced-motion`): the rate at 55 px mono in `primary`, the example, the date, the disclaimer and a 48 px **See the packs** button, with gaps of 8 and 13 px. Once open it scrolls clear of the bottom bar. Below 350 px the chip drops under the rate.
 - **Landing homepage** (`.rate-pill`, `.rd-*`): a white pill (`card`, `border`, `r-pill`, 44 px) under "See the pricing page for allowances and rates" in the dark closing section; it opens a 520 px window (`card`, 4 px `primary` top edge, `r`, the contact window's backdrop and motion) with the same content and **See the packs**. On phones the window sits at the bottom of the screen. Escape and a click outside close it, Tab stays inside, focus returns to the pill.
 - **Pricing page**: the rate card gains a **Rate details** button (`r-pill`, `border`, `primary` text, 44 px) that opens the same window, taken from the homepage as the shared `rate`, `rate-css` and `rate-js` fragments; a click anywhere on the card does the same. There **See the packs** scrolls to the plans.
+
+### Language choice (2026-11)
+
+The globe in the dashboard's top bar, left of the theme switch, and the Language card in Settings > Account.
+
+| Part | Rule |
+|---|---|
+| Trigger | 32 px high, 10 px radius, 1 px `line` border on `bg-alt`, a 14 px globe and the language code in 12 px semibold (`EN`, `IT`); `ink-muted` in English, `primary` once another language is on. In Settings the same trigger shows the language's own name. While Google loads, the globe is a spinner |
+| Menu | 288 px wide, up to 420 px high, 12 px radius, `card` with a 1 px `line` border, under the trigger and right-aligned, above it when the room below is short |
+| List | Search box first. English ("Original") on top, then the browser's own languages, a hairline, then every language A to Z. Each row shows the language's own name with the English name in `ink-subtle` beside it; the chosen one is `primary` on `primary-light` with a check. Names are never translated |
+| Footer | 11 px `ink-subtle`: "Translated by Google. Your snippets, prompts and Brains stay as you wrote them." A failure shows above it in `danger` |
+
+### Refer a friend (2026-11)
+
+A row near the foot of the dashboard sidebar, between the rotating sentence and the account block, in the nav row style: a gift icon and **Refer a friend**. It opens one `Dialog` (640 px, `features/referral/ReferFriendDialog.tsx`). While the feature is switched off the row is dimmed to 60%, carries a 12 px lock on its right edge and the tooltip "Available soon", and opens nothing (the locked-control pattern of `components/shared/ProSoon.tsx`). Collapsed, the rail shows the icon alone and the tooltip names the row.
+
+- **Gift card and steps.** One row split as a golden rectangle beside a square (`minmax(0,1.618fr) minmax(0,1fr)`, measured 352 by 218 beside 218): the card on the left, **How it works** on the right. The card is `aspect-ratio:1.618/1`, `r-card`, a `primary` to `primary-dark` gradient with `shadow-md`, white text: the Fibonax T, the wordmark at 26 px bold, a white **Pro** tag with `primary` text, "FULL ACCESS FOR 1 MONTH" at 11 px semibold uppercase, and a "Gifted by" pill (white at 16%). Behind it runs the Fibonacci spiral: quarter arcs through squares of 21, 13, 8, 5, 3, 2 and 1, a white line at 16% opacity. The three steps are numbered in 20 px `primary-light` circles with `primary` digits.
+- **Link.** A read-only box in mono 13 px that selects itself on focus, and a primary **Copy** button that reads **Copied** with a tick for 2 seconds. A line under it says when all 3 places are taken, or how to copy by hand when the browser refuses.
+- **Friends who joined.** A bordered list, one row per friend: a 28 px round icon (a tick on `primary-light` when the free month was earned, a clock while there is time, a cross when the time ran out), the masked address, and one line of plain words, so the meaning is never the colour or the icon alone. The count on the right reads "2 of 3 places taken". With nobody yet: one `bg-alt` line.
+- **A friend's code.** Offered only to a new account that has not joined through a link: a text link, **Did a friend invite you?**, opens a labelled box and a ghost **Add** button; what the server answers shows under it in `danger`.
+- **Sign-up page.** A visitor who arrived through a link reads one line above the method tabs: a gift icon and the rule, on `primary-light`, `r`.
+
+Loading shows the card and the steps at once, with a spinner where the link will be; a failed read says so in a `danger-bg` box with **Try again**. Closing hands focus back to the sidebar row. No new tokens.
