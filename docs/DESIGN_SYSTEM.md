@@ -122,6 +122,10 @@ never waits for data.
 
 The dashboard shows the Fibonax T, the same picture as the extension, the phone and the landing page: `components/layout/BrandMark.tsx` draws `/landing/leib-tour-icon.png` as a mask in `ink`, so it reads in light and dark. It replaced the SprintBrain "S" square on 2026-11-18 in the topbar, the login and signup pages and the Company branding preview. No new colour.
 
+### Bot check box (login and signup)
+
+Cloudflare's "Verify you are human" box appears only when Cloudflare needs a click. It sits right under the button the person just pressed (**Continue**, **Sign in**, **Send link**, **Create account**), centred, 12 px below it, and takes no room until it shows (`components/auth/HumanCheckSlot.tsx`, placed straight after each form's button). Until 2026-11-20 it sat at the foot of the page, under "Create an account", where people missed it. No new tokens.
+
 **v1.1 removes Iris purple `#6C5CE7` entirely.** The `--sb-iris*` aliases in the extension's tokens file still resolve, but they all point at the azure values. Any new code must use `--sb-azure*` / `primary` directly.
 
 ### Language palette (must stay identical across all surfaces)

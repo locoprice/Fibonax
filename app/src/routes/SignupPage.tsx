@@ -249,6 +249,7 @@ export function SignupPage() {
                   >
                     {loading ? 'Sending…' : 'Continue →'}
                   </Button>
+                  <HumanCheckSlot check={humanCheck} />
                 </form>
               ) : (
                 <form onSubmit={handleSubmitPassword} noValidate className="space-y-3">
@@ -288,6 +289,7 @@ export function SignupPage() {
                   >
                     {loading ? 'Creating…' : 'Create account →'}
                   </Button>
+                  <HumanCheckSlot check={humanCheck} />
                 </form>
               )}
 
@@ -419,8 +421,6 @@ export function SignupPage() {
           )}
 
         </div>
-
-        <HumanCheckSlot check={humanCheck} />
       </main>
     </div>
   );

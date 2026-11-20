@@ -31,6 +31,7 @@ interface TurnstileRenderOptions {
   callback: (token: string) => void;
   'error-callback': () => boolean;
   'timeout-callback': () => void;
+  'before-interactive-callback': () => void;
 }
 
 export interface TurnstileApi {
@@ -79,8 +80,16 @@ interface Widget {
   remove(): void;
 }
 
-/** One widget in `container` that hands out a fresh single-use token per call. */
-export function createWidget(api: TurnstileApi, container: HTMLElement, siteKey: string): Widget {
+/**
+ * One widget in `container` that hands out a fresh single-use token per call.
+ * `onNeedsClick` runs when Cloudflare is about to draw its box.
+ */
+export function createWidget(
+  api: TurnstileApi,
+  container: HTMLElement,
+  siteKey: string,
+  onNeedsClick: () => void = () => undefined,
+): Widget {
   let pending: { resolve: (token: string) => void; reject: (err: Error) => void } | null = null;
   let used = false;
 
@@ -103,6 +112,7 @@ export function createWidget(api: TurnstileApi, container: HTMLElement, siteKey:
       return true;
     },
     'timeout-callback': () => settle(new HumanCheckError(HUMAN_CHECK_FAILED)),
+    'before-interactive-callback': onNeedsClick,
   });
   if (!id) throw new HumanCheckError(HUMAN_CHECK_LOAD_FAILED);
   const widgetId = id;
@@ -125,8 +135,8 @@ export function createWidget(api: TurnstileApi, container: HTMLElement, siteKey:
 }
 
 export interface HumanCheck {
-  /** Draws the widget into the page's slot. Called when the slot appears. */
-  attach(container: HTMLElement): void;
+  /** Draws the widget into a slot. Called when the slot appears. `onNeedsClick` runs when the box shows. */
+  attach(container: HTMLElement, onNeedsClick?: () => void): void;
   /** Takes the widget away. Called when the slot leaves the page. */
   detach(): void;
   /** A fresh token for the next Supabase call. Throws a HumanCheckError worded for people. */
@@ -144,8 +154,10 @@ export function createHumanCheck(
   let removed: Promise<void> = Promise.resolve();
 
   return {
-    attach(container) {
-      const attempt = removed.then(load).then((api) => createWidget(api, container, siteKey()));
+    attach(container, onNeedsClick) {
+      const attempt = removed
+        .then(load)
+        .then((api) => createWidget(api, container, siteKey(), onNeedsClick));
       ready = attempt;
       // A failed load is reported by getToken, when someone presses the button;
       // this only keeps the browser from logging it as unhandled meanwhile.

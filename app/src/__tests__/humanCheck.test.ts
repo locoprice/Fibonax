@@ -70,6 +70,14 @@ describe('createWidget', () => {
     expect(t.calls).toEqual(['render']);
   });
 
+  it('says when Cloudflare is about to draw its box', () => {
+    const t = fakeTurnstile();
+    let shown = 0;
+    createWidget(t.api, document.createElement('div'), 'key', () => (shown += 1));
+    t.options()?.['before-interactive-callback']();
+    expect(shown).toBe(1);
+  });
+
   it('hands out one token per request, resetting before every request after the first', async () => {
     const t = fakeTurnstile();
     const widget = createWidget(t.api, document.createElement('div'), 'key');
@@ -117,6 +125,18 @@ describe('createHumanCheck', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     t.solve('token-1');
     await expect(token).resolves.toBe('token-1');
+  });
+
+  it('tells the slot when the box is about to show, so it can make room under the button', async () => {
+    const t = fakeTurnstile();
+    const check = createHumanCheck(() => Promise.resolve(t.api), () => 'key');
+    let shown = false;
+    check.attach(document.createElement('div'), () => {
+      shown = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    t.options()?.['before-interactive-callback']();
+    expect(shown).toBe(true);
   });
 
   it('says the check did not load when Cloudflare cannot be reached', async () => {
