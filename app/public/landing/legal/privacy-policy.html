@@ -120,6 +120,17 @@
     .toc { position: static; display: none; }
     .header-nav { display: none; }
   }
+  /* On a phone each permission is a short stacked block, so the page never scrolls sideways. */
+  @media (max-width: 640px) {
+    .permission-table, .permission-table tbody, .permission-table tr, .permission-table td { display: block; }
+    .permission-table thead { display: none; }
+    .permission-table tr { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+    .permission-table tr:last-child { border-bottom: none; }
+    .permission-table td { padding: 0.25rem 0; border-bottom: none; }
+    .permission-table td:nth-child(2)::before { content: "Purpose"; }
+    .permission-table td:nth-child(3)::before { content: "Data accessed"; }
+    .permission-table td:nth-child(n+2)::before { display: block; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+  }
 </style>
 </head>
 <body>

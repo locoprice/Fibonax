@@ -22,6 +22,18 @@ Standing rule from Valentina (2026-10-30): almost every element on every surface
 
 First applied to the pricing plan cards (see Landing pricing page).
 
+## No sideways scrolling
+
+Standing rule from Valentina (2026-11-20): no window, panel, list or page on any surface shows a horizontal scrollbar. Every layout fits the width it is given. Scrolling up and down is fine.
+
+- **Make it fit, never scroll it.** Give columns set widths and cut long text with "…" (full text in a tooltip), wrap long words (`break-words`, `overflow-wrap:anywhere`), share the width in fractions (`minmax(0, 1fr)`), and let fixed-size marks shrink down to fit.
+- **Fold, do not squeeze.** When columns no longer fit, their facts move under the main cell instead. The snippets list measures its own width (`useListWidth` in `SnippetsTable.tsx`): Folder and Updated have columns from 960 px, Shortcut and Usage from 560 px, and below that all four sit under the name.
+- **Tables on a phone stack.** Each row becomes a short block, its name on top and the other cells under it with their labels (the legal pages' permission and cookie tables, under 640 px).
+- **Email layouts** keep their own width in the snippet editor when the box has room; in a narrower box they are fitted to it (tables size to their content, pictures shrink with their proportions kept). Only the view changes, never what is saved. The preview panel keeps showing the true layout, scaled.
+- **Dashboard classes.** `overflow-y-auto` is the scroll class a box may carry. `overflow-x-auto`, `overflow-auto` and `overflow-scroll` are refused by `src/__tests__/noSidewaysScroll.test.ts`.
+- **Existing exception.** The phone's filter chips and folder and language tabs, and the popup's folder chips, slide sideways with no bar showing, by an earlier owner decision. Ask before adding another.
+- **Check it.** Measure at 1024, 1280, 1440 and 1920 px (phones at 360 to 430 px) for any box whose `scrollWidth` is larger than its `clientWidth`.
+
 ## Canonical tokens
 
 > **Hard rule**: Any new color, radius, shadow, or spacing value introduced in any package must be added to this table **first**, then referenced by name from the appropriate token file:

@@ -51,7 +51,7 @@ function DiffViewer({ before, after }: DiffViewerProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-[8px] border border-line bg-bg text-xs font-mono">
+    <div className="overflow-hidden rounded-[8px] border border-line bg-bg text-xs font-mono">
       {lines.map((line, idx) => (
         <div
           key={idx}

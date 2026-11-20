@@ -230,7 +230,7 @@ function ItemCard({
           {expanded ? 'Hide body' : 'Show body'}
         </button>
         {expanded ? (
-          <pre translate="no" className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] bg-bg-alt p-3 font-mono text-xs leading-relaxed text-ink">
+          <pre translate="no" className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap break-words rounded-[10px] bg-bg-alt p-3 font-mono text-xs leading-relaxed text-ink">
             {item.body}
           </pre>
         ) : null}

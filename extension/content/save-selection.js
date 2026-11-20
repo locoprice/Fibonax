@@ -115,7 +115,7 @@
 
     card.appendChild(el('div',
       'font-size:12px;line-height:1.5;color:#52525B;background:#F4F4F5;border-radius:10px;' +
-      'padding:10px 12px;max-height:120px;overflow:auto;margin-bottom:14px;white-space:pre-wrap',
+      'padding:10px 12px;max-height:120px;overflow-y:auto;overflow-wrap:anywhere;margin-bottom:14px;white-space:pre-wrap',
       text));
 
     var select = el('select',
