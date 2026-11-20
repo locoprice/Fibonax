@@ -528,8 +528,9 @@
 
   // ── OFTEN SENT NEXT ─────────────────────────────────────────────
   // The snippets a person usually sends right after this one, offered where
-  // the snippet is used: in the fill window's footer, between the keyboard
-  // hint and Insert, and on the page's card after a snippet without a form.
+  // the snippet is used: as a list under the fill window's preview, which
+  // shows what each ticked one adds, and on the page's card after a snippet
+  // without a form.
   // Which ones come next is decided from the use history by
   // SBUsageAnalytics.nextAfter ({ fromId: [{ id, count }] }); this decides
   // which of them to offer and draws the offer, for the page, the popup and
@@ -547,6 +548,7 @@
     switch (key) {
       case 'tick': return 'Add ' + t + ' after it';
       case 'why': return 'Often sent next';
+      case 'list': return 'Often sent next: tick to add after your text';
       case 'place': return 'Goes in ' + (NEXT_PLACES[Number(title) - 1] || t + 'th');
       case 'card': return 'Often sent with ' + t;
       case 'card-hint': return 'Add it right after this text.';
@@ -609,19 +611,30 @@
   }
 
   /**
-   * The offer in a fill window's footer: one row per snippet in `list`, each a
-   * tick box "Add Firma after it", the line "Often sent next" and a cross that
-   * hides that pair (onHide(next)). Every row starts unticked: nothing extra
-   * goes in unless the person asks. With several rows, a ticked one says where
-   * it goes ("Goes in 2nd"). onChange(picked, left) runs after each tick and
-   * each cross, `left` being the rows still shown. Returns { el, picked }
+   * The offer: one row per snippet in `list`, each a tick box "Add Firma after
+   * it", the line "Often sent next" and a cross that hides that pair
+   * (onHide(next)). Every row starts unticked: nothing extra goes in unless
+   * the person asks. With several rows, a ticked one says where it goes
+   * ("Goes in 2nd"). onChange(picked, left) runs after each tick and each
+   * cross, `left` being the rows still shown. `opts.list` draws it as the list
+   * under a fill window's preview, headed "Often sent next: tick to add after
+   * your text"; the heading leaves with the last row. Returns { el, picked }
    * where picked() is the ticked snippets in the order they were ticked.
    */
-  function nextOffer(doc, list, onHide, onChange) {
+  function nextOffer(doc, list, onHide, onChange, opts) {
+    var asList = !!(opts && opts.list);
     var group = doc.createElement('div');
-    group.className = 'ff-nexts';
+    group.className = asList ? 'ff-nexts ff-nexts--list' : 'ff-nexts';
     group.setAttribute('role', 'group');
-    group.setAttribute('aria-label', nextWords('why'));
+    group.setAttribute('aria-label', nextWords(asList ? 'list' : 'why'));
+    if (asList) {
+      // A div: the page's window resets every p to the text around it.
+      var head = doc.createElement('div');
+      head.className = 'ff-nexts-head';
+      head.setAttribute('aria-hidden', 'true');
+      head.textContent = nextWords('list');
+      group.appendChild(head);
+    }
     var rows = [];
     var order = [];
 
@@ -714,6 +727,24 @@
     return { text: text, html: wantHtml ? html : null };
   }
 
+  /**
+   * What the ticked snippets add, shown at the end of a preview box, after a
+   * blank line, so the preview reads as the message that goes out. Run it after
+   * each tick and after each redraw of the box; none ticked takes it away.
+   */
+  function nextPreview(box, list) {
+    if (!box) return;
+    for (var i = box.children.length - 1; i >= 0; i--) {
+      if (box.children[i].className === 'ff-next-added') box.removeChild(box.children[i]);
+    }
+    var text = nextAddition(list, false).text;
+    if (!text) return;
+    var add = box.ownerDocument.createElement('span');
+    add.className = 'ff-next-added';
+    add.textContent = text;
+    box.appendChild(add);
+  }
+
   /** The names for a toast: "Firma", "Alternativa and Firma", "A, B and C". */
   function nextNames(list) {
     var names = (list || []).map(function(n) { return String(n.title || 'a snippet'); });
@@ -725,5 +756,5 @@
     unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
     NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
     nextWords: nextWords, nextsFor: nextsFor, hideNext: hideNext, nextToggle: nextToggle, nextOffer: nextOffer,
-    nextText: nextText, nextAddition: nextAddition, nextNames: nextNames };
+    nextText: nextText, nextAddition: nextAddition, nextPreview: nextPreview, nextNames: nextNames };
 })(typeof window !== 'undefined' ? window : this);

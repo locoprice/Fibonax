@@ -4632,11 +4632,11 @@ svg.brain-type-icon{stroke-width:1.8}
 .detail:has(.d-fields) .ff-progress{margin:0;}
 #view-detail #prev-text{max-height:none;overflow:visible;}
 
-/* "Add Firma after it": the snippets usually sent next, offered in the fill
-   window's footer between the keyboard hint and Insert, one row each. Azure
-   tint, a 44px tick target, the cross to hide the pair. A ticked row among
-   several says where it goes ("Goes in 2nd"): words carry the meaning, never
-   the colour alone. */
+/* "Add Firma after it": the snippets usually sent next, one row each, as a
+   list under the fill window's preview (and on the page's card). Azure tint,
+   a 44px tick target, the cross to hide the pair. A ticked row among several
+   says where it goes ("Goes in 2nd"): words carry the meaning, never the
+   colour alone. The preview shows what the ticked ones add, in azure. */
 .ff-nexts{display:flex!important;flex-wrap:wrap;justify-content:center;gap:6px;min-width:0;margin:0 auto;box-sizing:border-box;}
 .ff-next{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);--ffn-muted:var(--sb-ink-muted,var(--text2,#6E6E73));display:flex!important;align-items:center;gap:4px;min-width:0;margin:0;padding:2px 4px 2px 12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);box-sizing:border-box;font-family:inherit;text-align:left;}
 .ff-next .ff-next-tick{display:flex!important;flex:1 1 auto;align-items:center;gap:10px;min-height:44px;min-width:0;margin:0;padding:0;cursor:pointer;font:inherit;color:var(--ffn-primary);}
@@ -4650,20 +4650,19 @@ svg.brain-type-icon{stroke-width:1.8}
 .ff-next .ff-next-hide:hover{background:var(--sb-bg,var(--card,#fff));color:var(--ffn-primary);}
 .ff-next .ff-next-hide:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
 .ff-next svg{display:block;}
-@media(max-width:480px){#sb-overlay .ff-nexts{width:100%;margin:0;}#sb-overlay .ff-nexts>.ff-next{flex:1 1 100%;}}
-/* The phone: rows of their own above Copy and Share, three in view with the
-   top of the next one showing that the list scrolls, and the page below
-   scrolls far enough to clear the taller footer. */
-.copy-foot>.ff-nexts{flex:1 1 100%;margin:0;max-height:188px;overflow-y:auto;}
-.copy-foot>.ff-nexts>.ff-next{flex:1 1 100%;background:var(--card,#fff);}
-#view-detail:has(.copy-foot .ff-next) .det-body{padding-bottom:calc(170px + env(safe-area-inset-bottom));}
-#view-detail:has(.copy-foot .ff-next:nth-child(2)) .det-body{padding-bottom:calc(226px + env(safe-area-inset-bottom));}
-#view-detail:has(.copy-foot .ff-next:nth-child(3)) .det-body{padding-bottom:calc(282px + env(safe-area-inset-bottom));}
-#view-detail:has(.copy-foot .ff-next:nth-child(4)) .det-body{padding-bottom:calc(308px + env(safe-area-inset-bottom));}
-/* The popup: rows of their own above the Copy buttons, across both columns. */
-.detail>.ff-nexts{margin:8px 0 0;}
-.detail>.ff-nexts>.ff-next{flex:1 1 220px;}
-.detail:has(.d-fields)>.ff-nexts{grid-column:1/-1;margin:0;}
+/* The list under a preview: a heading, then one full-width row per snippet. */
+.ff-nexts--list{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;margin:0;padding:12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);}
+.ff-nexts--list .ff-nexts-head{margin:0 0 2px;font-size:13px;line-height:1.4;font-weight:600;color:var(--ffn-primary);}
+.ff-nexts--list>.ff-next{background:var(--sb-bg,var(--card,#fff));}
+.ff-next-added{color:var(--sb-azure,var(--primary,#1B4FD8));}
+/* The page's fill window: under the preview box, which gives up the room. */
+#sb-overlay[role=dialog] .sb-preview>.ff-nexts--list{flex:none;max-height:50%;overflow-y:auto;margin-top:12px;}
+/* The phone: under the preview, at the end of the page, so it shows on
+   Fill in and on Preview alike. */
+#det-body>.ff-nexts--list{margin:16px 0 0;}
+/* The popup: under the preview, across both columns when there are fields. */
+.detail>.ff-nexts--list{margin:8px 0 0;}
+.detail:has(.d-fields)>.ff-nexts--list{grid-column:1/-1;margin:0;}
 
 /* Pictures in a preview, and the line that says where they go. Host pages style
    img freely, so the sizes hold with !important. */
@@ -5218,8 +5217,9 @@ svg.brain-type-icon{stroke-width:1.8}
 
   // ── OFTEN SENT NEXT ─────────────────────────────────────────────
   // The snippets a person usually sends right after this one, offered where
-  // the snippet is used: in the fill window's footer, between the keyboard
-  // hint and Insert, and on the page's card after a snippet without a form.
+  // the snippet is used: as a list under the fill window's preview, which
+  // shows what each ticked one adds, and on the page's card after a snippet
+  // without a form.
   // Which ones come next is decided from the use history by
   // SBUsageAnalytics.nextAfter ({ fromId: [{ id, count }] }); this decides
   // which of them to offer and draws the offer, for the page, the popup and
@@ -5237,6 +5237,7 @@ svg.brain-type-icon{stroke-width:1.8}
     switch (key) {
       case 'tick': return 'Add ' + t + ' after it';
       case 'why': return 'Often sent next';
+      case 'list': return 'Often sent next: tick to add after your text';
       case 'place': return 'Goes in ' + (NEXT_PLACES[Number(title) - 1] || t + 'th');
       case 'card': return 'Often sent with ' + t;
       case 'card-hint': return 'Add it right after this text.';
@@ -5299,19 +5300,30 @@ svg.brain-type-icon{stroke-width:1.8}
   }
 
   /**
-   * The offer in a fill window's footer: one row per snippet in `list`, each a
-   * tick box "Add Firma after it", the line "Often sent next" and a cross that
-   * hides that pair (onHide(next)). Every row starts unticked: nothing extra
-   * goes in unless the person asks. With several rows, a ticked one says where
-   * it goes ("Goes in 2nd"). onChange(picked, left) runs after each tick and
-   * each cross, `left` being the rows still shown. Returns { el, picked }
+   * The offer: one row per snippet in `list`, each a tick box "Add Firma after
+   * it", the line "Often sent next" and a cross that hides that pair
+   * (onHide(next)). Every row starts unticked: nothing extra goes in unless
+   * the person asks. With several rows, a ticked one says where it goes
+   * ("Goes in 2nd"). onChange(picked, left) runs after each tick and each
+   * cross, `left` being the rows still shown. `opts.list` draws it as the list
+   * under a fill window's preview, headed "Often sent next: tick to add after
+   * your text"; the heading leaves with the last row. Returns { el, picked }
    * where picked() is the ticked snippets in the order they were ticked.
    */
-  function nextOffer(doc, list, onHide, onChange) {
+  function nextOffer(doc, list, onHide, onChange, opts) {
+    var asList = !!(opts && opts.list);
     var group = doc.createElement('div');
-    group.className = 'ff-nexts';
+    group.className = asList ? 'ff-nexts ff-nexts--list' : 'ff-nexts';
     group.setAttribute('role', 'group');
-    group.setAttribute('aria-label', nextWords('why'));
+    group.setAttribute('aria-label', nextWords(asList ? 'list' : 'why'));
+    if (asList) {
+      // A div: the page's window resets every p to the text around it.
+      var head = doc.createElement('div');
+      head.className = 'ff-nexts-head';
+      head.setAttribute('aria-hidden', 'true');
+      head.textContent = nextWords('list');
+      group.appendChild(head);
+    }
     var rows = [];
     var order = [];
 
@@ -5404,6 +5416,24 @@ svg.brain-type-icon{stroke-width:1.8}
     return { text: text, html: wantHtml ? html : null };
   }
 
+  /**
+   * What the ticked snippets add, shown at the end of a preview box, after a
+   * blank line, so the preview reads as the message that goes out. Run it after
+   * each tick and after each redraw of the box; none ticked takes it away.
+   */
+  function nextPreview(box, list) {
+    if (!box) return;
+    for (var i = box.children.length - 1; i >= 0; i--) {
+      if (box.children[i].className === 'ff-next-added') box.removeChild(box.children[i]);
+    }
+    var text = nextAddition(list, false).text;
+    if (!text) return;
+    var add = box.ownerDocument.createElement('span');
+    add.className = 'ff-next-added';
+    add.textContent = text;
+    box.appendChild(add);
+  }
+
   /** The names for a toast: "Firma", "Alternativa and Firma", "A, B and C". */
   function nextNames(list) {
     var names = (list || []).map(function(n) { return String(n.title || 'a snippet'); });
@@ -5415,7 +5445,7 @@ svg.brain-type-icon{stroke-width:1.8}
     unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
     NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
     nextWords: nextWords, nextsFor: nextsFor, hideNext: hideNext, nextToggle: nextToggle, nextOffer: nextOffer,
-    nextText: nextText, nextAddition: nextAddition, nextNames: nextNames };
+    nextText: nextText, nextAddition: nextAddition, nextPreview: nextPreview, nextNames: nextNames };
 })(typeof window !== 'undefined' ? window : this);
 </script>
 <!-- SB_FILL_FORM_UI:END -->
@@ -13866,6 +13896,7 @@ function updatePrev(){
   if(!curSnip)return;
   var vm=currentForm();
   window.SBFillFormUI.showPreview(document.getElementById('prev-text'),vm);
+  window.SBFillFormUI.nextPreview(document.getElementById('prev-text'),mobNext&&mobNext.id===curSnip.id?mobNext.offer.picked():[]);
   /* Where the pictures go: Copy takes them into an email, Share sends text. */
   window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote'),vm,'copy');
   window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote-share'),navigator.share?vm:null,'share');
@@ -14026,8 +14057,8 @@ function fillFromLink(){
 })();
 
 /* ── OFTEN SENT NEXT ────────────────────────────── */
-/* "Add Firma after it" above Copy and Share: the snippets usually sent right
-   after this one, the offer the extension's fill window shows. What comes next
+/* "Add Firma after it" listed under the preview: the snippets usually sent
+   right after this one, the offer the extension's fill window shows. What comes next
    is SBUsageAnalytics.nextAfter over your own uses on every device, read at
    most every 6 hours and kept on this phone (and read again at once when the
    kept answer has an older shape); which ones to offer, and their words, come
@@ -14066,13 +14097,16 @@ function loadMobNext(){
       console.error('Could not read the use history for what usually comes next',err);
     });
 }
-/* Draws the offer for the snippet on screen, or takes it away. */
+/* Draws the offer for the snippet on screen, or takes it away: a list at the
+   end of the page, under the preview, so it shows on Fill in and on Preview
+   alike. The preview shows what each ticked one adds. */
 function mountMobNext(){
-  var foot=document.querySelector('#view-detail .copy-foot');
-  if(!foot)return;
-  var old=foot.querySelector('.ff-nexts');
+  var body=document.getElementById('det-body');
+  if(!body)return;
+  var old=body.querySelector(':scope > .ff-nexts');
   if(old)old.remove();
   mobNext=null;
+  if(window.SBFillFormUI)window.SBFillFormUI.nextPreview(document.getElementById('prev-text'),[]);
   if(!curSnip||!detailOpen()||!window.SBFillFormUI)return;
   var UI=window.SBFillFormUI, s=curSnip;
   var list=UI.nextsFor(mobNextMap,s.id,allSnips,mobNextHidden());
@@ -14080,8 +14114,10 @@ function mountMobNext(){
   var offer=UI.nextOffer(document,list,function(next){
     try{localStorage.setItem(MOB_NEXT_HIDDEN_KEY,JSON.stringify(UI.hideNext(mobNextHidden(),s.id,next.id)));}
     catch(e){console.error('Could not remember the hidden suggestion',e);}
-  });
-  foot.insertBefore(offer.el,foot.firstChild);
+  },function(picked){
+    UI.nextPreview(document.getElementById('prev-text'),picked);
+  },{list:true});
+  body.appendChild(offer.el);
   mobNext={id:s.id,offer:offer};
 }
 /* The text, and its formatted copy, with the ticked snippets after it, in the

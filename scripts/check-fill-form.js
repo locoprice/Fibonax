@@ -759,8 +759,23 @@ console.log('OK A formatted text is filled from the same form, its plain copy ke
   assert.deepEqual([[firma], [alt, firma], [alt, thanks, firma]].map(UI.nextNames),
     ['Firma', 'Alternativa and Firma', 'Alternativa, Thanks and Firma']);
 
+  // The preview under which they are listed ends with what the ticked ones add.
+  const node = (cls) => ({ className: cls || '', textContent: '' });
+  const box = { children: [node('ff-pic')], ownerDocument: { createElement: () => node() } };
+  box.appendChild = (n) => { box.children.push(n); };
+  box.removeChild = (n) => { box.children.splice(box.children.indexOf(n), 1); };
+  UI.nextPreview(box, [alt, firma]);
+  assert.deepEqual(box.children.map((n) => [n.className, n.textContent]),
+    [['ff-pic', ''], ['ff-next-added', '\n\nWe can also offer <this>.\n\nValentina\nFibonax']], 'added at the end, in the order ticked');
+  UI.nextPreview(box, [firma]);
+  assert.deepEqual(box.children.map((n) => n.textContent), ['', '\n\nValentina\nFibonax'], 'a new tick replaces it, never a second copy');
+  UI.nextPreview(box, []);
+  assert.deepEqual(box.children.map((n) => n.className), ['ff-pic'], 'none ticked takes it away and leaves the rest');
+  UI.nextPreview(null, [firma]);
+
   assert.deepEqual(['tick', 'why', 'card', 'card-hint', 'add', 'hide'].map((k) => UI.nextWords(k, 'Firma')),
     ['Add Firma after it', 'Often sent next', 'Often sent with Firma', 'Add it right after this text.', 'Add Firma', 'Don’t suggest Firma after this snippet']);
+  assert.equal(UI.nextWords('list'), 'Often sent next: tick to add after your text');
   assert.deepEqual([1, 2, 3, 4, 5].map((n) => UI.nextWords('place', n)),
     ['Goes in 1st', 'Goes in 2nd', 'Goes in 3rd', 'Goes in 4th', 'Goes in 5th']);
   assert.deepEqual(['card-many', 'card-many-hint', 'add-none'].map((k) => UI.nextWords(k)).concat(UI.nextWords('add-many', 2)),

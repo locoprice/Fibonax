@@ -105,11 +105,11 @@
 .detail:has(.d-fields) .ff-progress{margin:0;}
 #view-detail #prev-text{max-height:none;overflow:visible;}
 
-/* "Add Firma after it": the snippets usually sent next, offered in the fill
-   window's footer between the keyboard hint and Insert, one row each. Azure
-   tint, a 44px tick target, the cross to hide the pair. A ticked row among
-   several says where it goes ("Goes in 2nd"): words carry the meaning, never
-   the colour alone. */
+/* "Add Firma after it": the snippets usually sent next, one row each, as a
+   list under the fill window's preview (and on the page's card). Azure tint,
+   a 44px tick target, the cross to hide the pair. A ticked row among several
+   says where it goes ("Goes in 2nd"): words carry the meaning, never the
+   colour alone. The preview shows what the ticked ones add, in azure. */
 .ff-nexts{display:flex!important;flex-wrap:wrap;justify-content:center;gap:6px;min-width:0;margin:0 auto;box-sizing:border-box;}
 .ff-next{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);--ffn-muted:var(--sb-ink-muted,var(--text2,#6E6E73));display:flex!important;align-items:center;gap:4px;min-width:0;margin:0;padding:2px 4px 2px 12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);box-sizing:border-box;font-family:inherit;text-align:left;}
 .ff-next .ff-next-tick{display:flex!important;flex:1 1 auto;align-items:center;gap:10px;min-height:44px;min-width:0;margin:0;padding:0;cursor:pointer;font:inherit;color:var(--ffn-primary);}
@@ -123,20 +123,19 @@
 .ff-next .ff-next-hide:hover{background:var(--sb-bg,var(--card,#fff));color:var(--ffn-primary);}
 .ff-next .ff-next-hide:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
 .ff-next svg{display:block;}
-@media(max-width:480px){#sb-overlay .ff-nexts{width:100%;margin:0;}#sb-overlay .ff-nexts>.ff-next{flex:1 1 100%;}}
-/* The phone: rows of their own above Copy and Share, three in view with the
-   top of the next one showing that the list scrolls, and the page below
-   scrolls far enough to clear the taller footer. */
-.copy-foot>.ff-nexts{flex:1 1 100%;margin:0;max-height:188px;overflow-y:auto;}
-.copy-foot>.ff-nexts>.ff-next{flex:1 1 100%;background:var(--card,#fff);}
-#view-detail:has(.copy-foot .ff-next) .det-body{padding-bottom:calc(170px + env(safe-area-inset-bottom));}
-#view-detail:has(.copy-foot .ff-next:nth-child(2)) .det-body{padding-bottom:calc(226px + env(safe-area-inset-bottom));}
-#view-detail:has(.copy-foot .ff-next:nth-child(3)) .det-body{padding-bottom:calc(282px + env(safe-area-inset-bottom));}
-#view-detail:has(.copy-foot .ff-next:nth-child(4)) .det-body{padding-bottom:calc(308px + env(safe-area-inset-bottom));}
-/* The popup: rows of their own above the Copy buttons, across both columns. */
-.detail>.ff-nexts{margin:8px 0 0;}
-.detail>.ff-nexts>.ff-next{flex:1 1 220px;}
-.detail:has(.d-fields)>.ff-nexts{grid-column:1/-1;margin:0;}
+/* The list under a preview: a heading, then one full-width row per snippet. */
+.ff-nexts--list{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;margin:0;padding:12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);}
+.ff-nexts--list .ff-nexts-head{margin:0 0 2px;font-size:13px;line-height:1.4;font-weight:600;color:var(--ffn-primary);}
+.ff-nexts--list>.ff-next{background:var(--sb-bg,var(--card,#fff));}
+.ff-next-added{color:var(--sb-azure,var(--primary,#1B4FD8));}
+/* The page's fill window: under the preview box, which gives up the room. */
+#sb-overlay[role=dialog] .sb-preview>.ff-nexts--list{flex:none;max-height:50%;overflow-y:auto;margin-top:12px;}
+/* The phone: under the preview, at the end of the page, so it shows on
+   Fill in and on Preview alike. */
+#det-body>.ff-nexts--list{margin:16px 0 0;}
+/* The popup: under the preview, across both columns when there are fields. */
+.detail>.ff-nexts--list{margin:8px 0 0;}
+.detail:has(.d-fields)>.ff-nexts--list{grid-column:1/-1;margin:0;}
 
 /* Pictures in a preview, and the line that says where they go. Host pages style
    img freely, so the sizes hold with !important. */

@@ -1415,13 +1415,15 @@ function updateDetailPreview(id){
   if(wrap) window.SBFillFormUI.refresh(wrap.querySelector('.d-fields'), vm);
   if(pv){
     window.SBFillFormUI.showPreview(pv, vm);
+    window.SBFillFormUI.nextPreview(pv, detailNext&&detailNext.id===id?detailNext.offer.picked():[]);
     if(vm.preview.trim()||vm.formatted) pv.classList.remove('plain'); else pv.classList.add('plain');
   }
   if(wrap) window.SBFillFormUI.pictureNote(wrap.querySelector('.ff-picnote'), vm, 'copy');
 }
 // ── OFTEN SENT NEXT ────────────────────────────────────────────────
-// "Add Firma after it" above the Copy buttons of the open snippet: the snippets
-// usually sent right after it, the offer the page's fill window shows. What
+// "Add Firma after it" listed under the open snippet's preview, which shows
+// what each ticked one adds: the snippets usually sent right after it, the
+// offer the page's fill window shows. What
 // comes next is background.js's sb_next, read from the use history; which ones
 // to offer, and their words, come from fill-form-ui.js. Copy puts the ticked
 // ones after the text in the order they were ticked, a blank line before
@@ -1451,8 +1453,11 @@ function mountDetailNext(wrap){
     nextHidden=ui.hideNext(nextHidden, s.id, next.id);
     try{ chrome.storage.local.set({ sb_next_hidden: nextHidden }); }
     catch(e){ console.error('[Fibonax] could not remember the hidden suggestion:', e); }
-  });
-  wrap.insertBefore(offer.el, acts);
+  }, function(picked){
+    ui.nextPreview(wrap.querySelector('.d-body'), picked);
+  }, { list:true });
+  // Right under the preview and its picture line, above the note and buttons.
+  wrap.insertBefore(offer.el, wrap.querySelector('.d-note')||acts);
   detailNext={ id:s.id, offer:offer };
 }
 

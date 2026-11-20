@@ -2315,15 +2315,16 @@ function showOverlay(targetEl, snip, scLen, done) {
   bd.id = 'sb-bd';
   bd.style.cssText = 'position:fixed;inset:0;background:var(--sb-scrim);z-index:2147483646;';
 
-  // The snippets usually sent next, offered in the middle of the footer,
-  // between the keyboard hint and Insert. Unticked: nothing extra goes in
-  // unless the person ticks it, and what is ticked goes in in that order.
+  // The snippets usually sent next, listed under the preview, which shows
+  // what each ticked one adds. Unticked: nothing extra goes in unless the
+  // person ticks it, and what is ticked goes in in that order.
   var nexts = _nextsFor(snip);
   el._sbNext = null;
   if (nexts.length) {
-    el._sbNext = window.SBFillFormUI.nextOffer(document, nexts, function(next) { _hideNext(snip, next); });
-    var foot = el.querySelector('.sb-foot');
-    foot.insertBefore(el._sbNext.el, foot.querySelector('.sb-insert'));
+    el._sbNext = window.SBFillFormUI.nextOffer(document, nexts, function(next) { _hideNext(snip, next); }, function(picked) {
+      window.SBFillFormUI.nextPreview(el.querySelector('#sb-prev'), picked);
+    }, { list: true });
+    el.querySelector('.sb-preview').appendChild(el._sbNext.el);
   }
 
   document.body.appendChild(bd);
@@ -2702,6 +2703,7 @@ function updatePrev(snip) {
   var vm = overlayForm(snip);
   if (!window.SBFillFormUI) { box.textContent = vm.preview; return; }
   window.SBFillFormUI.showPreview(box, vm);
+  window.SBFillFormUI.nextPreview(box, overlayEl._sbNext ? overlayEl._sbNext.picked() : []);
   window.SBFillFormUI.pictureNote(document.getElementById('sb-picnote'), vm, 'left-out');
   window.SBFillFormUI.refresh(overlayEl.querySelector('.sb-fields'), vm);
 }
