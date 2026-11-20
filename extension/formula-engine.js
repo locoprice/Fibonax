@@ -1256,6 +1256,35 @@
     return branches;
   }
 
+  // ── SINGULAR OR PLURAL ──────────────────────────────────────────
+  // A word right after a number can carry its plural ending in brackets:
+  // "1 item(s)", "3 DAY(S)", "2 unidad(es)". The finished message keeps the
+  // ending for any number but 1 and drops it for 1, so it reads "1 item" and
+  // "3 DAYS". A word whose ending changes takes both endings: "1 giorn(o/i)"
+  // prints "1 giorno", "2 giorn(o/i)" prints "2 giorni". The number may be
+  // typed, picked or worked out (a formula, the days between two dates): only
+  // the finished text is read, once, at the outermost resolveBody. A bracket
+  // with no number right before it, or a number glued to a letter ("A1"), is
+  // left as written. 1, 1.0 and 1,00 are singular; 0, 1.5 and 1.000 plural.
+  // Mirrored by sbCountEndings in app/public/mobile/index.html;
+  // scripts/check-snippets.js holds the two to the same answers.
+  var COUNT_LETTER = 'A-Za-z\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u024F';
+  var COUNT_WORD = '(\\d+(?:[.,]\\d+)*)';
+  var COUNT_TAIL = '([' + COUNT_LETTER + ']+)\\(([' + COUNT_LETTER + ']{0,4})(?:\\/([' + COUNT_LETTER + ']{0,4}))?\\)';
+  var COUNT_ENDING_RE = new RegExp('(^|[^0-9' + COUNT_LETTER + '])' + COUNT_WORD + '([ \\u00A0]+)' + COUNT_TAIL, 'g');
+  // In a formatted text the number and the word may sit in different tags.
+  var COUNT_ENDING_HTML_RE = new RegExp('(^|[^0-9' + COUNT_LETTER + '])' + COUNT_WORD +
+    '((?:<[^>]*>)*(?:[ \\u00A0]|&nbsp;)+(?:<[^>]*>)*)' + COUNT_TAIL, 'g');
+  function sbCountEndings(text, html) {
+    return String(text).replace(html ? COUNT_ENDING_HTML_RE : COUNT_ENDING_RE,
+      function(all, pre, num, gap, word, one, many) {
+        var both = typeof many === 'string';
+        if (!one && !many) return all;
+        var single = /^1(?:[.,]0{1,2})?$/.test(num);
+        return pre + num + gap + word + (both ? (single ? one : many) : (single ? '' : one));
+      });
+  }
+
   // ── BODY RESOLVER ───────────────────────────────────────────────
   // `opts.lang` — the snippet's language, used only to gender ambiguous names
   // in a {gender:} token that omits its own `lang=`. `opts.html` resolves a
@@ -1275,7 +1304,8 @@
     // an {if:} branch and another outside it.
     var _o = opts || {};
     var fmtMap, subOpts;
-    if (Object.prototype.hasOwnProperty.call(_o, '_fmtMap')) {
+    var outer = !Object.prototype.hasOwnProperty.call(_o, '_fmtMap');
+    if (!outer) {
       fmtMap = _o._fmtMap; subOpts = _o;
     } else {
       fmtMap = _fieldFormatMap(body, _o.fmtOverride, _o.lang);
@@ -1412,8 +1442,11 @@
         out += body[i++];
       }
     }
-    return out.replace(/\*\*([^*]+)\*\*/g, '$1')
-              .replace(/\[(blue|yellow|red)\]([\s\S]*?)\[\/(?:blue|yellow|red)\]/g, '$2');
+    out = out.replace(/\*\*([^*]+)\*\*/g, '$1')
+             .replace(/\[(blue|yellow|red)\]([\s\S]*?)\[\/(?:blue|yellow|red)\]/g, '$2');
+    // Singular or plural is read off the whole message, never a fragment: the
+    // number can sit outside the {if:} or {case:} that holds the word.
+    return outer ? sbCountEndings(out, html) : out;
   }
 
   // ── FORM TOKEN FIELD NAME ───────────────────────────────────────

@@ -192,3 +192,19 @@ Month and day names print in English. To write the whole date out in the snippet
 ## Upper and lower case
 
 Wrap text in `{case: upper}` and `{/case}` to change its case after it expands. The other options are `lower`, `title` and `sentence`. Fields inside it are filled in first, then cased.
+
+## Singular or plural
+
+Put the plural ending in brackets right after a word that follows a number. Fibonax keeps the ending for any number but 1, and drops it for 1.
+
+| You write | Number | Prints |
+|---|---|---|
+| `{QTY} item(s)` | 1 | 1 item |
+| `{QTY} item(s)` | 3 | 3 items |
+| `{=DAYS} DAY(S)` | 0 | 0 DAYS |
+
+When the end of the word changes, write both endings with a slash: `{QTY} giorn(o/i)` prints *1 giorno* and *4 giorni*.
+
+- The number can be a field, a formula or a number written in the text. It has to come right before the word, with a space between.
+- 1 is singular. 0, 2 and more, and numbers with decimals like 1.5, are plural.
+- Brackets with no number before them stay as you wrote them.

@@ -53,6 +53,16 @@ const cases = [
   { name: 'picture last line',  body: 'Hi\n{picture: src=https://a.co/l.png}', vals: {}, expect: 'Hi' },
   { name: 'picture first line', body: '{picture: src=https://a.co/l.png; size=full}\nHi {N}', vals: { N: 'Ann' }, expect: 'Hi Ann' },
   { name: 'picture is no field', body: 'A{picture: src=https://a.co/l.png}B', vals: {}, expect: 'AB' },
+  // Singular or plural: the bracketed ending after a number stays for any
+  // number but 1, whether typed, worked out or written in the text.
+  { name: 'plural one',         body: 'For {N} item(s) only',               vals: { N: '1' },             expect: 'For 1 item only' },
+  { name: 'plural many',        body: 'For {N} item(s) only',               vals: { N: '3' },             expect: 'For 3 items only' },
+  { name: 'plural zero',        body: '{= N - 2} DAY(S)',                   vals: { N: 2 },               expect: '0 DAYS' },
+  { name: 'plural worked out',  body: '{= N - 2} DAY(S)',                   vals: { N: 3 },               expect: '1 DAY' },
+  { name: 'plural two endings', body: '{N} giorn(o/i), {M} giorn(o/i)',     vals: { N: '1', M: '4' },     expect: '1 giorno, 4 giorni' },
+  { name: 'plural numbers',     body: '1.000 item(s), 1,00 item(s), 1.5 item(s)', vals: {},               expect: '1.000 items, 1,00 item, 1.5 items' },
+  { name: 'plural left alone',  body: 'A1 item(s), item(s), 1 (s), 1 item()', vals: {},                   expect: 'A1 item(s), item(s), 1 (s), 1 item()' },
+  { name: 'plural across rule', body: '{N} {if: N > 0}{case: upper}item(s){/case}{endif}', vals: { N: '2' }, expect: '2 ITEMS' },
 ];
 
 let ok = 0;
@@ -605,7 +615,20 @@ const expansionCases = [
   ['{picture: src=https://a.co/l.png}\nHi', {}],
   ['Hi\n{picture: src=http://a.co/l.png}', {}],
   ['{if: A > 1}{picture: src=https://a.co/l.png}\n{endif}Done', { A: '2' }],
+  ['For {A} item(s) and {B} DAY(S).', { A: '1', B: '3' }],
+  ['{A} giorn(o/i), {B} giorn(o/i)', { A: '1', B: '0' }],
+  ['1.000 item(s), 1,00 item(s), A1 item(s), item(s)', {}],
+  ['{if: A > 0}{A} item(s){endif}', { A: '1' }],
 ];
+// The same in a formatted text, where the number and the word may sit in
+// different tags.
+for (const [body, vals] of [['<b>{A}</b> item(s) and {B}&nbsp;<i>day(s)</i>', { A: '1', B: '2' }]]) {
+  const gotE = engine.resolveBody(body, Object.assign({}, vals), { html: true });
+  const gotM = mobile.resolveBody(body, Object.assign({}, vals), { html: true });
+  if (gotE !== '<b>1</b> item and 2&nbsp;<i>days</i>' || gotM !== gotE) {
+    fail('formatted singular or plural: engine ' + JSON.stringify(gotE) + ', mobile ' + JSON.stringify(gotM));
+  }
+}
 let expOk = 0;
 for (const [body, vals] of expansionCases) {
   const gotE = engine.resolveBody(body, Object.assign({}, vals));

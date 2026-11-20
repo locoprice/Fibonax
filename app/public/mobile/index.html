@@ -10502,6 +10502,25 @@ function extractFields(body) {
   return vars;
 }
 
+/* Singular or plural: a word right after a number carries its plural ending
+   in brackets, "1 item(s)", "3 DAY(S)", "2 giorn(o/i)". The finished message
+   keeps the ending for any number but 1 and drops it for 1. Mirrors
+   sbCountEndings in extension/formula-engine.js; scripts/check-snippets.js
+   holds the two to the same answers. */
+var SB_COUNT_LETTER='A-Za-z\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u024F';
+var SB_COUNT_WORD='(\\d+(?:[.,]\\d+)*)';
+var SB_COUNT_TAIL='(['+SB_COUNT_LETTER+']+)\\((['+SB_COUNT_LETTER+']{0,4})(?:\\/(['+SB_COUNT_LETTER+']{0,4}))?\\)';
+var SB_COUNT_RE=new RegExp('(^|[^0-9'+SB_COUNT_LETTER+'])'+SB_COUNT_WORD+'([ \\u00A0]+)'+SB_COUNT_TAIL,'g');
+var SB_COUNT_HTML_RE=new RegExp('(^|[^0-9'+SB_COUNT_LETTER+'])'+SB_COUNT_WORD+
+  '((?:<[^>]*>)*(?:[ \\u00A0]|&nbsp;)+(?:<[^>]*>)*)'+SB_COUNT_TAIL,'g');
+function sbCountEndings(text,html){
+  return String(text).replace(html?SB_COUNT_HTML_RE:SB_COUNT_RE,function(all,pre,num,gap,word,one,many){
+    var both=typeof many==='string';
+    if(!one&&!many)return all;
+    var single=/^1(?:[.,]0{1,2})?$/.test(num);
+    return pre+num+gap+word+(both?(single?one:many):(single?'':one));
+  });
+}
 function resolveBody(body,vals,opts){
   if(!body)return '';
   /* opts.html resolves a formatted layout: every printed value is escaped. */
@@ -10511,8 +10530,8 @@ function resolveBody(body,vals,opts){
      copy so the caller's opts is never mutated. Mirrors the engine, including
      `opts.fmtOverride` — the format the person filling the form picked in the
      Adjust panel, over the one the author wrote. */
-  var _o=opts||{},fmtMap,subOpts;
-  if(Object.prototype.hasOwnProperty.call(_o,'_fmtMap')){fmtMap=_o._fmtMap;subOpts=_o;}
+  var _o=opts||{},fmtMap,subOpts,outer=!Object.prototype.hasOwnProperty.call(_o,'_fmtMap');
+  if(!outer){fmtMap=_o._fmtMap;subOpts=_o;}
   else{
     fmtMap=sbFieldFormatMap(body,_o.fmtOverride,_o.lang);subOpts={};
     for(var _k in _o)if(Object.prototype.hasOwnProperty.call(_o,_k))subOpts[_k]=_o[_k];
@@ -10638,8 +10657,10 @@ function resolveBody(body,vals,opts){
   /* The author's **bold** and [yellow]…[/yellow] markers never reach the
      message. Mirrors the end of resolveBody in the engine: without it the phone
      copied the asterisks into the text. */
-  return out.replace(/\*\*([^*]+)\*\*/g,'$1')
-            .replace(/\[(blue|yellow|red)\]([\s\S]*?)\[\/(?:blue|yellow|red)\]/g,'$2');
+  out=out.replace(/\*\*([^*]+)\*\*/g,'$1')
+         .replace(/\[(blue|yellow|red)\]([\s\S]*?)\[\/(?:blue|yellow|red)\]/g,'$2');
+  /* Singular or plural is read off the whole message, never a fragment. */
+  return outer?sbCountEndings(out,html):out;
 }
 
 /* ── FILL-FORM ENGINE ADAPTER ───────────────────────────────────────
