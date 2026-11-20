@@ -648,6 +648,19 @@ The extension's Add context panel (`extension/content/memory-picker.js`, drawn i
 | Usually with | A Brain item ticked because it usually goes in with a prompt carries a pill beside its **Brain** tag: `primary` on `primary-bg`, 9 px bold, `r-pill`, reading **Usually with** and the prompt's name, cut with an ellipsis at 190 px, the full sentence on hover. The reason is in words, never in colour alone |
 | Height | 412 px at most (340 for title, list and footer as before, plus the two rows). While the panel is open the list keeps the tallest height it has had, so the search box never moves under the cursor |
 
+### Prompt menu: own prompts first, built-in ones folded (2026-11)
+
+The in-page `"""` menu (`extension/content/content.js`, `#sb-trigger-picker`, shared with the `::` snippet menu) lists the person's own prompts first. No new tokens.
+
+| Part | Value |
+| --- | --- |
+| Folded row | The last row, under a 1 px `line` rule: **Built-in prompts** in 13 px medium `ink-muted`, then the count and a 14 px chevron down in the heading grey (`#A1A1AA`). It is a row like the others (same padding, hover and `primary-bg` highlight) and is reached with the arrow keys. Shown only when the person has prompts of their own and nothing is typed |
+| Hint | The header hint follows the highlighted row: **Tab / Enter to open** on the folded row, **Tab / Enter to insert** on every other |
+| Opened | The built-in prompts take the row's place under a **Built-in prompts** heading (10 px bold uppercase, the menu's heading style), the first one highlighted and the heading brought to the top of the list. It stays open until the menu closes |
+| Typing | Looks through both lists. Own matches come first, built-in matches under the same heading |
+| No own prompts | The built-in prompts are listed directly, with no row and no heading |
+| Above the cursor | A menu with no room below is held by its bottom edge, so a short list sits against the line being typed and a list that opens grows upward. Both menus |
+
 ### Settings page in the Analytics shell (v3.115.0)
 
 Settings wears the Analytics page's shell. The section switch (**Account**, **Security**, **Integrations**) is the same `Segmented` control as the Analytics period picker, in the `PageHeader` action slot; the header's description names what the open section holds. `?tab=security` still opens on Security. From `xl` the Account section is two columns on the golden ratio (`minmax(0,1.618fr) minmax(0,1fr)`, `items-start`, `gap-5`): who you are and what the dashboard shows on the left (Account, Company branding, Santo del Giorno), how snippets are inserted on the right (Triggers & Prefix, Insert automatically, Unused snippets and prompts), then the FiboToken exchange rate, chosen so the two columns end within about 80 px of each other. Delete account stays last, full width, `mt-6` below, and is the one card in the danger tint: `danger-bg` fill, `danger` border at 30%, footer rule at 20%, and its button a white `card` pill with `danger` text. Security puts Password full width, then Your devices and Recent login activity on the same golden columns. Below `xl` every section is one column in the same order. Card titles carry no icon, like the Analytics section cards. While the profile loads, the Account section shows two `animate-pulse` blocks in the column grid; when it cannot load, `LoadErrorCard` (shared with Analytics) says so with **Try again**. No new tokens.

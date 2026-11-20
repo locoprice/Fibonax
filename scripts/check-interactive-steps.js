@@ -12,8 +12,8 @@
 //      block, same answer for every case
 //   4. the load order: manifest.json and popup.html load the module before
 //      the code that uses it, and every copy or insert applies it
-//   5. the in-page picker: the real content.js inserts a saved prompt with the
-//      block only while the popup switch is on, and never changes a Base Prompt
+//   5. the in-page picker: the real content.js inserts a prompt, saved or
+//      built-in, with the block only while the popup switch is on
 //   6. the mobile copy, generated between markers like the other shared modules
 //
 // Run: node scripts/check-interactive-steps.js
@@ -242,12 +242,12 @@ function bootContent(initialArea) {
   check('picker: a saved prompt goes in as written while the switch is off', page.pick(SAVED), [PROMPT]);
   page.popupSets(true);
   check('picker: follows the popup switch without a page reload', page.pick(SAVED), [WITH_BLOCK]);
-  check('picker: a Base Prompt goes in as written with the switch on',
-    page.pick(Object.assign({}, base, { _group: 'base' })), [base.body]);
-  check('picker: a saved prompt that took a Base Prompt slot still gets the block',
-    page.pick(Object.assign({}, SAVED, { title: base.title, _group: 'base' })), [WITH_BLOCK]);
+  check('picker: a built-in prompt gets the block too with the switch on',
+    page.pick(Object.assign({}, base, { _group: 'base' })), [S.BLOCK + '\n\n' + base.body]);
   page.popupSets(false);
   check('picker: back to the written text when the switch goes off', page.pick(SAVED), [PROMPT]);
+  check('picker: a built-in prompt goes in as written while the switch is off',
+    page.pick(Object.assign({}, base, { _group: 'base' })), [base.body]);
 }
 {
   const startsOn = {};

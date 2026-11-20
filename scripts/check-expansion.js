@@ -373,6 +373,98 @@ async function runLibraryRefreshCases() {
   return count;
 }
 
+// The prompt menu puts the person's own prompts first. The built-in ones wait
+// behind one last row, so nobody scrolls past them to reach their own, and
+// they stay one word away: typing looks through both lists.
+async function runPromptMenuCases() {
+  const stored = (changes) => storageListeners.forEach((fn) => fn(changes, 'local'));
+  const ids = () => sandbox.triggerPickerFiltered.map((s) => s.id);
+  const FOLD = sandbox.PICKER_FOLD_ID;
+  const BUILT_IN = sandbox.BASE_PROMPTS.map((p) => p.id);
+  const OWN = [
+    { id: 'own-1', title: 'Reply to a client', body: 'OWN ONE', shortcut: '' },
+    { id: 'own-2', title: 'Weekly report', body: 'OWN TWO', shortcut: '' },
+  ];
+  const realInsert = sandbox.insertText;
+  const inserted = [];
+  sandbox.insertText = function (el, text) { inserted.push(text); };
+  let count = 0;
+
+  try {
+    // 1. Own prompts first, then one row that holds the built-in ones.
+    await reset();
+    stored({ sb_prompts: { newValue: OWN } });
+    await typeText('"""', FAST);
+    if (JSON.stringify(ids()) !== JSON.stringify(['own-1', 'own-2', FOLD])) {
+      fail('prompt menu: with prompts of the person\'s own, the menu must list them first and fold the built-in ones into one last row. Got ' + JSON.stringify(ids()));
+    }
+    count++;
+
+    // 2. Enter on that row opens it in place and inserts nothing.
+    key('ArrowDown'); key('ArrowDown');
+    if (!key('Enter')) fail('prompt menu: Enter on the folded row was not consumed');
+    await wait(30);
+    if (fired || inserted.length || !sandbox.triggerPickerEl) {
+      fail('prompt menu: Enter on the folded row must open the built-in prompts and leave the field alone');
+    }
+    if (JSON.stringify(ids()) !== JSON.stringify(['own-1', 'own-2'].concat(BUILT_IN)) || sandbox.triggerPickerIdx !== 2) {
+      fail('prompt menu: the opened row must list every built-in prompt under the person\'s own, the first one highlighted. Got ' +
+        JSON.stringify(ids()) + ' at ' + sandbox.triggerPickerIdx);
+    }
+    count++;
+
+    // 3. Enter again inserts the highlighted built-in prompt, as written.
+    key('Enter');
+    await wait(30);
+    if (inserted.length !== 1 || inserted[0] !== sandbox.BASE_PROMPTS[0].body || sandbox.triggerPickerEl) {
+      fail('prompt menu: Enter on a built-in prompt must insert its text and close the menu. Got ' + JSON.stringify(inserted));
+    }
+    count++;
+
+    // 4. A menu opened again starts folded, and typing looks through both lists.
+    await reset();
+    await typeText('"""', FAST);
+    if (ids().indexOf(FOLD) === -1) fail('prompt menu: a menu opened again must start with the built-in prompts folded');
+    await typeText('tra', FAST);
+    if (JSON.stringify(ids()) !== '["translate"]') {
+      fail('prompt menu: typing must find a built-in prompt without opening the folded row. Got ' + JSON.stringify(ids()));
+    }
+    count++;
+
+    // 5. A saved prompt with the title of a built-in one replaces it.
+    await reset();
+    stored({ sb_prompts: { newValue: OWN.concat([{ id: 'own-tr', title: 'translate', body: 'MINE', shortcut: '' }]) } });
+    await typeText('"""tra', FAST);
+    if (JSON.stringify(ids()) !== '["own-tr"]') {
+      fail('prompt menu: a saved prompt named like a built-in one must replace it. Got ' + JSON.stringify(ids()));
+    }
+    count++;
+
+    // 6. With no prompts of the person's own there is nothing to fold behind.
+    await reset();
+    stored({ sb_prompts: { newValue: [] } });
+    await typeText('"""', FAST);
+    if (JSON.stringify(ids()) !== JSON.stringify(BUILT_IN)) {
+      fail('prompt menu: with no prompts of the person\'s own, the built-in ones must show directly. Got ' + JSON.stringify(ids()));
+    }
+    count++;
+
+    // 7. Every built-in prompt keeps its parts: what to ask first, the steps,
+    // the layout of the answer, and a last line the person's text goes under.
+    sandbox.BASE_PROMPTS.forEach((p) => {
+      const ok = p.id && p.title && p.body.indexOf('\nBefore you start: ') !== -1 && p.body.indexOf('\nSteps:\n1. ') !== -1 &&
+        p.body.indexOf('\nAnswer ') !== -1 && /:\n$/.test(p.body);
+      if (!ok) fail('prompt menu: the built-in prompt "' + p.title + '" lost one of its parts (ask first, steps, answer layout, closing label)');
+    });
+    if (new Set(BUILT_IN).size !== BUILT_IN.length) fail('prompt menu: two built-in prompts share an id');
+    count++;
+  } finally {
+    sandbox.insertText = realInsert;
+  }
+  await reset();
+  return count;
+}
+
 // The worker's side of the same fix, read from the shipped files: it answers
 // the page's request, keeps a short wait of its own, and fills the prompt list
 // through the mapping the popup uses, never emptying it on a read that failed.
@@ -814,6 +906,6 @@ function runFormInsertionCases() {
       '  leave part of the trigger in the message.');
   }
   const extra = runFormInsertionCases() + (await runPickerEnterCase()) + (await runAutoInsertCases()) + (await runPlaceholderCases()) + (await runLexicalDeleteCases()) +
-    (await runLibraryRefreshCases()) + (await runWorkerRefreshCases());
+    (await runLibraryRefreshCases()) + (await runPromptMenuCases()) + (await runWorkerRefreshCases());
   console.log('OK Trigger expansion passed all ' + (cases.length + spanCases.length + 1 + extra) + ' cases');
 })();

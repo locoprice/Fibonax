@@ -144,6 +144,8 @@ function bootContent(answer, stepsOn) {
     logged,
     hints,
     inserted,
+    // A real built-in prompt, read from the shipped list so it cannot go stale.
+    builtIn: sandbox.BASE_PROMPTS[0],
     set prompts(list) { sandbox.userPrompts = list; },
     open() { sandbox._prefetchPromptBrains(); },
     // A pick with the menu open on `item`, as Tab / Enter or an exact shortcut makes it.
@@ -180,8 +182,8 @@ const answerAll = (msg, cb) => cb({ ok: true, texts: msg.texts.map(finish) });
   check('menu: the pick asks nothing more', page.asked.length, 1);
   check('menu: a prompt without a Brain goes in as written, asking nothing', page.pick(PLAIN), ['## Objective\nPlain.']);
   check('menu: each pick is logged as a use of that prompt, never as a snippet use', page.logged, [SAVED.id, PLAIN.id]);
-  page.pick({ id: 'formal', title: 'Formal tone', body: 'Please rewrite in a formal, professional tone:\n' });
-  check('menu: a built-in Base Prompt has no row to count, so nothing is logged', page.logged, [SAVED.id, PLAIN.id]);
+  page.pick(page.builtIn);
+  check('menu: a built-in prompt has no row to count, so nothing is logged', page.logged, [SAVED.id, PLAIN.id]);
   page.open();
   check('menu: opening it again within the minute asks nothing', page.asked.length, 1);
   page.age();
