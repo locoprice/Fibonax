@@ -1082,8 +1082,26 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     closeDrawer();
     focusAfterClick(burger);
   });
+  // A link to a section of this page. On Android, a drawer taller than the
+  // screen is what the browser scrolls while the page behind is locked, so a
+  // jump asked for in the same moment as the close moves nothing. The drawer
+  // closes first and the jump follows a frame later, once the page scrolls
+  // again.
+  function sectionOf(link){
+    if(!link.hash||link.pathname!==location.pathname||link.search!==location.search)return null;
+    return document.getElementById(link.hash.slice(1));
+  }
   drawer.querySelectorAll('a').forEach(function(link){
-    link.addEventListener('click',closeDrawer);
+    link.addEventListener('click',function(e){
+      var section=sectionOf(link);
+      closeDrawer();
+      if(!section||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+      e.preventDefault();
+      requestAnimationFrame(function(){requestAnimationFrame(function(){
+        if(location.hash===link.hash)section.scrollIntoView();
+        else location.hash=link.hash;
+      });});
+    });
   });
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'&&isOpen()){closeDrawer();burger.focus();}
@@ -1154,7 +1172,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
   var eyebrow=document.querySelector('.hero-eyebrow');
   var eyebrowText=eyebrow?eyebrow.textContent:'';
   var versionMatch=eyebrowText.indexOf('{{')>-1?null:eyebrowText.match(/v\d+[\d.]*/);
-  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.151.0';
+  var FALLBACK_VERSION=versionMatch?versionMatch[0]:'v3.151.1';
   // Heal the hero badge on unstamped serves (fibonax.com is build-less), same as the footer below.
   if(eyebrow&&eyebrowText.indexOf('{{')>-1)eyebrow.textContent=eyebrowText.replace('{{EXT_VERSION}}',FALLBACK_VERSION);
   // Month: always current date. Production has the stamped release month; previews show today.
