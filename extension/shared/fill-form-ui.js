@@ -526,6 +526,47 @@
     el.textContent = text;
   }
 
+  // ── SEASONAL LINE ───────────────────────────────────────────────
+  // The row that says the season's sentence is going in ("Christmas wishes
+  // included") with the button that leaves it out this once, and puts it
+  // back. What it says is the view model's `season` (SBFillForm.fillForm,
+  // decided in shared/season.js); this only draws it into `el`, the same on
+  // the page, in the popup and on the phone. Hidden while the text has no
+  // seasonal line or nothing is in season. onToggle(off) runs on the button:
+  // the surface keeps `off`, hands it back to fillForm as `seasonOff` and
+  // draws its form again. The row is made once and updated in place, so the
+  // button a person just pressed keeps the focus.
+  function seasonNote(el, vm, onToggle) {
+    if (!el) return;
+    var s = vm && vm.season && vm.season.active ? vm.season : null;
+    el.hidden = !s;
+    if (!s) return;
+    var state = el._ffSeason;
+    if (!state) {
+      var doc = el.ownerDocument;
+      el.classList.add('ff-season');
+      var text = doc.createElement('span');
+      text.className = 'ff-season-text';
+      text.setAttribute('role', 'status');
+      var btn = doc.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ff-season-btn';
+      el.textContent = '';
+      el.appendChild(text);
+      el.appendChild(btn);
+      state = el._ffSeason = { text: text, btn: btn, off: false, toggle: null };
+      btn.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        if (typeof state.toggle === 'function') state.toggle(!state.off);
+      });
+    }
+    state.off = s.off;
+    state.toggle = onToggle;
+    state.text.textContent = s.label;
+    state.btn.textContent = s.action;
+    el.classList.toggle('ff-season--off', s.off);
+  }
+
   // ── OFTEN SENT NEXT ─────────────────────────────────────────────
   // The snippets a person usually sends right after this one, offered where
   // the snippet is used: as a list under the fill window's preview, which
@@ -754,6 +795,7 @@
 
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
     unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
+    seasonNote: seasonNote,
     NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
     nextWords: nextWords, nextsFor: nextsFor, hideNext: hideNext, nextToggle: nextToggle, nextOffer: nextOffer,
     nextText: nextText, nextAddition: nextAddition, nextPreview: nextPreview, nextNames: nextNames };

@@ -41,6 +41,14 @@
     return FE || root.SBFillFormEngine || root.SBFormulaEngine || null;
   }
 
+  // The seasonal line's rules (shared/season.js), which every surface loads as
+  // SBSeason. Read off the page like the engine does, and for the same reason:
+  // a page without it has no seasonal line, and the token then prints nothing.
+  // A gate that wants one sets globalThis.SBSeason before it runs.
+  function season() {
+    return root.SBSeason || null;
+  }
+
   // Fields per form before a step layout would earn its place. Nothing reads
   // this yet: chooseLayout always answers 'flat'. It sits next to the rule it
   // will govern so the future change is one obvious place.
@@ -517,6 +525,10 @@
     }
     var resolveOpts = { lang: opts.lang || '', fmtOverride: opts.fmtOverride, formula: formula,
       value: function(key, scope) { return dependencies[key] ? formula(key, scope) : scope[key]; } };
+    // What {seasonal} prints, already decided by fillForm ('' when nothing is
+    // in season or the line was left out), so the text and the layout carry
+    // the same answer as the row the form shows.
+    if (typeof opts.seasonal === 'string') resolveOpts.seasonal = opts.seasonal;
     function resolve(body, vals) {
       dependencies = Object.create(null);
       return E.resolveBody(E.interpolateSnippet(body, vals), Object.assign({}, vals), resolveOpts);
@@ -630,7 +642,7 @@
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], progress: progress([]), layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], progress: progress([]), season: null, layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -832,12 +844,23 @@
     var linkable = false;
     for (var lf = 0; lf < fields.length; lf++) if (fields[lf].link) { linkable = true; break; }
 
+    // The seasonal line ({seasonal}, shared/season.js): the occasion in season
+    // for this text today and the words of the row that lets a person leave it
+    // out this once (`o.seasonOff`), or null for a text without the line.
+    // Decided here, once, so the preview, the layout and the row a surface
+    // draws can never disagree about what goes in. `o.occasions` is the
+    // person's stored calendar when the surface holds it itself (the dashboard
+    // does); the others handed it to SBSeason when they read it.
+    var S = season();
+    var seasonView = S ? S.describe(src, o.lang || '', now, o.seasonOff === true, o.occasions) : null;
+
     // The preview resolves against the EFFECTIVE values, which is each field's
     // entry falling back to its default — not the raw `values` argument. A
     // single-choice menu the operator never touched already reads as its first
     // option in the form, so resolving against raw values previewed a hole in a
     // sentence the surface was visibly showing as answered.
-    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride, formatted: o.formatted });
+    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride, formatted: o.formatted,
+      seasonal: seasonView ? (seasonView.active && !seasonView.off ? seasonView.text : '') : undefined });
 
     return {
       fields: fields,
@@ -856,6 +879,12 @@
       // fields. Read after the form is resolved, so a box holding something
       // the text cannot use (a number that is not one) does not count yet.
       progress: progress(fields),
+      // The seasonal line of this text, or null: { active, id, name, text, off,
+      // label, action, note }. In season a surface draws `label` with a button
+      // reading `action` (SBFillFormUI.seasonNote) and sends `seasonOff` back
+      // when it is pressed. Out of season only the editor's preview says so,
+      // with `note`.
+      season: seasonView,
       // Hand straight to resolveBody alongside the values. A surface that
       // resolves the body itself on insert — the overlay does — must pass this
       // too, or what it inserts prints in a different format from the preview

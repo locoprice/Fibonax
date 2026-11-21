@@ -84,7 +84,7 @@ for (const [key, want] of TYPE_CASES) {
 console.log('OK Field kind inferred from the name (' + TYPE_CASES.length + ' cases)');
 
 // ── THE VIEW MODEL EVERY SURFACE READS ──────────────────────────────
-const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'layout', 'steps', 'fmtOverride', 'linkable', 'progress'];
+const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'layout', 'steps', 'fmtOverride', 'linkable', 'progress', 'season'];
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
                      'other', 'otherOn', 'otherText',
                      'cols', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',

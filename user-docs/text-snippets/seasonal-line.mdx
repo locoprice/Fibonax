@@ -1,0 +1,85 @@
+---
+title: "Seasonal line"
+sidebarTitle: "Seasonal line"
+description: "Add your wishes for the time of year to a snippet once. They print while their occasion is in season and stay out the rest of the year."
+---
+
+Some sentences belong to a few weeks of the year: Christmas wishes, a closing week, new opening hours. A **seasonal line** puts them into your messages while they apply and leaves them out when they don't. You write the snippet once and it reads right all year.
+
+## Add it to a snippet
+
+1. Open the snippet in the dashboard editor and put the cursor on an empty row, where the wishes should go.
+2. In the panel on the left, under **Logic**, open **Seasonal line**.
+3. Click **Insert seasonal line**. A blue **Seasonal line** piece appears in the text.
+
+```text
+Hello Marco,
+
+here is the quote you asked for.
+
+{seasonal}
+
+Best regards
+```
+
+From 8 to 26 December this snippet prints:
+
+```text
+Hello Marco,
+
+here is the quote you asked for.
+
+Merry Christmas.
+
+Best regards
+```
+
+In July it prints the same message without the wishes, and without a gap where they were.
+
+- Give the line a row of its own. Out of season the row goes, and so does the empty row beside it.
+- The preview on the right shows what goes out today. Out of season it says when the next occasion starts.
+- The seasonal lines in a snippet are listed under **Seasonal line** in the panel. **Edit** opens Your occasions. **Remove** takes the line out, and **Undo** puts it back.
+
+## Your occasions
+
+One calendar decides what every seasonal line prints. Open it with **Your occasions** in the Seasonal line entry of the editor, or in **Settings > Account > Seasonal line**.
+
+Three occasions are ready, all switched on:
+
+| Occasion | In season | Prints |
+|---|---|---|
+| Christmas | 8 December to 26 December | Merry Christmas. |
+| New Year | 27 December to 6 January | Happy New Year. |
+| Easter | 7 days before Easter to 1 day after | Happy Easter. |
+
+Easter moves every year. Fibonax finds its date for you.
+
+- **The switch** beside an occasion turns it off. An occasion that is off never prints.
+- **Edit** changes its days and its sentences, then **Save**. **Cancel** leaves it as it was.
+- **Add your own** for anything that belongs to some days of the year: a name, the days and the sentence, for example "We are closed until 25 August." You can have up to 10.
+- **Remove** takes out one of yours. It asks first.
+
+### Your own wishes
+
+Each occasion has one box per language: English, Italian, Spanish and French. A snippet prints the sentence of its own language.
+
+- A language you leave empty prints the ready words of that language. A snippet in any other language uses English.
+- One of your own occasions has no ready words: a language you leave empty uses the first sentence you wrote.
+- **Add to the sentence** puts in what your account already knows: **Your name**, **Company name**, **Job title** and **Year**. "Merry Christmas from **Company name**" goes out as "Merry Christmas from LeibTour", with the company of whoever sends it. See [Your details](/text-snippets/dynamic-fields#your-details).
+- **Year** is the year of the occasion's own day, so New Year's wishes sent on 28 December already name the year to come.
+- The line under the boxes shows what goes out today. When your account is missing a detail the sentence uses, it says so and where to set it. Until then the ready words go out instead, so a wish is never sent half filled.
+
+Every change is saved as you make it. The extension and the phone pick it up within a few minutes.
+
+### When two occasions overlap
+
+One occasion is in season at a time. Your own occasion comes before a ready one. Between two of the same kind, the one whose day is closest to today wins, then the one with the shorter period.
+
+## When you use the snippet
+
+While an occasion is in season, the form shows a row such as **Christmas wishes included**, with **Leave out**. Click it to send this one message without the line. **Put back** brings it back. The next message carries the line again.
+
+- The row shows in the fill window on a page, in the popup and on the phone.
+- A snippet with nothing to fill in goes in straight away, wishes included. Delete the sentence in your message when you don't want it that time.
+- Dates are read from the clock of the device you send from.
+- A snippet in a shared folder prints the occasions of the person who uses it, not of the person who wrote it.

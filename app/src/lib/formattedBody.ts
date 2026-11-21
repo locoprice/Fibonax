@@ -512,6 +512,11 @@ export function chipLabel(raw: string): string {
   if (inner === 'endif') return 'End of rule';
   if (head === 'time') return 'Automatic date';
   if (head === 'greeting' || inner === 'greeting') return 'Greeting';
+  if (inner.toLowerCase() === 'seasonal') return 'Seasonal line';
+  if (head === 'my') {
+    const word = rest.replace(/[_\s]+/g, ' ').trim().toLowerCase();
+    return word === 'name' ? 'Your name' : word === 'company' ? 'Company name' : word === 'job title' ? 'Job title' : 'Your details';
+  }
   if (head === 'var') return clip(`Saved value ${rest.split('=')[0] ?? ''}`);
   if (head === 'case') return 'Letter case';
   if (inner === '/case') return 'End of letter case';

@@ -17,6 +17,8 @@
 //   {if: COND}...{elseif: COND}...{else}...{endif}  — conditional blocks
 //   {gender: FIELD; m=Querido; f=Querida[; u=Hola][; lang=IT]}  — gendered word
 //   {greeting[: lang=ES][; morning=…][; night=…]}  (greeting for the local time of day)
+//   {seasonal}  (the sentence of the occasion in season today, or nothing: shared/season.js)
+//   {my: name | company | job title}  (from the account of whoever uses it: shared/my-details.js)
 //   {button label="Text" [trim=yes|no|left|right]}CODE{/button}  — action button
 //
 // {button} renders in the fill form, never in the output. CODE is one or more
@@ -730,7 +732,94 @@
     return { out: out, i: i };
   }
 
-  var _HTML_PART_RE = /(<[^>]*>|&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);)/;
+  // ── SEASONAL LINE ───────────────────────────────────────────────
+  // {seasonal} prints the sentence of the occasion in season today ("Merry
+  // Christmas."), and nothing for the rest of the year. Which occasion, and
+  // its words, are decided in shared/season.js from the person's calendar;
+  // this only asks. `opts.seasonal` is the answer when the caller already has
+  // it (a fill form, where the line can be left out this once: ''). Without
+  // it the page's own SBSeason is asked, so every place that resolves a body
+  // prints the line without being told to. A page without SBSeason prints
+  // nothing.
+  //
+  // MIRRORED in app/public/mobile/index.html (sbIsSeasonalHead, sbSeasonalText,
+  // sbDropQuietLine, sbDropQuietLineHtml), pinned by scripts/check-snippets.js.
+  function _isSeasonalHead(tokLow) { return tokLow === 'seasonal'; }
+
+  function sbSeasonalText(opts) {
+    if (opts && typeof opts.seasonal === 'string') return opts.seasonal;
+    var S = root.SBSeason;
+    return S && typeof S.currentLine === 'function' ? String(S.currentLine((opts && opts.lang) || '') || '') : '';
+  }
+
+  // ── YOUR DETAILS ────────────────────────────────────────────────
+  // {my: name}, {my: company}, {my: job title} print what the account of the
+  // person using the snippet holds, decided in shared/my-details.js (the page's
+  // own SBMyDetails). A detail the account does not hold prints nothing and,
+  // like the seasonal line, leaves no empty line behind.
+  //
+  // MIRRORED in app/public/mobile/index.html (sbIsMyHead, sbMyText), pinned by
+  // scripts/check-snippets.js.
+  function _isMyHead(tokLow) { return /^my\s*:/.test(tokLow); }
+
+  function sbMyText(tok) {
+    var D = root.SBMyDetails;
+    return D && typeof D.value === 'function' ? String(D.value(D.wordOf(tok)) || '') : '';
+  }
+
+  // A token that prints nothing leaves no trace. Alone on its line, the line goes
+  // (as _dropOwnLine), and so does the gap it would leave: a line that stood
+  // between two empty lines takes one of them along, and so does one that
+  // stood between an empty line and either end of the whole text (`edges`,
+  // false inside an {if:} branch, whose ends are not the text's). Inside a
+  // sentence, the space that set it apart from its neighbour goes instead.
+  function _dropQuietLine(out, body, i, edges) {
+    var rest = body.slice(i);
+    var tail = /^[ \t]*(\r?\n|$)/.exec(rest);
+    if (!(/(^|\n)[ \t]*$/.test(out) && tail)) {
+      // Before a line end or a full stop, comma and the like, the space in
+      // front of it goes: "and {my: job title}." reads "and.", not "and .".
+      if (tail || /^[.,;:!?)]/.test(rest)) out = out.replace(/[ \t]+$/, '');
+      else if (/(^|[ \t\n])$/.test(out)) i += /^[ \t]*/.exec(rest)[0].length;
+      return { out: out, i: i };
+    }
+    var own = _dropOwnLine(out, body, i);
+    out = own.out; i = own.i;
+    if (tail[1] === '') {
+      // It was the last line: an empty line now ending the text goes too.
+      if (edges) out = out.replace(/\r?\n[ \t]*$/, '');
+      return { out: out, i: i };
+    }
+    rest = body.slice(i);
+    var prevEmpty = /(^|\n)[ \t]*\r?\n$/.test(out);
+    var next = /^[ \t]*\r?\n/.exec(rest);
+    if (next && (prevEmpty || (edges && out === ''))) i += next[0].length;
+    else if (edges && prevEmpty && /^[ \t]*$/.test(rest)) out = out.replace(/[ \t]*\r?\n$/, '');
+    return { out: out, i: i };
+  }
+
+  // The same inside a layout, where a line is a <div> (or a list item) and an
+  // empty line is <div><br></div>. Any other shape keeps its markup: the line
+  // then prints nothing, and that is all.
+  var _QUIET_OPEN_RE = /<(div|li)>(?:<(?:b|i|u|span)\b[^>]*>)*$/;
+  var _EMPTY_LINE_HTML = '<div><br></div>';
+
+  function _dropQuietLineHtml(out, body, i, edges) {
+    var open = _QUIET_OPEN_RE.exec(out);
+    if (!open) return { out: out, i: i };
+    var close = new RegExp('^(?:</(?:b|i|u|span)>)*</' + open[1] + '>').exec(body.slice(i));
+    if (!close) return { out: out, i: i };
+    out = out.slice(0, open.index);
+    i += close[0].length;
+    if (open[1] !== 'div') return { out: out, i: i };
+    var rest = body.slice(i), n = _EMPTY_LINE_HTML.length;
+    var prevEmpty = out.slice(-n) === _EMPTY_LINE_HTML;
+    if (rest.slice(0, n) === _EMPTY_LINE_HTML && (prevEmpty || (edges && out === ''))) i += n;
+    else if (edges && prevEmpty && rest === '') out = out.slice(0, -n);
+    return { out: out, i: i };
+  }
+
+  var _HTML_PART_RE =/(<[^>]*>|&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);)/;
   var _HTML_NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
   // Formatting that sits inside a line of text. Any other tag (a line break, a
   // cell, a paragraph) separates the words on either side of it.
@@ -1415,6 +1504,20 @@
         if (_isGreetingHead(tokLow)) {
           out += _sbOut(sbResolveGreetingToken(_greetingRest(tok), opts), html);
           i = cl+1; continue;
+        }
+        if (_isSeasonalHead(tokLow)) {
+          var sText = sbSeasonalText(_o);
+          if (sText !== '') { out += _sbOut(sText, html); i = cl+1; continue; }
+          var sDrop = (html ? _dropQuietLineHtml : _dropQuietLine)(out, body, cl + 1, outer);
+          out = sDrop.out; i = sDrop.i;
+          continue;
+        }
+        if (_isMyHead(tokLow)) {
+          var mText = sbMyText(tok);
+          if (mText !== '') { out += _sbOut(mText, html); i = cl+1; continue; }
+          var mDrop = (html ? _dropQuietLineHtml : _dropQuietLine)(out, body, cl + 1, outer);
+          out = mDrop.out; i = mDrop.i;
+          continue;
         }
         if (tok.slice(0,3) === 'if:') {
           var cond = tok.slice(3).replace(/^\s+|\s+$/g, '');
@@ -2129,7 +2232,8 @@
         t.slice(0,7).toLowerCase() === 'elseif:' ||
         t.slice(0,5).toLowerCase() === 'time:' ||
         _isButtonHead(t.toLowerCase()) || _isCaseHead(t.toLowerCase()) ||
-        _isGreetingHead(t.toLowerCase()) || _isPictureHead(t.toLowerCase())) return '';
+        _isGreetingHead(t.toLowerCase()) || _isPictureHead(t.toLowerCase()) ||
+        _isSeasonalHead(t.toLowerCase()) || _isMyHead(t.toLowerCase())) return '';
     var tokLow = t.toLowerCase();
     // A {gender:} token is not a field itself — it reads one, so surface that
     // field instead. It is usually declared elsewhere too; callers de-duplicate.

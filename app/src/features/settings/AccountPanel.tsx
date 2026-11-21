@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { AutofillHint } from '@/components/shared/AutofillHint';
 import { PlacementFields } from '@/features/org/PlacementFields';
 import { IMAGE_INPUT_ACCEPT, validateImageFile } from '@/lib/branding';
 import { normalizeJobTitle } from '@/lib/orgChart';
@@ -21,6 +22,7 @@ export function AccountPanel() {
   const setAvatar = useSettingsStore((s) => s.setAvatar);
   const clearAvatar = useSettingsStore((s) => s.clearAvatar);
   const showToast = useUiStore((s) => s.showToast);
+  const loadMyDetails = useSettingsStore((s) => s.loadMyDetails);
 
   const activeOrg = useOrgStore((s) => s.activeOrg);
   const orgLoading = useOrgStore((s) => s.loading);
@@ -103,6 +105,8 @@ export function AccountPanel() {
       if (nameDirty) await editProfile({ display_name: trimmed });
       if (placementDirty && me) {
         await setMemberPlacement(me.user_id, { departmentId, jobTitle });
+        // A new job title is a new answer for {my: job title}.
+        void loadMyDetails();
       }
       setSavedAt(Date.now());
     } catch (err) {
@@ -249,9 +253,12 @@ export function AccountPanel() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
-            <label htmlFor="name" className="text-xs font-medium text-ink-muted">
-              Display name
-            </label>
+            <span className="flex items-center gap-1.5">
+              <label htmlFor="name" className="text-xs font-medium text-ink-muted">
+                Display name
+              </label>
+              <AutofillHint detail="name" />
+            </span>
             <Input
               id="name"
               value={displayName}
