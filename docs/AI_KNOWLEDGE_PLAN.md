@@ -30,7 +30,7 @@
 | P2 | Status lifecycle + review queue | Every snippet, prompt and Brain item shows Draft / AI generated / Under review / Approved / Deprecated / Archived. Approved ranks first in search and answers. Admins approve. | Large (schema + all 3 sections + all surfaces) |
 | P3 | AI-assisted snippet creation | Paste a conversation or document → proposed title, trigger, body, folder, labels; warns "a similar snippet exists" and offers to update it instead. Lands as AI generated, never Approved. | Medium |
 | P4 | Library health | A report of likely duplicates, conflicting wording, unused and stale items, each with a suggested action that waits for a person. | Medium |
-| P5 | MCP: snippets and writes | The MCP server searches snippets as well as Brains, with the same folder permissions; write tools create drafts only and require a write token. | Medium, security-sensitive |
+| P5 | MCP: snippets and writes | The MCP server searches snippets as well as Brains, with the same folder permissions; write tools create drafts only and require a write token. **Built for Prompts and Brains as the AI app link (section 9); snippets stay out by owner decision.** | Medium, security-sensitive |
 | P6 | Semantic search | Finds the right item when the words differ ("refund" ↔ "money back"). Needs an embedding provider. | Medium + running cost |
 | P7 | Team AI controls | Per-team AI switch, approved providers, AI access log, retention settings. | Medium |
 
@@ -120,3 +120,18 @@ Owner decision, 2026-10-06: until the Pro plan exists, every feature that calls 
 | How to switch a feature on, and the manual lines to restore | `docs/pro-features/README.md` |
 
 The server functions are unchanged and still callable by anyone signed in. The lock is in the interface; the plan check that makes it a real limit belongs with the Pro plan.
+
+## 9. The AI app link (P5 for Prompts and Brains, 2026-11-21)
+
+Owner decisions, 2026-11-21: people connect an AI app by pasting a link made in Settings, with nothing to install; the link reaches Prompts and Brains, never snippets.
+
+| Piece | Where |
+|---|---|
+| Keys: the `prompts` scope, at most 21 live keys a person, only the name and the switched-off time changeable by their owner; `mcp_call`, the one entry point, reading as the key's owner under row level security and switching back before it returns; full-text reads counted as FiboToken uses | `services/supabase/migrations/20261121120000_ai_app_link.sql` |
+| The hosted MCP server: search, fetch, list_prompts, list_brains, save_to_brain, prompts as MCP prompts; a prompt's Brain filled in by `memory-pack.js` | `services/supabase/functions/mcp/{server.js,index.ts}` |
+| Settings > Integrations > AI apps: Connect an AI app, the link shown once, Switch off | `app/src/features/settings/AiAppsPanel.tsx`, `app/src/lib/aiAppLink.ts`, `app/src/lib/api/aiAppsApi.ts` |
+| Gate | `scripts/check-mcp-link.js` (CI) |
+| Manual | `user-docs/integrations/ai-apps.mdx` |
+
+Not here: snippets (owner decision), editing or deleting anything through a link, sign-in with OAuth (most AI apps take a plain link; OAuth can be added later without changing the database).
+

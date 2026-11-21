@@ -1,0 +1,58 @@
+---
+title: "Connect an AI app"
+sidebarTitle: "AI apps"
+description: "Give Claude, ChatGPT or another AI app a private link, so it can find and use your prompts and Brains while it works for you."
+---
+
+An AI app such as Claude or ChatGPT can work with your Fibonax prompts and Brains. You make a private link in Fibonax and paste it into the app once. After that, the app can look up a prompt or a Brain when you ask it to, with no copying and pasting.
+
+## What the AI app can do
+
+- **Find** your prompts and Brain items by words, and list them.
+- **Read a prompt**, ready to use. If the prompt carries a Brain, the Brain's items come with it.
+- **Read a Brain item**, or a whole Brain.
+- **Save a new item to a Brain**, but only if you turned saving on for that link. It never changes or deletes anything, and what it saves is marked **AI generated** so you can check it. See [Review status](/review/overview).
+
+It sees what you see in the dashboard: your own prompts, the prompts in team folders shared with you, and your own Brains. It never reaches your snippets. Archived items are left out, and a deprecated item comes with a note saying so.
+
+## Make a link
+
+1. In the dashboard, open **Settings**, then **Integrations**.
+2. On the **AI apps** card, click **Connect an AI app**.
+3. Choose **Claude** or **ChatGPT**, or choose **Another app** and type its name.
+4. To let the app save notes to your Brains, turn on **Let it save to your Brains**. Leave it off and the app can only read.
+5. Click **Create link**, then **Copy**.
+
+<Warning>
+The link works like a password: anyone who has it can read your prompts and Brains. Keep it private. Fibonax shows it only once, so if you lose it, make a new one.
+</Warning>
+
+## Add the link to your AI app
+
+AI apps keep this in their settings, usually under **Connectors**. Some apps call them **Integrations** or **Apps**.
+
+1. Open the AI app's settings and find **Connectors**.
+2. Add a custom connector, name it Fibonax, and paste the link.
+3. No sign-in is needed: the link carries everything the app needs.
+
+Then just ask. For example: "Use my Fibonax prompt for the weekly report", or "Check my Fibonax Brain about our prices before you answer."
+
+Apps that show prompts as commands, such as Claude, also list your Fibonax prompts there once the link is added.
+
+## Uses
+
+Each time the app reads the full text of a prompt, a Brain item or a whole Brain, it counts as one use, the same as copying it yourself. Searching and listing do not count. A link can make up to 60 requests a minute.
+
+## See and switch off links
+
+The **AI apps** card lists every link that works: the app's name, what it can do and when it was last used. Click **Switch off** to stop a link at once. To connect that app again, make a new link. You can have up to 21 links at a time.
+
+## If something goes wrong
+
+The AI app passes on a short message from Fibonax:
+
+- **This Fibonax link was switched off or is not valid**: make a new link and add it to the app again.
+- **This link reaches Brains only**: the link was made before prompts could be shared this way. Make a new link.
+- **This link can read but not save**: make a new link with **Let it save to your Brains** turned on.
+- **Too many requests in a minute**: wait a moment, then ask again.
+- **Today's free uses are used up**: try again tomorrow, or add FiboTokens.

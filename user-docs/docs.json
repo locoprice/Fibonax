@@ -83,7 +83,8 @@
             "group": "Apps and integrations",
             "pages": [
               "apps/mobile",
-              "integrations/supported-sites"
+              "integrations/supported-sites",
+              "integrations/ai-apps"
             ]
           },
           {

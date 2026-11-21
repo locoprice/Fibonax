@@ -6,7 +6,8 @@
 
 import { createClient, type Session, type User } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://eyowustlbqujaimaxggt.supabase.co';
+/** The project's address. Exported for links to its server functions (lib/aiAppLink.ts). */
+export const SUPABASE_URL = 'https://eyowustlbqujaimaxggt.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_F_8LSMkr9ZK-9v50sPzXbQ_zjA0D_O0';
 
 // "Remember me" — chosen on the login page before each sign-in. '0' routes the

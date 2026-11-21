@@ -80,6 +80,9 @@ jobs:
       - name: Brain inside a prompt check
         run: node scripts/check-prompt-brain.js
 
+      - name: AI app link (MCP) check
+        run: node scripts/check-mcp-link.js
+
       - name: Santo del Giorno + Christmas countdown parity check
         run: node scripts/check-saint-of-day.js
 

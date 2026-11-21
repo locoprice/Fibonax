@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { LoadErrorCard } from '@/components/shared/LoadErrorCard';
 import { Segmented } from '@/components/ui/segmented';
 import { AccountPanel } from '@/features/settings/AccountPanel';
+import { AiAppsPanel } from '@/features/settings/AiAppsPanel';
 import { AutoInsertPanel } from '@/features/settings/AutoInsertPanel';
 import { BrandingPanel } from '@/features/settings/BrandingPanel';
 import { DeleteAccountPanel } from '@/features/settings/DeleteAccountPanel';
@@ -31,7 +32,7 @@ const SECTION_DESCRIPTIONS: Record<SectionKey, string> = {
   account:
     'Your profile, your company brand, how snippets are inserted, the FiboToken rate, and your import and export files.',
   security: 'Your password, the devices signed in and your recent sign-ins.',
-  integrations: 'The other places where you use Fibonax.',
+  integrations: 'The AI apps that can use your prompts and Brains, and the other places where you use Fibonax.',
 };
 
 /** Two columns on the golden ratio on wide screens, one column below. */
@@ -116,7 +117,12 @@ export function SettingsPage() {
         </>
       ) : null}
 
-      {section === 'integrations' ? <IntegrationsPanel /> : null}
+      {section === 'integrations' ? (
+        <div className={GOLDEN_COLUMNS}>
+          <AiAppsPanel />
+          <IntegrationsPanel />
+        </div>
+      ) : null}
     </>
   );
 }
