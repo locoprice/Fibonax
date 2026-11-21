@@ -1,7 +1,7 @@
 /**
  * The elements a snippet body holds, for the editor's lists: every field,
- * button, automatic date, greeting and picture, where it sits, and the
- * settings its window loads to change it.
+ * button, automatic date, greeting, seasonal line and picture, where it sits,
+ * and the settings its window loads to change it.
  *
  * Every element the editor inserts is listed with Edit and Remove (root
  * CLAUDE.md, Edit and Remove for every element). A window opens on what it
@@ -53,7 +53,26 @@ import {
   type PictureSize,
 } from '@/lib/pictureToken';
 
-export type BodyItemKind = 'text' | 'number' | 'date' | 'time' | 'menu' | 'button' | 'auto' | 'greeting' | 'picture';
+export type BodyItemKind =
+  | 'text' | 'number' | 'date' | 'time' | 'menu' | 'button' | 'auto' | 'greeting' | 'seasonal' | 'mine' | 'picture';
+
+/** The details `{my: …}` can print, as the token writes them. Must match DETAILS in shared/my-details.js. */
+const MY_WORDS: Readonly<Record<string, string>> = { name: 'Your name', company: 'Company name', 'job title': 'Job title' };
+
+/** The detail a `{my: …}` token names, or '' for one it does not know. */
+export function myWordOf(raw: string): string {
+  const m = /^\{\s*my\s*:\s*([^{}]*?)\s*\}$/i.exec(raw);
+  const word = m ? (m[1] ?? '').replace(/[_\s]+/g, ' ').trim().toLowerCase() : '';
+  return Object.prototype.hasOwnProperty.call(MY_WORDS, word) ? word : '';
+}
+
+/**
+ * The seasonal line (`{seasonal}`) has no settings of its own: what it prints
+ * and when is the person's calendar (lib/season.ts). Its Edit opens Your
+ * occasions, which changes every seasonal line at once and never the token, so
+ * nothing can be lost by it.
+ */
+export type SeasonalConfig = Record<string, never>;
 
 interface ItemBase {
   /** Where the element sits. `end` is exclusive. */
@@ -73,6 +92,8 @@ export type BodyItem =
   | (ItemBase & { kind: 'button'; cfg: FormButtonConfig | null })
   | (ItemBase & { kind: 'auto'; cfg: FormTimeConfig | null })
   | (ItemBase & { kind: 'greeting'; cfg: null })
+  | (ItemBase & { kind: 'seasonal'; cfg: SeasonalConfig })
+  | (ItemBase & { kind: 'mine'; cfg: null })
   | (ItemBase & { kind: 'picture'; cfg: PictureConfig | null });
 
 const BUTTON_CLOSE = '{/button}';
@@ -236,6 +257,9 @@ function kindOf(raw: string): BodyItemKind | null {
   if (/^\{\s*formmenu:/i.test(raw)) return 'menu';
   if (/^\{\s*time:/i.test(raw)) return 'auto';
   if (/^\{\s*greeting\s*(?::|\})/i.test(raw)) return 'greeting';
+  // The bare word only, as the engine reads it: {seasonally} stays a field.
+  if (/^\{\s*seasonal\s*\}$/i.test(raw)) return 'seasonal';
+  if (/^\{\s*my\s*:/i.test(raw)) return 'mine';
   if (/^\{\s*picture:/i.test(raw)) return 'picture';
   return null;
 }
@@ -259,6 +283,11 @@ function itemOf(kind: BodyItemKind, start: number, end: number, raw: string): Bo
     case 'auto':
       return { ...base, kind, name: '', cfg: parseFormTimeToken(raw) };
     case 'greeting':
+      return { ...base, kind, name: '', cfg: null };
+    case 'seasonal':
+      return { ...base, kind, name: '', cfg: {} };
+    // Changed in its row, like a greeting: the one setting is which detail.
+    case 'mine':
       return { ...base, kind, name: '', cfg: null };
     case 'picture':
       return { ...base, kind, name: '', cfg: parsePictureToken(raw) };
@@ -320,6 +349,10 @@ export function itemDetail(item: BodyItem): string {
     }
     case 'greeting':
       return innerOf(item.raw).trim() || 'Hello, by time of day';
+    case 'seasonal':
+      return 'Your wishes, by time of year';
+    case 'mine':
+      return myWordOf(item.raw) ? 'From the account of whoever uses it' : 'Not one of your details';
     case 'picture': {
       const size = PICTURE_SIZE_OPTIONS.find((o) => o.value === item.cfg?.size)?.label;
       return size ? `${size} picture` : 'Picture';
@@ -333,6 +366,8 @@ export function itemTitle(item: BodyItem): string {
   if (item.kind === 'button') return item.cfg?.label || 'Button';
   if (item.kind === 'auto') return 'Automatic date';
   if (item.kind === 'greeting') return 'Greeting';
+  if (item.kind === 'seasonal') return 'Seasonal line';
+  if (item.kind === 'mine') return MY_WORDS[myWordOf(item.raw)] ?? 'Your details';
   if (item.kind === 'picture') return item.cfg?.alt || 'Picture';
   return 'Unnamed';
 }

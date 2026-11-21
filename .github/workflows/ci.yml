@@ -92,6 +92,12 @@ jobs:
       - name: Phone Pomodoro timer parity check
         run: node scripts/sync-focus-timer.js --check
 
+      - name: Seasonal line parity check
+        run: node scripts/sync-season.js --check
+
+      - name: Your details parity check
+        run: node scripts/sync-my-details.js --check
+
       - name: Ask Fibonax parity check
         run: node scripts/check-ask-knowledge.js
 

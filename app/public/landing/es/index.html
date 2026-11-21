@@ -486,6 +486,7 @@ footer{padding:40px 24px;border-top:1px solid rgba(255,255,255,.08);background:#
   --fs-ink-subtle:#8A8A93
 }
 .fs-bg{background:#07080A;color:var(--fs-ink)}
+#features{scroll-margin-top:80px}
 .fs-section{
   padding:var(--space-16) var(--space-8);
   max-width:calc(var(--max) + var(--space-16));margin:0 auto}
@@ -2522,8 +2523,26 @@ body.cm-locked{overflow:hidden}
     closeDrawer();
     focusAfterClick(burger);
   });
+  // A link to a section of this page. On Android, a drawer taller than the
+  // screen is what the browser scrolls while the page behind is locked, so a
+  // jump asked for in the same moment as the close moves nothing. The drawer
+  // closes first and the jump follows a frame later, once the page scrolls
+  // again.
+  function sectionOf(link){
+    if(!link.hash||link.pathname!==location.pathname||link.search!==location.search)return null;
+    return document.getElementById(link.hash.slice(1));
+  }
   drawer.querySelectorAll('a').forEach(function(link){
-    link.addEventListener('click',closeDrawer);
+    link.addEventListener('click',function(e){
+      var section=sectionOf(link);
+      closeDrawer();
+      if(!section||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+      e.preventDefault();
+      requestAnimationFrame(function(){requestAnimationFrame(function(){
+        if(location.hash===link.hash)section.scrollIntoView();
+        else location.hash=link.hash;
+      });});
+    });
   });
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'&&isOpen()){closeDrawer();burger.focus();}

@@ -37,8 +37,10 @@ function sbClearSession(cb) {
   // The snippet and prompt caches go with the session. They are the signed-in
   // user's data, and leaving them behind kept the in-page picker serving a full
   // library to whoever used the browser next. So does what usually comes next
-  // (sb_next), read from that person's use history.
-  chrome.storage.local.remove(['sb_session', 'sb_remember_until', 'snippets', 'sb_prompts', 'sb_next'], function() {
+  // (sb_next), read from that person's use history, and so do their occasions
+  // (the seasonal line), which carry sentences they wrote, and their details
+  // ({my: …}: name, company, job title).
+  chrome.storage.local.remove(['sb_session', 'sb_remember_until', 'snippets', 'sb_prompts', 'sb_next', SB_OCCASIONS_STORAGE_KEY, SB_MY_DETAILS_STORAGE_KEY], function() {
     if (cb) cb();
     try {
       chrome.runtime.sendMessage({ type: 'auth_changed' });
@@ -241,6 +243,9 @@ function sbCurrentUserId(cb) {
 // chrome.storage.onChanged (which content.js listens to for live updates).
 function sbApplyTriggerMetadata(meta) {
   if (!meta || typeof meta !== 'object') return;
+  // Every caller hands over the whole user_metadata, so the occasions ride
+  // along on the same pulls: sign-in, token refresh, popup open, the alarm.
+  sbApplyOccasionsMetadata(meta);
   chrome.storage.local.get('triggerCfg', function(d) {
     var cur = (d && d.triggerCfg) ? d.triggerCfg : {};
     var next = {
@@ -267,6 +272,37 @@ function sbApplyTriggerMetadata(meta) {
         next.autoInsert !== !!cur.autoInsert || next.autoInsertSeconds !== (cur.autoInsertSeconds || 2)) {
       try { chrome.storage.local.set({ triggerCfg: next }); } catch(e) {}
     }
+  });
+}
+
+// ── OCCASIONS (the seasonal line) ────────────────────────────────
+// The person's occasions (extension/shared/season.js) live in user_metadata
+// too, written by the dashboard's Your occasions. They are mirrored into
+// chrome.storage.local, where the content script and the popup read them and
+// hand them to SBSeason. The two names are season.js's META_KEY and
+// STORAGE_KEY, written out here because the service worker loads this file
+// without that module; scripts/sync-season.js --check holds them equal.
+var SB_OCCASIONS_META_KEY = 'occasions';
+var SB_OCCASIONS_STORAGE_KEY = 'sb_occasions';
+// Where the worker keeps Your details (shared/my-details.js STORAGE_KEY,
+// pinned by scripts/sync-my-details.js --check): cleared with the session.
+var SB_MY_DETAILS_STORAGE_KEY = 'sb_my_details';
+
+// An account without the key has no occasions of its own: the list is empty
+// and the ready ones apply as they ship. Written only when it changed, so
+// chrome.storage.onChanged stays quiet.
+function sbApplyOccasionsMetadata(meta) {
+  var next = Array.isArray(meta[SB_OCCASIONS_META_KEY]) ? meta[SB_OCCASIONS_META_KEY] : [];
+  chrome.storage.local.get(SB_OCCASIONS_STORAGE_KEY, function(d) {
+    var cur = d && Array.isArray(d[SB_OCCASIONS_STORAGE_KEY]) ? d[SB_OCCASIONS_STORAGE_KEY] : [];
+    if (JSON.stringify(cur) === JSON.stringify(next)) return;
+    var patch = {};
+    patch[SB_OCCASIONS_STORAGE_KEY] = next;
+    chrome.storage.local.set(patch, function() {
+      if (chrome.runtime.lastError) {
+        console.error('[Fibonax] Could not keep the occasions on this device:', chrome.runtime.lastError.message);
+      }
+    });
   });
 }
 

@@ -639,6 +639,136 @@ for (const [body, vals] of expansionCases) {
   }
   expOk++;
 }
+
+// ── SEASONAL LINE PARITY ────────────────────────────────────────────
+// {seasonal} prints the sentence of the occasion in season. Out of season it
+// leaves no trace: its line goes, and so does the gap it would leave. Every
+// body is resolved both ways, as text and as a layout, by the engine and by
+// the phone, which must agree; a few are pinned to what a reader must see.
+// The occasion itself is decided by extension/shared/season.js, and the last
+// cases run it for real on both sides, the way a page without a fill form does.
+const season = require(path.join(__dirname, '..', 'extension', 'shared', 'season.js'));
+const WISHES = 'Merry Christmas.';
+const seasonalText = [
+  'A\n\n{seasonal}\n\nB', 'A\n{seasonal}\nB', '{seasonal}\n\nA', '{seasonal}\nA', 'A\n\n{seasonal}',
+  'A\n{seasonal}', 'A\n\n{seasonal}\n', 'A\n\n{seasonal}\n\n', '{seasonal}', 'A\r\n\r\n{seasonal}\r\n\r\nB',
+  'A\n \n{ seasonal }\n\t\nB', 'Hi, {seasonal} thanks', 'text {seasonal}\nmore', '{seasonal} Thanks',
+  'Bye.{seasonal} Now', '{if: 1 > 0}\n{seasonal}\n\nB\n{endif}C', 'A\n\n{if: 1 > 0}{seasonal}{endif}\n\nB',
+  '{SEASONAL}', '{seasonally} and {seasonal: x}',
+];
+const seasonalHtml = [
+  '<div>A</div><div><br></div><div>{seasonal}</div><div><br></div><div>B</div>',
+  '<div>A</div><div>{seasonal}</div><div>B</div>',
+  '<div>A</div><div><b><span style="color:#1B4FD8">{seasonal}</span></b></div><div>B</div>',
+  '<div>{seasonal}</div><div><br></div><div>A</div>',
+  '<div>A</div><div><br></div><div>{seasonal}</div>',
+  '<div>A {seasonal}</div>', '<ul><li>x</li><li>{seasonal}</li></ul>', '<p>{seasonal}</p>',
+];
+const seasonalWant = [
+  ['A\n\n{seasonal}\n\nB', false, '', 'A\n\nB'],
+  ['A\n\n{seasonal}\n\nB', false, WISHES, 'A\n\n' + WISHES + '\n\nB'],
+  ['A\n{seasonal}\nB', false, '', 'A\nB'],
+  ['{seasonal}\n\nA', false, '', 'A'],
+  ['A\n\n{seasonal}', false, '', 'A'],
+  ['Hi, {seasonal} thanks', false, '', 'Hi, thanks'],
+  [seasonalHtml[0], true, '', '<div>A</div><div><br></div><div>B</div>'],
+  [seasonalHtml[0], true, 'A & B', '<div>A</div><div><br></div><div>A &amp; B</div><div><br></div><div>B</div>'],
+  [seasonalHtml[2], true, '', '<div>A</div><div>B</div>'],
+  [seasonalHtml[6], true, '', '<ul><li>x</li></ul>'],
+];
+let seasonOk = 0;
+function seasonalBoth(body, html, text) {
+  const opts = () => ({ lang: 'EN', html: html, seasonal: text });
+  const gotE = engine.resolveBody(body, {}, opts());
+  const gotM = mobile.resolveBody(body, {}, opts());
+  if (gotM !== gotE) {
+    fail('seasonal line drift for ' + JSON.stringify(body) + (html ? ' (layout)' : '') + ' printing ' + JSON.stringify(text) +
+      '\n  engine: ' + JSON.stringify(gotE) + '\n  mobile: ' + JSON.stringify(gotM));
+  }
+  seasonOk++;
+  return gotE;
+}
+for (const text of ['', WISHES]) {
+  for (const body of seasonalText) seasonalBoth(body, false, text);
+  for (const body of seasonalHtml) seasonalBoth(body, true, text);
+}
+for (const [body, html, text, want] of seasonalWant) {
+  const got = seasonalBoth(body, html, text);
+  if (got !== want) {
+    fail('seasonal line ' + JSON.stringify(body) + ' printing ' + JSON.stringify(text) +
+      ' -> ' + JSON.stringify(got) + ', expected ' + JSON.stringify(want));
+  }
+}
+// Not a field on either side, and a name that only starts like it still is.
+if (mobile.sbTokenFieldKey('seasonal') !== '' || mobile.sbTokenFieldKey('seasonally') !== 'seasonally' ||
+    engine.extractFields('{seasonal} {seasonally}').join() !== 'seasonally') {
+  fail('{seasonal} must not be a field, and {seasonally} must stay one, on the engine and the phone');
+}
+// Without an answer from a fill form, both ask the page's own SBSeason, and
+// a wish carrying the account's details asks SBMyDetails.
+const myDetails = require(path.join(__dirname, '..', 'extension', 'shared', 'my-details.js'));
+globalThis.SBSeason = season;
+mobile.SBSeason = season;
+globalThis.SBMyDetails = myDetails;
+mobile.SBMyDetails = myDetails;
+const ALL_YEAR = { name: 'All year', from: '01-01', to: '12-31' };
+for (const [calendar, details, want] of [
+  [[Object.assign({ texts: { EN: 'Open all year.' } }, ALL_YEAR)], {}, 'Hi\nOpen all year.\nBye'],
+  [[{ id: 'christmas', on: false }, { id: 'newyear', on: false }, { id: 'easter', on: false }], {}, 'Hi\nBye'],
+  [[Object.assign({ texts: { EN: 'Greetings from {my: company}.' } }, ALL_YEAR)], { company: 'Acme' }, 'Hi\nGreetings from Acme.\nBye'],
+  // A detail the account does not hold: the wish is not sent half filled.
+  [[Object.assign({ texts: { EN: 'Greetings from {my: company}.' } }, ALL_YEAR)], {}, 'Hi\nBye'],
+  // A sentence written only in Italian, in an English snippet: an own occasion
+  // has no ready words, so it prints the sentence it has.
+  [[Object.assign({ texts: { IT: 'Aperti tutto l\'anno.' } }, ALL_YEAR)], {}, 'Hi\nAperti tutto l\'anno.\nBye'],
+]) {
+  season.set(calendar);
+  myDetails.set(details);
+  const gotE = engine.resolveBody('Hi\n{seasonal}\nBye', {}, { lang: 'EN' });
+  const gotM = mobile.resolveBody('Hi\n{seasonal}\nBye', {}, { lang: 'EN' });
+  if (gotE !== want || gotM !== want) {
+    fail('seasonal line from the calendar: engine ' + JSON.stringify(gotE) + ', mobile ' + JSON.stringify(gotM) +
+      ', expected ' + JSON.stringify(want));
+  }
+  seasonOk++;
+}
+season.set([]);
+console.log('OK Seasonal line parity (engine = mobile) passed all ' + seasonOk + ' cases');
+
+// ── YOUR DETAILS PARITY ─────────────────────────────────────────────
+// {my: name}, {my: company}, {my: job title} print the account's details on
+// both sides; a detail it does not hold prints nothing and leaves no empty
+// line, as the seasonal line does.
+let myOk = 0;
+const mySignature = 'Best regards\n{my: name}\n{my: job title}\n{my: company}';
+for (const [details, body, html, want] of [
+  [{ name: 'Ada Rossi', company: 'Acme', job_title: 'Sales lead' }, mySignature, false, 'Best regards\nAda Rossi\nSales lead\nAcme'],
+  [{ name: 'Ada Rossi', company: 'Acme' }, mySignature, false, 'Best regards\nAda Rossi\nAcme'],
+  [{}, mySignature, false, 'Best regards'],
+  [{ company: 'Acme' }, 'Thanks from {My:Company} and { my : job_title }.', false, 'Thanks from Acme and.'],
+  [{ company: 'A & B' }, '<div>Bye</div><div>{my: company}</div>', true, '<div>Bye</div><div>A &amp; B</div>'],
+  [{}, '<div>Bye</div><div>{my: job title}</div><div>End</div>', true, '<div>Bye</div><div>End</div>'],
+  [{ company: 'Acme' }, '{my: unknown} {my: company}', false, 'Acme'],
+]) {
+  myDetails.set(details);
+  const gotE = engine.resolveBody(body, {}, { lang: 'EN', html: html });
+  const gotM = mobile.resolveBody(body, {}, { lang: 'EN', html: html });
+  if (gotM !== gotE) {
+    fail('your details drift for ' + JSON.stringify(body) + '\n  engine: ' + JSON.stringify(gotE) + '\n  mobile: ' + JSON.stringify(gotM));
+  }
+  if (gotE !== want) fail('your details ' + JSON.stringify(body) + ' -> ' + JSON.stringify(gotE) + ', expected ' + JSON.stringify(want));
+  myOk++;
+}
+if (mobile.sbTokenFieldKey('my: company') !== '' || engine.extractFields('{my: company} {my_company}').join() !== 'my_company') {
+  fail('{my: …} must not be a field, and {my_company} must stay one, on the engine and the phone');
+}
+myDetails.set({});
+delete globalThis.SBSeason;
+delete mobile.SBSeason;
+delete globalThis.SBMyDetails;
+delete mobile.SBMyDetails;
+console.log('OK Your details parity (engine = mobile) passed all ' + myOk + ' cases');
+
 // Switching print never renames an unnamed menu: a rule checking it would stop
 // matching the moment the author ticked the box.
 // Display Other option is held to the same rule.

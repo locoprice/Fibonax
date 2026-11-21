@@ -2005,6 +2005,9 @@ svg.brain-type-icon{stroke-width:1.8}
       <p class="ff-picnote" id="prev-picnote" role="status" hidden></p>
       <p class="ff-picnote" id="prev-picnote-share" hidden></p>
     </div>
+    <!-- "Christmas wishes included" and Leave out: outside both panes, so it
+         shows on Fill in and on Preview alike. -->
+    <div id="det-season" hidden></div>
   </div>
   <div class="copy-foot">
     <button id="copy-btn" class="foot-btn" type="button"><span>📋</span><span>Copy</span></button>
@@ -2909,6 +2912,14 @@ svg.brain-type-icon{stroke-width:1.8}
     return FE || root.SBFillFormEngine || root.SBFormulaEngine || null;
   }
 
+  // The seasonal line's rules (shared/season.js), which every surface loads as
+  // SBSeason. Read off the page like the engine does, and for the same reason:
+  // a page without it has no seasonal line, and the token then prints nothing.
+  // A gate that wants one sets globalThis.SBSeason before it runs.
+  function season() {
+    return root.SBSeason || null;
+  }
+
   // Fields per form before a step layout would earn its place. Nothing reads
   // this yet: chooseLayout always answers 'flat'. It sits next to the rule it
   // will govern so the future change is one obvious place.
@@ -3385,6 +3396,10 @@ svg.brain-type-icon{stroke-width:1.8}
     }
     var resolveOpts = { lang: opts.lang || '', fmtOverride: opts.fmtOverride, formula: formula,
       value: function(key, scope) { return dependencies[key] ? formula(key, scope) : scope[key]; } };
+    // What {seasonal} prints, already decided by fillForm ('' when nothing is
+    // in season or the line was left out), so the text and the layout carry
+    // the same answer as the row the form shows.
+    if (typeof opts.seasonal === 'string') resolveOpts.seasonal = opts.seasonal;
     function resolve(body, vals) {
       dependencies = Object.create(null);
       return E.resolveBody(E.interpolateSnippet(body, vals), Object.assign({}, vals), resolveOpts);
@@ -3498,7 +3513,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], progress: progress([]), layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], progress: progress([]), season: null, layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -3700,12 +3715,23 @@ svg.brain-type-icon{stroke-width:1.8}
     var linkable = false;
     for (var lf = 0; lf < fields.length; lf++) if (fields[lf].link) { linkable = true; break; }
 
+    // The seasonal line ({seasonal}, shared/season.js): the occasion in season
+    // for this text today and the words of the row that lets a person leave it
+    // out this once (`o.seasonOff`), or null for a text without the line.
+    // Decided here, once, so the preview, the layout and the row a surface
+    // draws can never disagree about what goes in. `o.occasions` is the
+    // person's stored calendar when the surface holds it itself (the dashboard
+    // does); the others handed it to SBSeason when they read it.
+    var S = season();
+    var seasonView = S ? S.describe(src, o.lang || '', now, o.seasonOff === true, o.occasions) : null;
+
     // The preview resolves against the EFFECTIVE values, which is each field's
     // entry falling back to its default — not the raw `values` argument. A
     // single-choice menu the operator never touched already reads as its first
     // option in the form, so resolving against raw values previewed a hole in a
     // sentence the surface was visibly showing as answered.
-    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride, formatted: o.formatted });
+    var resolved = resolvedForm(E, src, fields, { lang: o.lang, fmtOverride: fmtOverride, formatted: o.formatted,
+      seasonal: seasonView ? (seasonView.active && !seasonView.off ? seasonView.text : '') : undefined });
 
     return {
       fields: fields,
@@ -3724,6 +3750,12 @@ svg.brain-type-icon{stroke-width:1.8}
       // fields. Read after the form is resolved, so a box holding something
       // the text cannot use (a number that is not one) does not count yet.
       progress: progress(fields),
+      // The seasonal line of this text, or null: { active, id, name, text, off,
+      // label, action, note }. In season a surface draws `label` with a button
+      // reading `action` (SBFillFormUI.seasonNote) and sends `seasonOff` back
+      // when it is pressed. Out of season only the editor's preview says so,
+      // with `note`.
+      season: seasonView,
       // Hand straight to resolveBody alongside the values. A surface that
       // resolves the body itself on insert — the overlay does — must pass this
       // too, or what it inserts prints in a different format from the preview
@@ -4673,6 +4705,24 @@ svg.brain-type-icon{stroke-width:1.8}
 .ff-pic-missing{display:inline-block;margin:4px 0;padding:6px 10px;border:1px dashed var(--sb-line,#E5E5EA);border-radius:8px;font-size:12px;line-height:1.4;color:var(--sb-ink-muted,#6E6E73);}
 .ff-picnote{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--sb-ink-muted,#6E6E73);}
 .ff-picnote[hidden]{display:none!important;}
+/* "Christmas wishes included" and the button that leaves them out this once:
+   the seasonal line of a text, while an occasion is in season. The Azure tint
+   of an "Often sent next" row while the sentence goes in, plain once it is
+   left out; the words say which, never the colour alone. A 44px row. */
+.ff-season{--ffs-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffs-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffs-bdr:var(--sb-azure-bdr,#BED0FF);--ffs-muted:var(--sb-ink-muted,var(--text2,#6E6E73));--ffs-line:var(--sb-line,var(--border,#E5E5EA));display:flex!important;align-items:center;justify-content:space-between;gap:8px;min-height:44px;min-width:0;margin:8px 0 0;padding:2px 4px 2px 12px;border:1px solid var(--ffs-bdr);border-radius:12px;background:var(--ffs-bg);box-sizing:border-box;font-family:inherit;text-align:left;}
+.ff-season[hidden]{display:none!important;}
+.ff-season .ff-season-text{flex:1 1 auto;min-width:0;font-size:14px;line-height:1.3;font-weight:600;color:var(--ffs-primary);overflow-wrap:anywhere;}
+/* Named under #sb-overlay too: the page's fill window resets every button it
+   holds by id, which would take the colour and the padding off this one. */
+.ff-season .ff-season-btn,#sb-overlay .ff-season .ff-season-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:36px;padding:0 12px;border-radius:10px;font-family:inherit;font-size:13px;line-height:1.3;font-weight:600;color:var(--ffs-primary);cursor:pointer;touch-action:manipulation;}
+.ff-season .ff-season-btn:hover,#sb-overlay .ff-season .ff-season-btn:hover{background:var(--sb-bg,var(--card,#fff));}
+.ff-season .ff-season-btn:focus-visible,#sb-overlay .ff-season .ff-season-btn:focus-visible{outline:2px solid var(--ffs-primary);outline-offset:2px;}
+.ff-season--off{border-color:var(--ffs-line);background:transparent;}
+.ff-season--off .ff-season-text{font-weight:400;color:var(--ffs-muted);}
+/* The popup: across both columns when there are fields. */
+.detail:has(.d-fields) .ff-season{grid-column:1/-1;margin:0;}
+/* The phone: under both panes, at the page's own spacing. */
+#det-body>.ff-season{margin:16px 0 0;}
 /* A formatted text in a preview: its lines and lists, whatever the page styles. */
 .ff-layout{white-space:normal!important;}
 .ff-layout ul,.ff-layout ol{margin:4px 0!important;padding-left:1.5em!important;}
@@ -5215,6 +5265,47 @@ svg.brain-type-icon{stroke-width:1.8}
     el.textContent = text;
   }
 
+  // ── SEASONAL LINE ───────────────────────────────────────────────
+  // The row that says the season's sentence is going in ("Christmas wishes
+  // included") with the button that leaves it out this once, and puts it
+  // back. What it says is the view model's `season` (SBFillForm.fillForm,
+  // decided in shared/season.js); this only draws it into `el`, the same on
+  // the page, in the popup and on the phone. Hidden while the text has no
+  // seasonal line or nothing is in season. onToggle(off) runs on the button:
+  // the surface keeps `off`, hands it back to fillForm as `seasonOff` and
+  // draws its form again. The row is made once and updated in place, so the
+  // button a person just pressed keeps the focus.
+  function seasonNote(el, vm, onToggle) {
+    if (!el) return;
+    var s = vm && vm.season && vm.season.active ? vm.season : null;
+    el.hidden = !s;
+    if (!s) return;
+    var state = el._ffSeason;
+    if (!state) {
+      var doc = el.ownerDocument;
+      el.classList.add('ff-season');
+      var text = doc.createElement('span');
+      text.className = 'ff-season-text';
+      text.setAttribute('role', 'status');
+      var btn = doc.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ff-season-btn';
+      el.textContent = '';
+      el.appendChild(text);
+      el.appendChild(btn);
+      state = el._ffSeason = { text: text, btn: btn, off: false, toggle: null };
+      btn.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        if (typeof state.toggle === 'function') state.toggle(!state.off);
+      });
+    }
+    state.off = s.off;
+    state.toggle = onToggle;
+    state.text.textContent = s.label;
+    state.btn.textContent = s.action;
+    el.classList.toggle('ff-season--off', s.off);
+  }
+
   // ── OFTEN SENT NEXT ─────────────────────────────────────────────
   // The snippets a person usually sends right after this one, offered where
   // the snippet is used: as a list under the fill window's preview, which
@@ -5443,6 +5534,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
   root.SBFillFormUI = { enhance: enhance, refresh: refresh, validate: validate,
     unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
+    seasonNote: seasonNote,
     NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
     nextWords: nextWords, nextsFor: nextsFor, hideNext: hideNext, nextToggle: nextToggle, nextOffer: nextOffer,
     nextText: nextText, nextAddition: nextAddition, nextPreview: nextPreview, nextNames: nextNames };
@@ -6200,6 +6292,684 @@ svg.brain-type-icon{stroke-width:1.8}
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
 </script>
 <!-- SB_MEMORY_PACK:END -->
+<!-- SB_MY_DETAILS:BEGIN (generated from extension/shared/my-details.js by scripts/sync-my-details.js, do not edit) -->
+<script>
+// my-details.js: the details of the person using a snippet, decided once.
+//
+// A snippet body may carry {my: name}, {my: company} or {my: job title}, and so
+// may the seasonal line's wishes ("Merry Christmas from {my: company}."). Each
+// prints what the account already holds, for whoever uses the snippet, so a
+// signature written once signs for everyone in the team and nobody types it:
+//
+//   name       the account's name
+//   company    the account's Company branding, else the one of whoever
+//              created the person's team
+//   job title  the job title the team holds for the person
+//
+// The server works them out (my_details(), migration 20261121120000) and every
+// surface keeps the answer and hands it to set():
+//
+//   extension/background/background.js  asks for it with the library, keeps it
+//                                       in chrome.storage.local (STORAGE_KEY)
+//   extension/content/content.js        reads that copy, and again when it changes
+//   extension/popup/popup.js            the same
+//   app/src/lib/myDetails.ts            the dashboard
+//   app/public/mobile/index.html        a generated copy of this file
+//                                       (node scripts/sync-my-details.js)
+//
+// formula-engine.js prints a token through value(); a detail the account does
+// not hold prints nothing, and a line left empty by it goes with it.
+// shared/season.js fills a wish through fill(), which answers null when a
+// detail is missing, so a wish never goes out as "Merry Christmas from ."
+(function(root) {
+  'use strict';
+
+  var STORAGE_KEY = 'sb_my_details';
+  var RPC = 'my_details';
+  var MAX_VALUE = 80;
+
+  // Each detail: the word written in the token, the key the server answers
+  // with, and what the editor calls it.
+  var DETAILS = [
+    { word: 'name', key: 'name', label: 'Your name' },
+    { word: 'company', key: 'company', label: 'Company name' },
+    { word: 'job title', key: 'job_title', label: 'Job title' }
+  ];
+
+  var TOKEN_RE = /\{\s*my\s*:\s*([^{}]*?)\s*\}/gi;
+  var YEAR_RE = /\{\s*year\s*\}/gi;
+
+  // "Job Title", "job_title" and "job  title" are one word.
+  function normalWord(raw) {
+    return String(raw === null || raw === undefined ? '' : raw)
+      .replace(/[_\s]+/g, ' ').replace(/^ | $/g, '').toLowerCase();
+  }
+
+  function detailOf(word) {
+    var w = normalWord(word);
+    for (var i = 0; i < DETAILS.length; i++) if (DETAILS[i].word === w) return DETAILS[i];
+    return null;
+  }
+
+  /** The token the editor writes for a detail word: "{my: company}". */
+  function token(word) {
+    var d = detailOf(word);
+    return d ? '{my: ' + d.word + '}' : '';
+  }
+
+  /** Whether a token's text (without braces, lower case) is a {my: …} token. */
+  function isHead(tokLow) {
+    return /^my\s*:/.test(String(tokLow));
+  }
+
+  /** The word after "my:" in a token's text, or '' when it names no detail. */
+  function wordOf(tok) {
+    var m = /^\s*my\s*:\s*(.*)$/i.exec(String(tok));
+    var d = m ? detailOf(m[1]) : null;
+    return d ? d.word : '';
+  }
+
+  /** What the editor calls a detail word: "Company name". */
+  function label(word) {
+    var d = detailOf(word);
+    return d ? d.label : '';
+  }
+
+  // One line of plain text, no longer than MAX_VALUE.
+  function cleanValue(raw) {
+    if (typeof raw !== 'string') return '';
+    return raw.replace(/\s+/g, ' ').replace(/^ | $/g, '').slice(0, MAX_VALUE);
+  }
+
+  /** The server's answer, kept to what it should hold: { name, company, job_title }. */
+  function clean(raw) {
+    var o = raw && typeof raw === 'object' ? raw : {};
+    var out = {};
+    for (var i = 0; i < DETAILS.length; i++) out[DETAILS[i].key] = cleanValue(o[DETAILS[i].key]);
+    return out;
+  }
+
+  // The details of the person using this page. Each surface sets them once it
+  // has asked the server, and again when they change.
+  var current = clean(null);
+  function set(raw) { current = clean(raw); }
+  function get() { return current; }
+
+  /** What a detail word prints for the person using this page: '' when unknown. */
+  function value(word) {
+    var d = detailOf(word);
+    return d ? current[d.key] : '';
+  }
+
+  /** Every detail word a text uses, once each, in order. */
+  function wordsIn(text) {
+    var out = [], m;
+    TOKEN_RE.lastIndex = 0;
+    while ((m = TOKEN_RE.exec(String(text || ''))) !== null) {
+      var d = detailOf(m[1]);
+      if (d && out.indexOf(d.word) === -1) out.push(d.word);
+    }
+    return out;
+  }
+
+  /** The detail words a text uses that this account does not hold. */
+  function missingIn(text) {
+    return wordsIn(text).filter(function(w) { return value(w) === ''; });
+  }
+
+  /**
+   * A sentence with its details filled in: every {my: …} token, and {year}
+   * when `extra.year` is given. Null when one of them has no value, or names
+   * a detail that does not exist, so the caller can fall back to something
+   * whole rather than print a gap.
+   */
+  function fill(text, extra) {
+    var ok = true;
+    var out = String(text || '').replace(TOKEN_RE, function(all, word) {
+      var d = detailOf(word);
+      var v = d ? current[d.key] : '';
+      if (v === '') ok = false;
+      return v;
+    });
+    out = out.replace(YEAR_RE, function() {
+      var y = extra && extra.year;
+      if (!y) { ok = false; return ''; }
+      return String(y);
+    });
+    return ok ? out : null;
+  }
+
+  var API = {
+    STORAGE_KEY: STORAGE_KEY,
+    RPC: RPC,
+    MAX_VALUE: MAX_VALUE,
+    DETAILS: DETAILS,
+    token: token,
+    isHead: isHead,
+    wordOf: wordOf,
+    label: label,
+    clean: clean,
+    set: set,
+    get: get,
+    value: value,
+    wordsIn: wordsIn,
+    missingIn: missingIn,
+    fill: fill
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = API;
+  } else {
+    root.SBMyDetails = API;
+  }
+
+}(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
+</script>
+<!-- SB_MY_DETAILS:END -->
+<!-- SB_SEASON:BEGIN (generated from extension/shared/season.js by scripts/sync-season.js, do not edit) -->
+<script>
+// season.js: the seasonal line of a snippet, decided once.
+//
+// A snippet body may carry {seasonal}. While an occasion is in season the token
+// prints that occasion's sentence ("Merry Christmas."); the rest of the year it
+// prints nothing and leaves no empty line behind. One snippet then reads as if
+// it had been rewritten for the season, with nobody touching it.
+//
+// Which occasion is in season comes from one calendar per person:
+//
+//   three ready occasions   Christmas, New Year and Easter (found every year)
+//   up to MAX_OWN of theirs  a name, a period and a sentence each: a closing
+//                            week, new opening hours, an anniversary
+//
+// One occasion is in season at a time. When two periods overlap, the person's
+// own occasion wins over a ready one, then the one whose day is closest to
+// today, then the one with the shorter period.
+//
+// The calendar is written in the dashboard (Your occasions) and kept with the
+// account's settings (user metadata, META_KEY), the way the trigger settings
+// are, so every surface reads the same list:
+//
+//   extension/auth/auth.js           copies it to chrome.storage.local (STORAGE_KEY)
+//   extension/content/content.js     reads that copy, and again when it changes
+//   extension/popup/popup.js         the same
+//   app/src/lib/season.ts            the dashboard (preview and Your occasions)
+//   app/public/mobile/index.html     a generated copy of this file
+//                                    (node scripts/sync-season.js)
+//
+// Each surface hands the list to set() once. formula-engine.js asks
+// currentLine() when it meets {seasonal}, and shared/fill-form.js asks
+// describe() for the line a fill form shows ("Christmas wishes included").
+// Dates are read off the clock of the device that sends the message.
+//
+// A sentence is written per language (LANGS), and the snippet's language picks
+// it. It may carry the details of whoever sends it ("Merry Christmas from
+// {my: company}.", shared/my-details.js) and {year}, the year of the
+// occasion's own day, so New Year's wishes sent on 28 December already name
+// the year to come. When the snippet's language has no sentence, or one of its
+// details is missing, a ready occasion prints its ready words instead: a wish
+// never goes out half filled. An occasion of the person's own has no ready
+// words, so it falls back to a sentence written in another language, and
+// prints nothing when a detail is missing.
+(function(root) {
+  'use strict';
+
+  var META_KEY = 'occasions';
+  var STORAGE_KEY = 'sb_occasions';
+  var MAX_OWN = 10;
+  var MAX_NAME = 30;
+  var MAX_TEXT = 160;
+  // The languages a sentence is written in: the four the ready words speak.
+  var LANGS = ['EN', 'IT', 'ES', 'FR'];
+  // The longest calendar the account may keep. The account's settings travel
+  // with every request it makes, so the calendar must stay small.
+  var MAX_PACKED = 4000;
+  var YEAR_TOKEN = '{year}';
+  var EASTER_BEFORE_MAX = 60;
+  var EASTER_AFTER_MAX = 14;
+  var DAY_MS = 24 * 60 * 60 * 1000;
+  var TOKEN = '{seasonal}';
+  var TOKEN_RE = /\{\s*seasonal\s*\}/i;
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                'August', 'September', 'October', 'November', 'December'];
+  var MONTH_DAYS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+  // The ready occasions. `day` is the day itself, which is what "closest to
+  // today" is measured against. Easter has no fixed day: its period is counted
+  // in days around Easter Sunday. The sentences speak the four languages
+  // {greeting} speaks; any other language reads the English one.
+  var READY = [
+    { id: 'christmas', name: 'Christmas', from: '12-08', to: '12-26', day: '12-25',
+      words: { EN: 'Merry Christmas.', IT: 'Buon Natale.', ES: 'Feliz Navidad.', FR: 'Joyeux Noël.' } },
+    { id: 'newyear', name: 'New Year', from: '12-27', to: '01-06', day: '01-01',
+      words: { EN: 'Happy New Year.', IT: 'Buon anno.', ES: 'Feliz Año Nuevo.', FR: 'Bonne année.' } },
+    { id: 'easter', name: 'Easter', before: 7, after: 1,
+      words: { EN: 'Happy Easter.', IT: 'Buona Pasqua.', ES: 'Feliz Pascua.', FR: 'Joyeuses Pâques.' } }
+  ];
+
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+
+  function readyById(id) {
+    for (var i = 0; i < READY.length; i++) if (READY[i].id === id) return READY[i];
+    return null;
+  }
+
+  // One line of plain text, no longer than `max`.
+  function cleanText(raw, max) {
+    if (typeof raw !== 'string') return '';
+    return raw.replace(/\s+/g, ' ').replace(/^ | $/g, '').slice(0, max);
+  }
+
+  // A day of the year as the calendar stores it: 'MM-DD'. 29 February counts.
+  function dayOk(value) {
+    var m = typeof value === 'string' ? /^(\d{2})-(\d{2})$/.exec(value) : null;
+    if (!m) return false;
+    var month = Number(m[1]), day = Number(m[2]);
+    return month >= 1 && month <= 12 && day >= 1 && day <= MONTH_DAYS[month - 1];
+  }
+
+  function wholeNumber(value, fallback, max) {
+    var n = typeof value === 'number' ? Math.floor(value) : NaN;
+    return isFinite(n) && n >= 0 && n <= max ? n : fallback;
+  }
+
+  // A sentence per language, every one of LANGS present: '' where none.
+  function cleanTexts(raw) {
+    var o = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    var out = {};
+    for (var i = 0; i < LANGS.length; i++) out[LANGS[i]] = cleanText(o[LANGS[i]], MAX_TEXT);
+    return out;
+  }
+
+  // Only the languages that have a sentence, for storing; null when none has.
+  function packTexts(texts) {
+    var out = {}, any = false;
+    for (var i = 0; i < LANGS.length; i++) {
+      var t = texts && texts[LANGS[i]];
+      if (t) { out[LANGS[i]] = t; any = true; }
+    }
+    return any ? out : null;
+  }
+
+  function hasText(o) {
+    for (var i = 0; i < LANGS.length; i++) if (o.texts[LANGS[i]]) return true;
+    return false;
+  }
+
+  // A snippet's language as one of LANGS ('ES', 'es-ES'), or '' for any other.
+  function langOf(lang) {
+    var l = String(lang === null || lang === undefined ? '' : lang).slice(0, 2).toUpperCase();
+    return LANGS.indexOf(l) === -1 ? '' : l;
+  }
+
+  /**
+   * The whole calendar, ready occasions first, each one complete:
+   * { id, ready, name, from, to, before, after, texts, on }.
+   * `raw` is the stored list (see pack): anything damaged or unknown in it is
+   * left out, so a surface can hand over whatever it read. `texts` holds a
+   * sentence per language (LANGS), '' where the person wrote none; a ready
+   * occasion prints its ready words there.
+   */
+  function list(raw) {
+    var stored = Array.isArray(raw) ? raw : [];
+    var out = [], own = [];
+    var seen = {};
+    for (var i = 0; i < stored.length; i++) {
+      var item = stored[i];
+      if (!item || typeof item !== 'object') continue;
+      if (typeof item.id === 'string' && readyById(item.id)) {
+        if (!seen[item.id]) seen[item.id] = item;
+        continue;
+      }
+      var name = cleanText(item.name, MAX_NAME);
+      if (!name || !dayOk(item.from) || !dayOk(item.to) || own.length >= MAX_OWN) continue;
+      own.push({
+        id: 'own-' + own.length, ready: false, name: name, from: item.from, to: item.to,
+        before: 0, after: 0, texts: cleanTexts(item.texts), on: item.on !== false
+      });
+    }
+    for (var r = 0; r < READY.length; r++) {
+      var base = READY[r], over = seen[base.id] || {};
+      var fixed = has(base, 'from');
+      out.push({
+        id: base.id, ready: true, name: base.name,
+        from: fixed ? (dayOk(over.from) ? over.from : base.from) : '',
+        to: fixed ? (dayOk(over.to) ? over.to : base.to) : '',
+        before: fixed ? 0 : wholeNumber(over.before, base.before, EASTER_BEFORE_MAX),
+        after: fixed ? 0 : wholeNumber(over.after, base.after, EASTER_AFTER_MAX),
+        texts: cleanTexts(over.texts), on: over.on !== false
+      });
+    }
+    return out.concat(own);
+  }
+
+  /**
+   * A calendar as it is stored: a ready occasion only where it differs from
+   * what it ships as, an own occasion in full. Small on purpose, because the
+   * account's settings travel with every request.
+   */
+  function pack(items) {
+    var full = list(unlist(items));
+    var out = [];
+    for (var i = 0; i < full.length; i++) {
+      var o = full[i];
+      var texts = packTexts(o.texts);
+      if (!o.ready) {
+        var own = { name: o.name, from: o.from, to: o.to };
+        if (texts) own.texts = texts;
+        if (!o.on) own.on = false;
+        out.push(own);
+        continue;
+      }
+      var base = readyById(o.id), diff = { id: o.id }, changed = false;
+      if (!o.on) { diff.on = false; changed = true; }
+      if (texts) { diff.texts = texts; changed = true; }
+      if (has(base, 'from')) {
+        if (o.from !== base.from) { diff.from = o.from; changed = true; }
+        if (o.to !== base.to) { diff.to = o.to; changed = true; }
+      } else {
+        if (o.before !== base.before) { diff.before = o.before; changed = true; }
+        if (o.after !== base.after) { diff.after = o.after; changed = true; }
+      }
+      if (changed) out.push(diff);
+    }
+    return out;
+  }
+
+  // A list() answer read back as stored items, so pack() cleans what a window
+  // hands it with the same rules list() applies to what was stored.
+  function unlist(items) {
+    var arr = Array.isArray(items) ? items : [];
+    return arr.map(function(o) {
+      if (!o || typeof o !== 'object') return null;
+      if (o.ready) return { id: o.id, on: o.on, texts: o.texts, from: o.from, to: o.to, before: o.before, after: o.after };
+      return { name: o.name, from: o.from, to: o.to, texts: o.texts, on: o.on };
+    });
+  }
+
+  /** Whether a stored calendar is small enough for the account to keep. */
+  function fits(packed) {
+    return JSON.stringify(packed || []).length <= MAX_PACKED;
+  }
+
+  // The calendar of the person using this page, as stored. Each surface sets
+  // it once it has read the account's settings, and again when they change.
+  var current = [];
+  function set(raw) { current = Array.isArray(raw) ? raw : []; }
+  function get() { return current; }
+
+  // Easter Sunday of a year in the Gregorian calendar: { month (1-12), day }.
+  function easterSunday(year) {
+    var a = year % 19, b = Math.floor(year / 100), c = year % 100;
+    var d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var month = Math.floor((h + l - 7 * m + 114) / 31);
+    return { month: month, day: ((h + l - 7 * m + 114) % 31) + 1 };
+  }
+
+  // A calendar day as a count of days, compared in UTC so a clock change cannot
+  // move it. 29 February reads as the 28th in a year that has none.
+  function dayCount(year, month, day) {
+    var leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    return Math.round(Date.UTC(year, month - 1, (month === 2 && day === 29 && !leap) ? 28 : day) / DAY_MS);
+  }
+
+  function today(now) {
+    // Read by its methods, not by `instanceof`: a date made on another page or
+    // in a test's own context is still a date.
+    var d = now && typeof now.getFullYear === 'function' ? now : new Date();
+    return { year: d.getFullYear(), count: dayCount(d.getFullYear(), d.getMonth() + 1, d.getDate()) };
+  }
+
+  function monthDay(value) {
+    return { month: Number(value.slice(0, 2)), day: Number(value.slice(3, 5)) };
+  }
+
+  // The occasion's period that starts in `year`: { start, end, day } as day
+  // counts. A period written 27 December to 6 January ends the year after.
+  function periodIn(o, year) {
+    if (o.ready && !o.from) {
+      var e = easterSunday(year), sunday = dayCount(year, e.month, e.day);
+      return { start: sunday - o.before, end: sunday + o.after, day: sunday };
+    }
+    var from = monthDay(o.from), to = monthDay(o.to);
+    var wraps = o.from > o.to;
+    var start = dayCount(year, from.month, from.day);
+    var end = dayCount(wraps ? year + 1 : year, to.month, to.day);
+    var base = o.ready ? readyById(o.id) : null;
+    var day = start;
+    if (base && base.day) {
+      // The day itself, in whichever year puts it inside the period, or
+      // nearest to it when the person moved the period off the day.
+      var d = monthDay(base.day), gap = Infinity;
+      for (var y = year - 1; y <= year + 1; y++) {
+        var c = dayCount(y, d.month, d.day);
+        var off = c < start ? start - c : (c > end ? c - end : 0);
+        if (off < gap) { gap = off; day = c; }
+      }
+    }
+    return { start: start, end: end, day: day };
+  }
+
+  // The period of `o` that holds today, or null out of season.
+  function periodNow(o, t) {
+    for (var y = t.year - 1; y <= t.year; y++) {
+      var p = periodIn(o, y);
+      if (t.count >= p.start && t.count <= p.end) return p;
+    }
+    return null;
+  }
+
+  // Whether an occasion can print at all: switched on, and with a sentence.
+  function prints(o) {
+    return o.on && (o.ready || hasText(o));
+  }
+
+  // The year of a day count.
+  function yearOfCount(count) {
+    return new Date(count * DAY_MS).getUTCFullYear();
+  }
+
+  // The occasion in season on `now` and the period that holds today, or null.
+  function activeNow(now, raw) {
+    var items = list(raw === undefined ? current : raw);
+    var t = today(now);
+    var best = null, bestRank = null, bestP = null;
+    for (var i = 0; i < items.length; i++) {
+      var o = items[i];
+      if (!prints(o)) continue;
+      var p = periodNow(o, t);
+      if (!p) continue;
+      var rank = [o.ready ? 1 : 0, Math.abs(t.count - p.day), p.end - p.start, i];
+      var better = !bestRank;
+      for (var k = 0; !better && k < rank.length; k++) {
+        if (rank[k] === bestRank[k]) continue;
+        better = rank[k] < bestRank[k];
+        break;
+      }
+      if (better) { best = o; bestRank = rank; bestP = p; }
+    }
+    return best ? { occasion: best, year: yearOfCount(bestP.day) } : null;
+  }
+
+  /**
+   * The occasion in season on `now`, or null. `raw` is a stored calendar;
+   * without one it is the calendar this page was given with set().
+   */
+  function active(now, raw) {
+    var a = activeNow(now, raw);
+    return a ? a.occasion : null;
+  }
+
+  /**
+   * The year {year} prints for an occasion: the year of its own day in the
+   * period that holds `now`, else in the next one to start.
+   */
+  function yearOf(o, now) {
+    if (!o) return 0;
+    var t = today(now);
+    var p = periodNow(o, t);
+    if (!p) {
+      p = periodIn(o, t.year);
+      if (p.start <= t.count) p = periodIn(o, t.year + 1);
+    }
+    return yearOfCount(p.day);
+  }
+
+  // The first occasion to start after `now`, with the day it starts on, or
+  // null when none can print: { occasion, month (1-12), day }.
+  function next(now, raw) {
+    var items = list(raw === undefined ? current : raw);
+    var t = today(now);
+    var best = null;
+    for (var i = 0; i < items.length; i++) {
+      var o = items[i];
+      if (!prints(o)) continue;
+      for (var y = t.year; y <= t.year + 1; y++) {
+        var p = periodIn(o, y);
+        if (p.start <= t.count) continue;
+        if (!best || p.start < best.start) best = { occasion: o, start: p.start };
+        break;
+      }
+    }
+    if (!best) return null;
+    var d = new Date(best.start * DAY_MS);
+    return { occasion: best.occasion, month: d.getUTCMonth() + 1, day: d.getUTCDate() };
+  }
+
+  // The ready sentence for an occasion in a snippet's language ('ES', 'es-ES',
+  // '' for a Multi body). English for a language without one.
+  function words(id, lang) {
+    var base = readyById(id);
+    if (!base) return '';
+    var l = String(lang === null || lang === undefined ? '' : lang).slice(0, 2).toUpperCase();
+    return has(base.words, l) ? base.words[l] : base.words.EN;
+  }
+
+  // The sentence the person wrote for a language, or '' when they wrote none.
+  // An occasion of their own falls back to the first language they wrote in,
+  // since it has no ready words to fall back to.
+  function writtenFor(o, lang) {
+    var l = langOf(lang);
+    if (l && o.texts[l]) return o.texts[l];
+    if (o.ready) return '';
+    for (var i = 0; i < LANGS.length; i++) if (o.texts[LANGS[i]]) return o.texts[LANGS[i]];
+    return '';
+  }
+
+  /**
+   * What an occasion prints in a snippet of language `lang`: the person's own
+   * sentence with its details and {year} filled in, else the ready words (a
+   * ready occasion) or nothing (one of the person's own). `year` is what
+   * {year} prints (yearOf); a sentence that uses {year} without it, or a
+   * detail the account does not hold, is not printed half filled.
+   */
+  function textOf(o, lang, year) {
+    if (!o) return '';
+    var written = writtenFor(o, lang);
+    if (written) {
+      var D = root.SBMyDetails;
+      var filled = D ? D.fill(written, { year: year }) : (/\{[^{}]*\}/.test(written) ? null : written);
+      if (filled !== null) return filled;
+    }
+    return o.ready ? words(o.id, lang) : '';
+  }
+
+  /** What {seasonal} prints right now in a snippet of language `lang`. */
+  function currentLine(lang, now) {
+    var a = activeNow(now);
+    return a ? textOf(a.occasion, lang, a.year) : '';
+  }
+
+  function hasLine(body) {
+    return TOKEN_RE.test(String(body === null || body === undefined ? '' : body));
+  }
+
+  // "8 December", the way the notes below name a day.
+  function dayLabel(month, day) {
+    return day + ' ' + MONTHS[month - 1];
+  }
+
+  /** An occasion's period in words: "8 December to 26 December". */
+  function periodLabel(o) {
+    if (!o) return '';
+    if (o.ready && !o.from) {
+      var b = o.before, a = o.after;
+      return (b === 1 ? '1 day' : b + ' days') + ' before Easter to ' + (a === 1 ? '1 day' : a + ' days') + ' after';
+    }
+    var from = monthDay(o.from), to = monthDay(o.to);
+    return dayLabel(from.month, from.day) + ' to ' + dayLabel(to.month, to.day);
+  }
+
+  /**
+   * The seasonal line of a text as a fill form shows it, or null for a text
+   * without one. In season: the occasion, the sentence it prints in `lang`,
+   * and the words of the row that lets a person leave it out this once (`off`
+   * is that choice). Out of season `active` is false and `note` says when the
+   * next one starts, which only the editor's preview shows. `raw` is a stored
+   * calendar for a surface that holds one itself; without it the answer comes
+   * from the calendar this page was given with set().
+   */
+  function describe(body, lang, now, off, raw) {
+    if (!hasLine(body)) return null;
+    var a = activeNow(now, raw);
+    var o = a ? a.occasion : null;
+    var text = a ? textOf(o, lang, a.year) : '';
+    if (o && text) {
+      var out = !!off;
+      var label = o.ready
+        ? o.name + (out ? ' wishes left out' : ' wishes included')
+        : o.name + (out ? ': line left out' : ': line included');
+      return { active: true, id: o.id, name: o.name, text: text, off: out,
+        label: label, action: out ? 'Put back' : 'Leave out', note: '' };
+    }
+    var n = next(now, raw);
+    return { active: false, id: '', name: '', text: '', off: false, label: '', action: '',
+      note: 'The seasonal line prints nothing today. ' + (n
+        ? n.occasion.name + ' starts on ' + dayLabel(n.month, n.day) + '.'
+        : 'No occasion is switched on.') };
+  }
+
+  var API = {
+    META_KEY: META_KEY,
+    STORAGE_KEY: STORAGE_KEY,
+    MAX_OWN: MAX_OWN,
+    MAX_NAME: MAX_NAME,
+    MAX_TEXT: MAX_TEXT,
+    MAX_PACKED: MAX_PACKED,
+    LANGS: LANGS,
+    YEAR_TOKEN: YEAR_TOKEN,
+    EASTER_BEFORE_MAX: EASTER_BEFORE_MAX,
+    EASTER_AFTER_MAX: EASTER_AFTER_MAX,
+    TOKEN: TOKEN,
+    dayOk: dayOk,
+    list: list,
+    pack: pack,
+    fits: fits,
+    set: set,
+    get: get,
+    easterSunday: easterSunday,
+    active: active,
+    yearOf: yearOf,
+    next: next,
+    words: words,
+    textOf: textOf,
+    currentLine: currentLine,
+    hasLine: hasLine,
+    periodLabel: periodLabel,
+    describe: describe
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = API;
+  } else {
+    root.SBSeason = API;
+  }
+
+}(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
+</script>
+<!-- SB_SEASON:END -->
 <!-- SB_MEMORY_CHUNK:BEGIN (generated from extension/shared/memory-chunk.js by scripts/sync-memory-chunk.js, do not edit) -->
 <script>
 // MEMORY CHUNKER — splits long text into shard-sized pieces, names the pieces a
@@ -8985,10 +9755,13 @@ function isProAccount(){
   var ends=Date.parse(m.pro_until);
   return isFinite(ends)&&ends>Date.now();
 }
+/* The phone's copy of Your details (loadMyDetails), for the person signed in. */
+var MY_DETAILS_CACHE='sb_mob_my_details';
 function clearLocalCaches(){
   try{localStorage.removeItem('sb_mob_cache');}catch(e){}
   try{localStorage.removeItem('sb_mob_folders');}catch(e){}
   try{localStorage.removeItem('sb_mob_uid');}catch(e){}
+  try{localStorage.removeItem(MY_DETAILS_CACHE);}catch(e){}
 }
 function redirectToLogin(){
   clearLocalCaches();
@@ -9449,6 +10222,67 @@ function sbDropOwnLine(out,body,i){
     i+=a[0].length;
     if(a[1]===''&&b[1]==='\n')out=out.slice(0,-1);
   }
+  return {out:out,i:i};
+}
+/* The seasonal line. MIRRORED from extension/formula-engine.js (_isSeasonalHead,
+   sbSeasonalText, _dropSeasonal, _dropSeasonalHtml), pinned by
+   scripts/check-snippets.js. {seasonal} prints the sentence of the occasion in
+   season today and nothing for the rest of the year. Which occasion is decided
+   by SBSeason, the generated copy of extension/shared/season.js above.
+   opts.seasonal is the answer when the fill form already has it ('' once the
+   line is left out). */
+function sbIsSeasonalHead(tokLow){return tokLow==='seasonal';}
+function sbSeasonalText(opts){
+  if(opts&&typeof opts.seasonal==='string')return opts.seasonal;
+  var S=typeof SBSeason!=='undefined'?SBSeason:null;
+  return S&&typeof S.currentLine==='function'?String(S.currentLine((opts&&opts.lang)||'')||''):'';
+}
+/* Your details. MIRRORED from extension/formula-engine.js (_isMyHead, sbMyText).
+   {my: name}, {my: company}, {my: job title} print what the account holds,
+   through SBMyDetails, the generated copy of extension/shared/my-details.js. */
+function sbIsMyHead(tokLow){return /^my\s*:/.test(tokLow);}
+function sbMyText(tok){
+  var D=typeof SBMyDetails!=='undefined'?SBMyDetails:null;
+  return D&&typeof D.value==='function'?String(D.value(D.wordOf(tok))||''):'';
+}
+/* A token that prints nothing leaves no trace. Alone on its line, the line goes and
+   so does the gap it would leave: between two empty lines, or between an empty
+   line and either end of the whole text (`edges`), one of them goes along.
+   Inside a sentence, the space that set it apart goes instead. */
+function sbDropQuietLine(out,body,i,edges){
+  var rest=body.slice(i),tail=/^[ \t]*(\r?\n|$)/.exec(rest);
+  if(!(/(^|\n)[ \t]*$/.test(out)&&tail)){
+    if(tail||/^[.,;:!?)]/.test(rest))out=out.replace(/[ \t]+$/,'');
+    else if(/(^|[ \t\n])$/.test(out))i+=/^[ \t]*/.exec(rest)[0].length;
+    return {out:out,i:i};
+  }
+  var own=sbDropOwnLine(out,body,i);
+  out=own.out;i=own.i;
+  if(tail[1]===''){
+    if(edges)out=out.replace(/\r?\n[ \t]*$/,'');
+    return {out:out,i:i};
+  }
+  rest=body.slice(i);
+  var prevEmpty=/(^|\n)[ \t]*\r?\n$/.test(out),next=/^[ \t]*\r?\n/.exec(rest);
+  if(next&&(prevEmpty||(edges&&out==='')))i+=next[0].length;
+  else if(edges&&prevEmpty&&/^[ \t]*$/.test(rest))out=out.replace(/[ \t]*\r?\n$/,'');
+  return {out:out,i:i};
+}
+/* The same inside a layout: a line is a <div> or a list item, an empty line is
+   <div><br></div>. Any other shape keeps its markup. */
+var SB_QUIET_OPEN_RE=/<(div|li)>(?:<(?:b|i|u|span)\b[^>]*>)*$/;
+var SB_EMPTY_LINE_HTML='<div><br></div>';
+function sbDropQuietLineHtml(out,body,i,edges){
+  var open=SB_QUIET_OPEN_RE.exec(out);
+  if(!open)return {out:out,i:i};
+  var close=new RegExp('^(?:</(?:b|i|u|span)>)*</'+open[1]+'>').exec(body.slice(i));
+  if(!close)return {out:out,i:i};
+  out=out.slice(0,open.index);
+  i+=close[0].length;
+  if(open[1]!=='div')return {out:out,i:i};
+  var rest=body.slice(i),n=SB_EMPTY_LINE_HTML.length,prevEmpty=out.slice(-n)===SB_EMPTY_LINE_HTML;
+  if(rest.slice(0,n)===SB_EMPTY_LINE_HTML&&(prevEmpty||(edges&&out==='')))i+=n;
+  else if(edges&&prevEmpty&&rest==='')out=out.slice(0,-n);
   return {out:out,i:i};
 }
 var SB_HTML_PART_RE=/(<[^>]*>|&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);)/;
@@ -10326,7 +11160,7 @@ function sbTokenFieldKey(t){
      tLow.slice(0,7)==='elseif:'||
      tLow.slice(0,5)==='time:'||
      sbIsButtonHead(tLow)||sbIsCaseHead(tLow)||sbIsGreetingHead(tLow)||
-     sbIsPictureHead(tLow))return '';
+     sbIsPictureHead(tLow)||sbIsSeasonalHead(tLow)||sbIsMyHead(tLow))return '';
   if(tLow.slice(0,7)==='gender:')return sbGenderTokenField(t.slice(7));
   if(sbIsFormToken(tLow))return sbFormTokenName(tLow,t.slice(9));
   return t;
@@ -10594,6 +11428,22 @@ function resolveBody(body,vals,opts){
       if(sbIsGreetingHead(tok.toLowerCase())){
         out+=sbOut(sbResolveGreetingToken(sbGreetingRest(tok),opts),html);
         i=cl+1;continue;
+      }
+
+      /* {seasonal}: the sentence of the occasion in season, or nothing at all */
+      if(sbIsSeasonalHead(tok.toLowerCase())){
+        var sTx=sbSeasonalText(_o);
+        if(sTx!==''){out+=sbOut(sTx,html);i=cl+1;continue;}
+        var sD=(html?sbDropQuietLineHtml:sbDropQuietLine)(out,body,cl+1,outer);
+        out=sD.out;i=sD.i;continue;
+      }
+
+      /* {my: company}: a detail of the account, or nothing at all */
+      if(sbIsMyHead(tok.toLowerCase())){
+        var mTx=sbMyText(tok);
+        if(mTx!==''){out+=sbOut(mTx,html);i=cl+1;continue;}
+        var mD=(html?sbDropQuietLineHtml:sbDropQuietLine)(out,body,cl+1,outer);
+        out=mD.out;i=mD.i;continue;
       }
 
       var tokLow=tok.toLowerCase();
@@ -11025,6 +11875,8 @@ function openDetail(snip,variants){
   history.pushState({det:true},'');
   curSnip=snip;
   curVariants=(variants&&variants.length)?variants:[snip];
+  /* A snippet opens with its seasonal line going in; Leave out is for this once. */
+  detailSeasonOff=false;
   document.getElementById('view-home').classList.remove('active');
   document.getElementById('view-list').classList.remove('active');
   document.getElementById('view-analytics').classList.remove('active');
@@ -13884,6 +14736,10 @@ function getFmts(){
   return f;
 }
 
+/* Whether the seasonal line of the snippet on screen was left out (Leave out
+   on the row SBFillFormUI.seasonNote draws). */
+var detailSeasonOff=false;
+
 /* The finished text on the snippet page: what the preview shows, and what
    Copy and Share hand over. */
 function currentForm() {
@@ -13892,7 +14748,7 @@ function currentForm() {
     var box=document.querySelector('#fform .field-othertxt[data-otherf="'+ctrl.getAttribute('data-f')+'"]');
     other[ctrl.getAttribute('data-f')]=box?box.value:'';
   });
-  return window.SBFillForm.fillForm(curSnip.body||'',getRawVals(),{lang:curSnip.lang,fieldCfg:curSnip.field_cfg||{},fieldFmt:getFmts(),other:other,formatted:curSnip.body_html||null});
+  return window.SBFillForm.fillForm(curSnip.body||'',getRawVals(),{lang:curSnip.lang,fieldCfg:curSnip.field_cfg||{},fieldFmt:getFmts(),other:other,formatted:curSnip.body_html||null,seasonOff:detailSeasonOff});
 }
 function validateDetail() {
   var vm=currentForm();
@@ -13921,6 +14777,8 @@ function updatePrev(){
   /* Where the pictures go: Copy takes them into an email, Share sends text. */
   window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote'),vm,'copy');
   window.SBFillFormUI.pictureNote(document.getElementById('prev-picnote-share'),navigator.share?vm:null,'share');
+  /* The seasonal line, while an occasion is in season: said, with Leave out. */
+  window.SBFillFormUI.seasonNote(document.getElementById('det-season'),vm,function(off){detailSeasonOff=off;updatePrev();});
   window.SBFillFormUI.refresh(document.getElementById('fform'),vm);
 }
 
@@ -15077,7 +15935,7 @@ var EDIT_CHIP_WORDS={formtext:'Text',formparagraph:'Text',formnumber:'Number',fo
   formdate:'Date',formtoggle:'Tick box',time:'Date',date:'Date','if':'Rule',elseif:'Or if',
   'else':'Otherwise',endif:'End of rule','var':'Saved value',button:'Button',cursor:'Cursor',
   clipboard:'Clipboard',key:'Key',note:'Note',link:'Link',picture:'Picture',greeting:'Greeting',
-  snippet:'Snippet',brain:'Brain'};
+  seasonal:'Seasonal line',my:'Your details',snippet:'Snippet',brain:'Brain'};
 var EDIT_BLOCK_TYPES=['role','objective','context','examples','constraints'];
 /* What each part is called, in the dashboard prompt editor's words. */
 var EDIT_BLOCK_WORDS={role:'Who the AI is',objective:'What should the AI do?',context:'Background',examples:'An example',constraints:'Rules'};
@@ -17254,6 +18112,35 @@ function applyHomeHeader(){
     paintAvatar(btn,initials!=='👤'?initials:'');
   });
 }
+/* The person's occasions, for the seasonal line ({seasonal}). They are written
+   in the dashboard (Your occasions) and kept with the account's settings; the
+   generated copy of extension/shared/season.js answers from this list. */
+function applyOccasions(){
+  var u=SESSION&&SESSION.user;
+  var meta=(u&&u.user_metadata)||{};
+  SBSeason.set(meta[SBSeason.META_KEY]);
+}
+/* Your details ({my: name}, {my: company}, {my: job title}): what the account
+   holds, worked out by the server (my_details) and handed to SBMyDetails, the
+   generated copy of extension/shared/my-details.js. Kept on the phone for the
+   person signed in, so a snippet opened offline still signs; asked again at
+   every start and when the page comes back into view. */
+function loadMyDetails(){
+  try{
+    var kept=JSON.parse(localStorage.getItem(MY_DETAILS_CACHE)||'null');
+    if(kept&&kept.uid===USER_ID)SBMyDetails.set(kept.details);
+  }catch(e){}
+  if(!ACCESS_TOKEN)return;
+  fetch(SUPA+'/rest/v1/rpc/'+SBMyDetails.RPC,{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:'{}'})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){
+      if(!d||typeof d!=='object')return;
+      SBMyDetails.set(d);
+      try{localStorage.setItem(MY_DETAILS_CACHE,JSON.stringify({uid:USER_ID,details:SBMyDetails.get()}));}catch(e){}
+      if(curSnip&&document.getElementById('view-detail').classList.contains('active'))updatePrev();
+    })
+    .catch(function(e){console.error('Your details could not be read:',e&&e.message?e.message:e);});
+}
 /* The session read from storage is a snapshot from when this phone signed in,
    so a company name or logo chosen later in the dashboard is missing from it.
    Ask the server for the current profile, keep it in memory only (the dashboard
@@ -17270,7 +18157,7 @@ function refreshAccountDetails(){
     .then(function(u){
       if(!u||!u.user_metadata||!SESSION||!SESSION.user)return;
       SESSION.user.user_metadata=u.user_metadata;
-      applyHeroName();applyCompanyBrand();applyHomeHeader();
+      applyHeroName();applyCompanyBrand();applyHomeHeader();applyOccasions();loadMyDetails();
     })
     .catch(function(){});
 }
@@ -17738,7 +18625,7 @@ function playOpening(){
 }
 
 if(requireAuth()){
-  applyHeroName();applyCompanyBrand();applyHomeHeader();showHome();loadSnips();sbCheckAlive();refreshAccountDetails();
+  applyHeroName();applyCompanyBrand();applyHomeHeader();applyOccasions();loadMyDetails();showHome();loadSnips();sbCheckAlive();refreshAccountDetails();
   captureResume();
   focusInit();
   playOpening();

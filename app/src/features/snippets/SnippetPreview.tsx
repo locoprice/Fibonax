@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from 'react';
 import { AlertCircle, AlertTriangle, Check, Copy, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -32,8 +32,11 @@ import {
   type SbFillFormViewModel,
   type SbLinkResult,
   type SbPicture,
+  type SbSeasonView,
   type SbUnfinishedItem,
 } from '@/lib/fillFormEngine';
+import { seasonCalendar, subscribeSeasonCalendar } from '@/lib/season';
+import { myDetails, subscribeMyDetails } from '@/lib/myDetails';
 import { textColorOf, TEXT_COLORS } from '@/lib/textColors';
 
 /**
@@ -49,6 +52,51 @@ import { textColorOf, TEXT_COLORS } from '@/lib/textColors';
 
 /** Matches the composer's rebuild delay — a parse per keystroke buys nothing. */
 const REBUILD_DELAY_MS = 150;
+
+/**
+ * The seasonal line of the text, above the checks under the result, where it
+ * stays in view. In season: what goes in
+ * ("Christmas wishes included") with the button that leaves it out this once,
+ * the row every fill surface shows (`seasonNote` in fill-form-ui.js). Out of
+ * season only this preview speaks: the line prints nothing today, and when the
+ * next occasion starts. The words are the shared module's, and may hold a name
+ * the person wrote, so the page translator leaves them alone.
+ */
+function SeasonLine({ season, onToggle }: { season: SbSeasonView; onToggle: () => void }) {
+  if (!season.active) {
+    return (
+      <p className="text-[11px] leading-relaxed text-ink-subtle" translate="no">
+        {season.note}
+      </p>
+    );
+  }
+  return (
+    <div
+      className={cn(
+        'flex min-w-0 items-center justify-between gap-2 rounded-[12px] border py-1 pl-3 pr-1',
+        season.off ? 'border-line' : 'border-primary/25 bg-primary-light',
+      )}
+      translate="no"
+    >
+      <span
+        role="status"
+        className={cn(
+          'min-w-0 break-words text-[11px] leading-snug',
+          season.off ? 'text-ink-subtle' : 'font-semibold text-primary',
+        )}
+      >
+        {season.label}
+      </span>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="shrink-0 rounded-[10px] px-2 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-card focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        {season.action}
+      </button>
+    </div>
+  );
+}
 
 /** How the choices of a `{formmenu:}` are shown, by whether it takes several. */
 function optionInputType(field: SbFillField): 'checkbox' | 'radio' {
@@ -290,10 +338,18 @@ export function SnippetPreview({
     setCopyCheck(null);
   }, [debouncedBody]);
 
+  // The seasonal line: left out this once, as Leave out does on every fill
+  // surface, and the person's occasions, so the preview is worked out again
+  // the moment Your occasions saves a change.
+  const [seasonOff, setSeasonOff] = useState(false);
+  const occasions = useSyncExternalStore(subscribeSeasonCalendar, seasonCalendar, seasonCalendar);
+  // Your details ({my: …}): read only so a new answer works the preview out again.
+  const details = useSyncExternalStore(subscribeMyDetails, myDetails, myDetails);
+
   const view: SbFillFormViewModel | null = useMemo(() => {
     if (!engineReady) return null;
-    return fillForm(debouncedBody, values, { lang, fieldFmt: fmts, linked, other: others, formatted: debouncedLayout });
-  }, [engineReady, debouncedBody, debouncedLayout, values, fmts, lang, linked, others]);
+    return details && fillForm(debouncedBody, values, { lang, fieldFmt: fmts, linked, other: others, formatted: debouncedLayout, seasonOff, occasions });
+  }, [details,engineReady, debouncedBody, debouncedLayout, values, fmts, lang, linked, others, seasonOff, occasions]);
 
   // A page arrives after the Fill that asked for it, and is read against the
   // form on screen THEN: the body may have changed while it loaded.
@@ -745,6 +801,10 @@ export function SnippetPreview({
 
         {/* ── Before it goes out ── */}
         <div className="flex shrink-0 flex-col gap-2.5 border-t border-line px-4 py-3">
+          {/* Outside the result's scroll, so what the season adds is always in view. */}
+          {view?.season && (
+            <SeasonLine season={view.season} onToggle={() => setSeasonOff((off) => !off)} />
+          )}
           {copyCheck ? (
             <UnfinishedList
               title={unfinishedWords('title')}

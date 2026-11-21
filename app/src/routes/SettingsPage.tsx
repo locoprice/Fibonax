@@ -15,6 +15,7 @@ import { LanguagePanel } from '@/features/settings/LanguagePanel';
 import { InlineTriggerPanel } from '@/features/settings/InlineTriggerPanel';
 import { IntegrationsPanel } from '@/features/settings/IntegrationsPanel';
 import { MonthlyRecapPanel } from '@/features/settings/MonthlyRecapPanel';
+import { OccasionsPanel } from '@/features/settings/OccasionsPanel';
 import { PasswordPanel } from '@/features/settings/PasswordPanel';
 import { SaintOfDayPanel } from '@/features/settings/SaintOfDayPanel';
 import { SecurityPanel } from '@/features/settings/SecurityPanel';
@@ -86,6 +87,7 @@ export function SettingsPage() {
                 <LanguagePanel />
                 <InlineTriggerPanel />
                 <AutoInsertPanel />
+                <OccasionsPanel />
                 <InactivityPanel />
                 <FiboTokenRatePanel />
               </div>

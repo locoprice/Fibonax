@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Check, ImagePlus, Trash2, UploadCloud } from 'lucide-react';
 import { BrandMark } from '@/components/layout/BrandMark';
+import { AutofillHint } from '@/components/shared/AutofillHint';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -200,9 +201,12 @@ export function BrandingPanel() {
 
           {/* Company name */}
           <div className="grid content-start gap-2">
-            <label htmlFor="company-name" className="text-xs font-medium text-ink-muted">
-              Company name
-            </label>
+            <span className="flex items-center gap-1.5">
+              <label htmlFor="company-name" className="text-xs font-medium text-ink-muted">
+                Company name
+              </label>
+              <AutofillHint detail="company" />
+            </span>
             <Input
               id="company-name"
               value={companyName}

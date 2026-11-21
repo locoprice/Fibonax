@@ -92,6 +92,18 @@ var interpolateSnippet = _SBFE.interpolateSnippet;
 // buildFormFieldCfg, formMenuPicks, extractButtons, sbFormatDate) went with it.
 var _SBFF = window.SBFillForm;
 
+// The seasonal line's rules ({seasonal}), extension/shared/season.js, loaded
+// by manifest.json before this file too. The engine and the fill form ask it
+// what is in season; this file only hands it the person's occasions. Bound
+// like the fill form, so a page where it is missing still expands snippets:
+// the seasonal line then prints nothing.
+var _SBSeason = window.SBSeason || null;
+
+// Your details ({my: name}, {my: company}, {my: job title}),
+// extension/shared/my-details.js, loaded before this file. The worker keeps
+// them in storage; this file hands them over, as it does the occasions.
+var _SBMyDetails = window.SBMyDetails || null;
+
 // ── DEFAULT SNIPPETS ──────────────────────────────────
 // Intentionally empty, and it must stay that way. Anything listed here ships
 // inside the extension bundle, so a signed-out install renders it in the
@@ -539,6 +551,19 @@ try {
     } catch(e) {}
   });
 
+  // The person's occasions, for the seasonal line ({seasonal}). shared/season.js
+  // answers from this list every time a body is resolved on this page.
+  if (_SBSeason) {
+    chrome.storage.local.get(_SBSeason.STORAGE_KEY, function(data) {
+      _SBSeason.set(data && data[_SBSeason.STORAGE_KEY]);
+    });
+  }
+  if (_SBMyDetails) {
+    chrome.storage.local.get(_SBMyDetails.STORAGE_KEY, function(data) {
+      _SBMyDetails.set(data && data[_SBMyDetails.STORAGE_KEY]);
+    });
+  }
+
   chrome.storage.onChanged.addListener(function(changes, areaName) {
     try {
       // Every key this listener cares about now fires from local.
@@ -571,6 +596,9 @@ try {
         if (!triggerCfg.autoInsert) _cancelPickerAuto();
       }
       if (changes[SBInteractiveSteps.KEY]) interactiveStepsOn = SBInteractiveSteps.isOn(changes[SBInteractiveSteps.KEY].newValue);
+      // A cleared list (sign-out) arrives with no newValue and empties it.
+      if (_SBSeason && changes[_SBSeason.STORAGE_KEY]) _SBSeason.set(changes[_SBSeason.STORAGE_KEY].newValue);
+      if (_SBMyDetails && changes[_SBMyDetails.STORAGE_KEY]) _SBMyDetails.set(changes[_SBMyDetails.STORAGE_KEY].newValue);
     } catch(e) {}
   });
 
@@ -2403,7 +2431,10 @@ function showOverlay(targetEl, snip, scLen, done) {
         '<p id="sb-fill-description">Fill in the fields, then insert your message.</p></div>' +
       (reviewWarning(snip) ? '<div class="sb-revwarn" role="alert">' + xesc(reviewWarning(snip)) + '</div>' : '') +
       (vm.linkable ? _sbLinkHtml() : '') +
-      '<div class="sb-fields">'+fhtml+'</div></div>' +
+      '<div class="sb-fields">'+fhtml+'</div>' +
+      // "Christmas wishes included" and Leave out, while an occasion is in
+      // season and the snippet carries the seasonal line.
+      '<div id="sb-season" hidden></div></div>' +
       '<section class="sb-preview" aria-labelledby="sb-preview-label">' +
         '<div class="sb-preview-heading"><h3 id="sb-preview-label">Message preview</h3><span>Live preview</span></div>' +
         '<div class="sb-prev" id="sb-prev"></div>' +
@@ -2808,7 +2839,7 @@ function overlayForm(snip) {
     var box = overlayEl.querySelector('.sb-othertxt[data-otherkey="' + ctrl.dataset.key + '"]');
     other[ctrl.dataset.key] = box ? box.value : '';
   });
-  return _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, fieldFmt: getFmts(), other: other, formatted: snip.bodyHtml || null });
+  return _SBFF.fillForm(snip.body, getVals(), { fieldCfg: snip.fieldCfg || {}, lang: snip.lang, fieldFmt: getFmts(), other: other, formatted: snip.bodyHtml || null, seasonOff: overlayEl._sbSeasonOff === true });
 }
 function updatePrev(snip) {
   var box = document.getElementById('sb-prev');
@@ -2818,6 +2849,12 @@ function updatePrev(snip) {
   window.SBFillFormUI.showPreview(box, vm);
   window.SBFillFormUI.nextPreview(box, overlayEl._sbNext ? overlayEl._sbNext.picked() : []);
   window.SBFillFormUI.pictureNote(document.getElementById('sb-picnote'), vm, 'left-out');
+  // Leave out, or Put back: kept on this window, so it ends with it.
+  window.SBFillFormUI.seasonNote(overlayEl.querySelector('#sb-season'), vm, function(off) {
+    if (!overlayEl) return;
+    overlayEl._sbSeasonOff = off;
+    updatePrev(snip);
+  });
   window.SBFillFormUI.refresh(overlayEl.querySelector('.sb-fields'), vm);
 }
 

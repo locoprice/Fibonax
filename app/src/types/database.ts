@@ -38,7 +38,16 @@ export interface Profile {
    * and the extension all measure staleness the same way. Always 6-9.
    */
   inactivity_months: number;
+  /**
+   * The person's occasions for the seasonal line (`{seasonal}`), as stored in
+   * user_metadata: the ready ones only where they were changed, their own in
+   * full. Read through `lib/season.ts`, which cleans it; never read by hand.
+   */
+  occasions: StoredOccasion[];
 }
+
+/** One stored occasion (see `pack` in extension/shared/season.js). */
+export type StoredOccasion = Record<string, unknown>;
 
 export interface Folder {
   id: Uuid;

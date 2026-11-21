@@ -8,6 +8,8 @@ importScripts('../shared/focus-timer.js');
 importScripts('../shared/usage-analytics.js');
 // The prompt menu's list, as it is cached (refreshPromptCache below).
 importScripts('../shared/prompt-cache.js');
+// Your details, for {my: …} in snippets and wishes (refreshMyDetails below).
+importScripts('../shared/my-details.js');
 
 var SUPA_URL = SB_SUPA_URL;
 
@@ -1157,6 +1159,30 @@ function initMenus() {
       }
     });
     refreshPromptCache();
+    refreshMyDetails();
+  });
+}
+
+// ── YOUR DETAILS ───────────────────────────────────────────────────
+// What {my: name}, {my: company} and {my: job title} print: the server works
+// them out from the account (my_details) and the worker keeps the answer in
+// chrome.storage.local, where the page script and the popup read it. Written
+// only when it changed, so they are not told about a change that is none. A
+// read that fails keeps the last answer.
+function refreshMyDetails() {
+  supaRpc(SBMyDetails.RPC, {}).then(function(raw) {
+    var next = SBMyDetails.clean(raw);
+    chrome.storage.local.get(SBMyDetails.STORAGE_KEY, function(d) {
+      var have = d && d[SBMyDetails.STORAGE_KEY];
+      if (have && JSON.stringify(SBMyDetails.clean(have)) === JSON.stringify(next)) return;
+      var patch = {};
+      patch[SBMyDetails.STORAGE_KEY] = next;
+      chrome.storage.local.set(patch, function() {
+        if (chrome.runtime.lastError) console.error('[Fibonax] could not keep your details:', chrome.runtime.lastError.message);
+      });
+    });
+  }).catch(function(err) {
+    console.error('[Fibonax] could not read your details:', err && err.message);
   });
 }
 
@@ -1427,7 +1453,7 @@ function sbPurgeLegacyLocalData() {
     chrome.storage.local.get('sb_session', function(d) {
       var signedIn = !!(d && d.sb_session && d.sb_session.user_id);
       if (signedIn) return;
-      chrome.storage.local.remove(['snippets', 'sb_prompts', 'sb_next'], function() {
+      chrome.storage.local.remove(['snippets', 'sb_prompts', 'sb_next', SB_OCCASIONS_STORAGE_KEY, SBMyDetails.STORAGE_KEY], function() {
         if (chrome.runtime.lastError) { /* key may not exist */ }
       });
     });

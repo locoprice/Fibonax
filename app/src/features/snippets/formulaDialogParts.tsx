@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { cn } from '@/lib/utils';
 import { isValidFieldName } from '@/lib/formNumberToken';
-import { bodyItems, itemDetail, itemTitle, readersOf, type BodyItem, type BodyItemKind } from '@/lib/bodyItems';
+import { bodyItems, itemDetail, itemTitle, myWordOf, readersOf, type BodyItem, type BodyItemKind } from '@/lib/bodyItems';
 import { formulaEngine, loadFillFormEngine } from '@/lib/fillFormEngine';
 import {
   buildSteps,
@@ -752,6 +752,16 @@ export function ItemListSection({
                     error: greetingTextError,
                   },
                 }
+              : i.kind === 'mine'
+                ? {
+                    inlineEdit: {
+                      start: i.start + 1,
+                      end: i.end - 1,
+                      text: i.raw.slice(1, -1),
+                      label: 'Your details',
+                      error: myDetailTextError,
+                    },
+                  }
               : i.cfg && onEdit
                 ? { onEdit: () => onEdit(i) }
                 : {}),
@@ -769,6 +779,13 @@ function greetingTextError(text: string): string {
   const error = editTextError(text, 'Type the greeting, or use Remove to take it out.');
   if (error !== '') return error;
   return /^greeting\s*(?::|$)/i.test(text.trim()) ? '' : 'Start with greeting, for example greeting: lang=ES.';
+}
+
+/** A detail changed in its row must stay one of the three. */
+function myDetailTextError(text: string): string {
+  const error = editTextError(text, 'Type the detail, or use Remove to take it out.');
+  if (error !== '') return error;
+  return myWordOf(`{${text.trim()}}`) ? '' : 'Write my: name, my: company or my: job title.';
 }
 
 /** Under a renamed field's name: the parts that read it follow the new name. */

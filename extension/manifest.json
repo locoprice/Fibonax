@@ -38,6 +38,8 @@
         "formula-engine.js",
         "shared/snippet-stats.js",
         "shared/memory-pack.js",
+        "shared/my-details.js",
+        "shared/season.js",
         "shared/fill-form.js",
         "shared/fill-form-ui.js",
         "shared/inactivity.js",

@@ -59,8 +59,11 @@ import { FormPictureDialog } from '@/features/snippets/FormPictureDialog';
 import { FormattedBodyBox, type BodyBoxHandle, type MakeFieldRequest } from '@/features/snippets/FormattedBodyBox';
 import { FormTextDialog } from '@/features/snippets/FormTextDialog';
 import { FormTimeDialog } from '@/features/snippets/FormTimeDialog';
+import { OccasionsDialog } from '@/features/snippets/OccasionsDialog';
 import { SnippetPreview } from '@/features/snippets/SnippetPreview';
 import { SnippetQualityButton } from '@/features/snippets/SnippetQualityButton';
+import { SEASONAL_TOKEN } from '@/lib/season';
+import { MY_DETAIL_WORDS, myToken } from '@/lib/myDetails';
 import { snippetGroupKey } from '@/lib/snippetGrouping';
 import { cn, countWords } from '@/lib/utils';
 import { findMenuTokenAt, nextMenuName } from '@/lib/formMenuToken';
@@ -454,6 +457,8 @@ const BUTTON_KINDS: readonly BodyItemKind[] = ['button'];
 const DATE_KINDS: readonly BodyItemKind[] = ['date', 'time'];
 const AUTO_KINDS: readonly BodyItemKind[] = ['auto'];
 const GREETING_KINDS: readonly BodyItemKind[] = ['greeting'];
+const SEASONAL_KINDS: readonly BodyItemKind[] = ['seasonal'];
+const MINE_KINDS: readonly BodyItemKind[] = ['mine'];
 const PICTURE_KINDS: readonly BodyItemKind[] = ['picture'];
 const TEXT_NOUN = { one: 'text field', many: 'text fields' };
 const NUMBER_NOUN = { one: 'number field', many: 'number fields' };
@@ -462,6 +467,8 @@ const BUTTON_NOUN = { one: 'button', many: 'buttons' };
 const DATE_NOUN = { one: 'date or time field', many: 'date and time fields' };
 const AUTO_NOUN = { one: 'automatic date', many: 'automatic dates' };
 const GREETING_NOUN = { one: 'greeting', many: 'greetings' };
+const SEASONAL_NOUN = { one: 'seasonal line', many: 'seasonal lines' };
+const MINE_NOUN = { one: 'detail', many: 'details' };
 const PICTURE_NOUN = { one: 'picture', many: 'pictures' };
 const RANGE_NOUN = { one: 'date range count', many: 'date range counts' };
 const isRangeCount = (expression: string) => /^datespan\(/i.test(expression);
@@ -622,6 +629,12 @@ export function NewSnippetDialog() {
   // not a rail control: the day and the time are two independent decisions and
   // want two columns, which 260px cannot give them.
   const [autoDateOpen, setAutoDateOpen] = useState(false);
+  // Your occasions: the calendar every seasonal line prints from. A seasonal
+  // line's Edit opens it too, since the line has nothing of its own to change.
+  const [occasionsOpen, setOccasionsOpen] = useState(false);
+  // What {my: …} prints for the person writing, shown beside each detail.
+  const myDetailsNow = useSettingsStore((s) => s.myDetails);
+  const openOccasions = useCallback(() => setOccasionsOpen(true), []);
   // Date/Time builder — the format each of the two tokens is written with.
   // Inline state rather than a dialog: one dropdown is not worth a modal, and
   // seeing the choice next to the button is the whole point of it.
@@ -1836,6 +1849,53 @@ export function NewSnippetDialog() {
                 </dl>
               </Toggle>
 
+              {/* What the account already knows: filled in for whoever uses the
+                  snippet, so a signature signs for every member of the team. */}
+              <Toggle
+                label="Your details"
+                className="mb-2.5"
+                footer={
+                  <div className="flex flex-wrap gap-1.5">
+                    {MY_DETAIL_WORDS.map((d) => (
+                      <Button
+                        key={d.word}
+                        type="button"
+                        size="sm"
+                        variant="primary"
+                        disabled={saving}
+                        onClick={() => insertAtCursor(myToken(d.word))}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        {d.label}
+                      </Button>
+                    ))}
+                  </div>
+                }
+              >
+                <p className="text-[11px] text-ink-subtle leading-tight">
+                  Filled in from the account of whoever uses the snippet. Nothing to type: a
+                  signature signs for every person in your team.
+                </p>
+                <dl className="mt-2 flex flex-col gap-1.5" translate="no">
+                  {MY_DETAIL_WORDS.map((d) => (
+                    <div key={d.word}>
+                      <dt className="font-mono text-[10px] text-ink">{d.label}</dt>
+                      <dd className="text-[11px] text-ink-subtle leading-tight">
+                        {myDetailsNow[d.key] || 'Not set yet: it prints nothing.'}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="mt-2.5">
+                  <ItemListSection
+                    body={form.content}
+                    onReplace={replaceRange}
+                    kinds={MINE_KINDS}
+                    noun={MINE_NOUN}
+                  />
+                </div>
+              </Toggle>
+
             </div>
 
             {/* Actions */}
@@ -2168,6 +2228,51 @@ export function NewSnippetDialog() {
                     onReplace={replaceRange}
                     kinds={GREETING_KINDS}
                     noun={GREETING_NOUN}
+                  />
+                </div>
+              </Toggle>
+
+              {/* The wishes of the season, from one calendar for every
+                  snippet. Edit on a line opens that calendar: the line itself
+                  has nothing to change. */}
+              <Toggle
+                label="Seasonal line"
+                className="mb-2.5"
+                footer={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    disabled={saving}
+                    onClick={() => insertAtCursor(SEASONAL_TOKEN)}
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    Insert seasonal line
+                  </Button>
+                }
+              >
+                <p className="text-[11px] text-ink-subtle leading-tight">
+                  Your wishes for the time of year. They print while their occasion is in
+                  season and stay out the rest of the year. Give the line a row of its own,
+                  where the wishes should go.
+                </p>
+                <p className="mt-2 rounded-[8px] border border-primary/25 bg-primary-light px-2 py-1.5 text-[11px] leading-snug text-ink">
+                  In December: Merry Christmas. In July: nothing, and no empty line.
+                </p>
+                <button
+                  type="button"
+                  onClick={openOccasions}
+                  className="mt-2 rounded-[6px] text-[11px] font-semibold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  Your occasions
+                </button>
+                <div className="mt-2.5">
+                  <ItemListSection
+                    body={form.content}
+                    onReplace={replaceRange}
+                    kinds={SEASONAL_KINDS}
+                    noun={SEASONAL_NOUN}
+                    onEdit={openOccasions}
                   />
                 </div>
               </Toggle>
@@ -2859,6 +2964,8 @@ export function NewSnippetDialog() {
               onNew={() => setItemEdit(null)}
               onInsert={submitItem}
             />
+
+            <OccasionsDialog open={occasionsOpen} onOpenChange={setOccasionsOpen} />
 
           </div>
 
