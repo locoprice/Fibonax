@@ -395,7 +395,7 @@ export function createMcpServer(deps) {
   function promptNames(prompts) {
     const used = new Set();
     return prompts.map((p) => {
-      const base = String(p.name).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      const base = String(p.name).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'prompt';
       let name = base;
       for (let n = 2; used.has(name); n += 1) name = base + '-' + n;
