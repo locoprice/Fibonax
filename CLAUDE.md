@@ -383,7 +383,15 @@ At the end of every **successfully completed** task, prepare a push to `develop`
 3. Wait for a one-word confirmation (`go` / `confirm`).
 4. On confirm: `git add <specific files>`, `git commit`, `git push origin develop`; report each result and the commit hash.
 
-⛔ The only valid branch is `develop` — never create a branch. ⛔ Never push without the quick confirmation in step 3.
+⛔ The only valid branch is `develop`, with one exception: payment work lives on `payment-feature` (see below). Never create any other branch. ⛔ Never push without the quick confirmation in step 3.
+
+### Payments: `payment-feature` (Valentina, 2026-11-21)
+Payment work is built on the `payment-feature` branch, not on `develop`, so it stays offline until Valentina ships it. Payment work means Stripe checkout, the Stripe webhook, the customer portal, and buying FiboTokens and Pro. Everything else stays on `develop`.
+
+- **Start of every payment session:** `git fetch`, check out `payment-feature`, merge `origin/develop` into it. Merging often keeps conflicts small.
+- **No version bump on `payment-feature`.** Its version stamps stay as `develop` has them. The number is given once, by `node scripts/bump-version.js`, when the branch is merged into `develop`.
+- **The `develop` gates before every push**, run by hand: CI covers `develop` only. Every push still waits for the quick confirmation.
+- **Never merge `payment-feature` into `develop` or `main`** until Valentina asks. Then the End-of-Task Auto-Push workflow above applies.
 
 ---
 
