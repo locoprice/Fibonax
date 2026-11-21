@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils';
 /**
  * The body of a quality score: the ring, the word for it, and one row per
  * criterion that opens to say why and how to fix it. One component for the
- * prompt editor's Efficiency Score and the snippet editor's Quality window, so
- * the two read the same way.
+ * prompt editor's Quality row and the snippet editor's Quality window, so the
+ * two read the same way.
  *
  * `tone="dark"` draws it in the prompt editor's dark side-panel palette (the
  * documented exception in docs/DESIGN_SYSTEM.md); `tone="light"` uses the

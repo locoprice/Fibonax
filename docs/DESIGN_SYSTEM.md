@@ -41,7 +41,7 @@ Standing rule from Valentina (2026-11-20): no window, panel, list or page on any
 >  - Extension + overlay: `extension/shared/tokens/colors_and_type.css`
 >  - Mobile companion: inline `:root` in `app/public/mobile/index.html` (kept in sync with this table)
 >
-> Hard-coded hex values in component files are forbidden outside three documented exceptions: the per-language inline tints in `SnippetsTable.tsx` (which intentionally mirror the mobile palette), and the **dark prompt-editor vocabulary** in `PromptBlockEditor.tsx`, an untokenized side-panel palette that predates this table. Components rendered *inside* that panel (`LabelPicker`'s `dark` tone) may reuse those exact hexes; they may not invent new ones. Tokenizing the panel is an open follow-up. The third exception is the four colours of Google's "G" mark in `components/auth/GoogleSignIn.tsx`: Google's branding guidelines fix them, so they are never tokenized or recoloured. The button around it uses the standard `ghost` variant.
+> Hard-coded hex values in component files are forbidden outside two documented exceptions: the per-language inline tints in `SnippetsTable.tsx` (which intentionally mirror the mobile palette), and the four colours of Google's "G" mark in `components/auth/GoogleSignIn.tsx`: Google's branding guidelines fix them, so they are never tokenized or recoloured. The button around it uses the standard `ghost` variant. The prompt editor's dark side-panel palette, once a third exception, was replaced by tokens in the 2026-11 redesign: the panel is dark through the **Night surface** below, with no hex in its components. The `dark` tone its shared parts still carry (`LabelPicker`, `QualityPanel`, `DraftWithAi`, `ReviewStatusMenu`, `AssetAboutButton`, `AssetAttribution`, `TeamLastUseLine`) has no caller left; removing it is an open follow-up, and nothing new may use it.
 
 ### Neutrals
 
@@ -54,6 +54,36 @@ Standing rule from Valentina (2026-11-20): no window, panel, list or page on any
 | `ink`        | `#1C1C1E` | Primary text                                 |
 | `ink-muted`  | `#6E6E73` | Secondary text                               |
 | `ink-subtle` | `#6B6B70` | Tertiary text / hints (WCAG AA ≥4.5:1 on `card` / `bg` / `bg-alt`) |
+
+### Night surface (2026-11)
+
+A panel that is dark on every theme. Valentina asked for the prompt editor to be dark, in the style of modern AI tools (2026-11-21). The element carries `data-surface="night"`, and `app/src/index.css` gives the neutral tokens these values inside it, so every part drawn with tokens follows with no tone of its own. Native menus and scrollbars turn dark with it (`color-scheme: dark`). The values come from the palette the prompt editor used before it was put on tokens.
+
+| Token        | Night value | Usage on a night surface |
+| ------------ | ----------- | ------------------------ |
+| `bg`         | `#0B0B0E`   | The panel's ground |
+| `bg-alt`     | `#1C1C22`   | Footer, hovered row |
+| `card`       | `#121216`   | Fields, chips, menus |
+| `line`       | `#2A2A31`   | Hairline border |
+| `ink`        | `#E0E0E8`   | Primary text |
+| `ink-muted`  | `#9C9CA6`   | Secondary text |
+| `ink-subtle` | `#8A8A94`   | Hints, placeholders (5.4:1 on `card`) |
+
+The brand tokens are fixed across themes, and two of them do not read on this ground. Inside a night surface, and only there, `index.css` gives them these values, once, for every part:
+
+| Written as | On a night surface | Why |
+| ---------- | ------------------ | --- |
+| `text-primary` | `#7090E0` | `primary` as text is under 3:1 on the ground; this azure is 6:1 |
+| `text-danger` | `#FF5F57` | `danger` as text is 3.6:1; this red is 6.5:1 |
+| `bg-primary-light` | `primary` at 18% | The light tint would glare, and `ink` could not be read on it |
+| `bg-danger-bg` | `#FF5F57` at 12% | The same, for the red tint |
+
+`primary` as a fill (buttons, the switch, focus rings) stays `#1B4FD8`. The ground carries one decoration, `night-glow`: a faint azure light at the top (`primary` at 32%, fading out), centralized in `index.css` like the team covers.
+
+- **A menu portalled out of the surface carries the name itself.** `LabelPicker` reads the surface its field sits on and sets it on its menu, so the menu keeps the field's colours.
+- **A window opened from the panel is not part of it.** History, the previews and Draft from text are the standard `Dialog` and follow the theme.
+- **Check it.** Measure text against what is painted behind it: 4.5:1 for text, in every state (empty, filled, errors, open menus).
+- The prompt editor is the only night surface. Ask before adding another.
 
 ### Mobile Concept B: light page, navy home band (2026-10-23)
 
@@ -609,7 +639,7 @@ The card under the page header of Prompts and Brains is one component, `app/src/
 
 ### Snippet quality (v3.134.0)
 
-The snippet rating (`lib/snippetQuality.ts`) is drawn by the same panel as the prompt editor's Efficiency Score: `components/shared/QualityPanel.tsx`, `tone="dark"` in the prompt side panel (its documented hexes) and `tone="light"` in the snippet editor (tokens, follows the theme). No new tokens.
+The snippet rating (`lib/snippetQuality.ts`) is drawn by the same panel as the prompt editor's Quality row: `components/shared/QualityPanel.tsx`, `tone="light"` in both editors: tokens, so it follows the theme in the snippet editor and the night surface in the prompt editor. No new tokens.
 
 | Part | Value |
 | --- | --- |
@@ -617,6 +647,23 @@ The snippet rating (`lib/snippetQuality.ts`) is drawn by the same panel as the p
 | Window | The standard `Dialog` at `max-w-lg`: the ring (`success` / `primary` / `warning` stroke on a `line` track, the number in `ink`), the word, then one row per check with a `success` tick, a `warning-deep` circle or a `danger` cross beside its name, so the state never rests on colour alone |
 | Notes | The short-snippet note on `bg-alt`, the "reads a lot like" note in a `line` box, both 12 px `ink-muted` |
 | Improve with AI | Under a `line` rule: a `sm` primary button, or the locked Pro control. Each suggestion a `line` box: the area in 10 px uppercase `ink-subtle`, the problem in `ink`, the fix in `ink-muted` |
+
+### Prompt editor panel (2026-11)
+
+The side panel that writes and edits a prompt (`features/prompts/PromptBlockEditor.tsx`), redesigned with Valentina on 2026-11-20 from an approved mockup. On 2026-11-21 she asked for it dark again, in the style of modern AI tools: it is a **night surface** (see Night surface), dark on every theme, and every colour below is the token's night value. Same two widths as before (420 px, 520 px from `2xl`), `bg` ground with the azure glow, fields and menus on `card`, a `line` left border and `shadow-sm` while open.
+
+| Part | Value |
+| --- | --- |
+| Top | **New prompt** / **Edit prompt** at 16 px semibold `ink`; About, review status and close on the right. A new prompt adds two chips under it: **Draft from text** and **See an example** (h-8, `r-in`, 1 px `line`, `card`, 12 px medium `ink-muted`, `primary` when hovered). A `line` rule closes the top |
+| Fields | Labels 13 px semibold `ink`, "· optional" in `ink-subtle`. Inputs and selects are the standard `Input` look (h-10, 12 px radius, `line`, `primary` focus ring); text boxes the same and grow with their text |
+| Name and task | **Name**, then **What should the AI do?** (the objective, always on). The only two things every prompt needs, so they come first |
+| Add more detail | The four optional parts as rows: a 16 px `ink-subtle` icon, the part's name in 14 px `ink`, a 12 px `ink-muted` line saying what it is for, and **+ Add** in 13 px semibold `primary`. Added, a part is its label, a **Remove** ghost button and its text box. Order: Who the AI is, Background (with the Brain menu), An example, Rules |
+| Settings | **Ask me questions first** and **Interactive Steps**, each a 14 px label, a 12 px `ink-muted` line and the standard `Switch` |
+| Shortcut, Folder, Labels | The shortcut box carries the prompt trigger in front, as the snippet editor's Trigger does; Folder and Labels share one row |
+| Quality, More options | Closed rows (`features/prompts/PanelDisclosure.tsx`): icon, title, a 12 px `ink-muted` summary, chevron. Quality shows the score in `primary` and the tips waiting, and opens to `QualityPanel` (its `light` tone, drawn on the night values). More options holds Strategy, Intent and Answer format, and the suggestion box (`primary-light`, `primary/20` border) |
+| Footer | `bg-alt` with a `line` rule; standard `Button`s: ghost Use or Preview on the left, ghost History and a danger-text Delete, primary Create prompt / Save changes on the right |
+
+The saved text keeps its `## Role` / `## Objective` / `## Context` / `## Examples` / `## Constraints` headings: the new names are for people, the headings for the AI. The phone's edit window labels each part with the same names.
 
 ### Language check in the snippet editor
 

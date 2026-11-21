@@ -15079,6 +15079,8 @@ var EDIT_CHIP_WORDS={formtext:'Text',formparagraph:'Text',formnumber:'Number',fo
   clipboard:'Clipboard',key:'Key',note:'Note',link:'Link',picture:'Picture',greeting:'Greeting',
   snippet:'Snippet',brain:'Brain'};
 var EDIT_BLOCK_TYPES=['role','objective','context','examples','constraints'];
+/* What each part is called, in the dashboard prompt editor's words. */
+var EDIT_BLOCK_WORDS={role:'Who the AI is',objective:'What should the AI do?',context:'Background',examples:'An example',constraints:'Rules'};
 
 /* What a chip says: the field's own name when it has one, else what it is. */
 function editChipLabel(raw){
@@ -15333,13 +15335,13 @@ function openPromptEdit(p){
     // it. The Brain a Context part carries is named above its box: it stays.
     boxes.innerHTML=blocks.map(function(b,i){
       if(!b.enabled)return '';
-      var word=b.type.charAt(0).toUpperCase()+b.type.slice(1);
+      var word=EDIT_BLOCK_WORDS[b.type];
       var brain=b.type==='context'&&b.brain
         ?'<p class="sb-edit-note">'+BRAIN_SVG+'<span>'+esc('Uses the Brain '+(b.brain.name||'')+'. It stays attached.')+'</span></p>'
         :'';
       return '<div class="sb-field-group"><label class="sb-field-label" for="sb-edit-block-'+i+'">'+esc(word)+'</label>'
         +brain+'<textarea id="sb-edit-block-'+i+'" data-block="'+i+'"></textarea></div>';
-    }).join('')||'<p class="sb-edit-hint">Every part of this prompt is switched off. Switch one on from your computer to edit its text.</p>';
+    }).join('')||'<p class="sb-edit-hint">This prompt has no parts added. Add one on your computer to edit its text.</p>';
     boxes.querySelectorAll('textarea').forEach(function(t){
       t.value=editOriginal.blocks[+t.getAttribute('data-block')];
     });

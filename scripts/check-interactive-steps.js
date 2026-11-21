@@ -161,9 +161,9 @@ check('dashboard preview copies what it shows', /writeText\(output\)/.test(MODAL
 // The dashboard switch lives in the prompt editor, directly under Ask User
 // Questions (Valentina, 2026-09-18). The preview window only reads it.
 const EDITOR = readText(path.join(ROOT, 'app', 'src', 'features', 'prompts', 'PromptBlockEditor.tsx'));
-check('dashboard: the switch sits right under Ask User Questions in the prompt editor',
+check('dashboard: the switch sits right under Ask me questions first in the prompt editor',
   before(EDITOR, 'id="prompt-ask-user-questions"', 'id="prompt-interactive-steps"') &&
-  before(EDITOR, 'id="prompt-interactive-steps"', 'Efficiency score widget'), true);
+  before(EDITOR, 'id="prompt-interactive-steps"', '<PromptEfficiencyWidget'), true);
 check('dashboard: the preview window has no switch of its own', MODAL.indexOf('saveInteractiveSteps') === -1, true);
 
 // ── 5. the in-page picker, on the real content.js ─────────────────────

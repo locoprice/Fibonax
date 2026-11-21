@@ -42,7 +42,7 @@ Use this to find where a capability lives. Each row is shipped unless marked loc
 - Multi language variants with a language check/picker, version history, import/export (`snippetIo.ts`), bulk actions, unused-asset notice (`shared/inactivity.js`), usage stats and grouping (`shared/snippet-stats.js`).
 - Triggers: inline trigger and "insert automatically" settings per account; right click context menu and a picker as the other two entry points.
 
-**Prompts**: block editor, "Ask User Questions", **Interactive Steps** (a device setting that prefixes a copied prompt with one-step-at-a-time instructions; `extension/shared/interactive-steps.js`, dashboard mirror `app/src/lib/interactiveSteps.ts`, key shared with mobile), prompt score (`usePromptEvaluator.ts`), prompt version history.
+**Prompts**: block editor, "Ask me questions first", **Interactive Steps** (a device setting that prefixes a copied prompt with one-step-at-a-time instructions; `extension/shared/interactive-steps.js`, dashboard mirror `app/src/lib/interactiveSteps.ts`, key shared with mobile), prompt score (`usePromptEvaluator.ts`), prompt version history.
 
 **Brains**
 - Spaces and items (kinds, summaries, labels), file/document uploads (`memory_documents`), trash and history, an in page **Context** button/picker (`content/memory-picker.js`, shortcut `Ctrl/Cmd+Shift+M`), **Save selection to Fibonax** from the right click menu (`content/save-selection.js`), **Save this chat** from supported AI chat sites (`content/chat-capture.js`), the popup's Brains tab, and Save to Brain on the phone.
