@@ -23,6 +23,7 @@ const STAMPS = [
   { file: 'services/mcp-memory/package.json', pattern: JSON_VERSION, count: 1 },
   { file: 'services/mcp-memory/package-lock.json', pattern: JSON_VERSION, count: 2 },
   { file: 'services/mcp-memory/src/index.ts', pattern: SERVER_VERSION, count: 1 },
+  { file: 'services/supabase/functions/mcp/server.js', pattern: SERVER_VERSION, count: 1 },
   { file: 'app/public/landing/index.html', pattern: LANDING_FALLBACK, count: 1 },
   { file: 'app/public/landing/it/index.html', pattern: LANDING_FALLBACK, count: 1 },
   { file: 'app/public/landing/es/index.html', pattern: LANDING_FALLBACK, count: 1 },

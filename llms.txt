@@ -27,7 +27,8 @@ Surfaces. See Architecture & Parity below for exactly what stays in sync across 
 | Chrome extension | `extension/` | Primary expansion surface. Vanilla JS, MV3, no build step. |
 | Dashboard | `app/` (React) | The real home for CRUD, team sharing, review, analytics, settings. Desktop only (viewports under 1024px are sent to `/mobile/`). |
 | Mobile companion | `app/public/mobile/` | `fibonax.com/mobile`, one self contained `index.html`, installable (`manifest.webmanifest`). Used daily; fully synchronised on what a snippet *is and does*. Brains can be read, copied, shared and added to there, and text or links from other apps saved into them (Save to Brain: Android Share menu, an iPhone Shortcut opening `/mobile/?text=`, or Paste & save; the Brain is suggested from the words, as in the extension). Only the management layer (folder rename/delete, full CRUD admin, managing Brains) is intentionally absent. |
-| MCP server | `services/mcp-memory/` | Working memory for AI assistants over MCP, backed by the same Brains data. |
+| MCP server | `services/mcp-memory/` | Working memory for AI assistants over MCP, backed by the same Brains data. Runs on the user's computer. |
+| AI app link | `services/supabase/functions/mcp/` | Hosted MCP: a person makes a private link in Settings > Integrations > AI apps and pastes it into Claude, ChatGPT or another AI app, which then searches, reads and (if allowed) saves to their Prompts and Brains. Never snippets. |
 | Marketing site | `app/public/landing/` | `fibonax.com`, a separate Netlify deploy. English, Italian and Spanish. |
 | User manual | `user-docs/` | `docs.fibonax.com`, published by Mintlify from this repo on every push to `main`. |
 
@@ -48,6 +49,7 @@ Use this to find where a capability lives. Each row is shipped unless marked loc
 - Spaces and items (kinds, summaries, labels), file/document uploads (`memory_documents`), trash and history, an in page **Context** button/picker (`content/memory-picker.js`, shortcut `Ctrl/Cmd+Shift+M`), **Save selection to Fibonax** from the right click menu (`content/save-selection.js`), **Save this chat** from supported AI chat sites (`content/chat-capture.js`), the popup's Brains tab, and Save to Brain on the phone.
 - How text is cut, named, summarised and routed to the right Brain lives once in `extension/shared/memory-chunk.js` (`chunkText`, `captureName`, `captureSummary`, `suggestBrain`, `pickBrain`). What "Copy whole Brain" / "Use now" hands an AI lives in `extension/shared/memory-pack.js` (`formatInjectedBlock`). The phone carries generated copies of both.
 - MCP server (`fibonax-memory`, package `fibonax-mcp-memory`, token in `FIBONAX_MEMORY_TOKEN`; renamed from the `sprintbrain-*` names in v3.82.1) tools: `memory_steps`, `memory_index`, `memory_enter_step`, `memory_attach`, `memory_detach`, `memory_state`, `memory_save`.
+- **AI app link** (hosted MCP, `services/supabase/functions/mcp/`): a key from `memory_tokens` made in Settings > Integrations > AI apps (`AiAppsPanel.tsx`, shown once, switched off there), carried in the link as `?key=` or sent as `Authorization: Bearer`. Tools `search`, `fetch` (ids `prompt:`, `item:`, `brain:`), `list_prompts`, `list_brains`, `save_to_brain` (only for a key with the `write` scope), and the person's prompts as MCP prompts. The function holds the publishable key only and calls one database function, `mcp_call`, which reads as the key's owner under row level security; a prompt's Brain is filled in by `memory-pack.js` (server copy in `functions/_shared/`). Full-text reads count FiboToken uses. Gate: `scripts/check-mcp-link.js`.
 
 **Review status (AI knowledge governance)**: every snippet, prompt and Brain item has a status (draft, AI generated, under review, approved, deprecated, archived). The database trigger `app.review_status_guard` is the authority; `app/src/lib/reviewStatus.ts` and the phone's `REVIEW_STATUSES` mirror it. A Review page (`/review`) lists what waits for an approver; non admin edits of approved team content drop back to under review. Archived items are skipped by the MCP readers and search.
 
@@ -88,6 +90,7 @@ There is no single "extension vs. standalone app" parity switch. What is actuall
 | `ask-sprintbrain` | Ask Fibonax (Pro, locked). Keeps its deployed name |
 | `draft-with-ai` | Draft with AI (Pro, locked) |
 | `translate-body`, `suggest-labels`, `read-picture` | Pro, locked, **not deployed** |
+| `mcp` | The AI app link (hosted MCP). Publishable key only, gateway sign-in check off; everything goes through `mcp_call` with the link's key |
 
 **Working memory** (`services/mcp-memory/`): a Node MCP server that gives an AI assistant a working memory it can swap as work moves between steps. Facts are stored as individually addressable shards (`memory_shards`, personal RLS); a step declares which labels it needs and only those shards are attached, inside a token budget. Runs TypeScript directly via Node's native type stripping (Node 22.18+), no build step. The extension's own Brains UI (`shared/memory-pack.js`, `shared/memory-chunk.js`, `content/memory-picker.js`, `content/chat-capture.js`) is a separate, browser side consumer of the same knowledge layer, not a client of this server.
 
@@ -150,7 +153,7 @@ Fibonax/
 │   ├── supabase/
 │   │   ├── migrations/           # Ordered SQL + README tracking what is applied
 │   │   └── functions/            # Edge functions, see the table in Tech Stack
-│   └── mcp-memory/               # Working-memory MCP server
+│   └── mcp-memory/               # Working-memory MCP server (local); the hosted one is functions/mcp
 ├── user-docs/                    # docs.fibonax.com source (Mintlify). Never create user-docs/snippets/
 ├── design_handoff_design_system/ # Canonical design tokens and reference kits
 ├── scripts/                      # sync-*.js generate copies, check-*.js are CI gates
