@@ -1,4 +1,4 @@
-import { Clock, FileText, Trash2 } from 'lucide-react';
+import { Clock, FileText, Orbit, Trash2 } from 'lucide-react';
 import { BrainIcon } from '@/components/shared/BrainIcon';
 import {
   AssetFilterBar,
@@ -21,7 +21,8 @@ import { useSearchStore } from '@/stores/searchStore';
 // The bar under the Brains header: the same bar as Prompts and Snippets, with
 // the pieces a Brain has. Brains have no folders, strategies or labels, so the
 // count stands where the folder chips do, Contents and Updated stand where
-// Strategy and Intent do, and the Brains trash sits beside Sort.
+// Strategy and Intent do, and the Brains trash sits beside Sort. So does Atlas,
+// the switch between the cards and the Brain Atlas: only Brains orbit a hub.
 
 const SORT_COLUMNS: Array<{ value: SpaceSortColumn; label: string }> = [
   { value: 'name', label: 'Name' },
@@ -34,9 +35,12 @@ interface BrainFiltersProps {
   count: number | undefined;
   trashCount: number;
   onOpenTrash: () => void;
+  /** The Brains are shown in orbit, in place of the cards. */
+  atlasOn: boolean;
+  onToggleAtlas: () => void;
 }
 
-export function BrainFilters({ count, trashCount, onOpenTrash }: BrainFiltersProps) {
+export function BrainFilters({ count, trashCount, onOpenTrash, atlasOn, onToggleAtlas }: BrainFiltersProps) {
   const filters = useMemoryStore((s) => s.spaceFilters);
   const setSpaceFilters = useMemoryStore((s) => s.setSpaceFilters);
   const resetSpaceFilters = useMemoryStore((s) => s.resetSpaceFilters);
@@ -53,12 +57,24 @@ export function BrainFilters({ count, trashCount, onOpenTrash }: BrainFiltersPro
     <AssetFilterBar
       end={
         <>
-          <SortControl
-            options={SORT_COLUMNS}
-            sortBy={sortBy}
-            sortDir={sortDir}
-            onSort={setSpaceSort}
-          />
+          {/* The orbits have an order of their own, oldest Brain closest, so Sort has nothing to sort there. */}
+          {atlasOn ? null : (
+            <SortControl
+              options={SORT_COLUMNS}
+              sortBy={sortBy}
+              sortDir={sortDir}
+              onSort={setSpaceSort}
+            />
+          )}
+          <FilterButton
+            active={atlasOn}
+            aria-pressed={atlasOn}
+            title={atlasOn ? 'Back to the cards' : 'See your Brains in orbit'}
+            onClick={onToggleAtlas}
+          >
+            <Orbit className="h-3.5 w-3.5" aria-hidden />
+            Atlas
+          </FilterButton>
           <FilterButton onClick={onOpenTrash}>
             <Trash2 className="h-3.5 w-3.5" aria-hidden />
             {trashCount > 0 ? `Trash (${trashCount})` : 'Trash'}

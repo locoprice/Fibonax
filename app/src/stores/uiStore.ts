@@ -107,6 +107,32 @@ interface UiStore {
   // follow each other live. The Christmas countdown beside it has no switch.
   saintOfDayEnabled: boolean;
   setSaintOfDayEnabled: (on: boolean) => void;
+
+  // The Brains page shows its Brains as cards, or in orbit as the Brain Atlas.
+  // A per-device choice made with the Atlas button in the page's bar, kept so
+  // the page opens the way it was left. Cards until someone asks for the atlas.
+  brainAtlasOn: boolean;
+  setBrainAtlasOn: (on: boolean) => void;
+}
+
+const BRAIN_ATLAS_KEY = 'fibonax-brain-atlas';
+
+// Same storage guard as the helpers below: a blocked store throws on access
+// and the vitest 'node' environment has no localStorage.
+function getStoredBrainAtlasOn(): boolean {
+  try {
+    return localStorage.getItem(BRAIN_ATLAS_KEY) === 'on';
+  } catch {
+    return false;
+  }
+}
+
+function storeBrainAtlasOn(on: boolean): void {
+  try {
+    localStorage.setItem(BRAIN_ATLAS_KEY, on ? 'on' : 'off');
+  } catch {
+    // Storage unavailable: the preference is per-device convenience only.
+  }
 }
 
 const PREVIEW_KEY = 'sprintbrain-snippet-preview';
@@ -260,5 +286,11 @@ export const useUiStore = create<UiStore>((set) => ({
     // A browser that refuses the write still follows the switch for this visit.
     saveSaintEnabled(on);
     set({ saintOfDayEnabled: on });
+  },
+
+  brainAtlasOn: getStoredBrainAtlasOn(),
+  setBrainAtlasOn: (on) => {
+    storeBrainAtlasOn(on);
+    set({ brainAtlasOn: on });
   },
 }));

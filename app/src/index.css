@@ -128,6 +128,30 @@
   background-repeat: no-repeat;
 }
 
+/* Brain Atlas (features/memory/atlas): the dark stage that takes the place of
+   the Brain cards. A night surface with its own deep-navy neutrals, so the
+   panel beside the canvas follows through the ordinary tokens. The --atlas-*
+   values are what the canvas draws with, each as "r, g, b" so one value serves
+   any opacity. Registered in docs/DESIGN_SYSTEM.md (Brain Atlas). */
+[data-surface='night'].brain-atlas {
+  --color-bg: #050912;
+  --color-bg-alt: #0a1222;
+  --color-card: #08101e;
+  --color-line: #0c2a33;
+  --color-ink: #dbe8f5;
+  --color-ink-muted: #8fa3bf;
+  --color-ink-subtle: #7f95b3;
+  --atlas-ground: 5, 9, 18;
+  --atlas-glow: 55, 243, 255;
+  --atlas-spark: 150, 245, 255;
+  --atlas-mesh: 205, 246, 255;
+  --atlas-fibre: 232, 246, 255;
+  --atlas-gold: 255, 194, 75;
+  --atlas-gold-light: 255, 222, 155;
+  --atlas-muted: 143, 163, 191;
+  background: radial-gradient(ellipse at 35% 40%, #0a1222 0%, #050912 60%);
+}
+
 /* Team-cover preset artwork (TEAM-COVER-001). Decorative gradients keyed by
    preset name from lib/teamCoverPresets.ts — centralized here (not hard-coded
    in components) the same way the activity heatmap ramp is. Vivid presets read

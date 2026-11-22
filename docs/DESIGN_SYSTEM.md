@@ -83,7 +83,7 @@ The brand tokens are fixed across themes, and two of them do not read on this gr
 - **A menu portalled out of the surface carries the name itself.** `LabelPicker` reads the surface its field sits on and sets it on its menu, so the menu keeps the field's colours.
 - **A window opened from the panel is not part of it.** History, the previews and Draft from text are the standard `Dialog` and follow the theme.
 - **Check it.** Measure text against what is painted behind it: 4.5:1 for text, in every state (empty, filled, errors, open menus).
-- The prompt editor is the only night surface. Ask before adding another.
+- There are two night surfaces: the prompt editor and the Brain Atlas, which brings its own navy values (see Brain Atlas). Ask before adding another.
 
 ### Mobile Concept B: light page, navy home band (2026-10-23)
 
@@ -771,3 +771,35 @@ A row near the foot of the dashboard sidebar, between the rotating sentence and 
 - **Sign-up page.** A visitor who arrived through a link reads one line above the method tabs: a gift icon and the rule, on `primary-light`, `r`.
 
 Loading shows the card and the steps at once, with a spinner where the link will be; a failed read says so in a `danger-bg` box with **Try again**. Closing hands focus back to the sidebar row. No new tokens.
+
+### Brain Atlas (2026-11)
+
+The Brains page can show its Brains in orbit in place of the cards (`app/src/features/memory/atlas/`): a head seen from the front, the brain inside it as a glowing mesh, the Fibonax hub at its centre and each Brain circling it like a planet with its items as moons. Valentina designed it as a concept page and asked for it in the dashboard on 2026-11-22, dark as in the concept on every theme. It is the second **night surface**: the block carries `data-surface="night"` and the class `brain-atlas`, which swaps the night black for a deep navy and defines the colours the canvas draws with (`app/src/index.css`). The canvas reads them through `readAtlasPalette`; no component names a colour.
+
+| Token | Value | Usage |
+| --- | --- | --- |
+| `bg` | `#050912` | The stage's ground, lit by `bg-alt` in a soft radial light |
+| `bg-alt` | `#0A1222` | Hovered row |
+| `card` | `#08101E` | The panel, the Pause button, the tooltip |
+| `line` | `#0C2A33` | Hairlines (the glow at 14% on the ground) |
+| `ink` | `#DBE8F5` | Text (15.3:1 on `card`) |
+| `ink-muted` | `#8FA3BF` | Secondary text (7.4:1) |
+| `ink-subtle` | `#7F95B3` | Eyebrows, hints, counts (6.2:1) |
+| `--atlas-ground` | `5, 9, 18` | The strip behind a label, the rim around a planet or a moon |
+| `--atlas-glow` | `55, 243, 255` | Mesh lines, the light inside the lobes, the grid |
+| `--atlas-spark` | `150, 245, 255` | Lit mesh, the brain's outline, moons and their rings |
+| `--atlas-mesh` | `205, 246, 255` | Mesh points |
+| `--atlas-fibre` | `232, 246, 255` | The hub and the head's outline |
+| `--atlas-gold` | `255, 194, 75` | Brains, orbits, links to the hub, the dot before a Brain's name, focus rings (11.8:1 on `card`) |
+| `--atlas-gold-light` | `255, 222, 155` | The golden spiral, far points, trails, Brain names (15.3:1 on the ground) |
+| `--atlas-muted` | `143, 163, 191` | The item count under a Brain's name (7.7:1) |
+
+The `--atlas-*` values are written as `r, g, b`, so one token serves every opacity, on the canvas and in a class (`rgb(var(--atlas-gold))`). Gold is the atlas's second colour on purpose: it is the golden ratio's, and it marks what a person made (the Brains) against the cyan of the brain itself.
+
+- **Atlas button.** A `FilterButton` on the right of the Brains bar, between Sort and Trash: the orbit icon and **Atlas**, `aria-pressed`, the bar's active look (`primary` on `primary-light`) while on. Sort is left out while the atlas is on, because the orbits have their own order. The choice is kept per device (`brainAtlasOn` in `uiStore`). Only Brains have it: snippets and prompts do not orbit a hub.
+- **Shape.** One block, `r-card` (16 px), 1 px `line`, in the slot of the card grid. Two columns on the golden ratio, `minmax(0,1.618fr) minmax(0,1fr)` (measured 679 : 420 at 1440 px, 422 : 261 at 1024 px): the picture on the left, the panel on the right. Height `clamp(440px, 100vh - 290px, 987px)`, so the whole atlas is in view without scrolling the page. The canvas is absolute inside its box: its pixel size must never feed back into the block's height.
+- **Geometry.** Each orbit is a Kepler ellipse with the hub at one focus (eccentricity 0.16), quicker near the hub, its lap time by the third law. The far point of every orbit lies on a golden spiral that grows 1.618 times with each quarter turn, with the numerals 8, 13, 21, 34 at the quarter turns. The first Brain made keeps the closest orbit. Up to 13 Brains (a Fibonacci number) are in orbit; with more, the 13 updated last. Items are moons: seven on a first ring, nine on a second turning the other way, a dotted belt for the rest. `src/__tests__/brainAtlas.test.ts` pins these rules.
+- **Labels on the picture.** The dashboard's mono stack: a Brain's name at 12 px in capitals with its item count at 10 px under it, both on a strip of the ground. With more than 8 Brains, or on a stage under three quarters of full size, the name stands alone. A label sits under its planet and moves above or beside it when that spot is taken; with no side free it fades out until there is room, so labels never cover each other. The Brain in play always shows its name.
+- **Panel.** `card` with a `line` left edge, 20 px inset, 12 px gaps. Eyebrows at 11 px semibold uppercase `ink-subtle`, the title at 16 px semibold `ink`, text at 12 px `ink-muted`. Brains are rows: a gold dot, the name, the count in `ink-subtle`, `bg-alt` when pointed at. A Brain's items carry a `--atlas-spark` dot; the list stops at 13 with "and N more". Actions sit at the foot: **Open Brain** (primary, `sm`) and **Back** (ghost, `sm`). The panel scrolls up and down when it is longer than the block.
+- **Motion.** The orbits turn, the mesh fires and gold packets leave the hub. Pointing at the picture holds the orbits still. **Pause** and **Play** (ghost `sm` on `card`, top right of the picture) stop and start everything; under `prefers-reduced-motion` the atlas starts paused.
+- **Access.** The canvas is `role="img"` with a description that names the Brains in orbit. Everything it shows is reachable from the panel, whose rows are buttons. Focus rings are 2 px `--atlas-gold`: `primary` is under 3:1 on the navy. Every name and description carries `translate="no"`. Escape puts the panel back on its overview.

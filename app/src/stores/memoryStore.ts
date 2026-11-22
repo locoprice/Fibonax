@@ -296,9 +296,9 @@ export const useMemoryStore = create<MemoryStore>((set, get) => ({
     try {
       set({ allItems: await memoryApi.listAllItems(), allItemsLoaded: true });
     } catch (err) {
-      // Non-fatal: searching still finds snippets, prompts and space names. A
-      // banner here would interrupt a search the user is in the middle of.
-      set({ error: message(err, 'Could not search your memory notes.') });
+      // Non-fatal: searching still finds snippets, prompts and space names, and
+      // the Brain Atlas still shows every Brain, with moons that have no name.
+      set({ error: message(err, 'Could not load the items of your Brains.') });
     } finally {
       set({ loadingAllItems: false });
     }

@@ -23,7 +23,7 @@
 // header, otherwise `?key=<key>` in the link itself, which is what the link
 // from Settings carries because most AI apps only take a link. Never logged.
 
-export const SERVER_VERSION = '3.153.1';
+export const SERVER_VERSION = '3.154.0';
 
 /** Protocol versions this server speaks, newest first. */
 export const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
