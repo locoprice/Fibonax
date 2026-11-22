@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent, ReactElement, ReactNode } from 'react';
+import type { CSSProperties, PointerEvent, ReactElement, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import {
   type AtlasRenderer,
   type AtlasTarget,
 } from '@/features/memory/atlas/atlasDraw';
+import { INTRO_SECONDS, landingAt } from '@/features/memory/atlas/atlasIntro';
 import { MAX_BRAINS, pickBrains, type AtlasBrainInput } from '@/features/memory/atlas/atlasOrbits';
 import { cn } from '@/lib/utils';
 
@@ -40,6 +41,16 @@ function prefersReducedMotion(): boolean {
   );
 }
 
+interface RiseProps {
+  'data-atlas-rise'?: '';
+  style?: CSSProperties;
+}
+
+/** While the atlas opens, the panel's lines rise into place in step with the picture (index.css). */
+function rise(opening: boolean, delay: number): RiseProps {
+  return opening ? { 'data-atlas-rise': '', style: { animationDelay: `${delay}s` } } : {};
+}
+
 function sameTarget(a: AtlasTarget | null, b: AtlasTarget | null): boolean {
   if (!a || !b) return a === b;
   if (a.type === 'hub' || b.type === 'hub') return a.type === b.type;
@@ -60,9 +71,17 @@ function Dot({ tone }: { tone: 'gold' | 'spark' }): ReactElement {
   );
 }
 
-function BrainRow({ brain, onOpen }: { brain: AtlasBrainInput; onOpen: () => void }): ReactElement {
+function BrainRow({
+  brain,
+  onOpen,
+  riseProps = {},
+}: {
+  brain: AtlasBrainInput;
+  onOpen: () => void;
+  riseProps?: RiseProps;
+}): ReactElement {
   return (
-    <li>
+    <li {...riseProps}>
       <button
         type="button"
         onClick={onOpen}
@@ -104,12 +123,16 @@ interface BrainAtlasProps {
 }
 
 export function BrainAtlas({ brains, itemsLoading }: BrainAtlasProps): ReactElement {
+  const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<AtlasRenderer | null>(null);
   const [selected, setSelected] = useState<AtlasTarget | null>(null);
   const [tip, setTip] = useState<AtlasHit | null>(null);
+  const [calm] = useState(prefersReducedMotion);
   // Moving content needs a stop control, and starts still for anyone who asked for less motion.
-  const [running, setRunning] = useState(() => !prefersReducedMotion());
+  const [running, setRunning] = useState(!calm);
+  // The opening plays as the atlas appears; anyone who asked for less motion gets it already open.
+  const [opening, setOpening] = useState(!calm);
   const [unsupported, setUnsupported] = useState(false);
 
   const { shown, hidden } = useMemo(() => pickBrains(brains), [brains]);
@@ -120,7 +143,9 @@ export function BrainAtlas({ brains, itemsLoading }: BrainAtlasProps): ReactElem
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
-    const renderer = createAtlasRenderer(canvas, readAtlasPalette(canvas), getComputedStyle(canvas).fontFamily);
+    const renderer = createAtlasRenderer(canvas, readAtlasPalette(canvas), getComputedStyle(canvas).fontFamily, {
+      intro: !calm,
+    });
     if (!renderer) {
       setUnsupported(true);
       return undefined;
@@ -130,7 +155,24 @@ export function BrainAtlas({ brains, itemsLoading }: BrainAtlasProps): ReactElem
       renderer.destroy();
       rendererRef.current = null;
     };
-  }, []);
+  }, [calm]);
+
+  // The atlas fills the screen: as it appears, the page brings all of it into
+  // view, with the bar and its Atlas button still showing above it.
+  useEffect(() => {
+    const section = sectionRef.current;
+    const scroller = section?.closest('main');
+    if (!section || !scroller) return;
+    if (section.getBoundingClientRect().bottom > scroller.getBoundingClientRect().bottom) {
+      section.scrollIntoView({ block: 'end', behavior: calm ? 'auto' : 'smooth' });
+    }
+  }, [calm]);
+
+  useEffect(() => {
+    if (!opening) return undefined;
+    const timer = window.setTimeout(() => setOpening(false), INTRO_SECONDS * 1000);
+    return () => window.clearTimeout(timer);
+  }, [opening]);
 
   useEffect(() => {
     rendererRef.current?.setBrains(brains);
@@ -182,11 +224,17 @@ export function BrainAtlas({ brains, itemsLoading }: BrainAtlasProps): ReactElem
   const selectedBrain = brainOf(selected);
   const selectedItem = selected?.type === 'item' ? selectedBrain?.itemNames[selected.index] : undefined;
 
-  const orbitList: ReactNode =
+  // In the overview, each row rises as its Brain lands on its orbit.
+  const orbitList = (overview: boolean): ReactNode =>
     shown.length > 0 ? (
       <ul className="flex flex-col gap-0.5">
-        {shown.map((brain) => (
-          <BrainRow key={brain.id} brain={brain} onOpen={() => setSelected({ type: 'brain', id: brain.id })} />
+        {shown.map((brain, index) => (
+          <BrainRow
+            key={brain.id}
+            brain={brain}
+            onOpen={() => setSelected({ type: 'brain', id: brain.id })}
+            riseProps={rise(overview && opening, landingAt(index, shown.length))}
+          />
         ))}
       </ul>
     ) : null;
@@ -254,29 +302,35 @@ export function BrainAtlas({ brains, itemsLoading }: BrainAtlasProps): ReactElem
           The centre every Brain circles, and the point the golden spiral starts from.
         </p>
         <p className={EYEBROW}>In orbit, closest first</p>
-        {orbitList}
+        {orbitList(false)}
         <PanelActions onBack={back} />
       </>
     );
   } else {
     panel = (
       <>
-        <p className={EYEBROW}>Your Brains</p>
-        <h2 className="text-base font-semibold text-ink">Every Brain, in orbit</h2>
-        <p className="text-xs text-ink-muted">
+        <p className={EYEBROW} {...rise(opening, 0.2)}>
+          Your Brains
+        </p>
+        <h2 className="text-base font-semibold text-ink" {...rise(opening, 0.3)}>
+          Every Brain, in orbit
+        </h2>
+        <p className="text-xs text-ink-muted" {...rise(opening, 0.45)}>
           Each Brain circles the Fibonax hub like a planet. The first one you made stays closest, and its items circle
           it as moons. The orbits widen along a golden spiral, the shape behind the Fibonacci numbers 8, 13, 21, 34.
         </p>
-        <p className="text-xs tabular-nums text-ink">
+        <p className="text-xs tabular-nums text-ink" {...rise(opening, 0.6)}>
           {countBrains(shown.length)} · {countItems(totalItems)}
         </p>
         {hidden > 0 ? (
-          <p className="text-xs text-ink-muted">
+          <p className="text-xs text-ink-muted" {...rise(opening, 0.7)}>
             The atlas shows the {MAX_BRAINS} Brains you updated last. Search or filter to see the others.
           </p>
         ) : null}
-        <p className={EYEBROW}>In orbit, closest first</p>
-        {orbitList}
+        <p className={EYEBROW} {...rise(opening, 0.9)}>
+          In orbit, closest first
+        </p>
+        {orbitList(true)}
       </>
     );
   }
@@ -297,10 +351,13 @@ export function BrainAtlas({ brains, itemsLoading }: BrainAtlasProps): ReactElem
       : 'No Brains are in orbit.';
 
   return (
+    // As tall as the screen allows with the bar above it still in view, and
+    // taller when the panel needs it: the panel never scrolls.
     <section
+      ref={sectionRef}
       data-surface="night"
       aria-label="Brain Atlas"
-      className="brain-atlas grid h-[clamp(440px,calc(100vh-290px),987px)] min-w-0 grid-cols-[minmax(0,1.618fr)_minmax(0,1fr)] overflow-hidden rounded-[16px] border border-line text-ink"
+      className="brain-atlas grid min-h-[clamp(440px,calc(100vh-176px),987px)] min-w-0 scroll-mb-6 grid-cols-[minmax(0,1.618fr)_minmax(0,1fr)] overflow-hidden rounded-[16px] border border-line text-ink"
     >
       <div className="relative min-w-0 overflow-hidden">
         {/* Out of the flow on purpose: the canvas's pixel size must never feed back into the height of the stage. */}
@@ -308,7 +365,7 @@ export function BrainAtlas({ brains, itemsLoading }: BrainAtlasProps): ReactElem
           ref={canvasRef}
           role="img"
           aria-label={`A head seen from the front, with the brain drawn as a glowing mesh. The Fibonax hub sits at its centre like a sun, and each Brain circles it like a planet, its items as moons. ${picture} The list beside the picture names every Brain.`}
-          className="absolute inset-0 block h-full w-full font-mono"
+          className={cn('absolute inset-0 block h-full w-full font-mono', tip && 'cursor-pointer')}
           onPointerMove={onPointerMove}
           onPointerLeave={onPointerLeave}
           onClick={onCanvasClick}
@@ -347,7 +404,7 @@ export function BrainAtlas({ brains, itemsLoading }: BrainAtlasProps): ReactElem
         ) : null}
       </div>
 
-      <aside aria-live="polite" className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto border-l border-line bg-card p-5">
+      <aside aria-live="polite" className="flex min-w-0 flex-col gap-3 border-l border-line bg-card p-5">
         {panel}
       </aside>
     </section>

@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { toAtlasBrains } from '@/features/memory/atlas/atlasData';
 import { atlasScene, inPoly } from '@/features/memory/atlas/atlasGeometry';
 import {
+  INTRO_SECONDS,
+  OPEN,
+  SETTLED,
+  introFrame,
+  landingAt,
+  launchAt,
+  planetIntro,
+} from '@/features/memory/atlas/atlasIntro';
+import {
   ECC,
   FAR,
   MAX_BRAINS,
@@ -261,5 +270,71 @@ describe('the scene', () => {
 
   it('keeps the hub inside the brain', () => {
     expect(inPoly(SUN[0], SUN[1], atlasScene().outline)).toBe(true);
+  });
+});
+
+// The opening (Valentina, 2026-11-22: "a wow effect when the user surfs this
+// page for the first time"): the hub lights up, a wave runs through the brain
+// and the Brains fly out to their orbits.
+describe('the opening', () => {
+  it('starts from an empty stage', () => {
+    const frame = introFrame(0);
+    expect(frame.hub).toBeCloseTo(0, 9);
+    expect(frame.wave).toBe(0);
+    expect(frame.spiral).toBe(0);
+    expect(frame.head).toBe(0);
+    expect(frame.camera).toBeGreaterThan(1);
+    const step = planetIntro(0, 0, 8);
+    expect(step.flight).toBeCloseTo(0, 9);
+    expect(step.grow).toBe(0);
+    expect(step.settle).toBe(0);
+  });
+
+  it('has every Brain in place by the end, for 1 to 13 Brains', () => {
+    for (let count = 1; count <= MAX_BRAINS; count++) {
+      for (let index = 0; index < count; index++) {
+        const step = planetIntro(INTRO_SECONDS, index, count);
+        expect(step.flight).toBeCloseTo(1, 9);
+        expect(step.grow).toBe(1);
+        expect(step.orbit).toBe(1);
+        expect(step.ripple).toBe(0);
+        expect(step.moons).toBeCloseTo(1, 9);
+        expect(step.settle).toBe(1);
+        expect(landingAt(index, count)).toBeLessThan(INTRO_SECONDS);
+      }
+    }
+    expect(OPEN.camera).toBe(1);
+    expect(OPEN.wave).toBe(1);
+    expect(OPEN.spiral).toBe(1);
+    expect(OPEN.head).toBe(1);
+    expect(OPEN.ringAlpha).toBe(0);
+    expect(OPEN.hub).toBeCloseTo(1, 9);
+    expect(OPEN.flash).toBeCloseTo(0, 9);
+    expect(SETTLED).toEqual({ flight: 1, grow: 1, orbit: 1, ripple: 0, moons: 1, settle: 1 });
+  });
+
+  it('sends the closest Brain out first, the others one after another', () => {
+    for (const count of [2, 5, 8, 13]) {
+      for (let index = 1; index < count; index++) {
+        expect(launchAt(index, count)).toBeGreaterThan(launchAt(index - 1, count));
+      }
+    }
+  });
+
+  it('lets a Brain run a little past its orbit and settle back', () => {
+    const launch = launchAt(0, 1);
+    const path = Array.from({ length: 200 }, (_, i) => planetIntro(launch + (i / 199) * 1.2, 0, 1).flight);
+    expect(Math.max(...path)).toBeGreaterThan(1);
+    expect(Math.max(...path)).toBeLessThan(1.15);
+    expect(path[path.length - 1]).toBeCloseTo(1, 9);
+  });
+
+  it('never draws anything at a negative size', () => {
+    for (let t = 0; t <= INTRO_SECONDS; t += 0.01) {
+      expect(introFrame(t).hub).toBeGreaterThanOrEqual(0);
+      const step = planetIntro(t, 3, 8);
+      expect(step.flight).toBeGreaterThanOrEqual(0);
+      expect(step.moons).toBeGreaterThanOrEqual(0);
+    }
   });
 });
