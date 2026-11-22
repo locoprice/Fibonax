@@ -654,6 +654,7 @@ The card under the page header of Prompts and Brains is one component, `app/src/
 - **Field chip** (`.sb-edit-chip`): the dashboard's body chip, `r-sm` (6 px), `mobile-primary-bg` ground, `mobile-primary-copy` text, 13 px bold. Not editable. The line above the text shows one of the snippet's own chips beside its words, so the meaning never rests on colour.
 - **What stays as it is** (`.sb-edit-note`): one `mobile-primary-bg` line with the Brain icon, `r-in`, 13 px semibold `mobile-primary-copy`. A prompt's Brain above its Context box; an item's Brain and kind at the top of its window, in place of two menus that could not be changed.
 - **Removed field** (`.sb-edit-guard`): asked the moment a chip leaves the text, pinned to the top of the window until answered. `mobile-warning-bg` ground, 1 px `mobile-warning` border, the warning triangle beside a bold sentence in `mobile-ink`, a `mobile-muted` line under it, then two 44 px buttons: **Put it back** filled Azure (the safe one), **Leave it out** on `mobile-card`. Icon and words carry the meaning, not the amber.
+- **Language** (a snippet in several languages): the snippet page's `.lang-tile` grid under Folder, the open language pressed in its own colour, then one `.sb-edit-hint` line naming the languages changed and not saved yet ("Changed: Italiano, Español. Save keeps them all."), so the state is said in words.
 - **Focus**: 2 px `mobile-primary-border` outline on the window's controls, `#D8E3FF` on the bar, as on the library pages.
 
 ### Snippet quality (v3.134.0)

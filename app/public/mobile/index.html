@@ -2503,6 +2503,11 @@ svg.brain-type-icon{stroke-width:1.8}
         <span class="sb-field-chev">›</span>
       </button>
     </div>
+    <div class="sb-field-group" id="sb-edit-lang-group" hidden>
+      <span class="sb-field-label" id="sb-edit-lang-label">Language</span>
+      <div class="lang-picker" id="sb-edit-lang" role="group" aria-labelledby="sb-edit-lang-label"></div>
+      <p class="sb-edit-hint" id="sb-edit-lang-note" role="status" hidden></p>
+    </div>
     <div class="sb-field-group sb-field-group-grow" id="sb-edit-text-group">
       <span class="sb-field-label" id="sb-edit-text-label">Text</span>
       <p class="sb-edit-hint" id="sb-edit-hint" hidden></p>
@@ -15931,6 +15936,10 @@ function closeSnippetInfo(){
 var editKind='';            // 'snippet' or 'prompt'
 var editSnip=null;          // the snippet row or the prompt being edited
 var editLang='';            // snippet: the language version in the window
+/* Snippet with several languages: each one's text as it opened, as it is now,
+   and the fields left out of it, so a switch keeps what was typed and one Save
+   saves every language. Null for a snippet in one language. */
+var editBodies=null;
 var editOriginal=null, editFolderId=null;
 var editSaving=false, editLeaving=false;
 /* Snippet: the chips in the box after the last change, the ones that have just
@@ -16128,6 +16137,7 @@ function editPutBack(){
   editChipsNow=editChipRaws();
   editError('');
   editGuard();
+  editLangNote();
 }
 /* Grows a text box to what is written in it. */
 function editGrow(area){
@@ -16171,7 +16181,28 @@ function openEditModal(s){
   document.getElementById('sb-edit-body').hidden=true;
   document.getElementById('sb-edit-text-group').hidden=false;
   document.getElementById('sb-edit-blocks').hidden=true;
-  // Said with one of the snippet's own chips, so the line never rests on a colour.
+  editHint();
+  // Every language the snippet holds, in the snippet page's order, the one
+  // that was open among them.
+  var texts={};
+  bodyVariants(row).forEach(function(v){texts[v.lang]=v.body;});
+  texts[lang]=editOriginal.body;
+  var langs=LANG_ORDER.filter(function(l){return texts[l]!==undefined;});
+  editBodies=null;
+  if(langs.length>1){
+    editBodies={};
+    langs.forEach(function(l){editBodies[l]={original:texts[l],text:texts[l],accepted:[]};});
+  }
+  editLangTiles();
+  editShow(editTitle());
+}
+/* The window's title: the language is named when there is more than one. */
+function editTitle(){
+  return editBodies?'Edit snippet · '+(LANG_NAMES[editLang]||editLang):'Edit snippet';
+}
+/* The line above the text, said with one of the snippet's own chips, so it
+   never rests on a colour. */
+function editHint(){
   var hint=document.getElementById('sb-edit-hint');
   hint.textContent='';
   hint.hidden=!editChipsNow.length;
@@ -16179,13 +16210,73 @@ function openEditModal(s){
     hint.appendChild(editMakeChip(editChipsNow[0]));
     hint.appendChild(document.createTextNode('Pieces like this are fields and formulas. Type around them. To change one, use your computer.'));
   }
-  var langs=bodyVariants(row).length;
-  editShow(langs>1?'Edit snippet · '+(LANG_NAMES[lang]||lang):'Edit snippet');
+}
+/* The language tiles, the same as on the snippet page, with the one in the
+   window pressed. Shown only for a snippet with several languages. */
+function editLangTiles(){
+  var group=document.getElementById('sb-edit-lang-group');
+  var pick=document.getElementById('sb-edit-lang');
+  group.hidden=!editBodies;
+  if(!editBodies){pick.innerHTML='';editLangNote();return;}
+  pick.innerHTML=LANG_ORDER.filter(function(l){return editBodies[l];}).map(function(l){
+    var on=l===editLang;
+    return '<button type="button" class="lang-tile'+(on?' on l'+l:'')+'" data-lang="'+esc(l)+'" aria-pressed="'+on+'">'
+      +'<span class="lang-tile-code">'+esc(l)+'</span>'
+      +'<span class="lang-tile-name">'+esc(LANG_NAMES[l]||l)+'</span></button>';
+  }).join('');
+  editLangNote();
+}
+/* Each language's text right now: the one in the box read live. */
+function editLangTexts(){
+  var out={};
+  for(var l in editBodies)out[l]=l===editLang?editReadRich():editBodies[l].text;
+  return out;
+}
+/* Says, in words, which languages hold changes that Save has not kept yet. */
+function editLangNote(){
+  var note=document.getElementById('sb-edit-lang-note');
+  if(!editBodies){note.hidden=true;note.textContent='';return;}
+  var texts=editLangTexts();
+  var changed=LANG_ORDER.filter(function(l){return editBodies[l]&&texts[l]!==editBodies[l].original;});
+  note.hidden=!changed.length;
+  note.textContent=changed.length
+    ?'Changed: '+changed.map(function(l){return LANG_NAMES[l]||l;}).join(', ')+'. Save keeps them all.'
+    :'';
+}
+/* Shows another language in the box. What was typed in this one stays for
+   Save; a field taken out of it is answered for first, while it is in view. */
+function editSwitchLang(lang){
+  if(!editBodies||!editBodies[lang]||lang===editLang||editSaving)return;
+  var row=editSnip;
+  if(row.bodies_html&&row.bodies_html[lang]){
+    showToast('This language has a layout. Edit it on your computer.');
+    return;
+  }
+  var text=editReadRich();
+  var open=editWithout(editRemovedChips(editBodies[editLang].original,text),editChipAccepted);
+  if(editChipLost.length||open.length){
+    if(!editChipLost.length)editChipLost=open.map(function(raw){return {raw:raw,at:null};});
+    editGuard();
+    editError('Choose first: put the field back, or leave it out.');
+    return;
+  }
+  editBodies[editLang].text=text;
+  editBodies[editLang].accepted=editChipAccepted.slice();
+  editLang=lang;
+  editOriginal.body=editBodies[lang].original;
+  editFillRich(editBodies[lang].text);
+  editChipAccepted=editBodies[lang].accepted.slice();
+  editHint();
+  editError('');
+  editLangTiles();
+  document.getElementById('sb-modal-title-text').textContent=editTitle();
+  var pressed=document.querySelector('#sb-edit-lang [data-lang="'+lang+'"]');
+  if(pressed)pressed.focus();
 }
 function openPromptEdit(p){
   var blocks=editPromptBlocks(p);
   if(blocks===false){showToast('Edit this prompt on your computer.');return;}
-  editKind='prompt';editSnip=p;editLang='';
+  editKind='prompt';editSnip=p;editLang='';editBodies=null;editLangTiles();
   editOriginal={title:p.name||'',body:p.content||'',folder_id:p.folder_id||null,
     blocks:blocks?blocks.map(function(b){return String(b.content||'');}):null};
   editFolderId=editOriginal.folder_id;
@@ -16239,7 +16330,10 @@ function editValues(){
 function isDirty(){
   if(!editOriginal)return false;
   var now=editValues();
-  return now.title!==editOriginal.title
+  var otherLang=false;
+  if(editBodies){for(var l in editBodies){if(l!==editLang&&editBodies[l].text!==editBodies[l].original)otherLang=true;}}
+  return otherLang
+    ||now.title!==editOriginal.title
     ||now.body!==editOriginal.body
     ||now.folder_id!==editOriginal.folder_id
     ||(!!now.blocks&&now.blocks.join('\u0000')!==editOriginal.blocks.join('\u0000'));
@@ -16254,7 +16348,7 @@ function forceCloseBottomSheet(){
 }
 function closeEditNow(){
   document.getElementById('sb-edit-modal').classList.add('sb-hidden');
-  editKind='';editSnip=null;editOriginal=null;editFolderId=null;editSaving=false;
+  editKind='';editSnip=null;editOriginal=null;editFolderId=null;editSaving=false;editBodies=null;
   editChipsNow=[];editChipLost=[];editChipAccepted=[];
   // Defensive: guarantee the 3-dots sheet is fully dismissed (no lingering
   // open state) and shield the list from phantom clicks that some mobile
@@ -16477,7 +16571,11 @@ document.getElementById('sb-modal-cancel').addEventListener('click',function(e){
   closeEditModal();
 });
 memWatchName(document.getElementById('sb-edit-title'));
-document.getElementById('sb-edit-rich').addEventListener('input',function(){editTailBreak();editWatchChips();});
+document.getElementById('sb-edit-rich').addEventListener('input',function(){editTailBreak();editWatchChips();editLangNote();});
+document.getElementById('sb-edit-lang').addEventListener('click',function(e){
+  var tile=e.target.closest('[data-lang]');
+  if(tile)editSwitchLang(tile.getAttribute('data-lang'));
+});
 document.getElementById('sb-edit-modal').addEventListener('input',function(e){
   if(e.target.tagName==='TEXTAREA')editGrow(e.target);
 });
@@ -16523,6 +16621,13 @@ function saveEdit(){
   if(!now.title){editError('Give it a name.');document.getElementById('sb-edit-title').focus();return;}
   if(editKind==='snippet'){
     if(!now.body.trim()){editError('Write the text.');return;}
+    // Another language left empty is shown, so the person sees which one.
+    var empty=editBodies?LANG_ORDER.filter(function(l){return editBodies[l]&&l!==editLang&&!editBodies[l].text.trim();})[0]:'';
+    if(empty){
+      editSwitchLang(empty);
+      if(editLang===empty)editError('Write the text.');
+      return;
+    }
     var open=editWithout(editRemovedChips(editOriginal.body,now.body),editChipAccepted);
     if(open.length){
       // Normally asked the moment it happened; this catches one that was not.
@@ -16552,14 +16657,16 @@ function saveEdit(){
   });
 }
 /* A snippet, through the save the dashboard uses: the row and a version in its
-   history, in one step. The language in the window is written into the map of
-   language versions; the row's own text follows its own language. */
+   history, in one step. Every language in the window is written into the map
+   of language versions; the row's own text follows its own language. */
 function saveSnippetEdit(row,now){
   var rowLang=String(row.lang||'EN').toUpperCase();
   var bodies={};
   if(row.bodies&&typeof row.bodies==='object'){for(var k in row.bodies)bodies[k]=row.bodies[k];}
+  if(editBodies){for(var l in editBodies){if(l!==editLang)bodies[l]=editBodies[l].text;}}
   bodies[editLang]=now.body;
-  var body=editLang===rowLang?now.body:(typeof row.body==='string'?row.body:'');
+  var inWindow=rowLang===editLang||!!(editBodies&&editBodies[rowLang]);
+  var body=inWindow?bodies[rowLang]:(typeof row.body==='string'?row.body:'');
   var lang=editLang, vid=row.id+'::'+lang;
   return editCall('save_snippet_with_revision',{
     p_snippet_id:row.id, p_title:now.title, p_shortcut:row.shortcut||'',
