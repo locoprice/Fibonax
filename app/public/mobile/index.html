@@ -4798,8 +4798,15 @@ svg.brain-type-icon{stroke-width:1.8}
         members.forEach(function(row) { grid.appendChild(row); });
       });
     }
-    host._fillUI = { rows: rows, cfg: cfg, attempted: false, progress: null };
+    host._fillUI = { rows: rows, cfg: cfg, attempted: false, progress: drawnProgress(host, cfg) };
     refresh(host, vm);
+  }
+  // A form drawn again in the same place (the phone redraws its form for
+  // another language or another snippet) takes over the line already above
+  // it, so there is only ever one, and a form too short for it hides it.
+  function drawnProgress(host, cfg) {
+    var prev = (cfg.progressBefore || host).previousElementSibling;
+    return prev && prev.classList.contains('ff-progress') ? prev : null;
   }
   // ── PROGRESS ────────────────────────────────────────────────────
   // The line above a long form that says how far along it is. What it counts

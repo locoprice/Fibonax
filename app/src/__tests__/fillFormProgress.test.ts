@@ -171,6 +171,27 @@ describe('the line fill-form-ui.js draws', () => {
     expect(line?.querySelector('.ff-progress-text')?.textContent).toBe('1 of 8 filled in');
   });
 
+  it('keeps one line when the form is drawn again in its place, as the phone does for another language', () => {
+    const vm = api.fillForm(LONG, {}, { now: NOW });
+    const host = hostFor(vm);
+    ui.enhance(host, vm, CFG);
+    const first = bar(host);
+    const redraw = (next: SbFillFormViewModel): void => {
+      Reflect.deleteProperty(host, '_fillUI');
+      host.innerHTML = next.fields.map(() => '<div class="row"><input class="c"></div>').join('');
+      ui.enhance(host, next, CFG);
+    };
+    redraw(api.fillForm(LONG, { F1: 'a' }, { now: NOW }));
+    redraw(api.fillForm(LONG, { F1: 'a', F2: 'b' }, { now: NOW }));
+    expect(host.parentElement?.querySelectorAll('.ff-progress')).toHaveLength(1);
+    expect(bar(host)).toBe(first);
+    expect(first?.querySelector('.ff-progress-text')?.textContent).toBe('2 of 8 filled in');
+    // Another snippet, too short for the line: the line goes.
+    redraw(api.fillForm(SHORT, {}, { now: NOW }));
+    expect(host.parentElement?.querySelectorAll('.ff-progress')).toHaveLength(1);
+    expect(first?.hidden).toBe(true);
+  });
+
   it('draws nothing for a short form', () => {
     const vm = api.fillForm(SHORT, {}, { now: NOW });
     const host = hostFor(vm);
