@@ -16,6 +16,9 @@
 
 import type { LinkRule } from '@/lib/linkRule';
 import { loadScript } from '@/lib/loadScript';
+import { applyMyDetails, MY_DETAILS_SRC } from '@/lib/myDetails';
+import { applySeasonCalendar, SEASON_SRC } from '@/lib/season';
+import type { StoredOccasion } from '@/types/database';
 
 /** A field's kind, as decided by `fill-form.js` (token declaration, then name). */
 export type SbFieldType = 'text' | 'date' | 'time' | 'datetime' | 'number' | 'dd';
@@ -169,11 +172,36 @@ export interface SbFillProgress {
   filled: boolean[];
 }
 
+/**
+ * The seasonal line of a text (`{seasonal}`), as `describe` in
+ * extension/shared/season.js reports it. In season, a surface shows `label`
+ * with a button reading `action`; out of season only the editor's preview
+ * speaks, with `note`.
+ */
+export interface SbSeasonView {
+  /** Whether an occasion is in season today. */
+  active: boolean;
+  id: string;
+  name: string;
+  /** The sentence the line prints in this snippet's language; '' out of season. */
+  text: string;
+  /** Whether it was left out this once (`seasonOff`). */
+  off: boolean;
+  /** "Christmas wishes included", or "… left out". */
+  label: string;
+  /** "Leave out" or "Put back". */
+  action: string;
+  /** Out of season: when the next occasion starts. '' in season. */
+  note: string;
+}
+
 /** The view model every fill surface renders. Mirrors SHAPE in the gate. */
 export interface SbFillFormViewModel {
   errors?: Array<{ key: string; message: string }>;
   sections?: Array<{ title: string; keys: string[] }>;
   progress: SbFillProgress;
+  /** The text's seasonal line, or null for a text without one. */
+  season: SbSeasonView | null;
   fields: SbFillField[];
   buttons: SbFillButton[];
   preview: string;
@@ -228,6 +256,13 @@ export interface SbFillFormOptions {
   other?: Record<string, string>;
   /** The snippet's formatted layout (`body_html`), filled into `formatted`. */
   formatted?: string | null;
+  /** Leave the seasonal line out this once (the Leave out button). */
+  seasonOff?: boolean;
+  /**
+   * The person's stored occasions, which decide what the seasonal line prints.
+   * Left out, the shared module answers from the list it was last handed.
+   */
+  occasions?: readonly StoredOccasion[];
 }
 
 /** Why a pasted link was refused before anything was sent. */
@@ -386,9 +421,14 @@ declare global {
   }
 }
 
-/** Load order matters only for clarity — fill-form reads the engine lazily. */
+/**
+ * Load order matters only for clarity: fill-form reads the engine lazily, and
+ * both read the seasonal line's rules (season.js) the same way.
+ */
 const ENGINE_SCRIPTS = [
   '/extension/formula-engine.js',
+  MY_DETAILS_SRC,
+  SEASON_SRC,
   '/extension/shared/fill-form.js',
 ] as const;
 
@@ -402,7 +442,7 @@ let pending: Promise<SbFillFormApi> | null = null;
  * rather than rendering an empty form that looks like a broken snippet.
  */
 export function loadFillFormEngine(): Promise<SbFillFormApi> {
-  if (window.SBFillForm && window.SBFormulaEngine) {
+  if (window.SBFillForm && window.SBFormulaEngine && window.SBSeason && window.SBMyDetails) {
     return Promise.resolve(window.SBFillForm);
   }
   if (pending) return pending;
@@ -412,9 +452,12 @@ export function loadFillFormEngine(): Promise<SbFillFormApi> {
       await loadScript(src);
     }
     const api = window.SBFillForm;
-    if (!api || !window.SBFormulaEngine) {
+    if (!api || !window.SBFormulaEngine || !window.SBSeason || !window.SBMyDetails) {
       throw new Error('Snippet engine loaded but installed no interface');
     }
+    // The person's occasions and details, so a preview prints what theirs will.
+    applySeasonCalendar();
+    applyMyDetails();
     return api;
   })().catch((error: unknown) => {
     // Clear the cache so a later open retries rather than repeating a stale

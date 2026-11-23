@@ -258,6 +258,7 @@ var detailLang      = null;   // active language inside the open detail
 var detailFieldVals = {};     // user-entered field values for the open detail's fill form
 var detailFieldFmts = {};     // formats picked in the Adjust panel, keyed the same way
 var detailLinked    = {};     // fields holding a pasted page's answer, untouched since (Fill from link), keyed the same way
+var detailSeasonOff = false;  // the open detail's seasonal line was left out this once (Leave out)
 var detailLink      = newDetailLink(); // the open detail's Link box: what it holds and says, what the last read found
 var detailLinkSeq   = 0;      // bumped by every read and every reset, so a late reply is dropped
 var selIdx          = -1;     // keyboard selection index in the snippet list
@@ -789,6 +790,21 @@ function boot() {
           snips = d.snippets;
           refreshUI();
         }
+      });
+    } catch (e) {}
+
+    // The person's occasions, for the seasonal line ({seasonal}): the copy
+    // auth.js keeps on this device, and again when a pull from the account
+    // changes it. shared/season.js answers from this list.
+    try {
+      chrome.storage.local.get([SBSeason.STORAGE_KEY, SBMyDetails.STORAGE_KEY], function (d) {
+        SBSeason.set(d && d[SBSeason.STORAGE_KEY]);
+        // Your details ({my: …}), kept by the worker, read the same way.
+        SBMyDetails.set(d && d[SBMyDetails.STORAGE_KEY]);
+      });
+      chrome.storage.onChanged.addListener(function (changes) {
+        if (changes[SBSeason.STORAGE_KEY]) SBSeason.set(changes[SBSeason.STORAGE_KEY].newValue);
+        if (changes[SBMyDetails.STORAGE_KEY]) SBMyDetails.set(changes[SBMyDetails.STORAGE_KEY].newValue);
       });
     } catch (e) {}
 
@@ -1382,7 +1398,7 @@ function detailForm(body, lang){
   });
   var open=findSnip(expandedId);
   var layout=open ? detailLayout(open, lang, findVariants(open)) : '';
-  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked, other: other, formatted: layout||null }); }
+  try{ return M.fillForm(body, detailFieldVals, { lang: lang||'', fieldFmt: detailFieldFmts, linked: detailLinked, other: other, formatted: layout||null, seasonOff: detailSeasonOff }); }
   catch(e){ return { fields:[], buttons:[], preview:body, errors:[], sections:[], layout:'flat', steps:[] }; }
 }
 // Effective values for a body: what the operator entered, else each field's
@@ -1419,6 +1435,12 @@ function updateDetailPreview(id){
     if(vm.preview.trim()||vm.formatted) pv.classList.remove('plain'); else pv.classList.add('plain');
   }
   if(wrap) window.SBFillFormUI.pictureNote(wrap.querySelector('.ff-picnote'), vm, 'copy');
+  // "Christmas wishes included" and Leave out, for a snippet with the
+  // seasonal line while an occasion is in season.
+  if(wrap) window.SBFillFormUI.seasonNote(wrap.querySelector('.d-season'), vm, function(off){
+    detailSeasonOff=off;
+    updateDetailPreview(id);
+  });
 }
 // ── OFTEN SENT NEXT ────────────────────────────────────────────────
 // "Add Firma after it" listed under the open snippet's preview, which shows
@@ -1763,6 +1785,8 @@ function renderDetailHtml(s){
     h+='<div class="'+pvCls+'">'+esc(resolved)+'</div>'
       // Where the pictures go when the copy is pasted; only with pictures.
       +(vm.formatted?'<p class="ff-picnote" role="status" hidden></p>':'')
+      // The seasonal line's row, drawn once the detail is on screen.
+      +(vm.season?'<div class="d-season" hidden></div>':'')
       +'<div class="d-note">'+note+'</div>'
       +'<div class="d-acts">'
         +'<button class="d-btn pri" type="button" data-copyfilled="'+esc(s.id)+'">'+copyIco+'Copy filled</button>'
@@ -2026,7 +2050,7 @@ function wireListRows(el){
   bindDetailLink(el);
   // The open snippet's pictures are drawn into its preview once it is on screen.
   el.querySelectorAll('.detail[data-detail]').forEach(function(wrap){
-    if(wrap.querySelector('.ff-picnote')) updateDetailPreview(wrap.getAttribute('data-detail'));
+    if(wrap.querySelector('.ff-picnote,.d-season')) updateDetailPreview(wrap.getAttribute('data-detail'));
     mountDetailNext(wrap);
   });
 }
@@ -2311,6 +2335,7 @@ function toggleDetail(id){
   // The Link box starts empty too, and a read still in flight for the form
   // being left is dropped when it answers.
   detailLinked={}; detailLink=newDetailLink(); detailLinkSeq++;
+  detailSeasonOff=false;
   if(expandedId===id){ expandedId=null; detailFieldVals={}; detailFieldFmts={}; }
   else { expandedId=id; detailLang=null; detailFieldVals={}; detailFieldFmts={}; }
   renderList(gi('sq')?gi('sq').value:'');

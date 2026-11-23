@@ -1,5 +1,5 @@
 import { BrainIcon } from '@/components/shared/BrainIcon';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
@@ -11,6 +11,7 @@ import { ActionMenu, ActionMenuItem, ActionMenuSeparator } from '@/components/ui
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LibraryButton, LibraryDialog, LibraryEmptyActions } from '@/features/library/LibraryDialog';
+import { toAtlasBrains } from '@/features/memory/atlas/atlasData';
 import { BrainFilters } from '@/features/memory/BrainFilters';
 import { MemoryCleanupTip } from '@/features/memory/MemoryCleanupTip';
 import { SpaceDialog } from '@/features/memory/SpaceDialog';
@@ -31,6 +32,14 @@ import type { MemorySpace } from '@/types/database';
 //
 // Trashed Brains leave the grid and wait in the trash panel, the same panel a
 // Brain uses for its own trash, where they can be restored or deleted for good.
+//
+// The Atlas button in the bar swaps the cards for the Brain Atlas: the same
+// Brains, filtered the same way, circling the Fibonax hub. It is drawn on a
+// canvas by a fair amount of code, so it is fetched only when asked for.
+
+const BrainAtlas = lazy(() =>
+  import('@/features/memory/atlas/BrainAtlas').then((module) => ({ default: module.BrainAtlas })),
+);
 
 function describeItems(count: number): string {
   return count === 0 ? 'Empty' : `${count} item${count === 1 ? '' : 's'}`;
@@ -131,6 +140,11 @@ export function MemoryPage() {
   const sortBy = useMemoryStore((s) => s.spaceSortBy);
   const sortDir = useMemoryStore((s) => s.spaceSortDir);
   const showToast = useUiStore((s) => s.showToast);
+  const atlasOn = useUiStore((s) => s.brainAtlasOn);
+  const setAtlasOn = useUiStore((s) => s.setBrainAtlasOn);
+  const allItems = useMemoryStore((s) => s.allItems);
+  const allItemsLoaded = useMemoryStore((s) => s.allItemsLoaded);
+  const loadAllItems = useMemoryStore((s) => s.loadAllItems);
 
   const [dialogTarget, setDialogTarget] = useState<'new' | MemorySpace | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -142,11 +156,22 @@ export function MemoryPage() {
     if (!loaded) void loadSpaces();
   }, [loaded, loadSpaces]);
 
+  // The atlas names every item as a moon, so it needs the items of every Brain.
+  // A write clears that list, and this reads it again.
+  useEffect(() => {
+    if (atlasOn && !allItemsLoaded) void loadAllItems();
+  }, [atlasOn, allItemsLoaded, loadAllItems]);
+
   const filtered = useMemo(() => {
     const needle = normalizeQuery(query);
     const matching = needle ? spaces.filter((space) => scoreSpace(space, needle) > 0) : spaces;
     return sortSpaces(filterSpaces(matching, totals, filters), totals, sortBy, sortDir);
   }, [spaces, totals, query, filters, sortBy, sortDir]);
+
+  const atlasBrains = useMemo(
+    () => (atlasOn ? toAtlasBrains(filtered, totals, allItemsLoaded ? allItems : null) : []),
+    [atlasOn, filtered, totals, allItems, allItemsLoaded],
+  );
 
   /** Empties the filter menus and the search box together, as the bar's Clear does. */
   function clearFilters() {
@@ -252,6 +277,8 @@ export function MemoryPage() {
           count={loaded ? spaces.length : undefined}
           trashCount={trashedSpaces.length}
           onOpenTrash={() => setTrashOpen(true)}
+          atlasOn={atlasOn}
+          onToggleAtlas={() => setAtlasOn(!atlasOn)}
         />
 
         {loading && spaces.length === 0 ? (
@@ -275,6 +302,10 @@ export function MemoryPage() {
               )
             }
           />
+        ) : atlasOn ? (
+          <Suspense fallback={<LoadingBlock what="the atlas" />}>
+            <BrainAtlas brains={atlasBrains} itemsLoading={!allItemsLoaded} />
+          </Suspense>
         ) : (
           <div className="grid gap-4 grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filtered.map((space) => {

@@ -146,6 +146,24 @@
 .ff-pic-missing{display:inline-block;margin:4px 0;padding:6px 10px;border:1px dashed var(--sb-line,#E5E5EA);border-radius:8px;font-size:12px;line-height:1.4;color:var(--sb-ink-muted,#6E6E73);}
 .ff-picnote{margin:8px 0 0;font-size:12px;line-height:1.5;color:var(--sb-ink-muted,#6E6E73);}
 .ff-picnote[hidden]{display:none!important;}
+/* "Christmas wishes included" and the button that leaves them out this once:
+   the seasonal line of a text, while an occasion is in season. The Azure tint
+   of an "Often sent next" row while the sentence goes in, plain once it is
+   left out; the words say which, never the colour alone. A 44px row. */
+.ff-season{--ffs-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffs-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffs-bdr:var(--sb-azure-bdr,#BED0FF);--ffs-muted:var(--sb-ink-muted,var(--text2,#6E6E73));--ffs-line:var(--sb-line,var(--border,#E5E5EA));display:flex!important;align-items:center;justify-content:space-between;gap:8px;min-height:44px;min-width:0;margin:8px 0 0;padding:2px 4px 2px 12px;border:1px solid var(--ffs-bdr);border-radius:12px;background:var(--ffs-bg);box-sizing:border-box;font-family:inherit;text-align:left;}
+.ff-season[hidden]{display:none!important;}
+.ff-season .ff-season-text{flex:1 1 auto;min-width:0;font-size:14px;line-height:1.3;font-weight:600;color:var(--ffs-primary);overflow-wrap:anywhere;}
+/* Named under #sb-overlay too: the page's fill window resets every button it
+   holds by id, which would take the colour and the padding off this one. */
+.ff-season .ff-season-btn,#sb-overlay .ff-season .ff-season-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:36px;padding:0 12px;border-radius:10px;font-family:inherit;font-size:13px;line-height:1.3;font-weight:600;color:var(--ffs-primary);cursor:pointer;touch-action:manipulation;}
+.ff-season .ff-season-btn:hover,#sb-overlay .ff-season .ff-season-btn:hover{background:var(--sb-bg,var(--card,#fff));}
+.ff-season .ff-season-btn:focus-visible,#sb-overlay .ff-season .ff-season-btn:focus-visible{outline:2px solid var(--ffs-primary);outline-offset:2px;}
+.ff-season--off{border-color:var(--ffs-line);background:transparent;}
+.ff-season--off .ff-season-text{font-weight:400;color:var(--ffs-muted);}
+/* The popup: across both columns when there are fields. */
+.detail:has(.d-fields) .ff-season{grid-column:1/-1;margin:0;}
+/* The phone: under both panes, at the page's own spacing. */
+#det-body>.ff-season{margin:16px 0 0;}
 /* A formatted text in a preview: its lines and lists, whatever the page styles. */
 .ff-layout{white-space:normal!important;}
 .ff-layout ul,.ff-layout ol{margin:4px 0!important;padding-left:1.5em!important;}

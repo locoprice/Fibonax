@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
  *
  * The menu is portalled with fixed positioning rather than absolutely placed:
  * both editors put this control inside a scrolling, overflow-clipped panel,
- * which would otherwise clip the menu. Mirrors DarkSelect in PromptBlockEditor.
+ * which would otherwise clip the menu.
  */
 interface LabelPickerProps {
   value: string[];
@@ -82,6 +82,10 @@ export function LabelPicker({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0, listMax: LIST_MAX_HEIGHT });
+  // The surface the field sits on (docs/DESIGN_SYSTEM.md, Night surface). The
+  // menu is portalled to <body>, outside that surface, so it carries the name
+  // itself and keeps the field's colours.
+  const [surface, setSurface] = useState<string | undefined>(undefined);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -187,6 +191,7 @@ export function LabelPicker({
         listMax: LIST_MAX_HEIGHT,
       });
     }
+    setSurface(triggerRef.current?.closest<HTMLElement>('[data-surface]')?.dataset.surface);
     setQuery('');
     setError(null);
     setOpen(true);
@@ -267,6 +272,7 @@ export function LabelPicker({
         createPortal(
           <div
             ref={menuRef}
+            data-surface={surface}
             style={{ top: pos.top, left: pos.left, width: Math.max(pos.width, 220) }}
             // `pointer-events-auto` is load-bearing, not cosmetic. The snippet
             // editor is a modal Radix dialog, which sets `pointer-events: none`

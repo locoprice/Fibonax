@@ -41,7 +41,7 @@ Standing rule from Valentina (2026-11-20): no window, panel, list or page on any
 >  - Extension + overlay: `extension/shared/tokens/colors_and_type.css`
 >  - Mobile companion: inline `:root` in `app/public/mobile/index.html` (kept in sync with this table)
 >
-> Hard-coded hex values in component files are forbidden outside three documented exceptions: the per-language inline tints in `SnippetsTable.tsx` (which intentionally mirror the mobile palette), and the **dark prompt-editor vocabulary** in `PromptBlockEditor.tsx`, an untokenized side-panel palette that predates this table. Components rendered *inside* that panel (`LabelPicker`'s `dark` tone) may reuse those exact hexes; they may not invent new ones. Tokenizing the panel is an open follow-up. The third exception is the four colours of Google's "G" mark in `components/auth/GoogleSignIn.tsx`: Google's branding guidelines fix them, so they are never tokenized or recoloured. The button around it uses the standard `ghost` variant.
+> Hard-coded hex values in component files are forbidden outside two documented exceptions: the per-language inline tints in `SnippetsTable.tsx` (which intentionally mirror the mobile palette), and the four colours of Google's "G" mark in `components/auth/GoogleSignIn.tsx`: Google's branding guidelines fix them, so they are never tokenized or recoloured. The button around it uses the standard `ghost` variant. The prompt editor's dark side-panel palette, once a third exception, was replaced by tokens in the 2026-11 redesign: the panel is dark through the **Night surface** below, with no hex in its components. The `dark` tone its shared parts still carry (`LabelPicker`, `QualityPanel`, `DraftWithAi`, `ReviewStatusMenu`, `AssetAboutButton`, `AssetAttribution`, `TeamLastUseLine`) has no caller left; removing it is an open follow-up, and nothing new may use it.
 
 ### Neutrals
 
@@ -54,6 +54,36 @@ Standing rule from Valentina (2026-11-20): no window, panel, list or page on any
 | `ink`        | `#1C1C1E` | Primary text                                 |
 | `ink-muted`  | `#6E6E73` | Secondary text                               |
 | `ink-subtle` | `#6B6B70` | Tertiary text / hints (WCAG AA ≥4.5:1 on `card` / `bg` / `bg-alt`) |
+
+### Night surface (2026-11)
+
+A panel that is dark on every theme. Valentina asked for the prompt editor to be dark, in the style of modern AI tools (2026-11-21). The element carries `data-surface="night"`, and `app/src/index.css` gives the neutral tokens these values inside it, so every part drawn with tokens follows with no tone of its own. Native menus and scrollbars turn dark with it (`color-scheme: dark`). The values come from the palette the prompt editor used before it was put on tokens.
+
+| Token        | Night value | Usage on a night surface |
+| ------------ | ----------- | ------------------------ |
+| `bg`         | `#0B0B0E`   | The panel's ground |
+| `bg-alt`     | `#1C1C22`   | Footer, hovered row |
+| `card`       | `#121216`   | Fields, chips, menus |
+| `line`       | `#2A2A31`   | Hairline border |
+| `ink`        | `#E0E0E8`   | Primary text |
+| `ink-muted`  | `#9C9CA6`   | Secondary text |
+| `ink-subtle` | `#8A8A94`   | Hints, placeholders (5.4:1 on `card`) |
+
+The brand tokens are fixed across themes, and two of them do not read on this ground. Inside a night surface, and only there, `index.css` gives them these values, once, for every part:
+
+| Written as | On a night surface | Why |
+| ---------- | ------------------ | --- |
+| `text-primary` | `#7090E0` | `primary` as text is under 3:1 on the ground; this azure is 6:1 |
+| `text-danger` | `#FF5F57` | `danger` as text is 3.6:1; this red is 6.5:1 |
+| `bg-primary-light` | `primary` at 18% | The light tint would glare, and `ink` could not be read on it |
+| `bg-danger-bg` | `#FF5F57` at 12% | The same, for the red tint |
+
+`primary` as a fill (buttons, the switch, focus rings) stays `#1B4FD8`. The ground carries one decoration, `night-glow`: a faint azure light at the top (`primary` at 32%, fading out), centralized in `index.css` like the team covers.
+
+- **A menu portalled out of the surface carries the name itself.** `LabelPicker` reads the surface its field sits on and sets it on its menu, so the menu keeps the field's colours.
+- **A window opened from the panel is not part of it.** History, the previews and Draft from text are the standard `Dialog` and follow the theme.
+- **Check it.** Measure text against what is painted behind it: 4.5:1 for text, in every state (empty, filled, errors, open menus).
+- There are two night surfaces: the prompt editor and the Brain Atlas, which brings its own navy values (see Brain Atlas). Ask before adding another.
 
 ### Mobile Concept B: light page, navy home band (2026-10-23)
 
@@ -584,6 +614,25 @@ is extension/shared/fill-form-ui.{js,css}; mobile copies are generated.
 
 A form with five fields or more (`PROGRESS_THRESHOLD` in `extension/shared/fill-form.js`; five, a Fibonacci number) carries one line on all four fill surfaces: a 3 px `r-pill` track in `line`, the filled share in `primary`, one 8 px dot per field at the middle of its share of the track (hollow: `bg` with a 1.5 px `ink-muted` ring; filled: `primary`; each dot is its own field, in form order, from `progress().filled`), and "3 of 8 filled in" beside it at 12 px medium `ink-muted` with tabular figures (11 px on the editor preview, which keeps its own text scale), turning `primary` once every field is filled. No new tokens. What counts as filled is decided once (`progress()`: a box holding an answer with nothing wrong in it; a date that opened on today counts from the start) and drawn by `fill-form-ui.js` on the overlay, the popup and the phone and by `features/snippets/FillProgress.tsx` on the dashboard. The overlay sets it in a full-width `bg` strip right above its `azure-bg` footer, with its own 1 px `line` on top and the footer's line below, at the footer's side padding (`cfg.progressBefore`); a short form shows neither the strip nor its line. The phone keeps it in view while the form scrolls (`position: sticky` at the top of the scrolling pane, on the pane's own background, across its full width); the popup sets it across both columns above the fields; the editor preview puts it under the Fill in header, outside the scrolling fields, like the Link box. The fill and the dots move over 300 ms and not at all under `prefers-reduced-motion`. The track is a `progressbar` whose value text is the same words, so neither colour nor length carries the meaning alone; the dots are hidden from screen readers and differ by shape (ring or solid) as well as colour.
 
+### Seasonal line (2026-11)
+
+A snippet with a seasonal line (`{seasonal}`) prints the sentence of the occasion in season. Existing tokens only; no new colour, radius or shadow.
+
+- **The row on a fill form** (`.ff-season`, drawn by `seasonNote` in `extension/shared/fill-form-ui.js` on the overlay, the popup and the phone), shown only while an occasion is in season: the look of an "Often sent next" row. `azure-bg` ground, 1 px `azure-bdr` border, `r` (12 px), 44 px tall, the words ("Christmas wishes included") 14 px semibold `azure`, and one button on the right (**Leave out**) 36 px tall, `r-in`, 13 px semibold `azure`, `card` ground when pointed at, a 2 px `azure` focus ring. Left out, the row loses its fill, takes a `line` border and says so in regular `ink-muted` ("Christmas wishes left out", **Put back**): the words carry the state, never the colour alone. The row is updated in place, so the button keeps the focus after it is pressed. Overlay: under the fields. Popup: across both columns, above the Copy note. Phone: under both panes, so it shows on Fill in and on Preview.
+- **The editor preview** draws the same row at its own text scale (11 px) above "Warn me if it looks unfinished", outside the result's scroll. Out of season it is one 11 px `ink-subtle` line saying when the next occasion starts.
+- **Your occasions** (`OccasionsDialog.tsx`) is the Departments window's shape at `max-w-xl`: a status line on `primary-light` with a 25% `primary` border, then rows divided by `line` in an `r` box, each with the standard `Switch`, the name in 14 px medium `ink`, its days in 12 px `ink-muted`, its sentence in 12 px `ink-subtle`, and the row buttons **Edit** and **Remove**. An occasion that is off is drawn at 60% and says **Off**. Edit opens in the row: 36 px boxes (`r-in`), **Save** and **Cancel**. Remove asks first on the 5% `danger` tint. A new occasion is written in its own box under the list, so its Save stays in view.
+- **The editor entry** (Logic, Seasonal line) is the standard entry: one sentence, an example on `primary-light`, the link to Your occasions, the lines already in the snippet, the button.
+- **Editing one occasion** takes the window's room in place of the list, so every box and Save stay in view; Cancel brings the list back. The sentence is one 36 px box per language, a 40 px `bg-alt` code chip (11 px semibold `ink-muted`) beside each; under them **Add to the sentence:** and four `r-pill` 28 px chips (`line` border, `card`, 12 px medium `ink-muted`, `primary` when pointed at); then one read-back line on `bg-alt`, `r-in`, "Prints in Italian: …" with the result in semibold `ink`. A detail the account lacks adds a 12 px `ink` line with a `warning-deep` alert icon, saying so and where to set it.
+
+### Your details (2026-11)
+
+`{my: name}`, `{my: company}`, `{my: job title}`. Existing tokens only.
+
+- **Editor entry** (Fields, Your details): the standard entry with one primary `sm` button per detail in its footer, the three details listed with what each prints for the person writing (`ink-subtle`, "Not set yet: it prints nothing." where empty), and the list of details already in the snippet (changed in the row, like a greeting).
+- **Chip** in the body: the standard field chip, labelled Your name, Company name or Job title.
+- **The "i" beside a detail** (`components/shared/AutofillHint.tsx`): a 12 px `Info` icon in `ink-subtle`, `ink` when pointed at, beside the labels of Display name, Company name (Settings and Create your team) and Job title, with the standard Tooltip saying what the detail fills in.
+- **Create your team**: Company name first and required, with its "i" and an 11 px `ink-subtle` line under it; Team name follows it until typed in.
+
 ### One filter bar for Prompts and Brains (v3.77.0)
 
 The card under the page header of Prompts and Brains is one component, `app/src/components/shared/AssetFilterBar.tsx`, with its chips, menus, Clear and Sort. Scope chips, filter menus and **Clear N filters** sit on the left; **Sort** and anything only one page has (the Brains **Trash**) sit on the right. A page fills the slots it has something for and leaves the rest out: Prompts has the folder chips and Strategy / Intent / Labels, Brains has the count and Contents / Updated. Nothing is restyled per page. The Snippets header keeps its own bar, by the owners' decision.
@@ -605,11 +654,12 @@ The card under the page header of Prompts and Brains is one component, `app/src/
 - **Field chip** (`.sb-edit-chip`): the dashboard's body chip, `r-sm` (6 px), `mobile-primary-bg` ground, `mobile-primary-copy` text, 13 px bold. Not editable. The line above the text shows one of the snippet's own chips beside its words, so the meaning never rests on colour.
 - **What stays as it is** (`.sb-edit-note`): one `mobile-primary-bg` line with the Brain icon, `r-in`, 13 px semibold `mobile-primary-copy`. A prompt's Brain above its Context box; an item's Brain and kind at the top of its window, in place of two menus that could not be changed.
 - **Removed field** (`.sb-edit-guard`): asked the moment a chip leaves the text, pinned to the top of the window until answered. `mobile-warning-bg` ground, 1 px `mobile-warning` border, the warning triangle beside a bold sentence in `mobile-ink`, a `mobile-muted` line under it, then two 44 px buttons: **Put it back** filled Azure (the safe one), **Leave it out** on `mobile-card`. Icon and words carry the meaning, not the amber.
+- **Language** (a snippet in several languages): the snippet page's `.lang-tile` grid under Folder, the open language pressed in its own colour, then one `.sb-edit-hint` line naming the languages changed and not saved yet ("Changed: Italiano, Español. Save keeps them all."), so the state is said in words.
 - **Focus**: 2 px `mobile-primary-border` outline on the window's controls, `#D8E3FF` on the bar, as on the library pages.
 
 ### Snippet quality (v3.134.0)
 
-The snippet rating (`lib/snippetQuality.ts`) is drawn by the same panel as the prompt editor's Efficiency Score: `components/shared/QualityPanel.tsx`, `tone="dark"` in the prompt side panel (its documented hexes) and `tone="light"` in the snippet editor (tokens, follows the theme). No new tokens.
+The snippet rating (`lib/snippetQuality.ts`) is drawn by the same panel as the prompt editor's Quality row: `components/shared/QualityPanel.tsx`, `tone="light"` in both editors: tokens, so it follows the theme in the snippet editor and the night surface in the prompt editor. No new tokens.
 
 | Part | Value |
 | --- | --- |
@@ -617,6 +667,23 @@ The snippet rating (`lib/snippetQuality.ts`) is drawn by the same panel as the p
 | Window | The standard `Dialog` at `max-w-lg`: the ring (`success` / `primary` / `warning` stroke on a `line` track, the number in `ink`), the word, then one row per check with a `success` tick, a `warning-deep` circle or a `danger` cross beside its name, so the state never rests on colour alone |
 | Notes | The short-snippet note on `bg-alt`, the "reads a lot like" note in a `line` box, both 12 px `ink-muted` |
 | Improve with AI | Under a `line` rule: a `sm` primary button, or the locked Pro control. Each suggestion a `line` box: the area in 10 px uppercase `ink-subtle`, the problem in `ink`, the fix in `ink-muted` |
+
+### Prompt editor panel (2026-11)
+
+The side panel that writes and edits a prompt (`features/prompts/PromptBlockEditor.tsx`), redesigned with Valentina on 2026-11-20 from an approved mockup. On 2026-11-21 she asked for it dark again, in the style of modern AI tools: it is a **night surface** (see Night surface), dark on every theme, and every colour below is the token's night value. Same two widths as before (420 px, 520 px from `2xl`), `bg` ground with the azure glow, fields and menus on `card`, a `line` left border and `shadow-sm` while open.
+
+| Part | Value |
+| --- | --- |
+| Top | **New prompt** / **Edit prompt** at 16 px semibold `ink`; About, review status and close on the right. A new prompt adds two chips under it: **Draft from text** and **See an example** (h-8, `r-in`, 1 px `line`, `card`, 12 px medium `ink-muted`, `primary` when hovered). A `line` rule closes the top |
+| Fields | Labels 13 px semibold `ink`, "· optional" in `ink-subtle`. Inputs and selects are the standard `Input` look (h-10, 12 px radius, `line`, `primary` focus ring); text boxes the same and grow with their text |
+| Name and task | **Name**, then **What should the AI do?** (the objective, always on). The only two things every prompt needs, so they come first |
+| Add more detail | The four optional parts as rows: a 16 px `ink-subtle` icon, the part's name in 14 px `ink`, a 12 px `ink-muted` line saying what it is for, and **+ Add** in 13 px semibold `primary`. Added, a part is its label, a **Remove** ghost button and its text box. Order: Who the AI is, Background (with the Brain menu), An example, Rules |
+| Settings | **Ask me questions first** and **Interactive Steps**, each a 14 px label, a 12 px `ink-muted` line and the standard `Switch` |
+| Shortcut, Folder, Labels | The shortcut box carries the prompt trigger in front, as the snippet editor's Trigger does; Folder and Labels share one row |
+| Quality, More options | Closed rows (`features/prompts/PanelDisclosure.tsx`): icon, title, a 12 px `ink-muted` summary, chevron. Quality shows the score in `primary` and the tips waiting, and opens to `QualityPanel` (its `light` tone, drawn on the night values). More options holds Strategy, Intent and Answer format, and the suggestion box (`primary-light`, `primary/20` border) |
+| Footer | `bg-alt` with a `line` rule; standard `Button`s: ghost Use or Preview on the left, ghost History and a danger-text Delete, primary Create prompt / Save changes on the right |
+
+The saved text keeps its `## Role` / `## Objective` / `## Context` / `## Examples` / `## Constraints` headings: the new names are for people, the headings for the AI. The phone's edit window labels each part with the same names.
 
 ### Language check in the snippet editor
 
@@ -705,3 +772,37 @@ A row near the foot of the dashboard sidebar, between the rotating sentence and 
 - **Sign-up page.** A visitor who arrived through a link reads one line above the method tabs: a gift icon and the rule, on `primary-light`, `r`.
 
 Loading shows the card and the steps at once, with a spinner where the link will be; a failed read says so in a `danger-bg` box with **Try again**. Closing hands focus back to the sidebar row. No new tokens.
+
+### Brain Atlas (2026-11)
+
+The Brains page can show its Brains in orbit in place of the cards (`app/src/features/memory/atlas/`): a head seen from the front, the brain inside it as a glowing mesh, the Fibonax hub at its centre and each Brain circling it like a planet with its items as moons. Valentina designed it as a concept page and asked for it in the dashboard on 2026-11-22, dark as in the concept on every theme. It is the second **night surface**: the block carries `data-surface="night"` and the class `brain-atlas`, which swaps the night black for a deep navy and defines the colours the canvas draws with (`app/src/index.css`). The canvas reads them through `readAtlasPalette`; no component names a colour.
+
+| Token | Value | Usage |
+| --- | --- | --- |
+| `bg` | `#050912` | The stage's ground, lit by `bg-alt` in a soft radial light |
+| `bg-alt` | `#0A1222` | Hovered row |
+| `card` | `#08101E` | The panel, the Pause button, the tooltip |
+| `line` | `#0C2A33` | Hairlines (the glow at 14% on the ground) |
+| `ink` | `#DBE8F5` | Text (15.3:1 on `card`) |
+| `ink-muted` | `#8FA3BF` | Secondary text (7.4:1) |
+| `ink-subtle` | `#7F95B3` | Eyebrows, hints, counts (6.2:1) |
+| `--atlas-ground` | `5, 9, 18` | The strip behind a label, the rim around a planet or a moon |
+| `--atlas-glow` | `55, 243, 255` | Mesh lines, the light inside the lobes, the grid |
+| `--atlas-spark` | `150, 245, 255` | Lit mesh, the brain's outline, moons and their rings |
+| `--atlas-mesh` | `205, 246, 255` | Mesh points |
+| `--atlas-fibre` | `232, 246, 255` | The hub and the head's outline |
+| `--atlas-gold` | `255, 194, 75` | Brains, orbits, links to the hub, the dot before a Brain's name, focus rings (11.8:1 on `card`) |
+| `--atlas-gold-light` | `255, 222, 155` | The golden spiral, far points, trails, Brain names (15.3:1 on the ground) |
+| `--atlas-muted` | `143, 163, 191` | The item count under a Brain's name (7.7:1) |
+
+The `--atlas-*` values are written as `r, g, b`, so one token serves every opacity, on the canvas and in a class (`rgb(var(--atlas-gold))`). Gold is the atlas's second colour on purpose: it is the golden ratio's, and it marks what a person made (the Brains) against the cyan of the brain itself.
+
+- **Atlas button.** A `FilterButton` on the right of the Brains bar, between Sort and Trash: the orbit icon and **Atlas**, `aria-pressed`, the bar's active look (`primary` on `primary-light`) while on. Sort is left out while the atlas is on, because the orbits have their own order. The choice is kept per device (`brainAtlasOn` in `uiStore`). Only Brains have it: snippets and prompts do not orbit a hub.
+- **Shape.** One block, `r-card` (16 px), 1 px `line`, in the slot of the card grid. Two columns on the golden ratio, `minmax(0,1.618fr) minmax(0,1fr)` (measured 679 : 420 at 1440 px, 422 : 261 at 1024 px): the picture on the left, the panel on the right. At least `clamp(440px, 100vh - 176px, 987px)` tall (724 px at 1440 × 900), and taller when the panel needs it: the panel never scrolls (Valentina, 2026-11-22: "delete the small scroll bar", "make it bigger"). As the atlas appears, the page scrolls it fully into view (`scroll-margin-bottom` 24 px), with the Brains bar and its Atlas button still showing above it at every size from 1280 × 720. The canvas is absolute inside its box: its pixel size must never feed back into the block's height.
+- **Geometry.** Each orbit is a Kepler ellipse with the hub at one focus (eccentricity 0.16), quicker near the hub, its lap time by the third law. The far point of every orbit lies on a golden spiral that grows 1.618 times with each quarter turn, with the numerals 8, 13, 21, 34 at the quarter turns. The first Brain made keeps the closest orbit. Up to 13 Brains (a Fibonacci number) are in orbit; with more, the 13 updated last. Items are moons: seven on a first ring, nine on a second turning the other way, a dotted belt for the rest. `src/__tests__/brainAtlas.test.ts` pins these rules.
+- **Labels on the picture.** The dashboard's mono stack: a Brain's name at 12 px in capitals with its item count at 10 px under it, both on a strip of the ground. With more than 8 Brains, or on a stage under three quarters of full size, the name stands alone. A label sits under its planet and moves above or beside it when that spot is taken; with no side free it fades out until there is room, so labels never cover each other. The Brain in play always shows its name.
+- **Panel.** `card` with a `line` left edge, 20 px inset, 12 px gaps. Eyebrows at 11 px semibold uppercase `ink-subtle`, the title at 16 px semibold `ink`, text at 12 px `ink-muted`. Brains are rows: a gold dot, the name, the count in `ink-subtle`, `bg-alt` when pointed at. A Brain's items carry a `--atlas-spark` dot; the list stops at 13 with "and N more". Actions sit at the foot: **Open Brain** (primary, `sm`) and **Back** (ghost, `sm`). The panel has no scroll bar: when it is longer, the whole block grows.
+- **Opening.** Each time the atlas appears it opens in about 3.4 seconds (Valentina asked for "a wow effect" on the first visit, after Obsidian): the hub lights up with a flash and a ring of light leaves it, a wave runs out from the hub through the brain, the camera pulls back from the hub to the whole head, the golden spiral draws itself outwards, then the Brains fly out to their orbits one after another, closest first, each running a little past its orbit, settling back and sending out a ripple, its items flying out after it and its name last. The panel's lines rise into place in step (`atlas-rise`, 520 ms), each row as its Brain lands. The timing lives in `atlasIntro.ts` and is pinned by the tests. Under `prefers-reduced-motion` the atlas opens already in place.
+- **Highlight.** As in a graph of notes: pointing at a Brain lights it, its orbit, its line to the hub and a line to each of its items, while every other Brain fades back. The fades ease in and out (`FADE_RATE`, about a tenth of a second) instead of jumping, even while paused. The pointer turns into a hand over anything that can be clicked.
+- **Motion.** The orbits turn, the mesh fires and gold packets leave the hub. Pointing at the picture holds the orbits still. **Pause** and **Play** (ghost `sm` on `card`, top right of the picture) stop and start everything, the opening included; under `prefers-reduced-motion` the atlas starts paused.
+- **Access.** The canvas is `role="img"` with a description that names the Brains in orbit. Everything it shows is reachable from the panel, whose rows are buttons. Focus rings are 2 px `--atlas-gold`: `primary` is under 3:1 on the navy. Every name and description carries `translate="no"`. Escape puts the panel back on its overview.

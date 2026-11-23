@@ -45,6 +45,7 @@
               "text-snippets/dynamic-fields",
               "text-snippets/fill-from-link",
               "text-snippets/formulas",
+              "text-snippets/seasonal-line",
               "text-snippets/multilanguage",
               "text-snippets/version-history"
             ]
@@ -83,7 +84,8 @@
             "group": "Apps and integrations",
             "pages": [
               "apps/mobile",
-              "integrations/supported-sites"
+              "integrations/supported-sites",
+              "integrations/ai-apps"
             ]
           },
           {

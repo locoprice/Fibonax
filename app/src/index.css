@@ -43,6 +43,21 @@
     --activity-cell-border: rgba(255, 255, 255, 0.06);
   }
 
+  /* Night surface: a panel that is dark on every theme (the prompt editor).
+     Inside it the neutral tokens take the night values, so everything drawn
+     with tokens follows, and native menus and scrollbars turn dark with it.
+     Registered in docs/DESIGN_SYSTEM.md (Night surface). */
+  [data-surface='night'] {
+    --color-bg: #0b0b0e;
+    --color-bg-alt: #1c1c22;
+    --color-card: #121216;
+    --color-ink: #e0e0e8;
+    --color-ink-muted: #9c9ca6;
+    --color-ink-subtle: #8a8a94;
+    --color-line: #2a2a31;
+    color-scheme: dark;
+  }
+
   html,
   body,
   #root {
@@ -83,6 +98,80 @@
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none; /* WebKit */
+  }
+}
+
+/* Night surface, the fixed brand tokens. `primary` and `danger` are too dark to
+   read as text on the night ground, and their light tints would glare on it.
+   Inside a night surface the text takes a lighter azure and red, and the tints
+   become a faint wash of the same colour. Decided here once, so no part drawn
+   inside the surface needs a tone of its own. */
+[data-surface='night'] .text-primary,
+[data-surface='night'] .hover\:text-primary:hover {
+  color: #7090e0;
+}
+[data-surface='night'] .text-danger {
+  color: #ff5f57;
+}
+[data-surface='night'] .bg-primary-light,
+[data-surface='night'] .hover\:bg-primary-light:hover {
+  background-color: rgba(27, 79, 216, 0.18);
+}
+[data-surface='night'] .bg-danger-bg,
+[data-surface='night'] .hover\:bg-danger-bg:hover {
+  background-color: rgba(255, 95, 87, 0.12);
+}
+
+/* A faint azure light at the top of a night surface. Decoration only. */
+.night-glow {
+  background-image: radial-gradient(130% 240px at 50% -96px, rgba(27, 79, 216, 0.32), transparent 72%);
+  background-repeat: no-repeat;
+}
+
+/* Brain Atlas (features/memory/atlas): the dark stage that takes the place of
+   the Brain cards. A night surface with its own deep-navy neutrals, so the
+   panel beside the canvas follows through the ordinary tokens. The --atlas-*
+   values are what the canvas draws with, each as "r, g, b" so one value serves
+   any opacity. Registered in docs/DESIGN_SYSTEM.md (Brain Atlas). */
+[data-surface='night'].brain-atlas {
+  --color-bg: #050912;
+  --color-bg-alt: #0a1222;
+  --color-card: #08101e;
+  --color-line: #0c2a33;
+  --color-ink: #dbe8f5;
+  --color-ink-muted: #8fa3bf;
+  --color-ink-subtle: #7f95b3;
+  --atlas-ground: 5, 9, 18;
+  --atlas-glow: 55, 243, 255;
+  --atlas-spark: 150, 245, 255;
+  --atlas-mesh: 205, 246, 255;
+  --atlas-fibre: 232, 246, 255;
+  --atlas-gold: 255, 194, 75;
+  --atlas-gold-light: 255, 222, 155;
+  --atlas-muted: 143, 163, 191;
+  background: radial-gradient(ellipse at 35% 40%, #0a1222 0%, #050912 60%);
+}
+
+/* While the atlas opens, the panel's lines rise into place one after another,
+   each row as its Brain lands (BrainAtlas.tsx sets the delays). */
+@keyframes atlas-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+[data-surface='night'].brain-atlas [data-atlas-rise] {
+  animation: atlas-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-surface='night'].brain-atlas [data-atlas-rise] {
+    animation: none;
   }
 }
 

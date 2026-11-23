@@ -30,6 +30,7 @@ Repository: `github.com/locoprice/SprintBrain`
 | Dashboard | `app/src/` | Vite + React 18 + TypeScript strict + Tailwind + Zustand |
 | Marketing site | `app/public/landing/` | Static HTML + generated `it/` and `es/` |
 | MCP memory server | `services/mcp-memory/` | TypeScript |
+| AI app link (hosted MCP) | `services/supabase/functions/mcp/` | Edge function; `server.js` plain JS, gated by `scripts/check-mcp-link.js` |
 | Backend | `services/supabase/` | Postgres, RLS, edge functions |
 
 Shared logic lives in `extension/shared/` (`fill-form.js`, `memory-pack.js`, `memory-chunk.js`, `snippet-stats.js`, `tooltip.js`, `tokens/`) and is mirrored in `app/src/lib/`. CI asserts the mirrors stay identical.

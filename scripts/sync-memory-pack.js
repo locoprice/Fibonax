@@ -5,6 +5,11 @@
 //
 //   app/public/mobile/index.html   single-file app by design, cannot load
 //                                  extension/shared/memory-pack.js at runtime
+//   services/supabase/functions/_shared/memory-pack.js
+//                                  the AI app link (functions/mcp) hands a
+//                                  Brain, or a prompt's Brain, to an AI app
+//                                  with the same rule; a server function can
+//                                  only load files from functions/
 //
 // The phone reads two things from the module, and both have to be the ones
 // every other surface uses:
@@ -29,6 +34,8 @@ const SOURCE = path.join(ROOT, 'extension', 'shared', 'memory-pack.js');
 const MOBILE = path.join(ROOT, 'app', 'public', 'mobile', 'index.html');
 const POPUP_HTML = path.join(ROOT, 'extension', 'popup', 'popup.html');
 const POPUP_JS = path.join(ROOT, 'extension', 'popup', 'popup.js');
+const SERVER_TARGET = path.join(ROOT, 'services', 'supabase', 'functions', '_shared', 'memory-pack.js');
+const SERVER_HEADER = '// GENERATED from extension/shared/memory-pack.js by scripts/sync-memory-pack.js. Do not edit: change the source and run the script.\n';
 const BEGIN = '<!-- SB_MEMORY_PACK:BEGIN (generated from extension/shared/memory-pack.js by scripts/sync-memory-pack.js, do not edit) -->';
 const END = '<!-- SB_MEMORY_PACK:END -->';
 // Anchor on another block's END marker, never on the first <script> in the
@@ -140,6 +147,18 @@ function main() {
     failed = true;
     const why = result === 'missing' ? 'has no memory-pack block' : 'memory-pack has drifted';
     console.error('X    ' + rel(MOBILE) + ' ' + why + ' -> run: node scripts/sync-memory-pack.js');
+  }
+
+  const server = SERVER_HEADER + readText(SOURCE);
+  const current = fs.existsSync(SERVER_TARGET) ? readText(SERVER_TARGET) : null;
+  if (current === server) {
+    console.log('OK   ' + rel(SERVER_TARGET) + ' in sync');
+  } else if (check) {
+    failed = true;
+    console.error('X    ' + rel(SERVER_TARGET) + ' has drifted -> run: node scripts/sync-memory-pack.js');
+  } else {
+    fs.writeFileSync(SERVER_TARGET, server);
+    console.log('SYNC ' + rel(SERVER_TARGET) + ' written');
   }
 
   structure().forEach((problem) => {

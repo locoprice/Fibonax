@@ -1,15 +1,33 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type ButtonHTMLAttributes,
   type ReactNode,
+  type TextareaHTMLAttributes,
 } from 'react';
-import { createPortal } from 'react-dom';
-import { AlertCircle, Check, ChevronDown, Clock, Eye, Loader2, Sparkles, Trash2, X, Zap } from 'lucide-react';
+import {
+  AlertCircle,
+  BookOpen,
+  Clock,
+  Eye,
+  Lightbulb,
+  ListChecks,
+  Loader2,
+  MessageSquareText,
+  Plus,
+  SlidersHorizontal,
+  Sparkles,
+  Trash2,
+  UserRound,
+  X,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { HistoryPanel, type HistoryEntry } from '@/features/history/HistoryPanel';
 import { useUiStore } from '@/stores/uiStore';
 import { useLabelStore } from '@/stores/labelStore';
@@ -18,7 +36,6 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useMemoryStore } from '@/stores/memoryStore';
 import { DEFAULT_TRIGGER_CONFIG, sanitizeTriggerInput } from '@/lib/triggerUtils';
 import { classifyPrompt } from '@/lib/intentEngine';
-import { placeMenu } from '@/lib/menuPlacement';
 import { assembleBlocks, foldReasoningIntoConstraints } from '@/lib/promptUtils';
 import { labelBrainTokens } from '@/lib/promptBrain';
 import { loadInteractiveSteps, saveInteractiveSteps } from '@/lib/interactiveSteps';
@@ -29,7 +46,9 @@ import {
   percentRank,
   selectBenchmarkCohort,
 } from '@/lib/usePromptEvaluator';
+import { cn } from '@/lib/utils';
 import { PromptEfficiencyWidget } from '@/features/prompts/PromptEfficiencyWidget';
+import { PanelDisclosure } from '@/features/prompts/PanelDisclosure';
 import { LabelPicker } from '@/features/labels/LabelPicker';
 import { AssetAboutButton } from '@/components/shared/AssetAboutButton';
 import { BrainIcon } from '@/components/shared/BrainIcon';
@@ -71,41 +90,87 @@ const BLOCK_ORDER: PromptBlockType[] = [
   'role', 'objective', 'context', 'examples', 'constraints',
 ];
 
-const BLOCK_LABELS: Record<PromptBlockType, string> = {
-  role: 'Role',
-  objective: 'Objective',
-  context: 'Context',
-  examples: 'Examples',
-  constraints: 'Constraints',
-};
+/** The four parts a prompt may add. The task (objective) is always on. */
+type OptionalPart = Exclude<PromptBlockType, 'objective'>;
 
-const BLOCK_HINTS: Record<PromptBlockType, string> = {
-  role: 'Define who the AI is. e.g. "You are a senior software engineer…"',
-  objective: 'State the task clearly. e.g. "Your task is to review…"',
-  context: 'Provide relevant background information.',
-  examples: 'Show input/output pairs to guide the model.',
-  constraints: 'What the model must not do or must stay within.',
-};
+interface PartSpec {
+  type: OptionalPart;
+  title: string;
+  /** What the part is for, on its Add row. */
+  summary: string;
+  placeholder: string;
+  icon: LucideIcon;
+}
+
+// The order the prompt is written in, without the task, which sits above them.
+// The saved text keeps its ## Role / ## Context headings: these are the words
+// a person reads, not what the AI receives.
+const PARTS: PartSpec[] = [
+  {
+    type: 'role',
+    title: 'Who the AI is',
+    summary: 'A role, like an experienced editor',
+    placeholder: 'You are an experienced customer support specialist.',
+    icon: UserRound,
+  },
+  {
+    type: 'context',
+    title: 'Background',
+    summary: 'What it should know. You can attach a Brain',
+    placeholder: 'The customer has written twice this week. They want a clear answer and a next step.',
+    icon: BookOpen,
+  },
+  {
+    type: 'examples',
+    title: 'An example',
+    summary: 'Show what a good answer looks like',
+    placeholder: 'Hi Sam, thanks for telling us. I have fixed it today and will call you on Friday to check.',
+    icon: MessageSquareText,
+  },
+  {
+    type: 'constraints',
+    title: 'Rules',
+    summary: 'Length, tone, what to avoid',
+    placeholder: 'Keep it under 100 words. Be warm, not formal. No jargon.',
+    icon: ListChecks,
+  },
+];
+
+const TASK_PLACEHOLDER = 'Write a short, friendly reply to a customer who is unhappy with our service.';
 
 const DEFAULT_BLOCKS: PromptBlock[] = [
-  { type: 'role', content: '', enabled: true },
+  { type: 'role', content: '', enabled: false },
   { type: 'objective', content: '', enabled: true },
   { type: 'context', content: '', enabled: false },
   { type: 'examples', content: '', enabled: false },
   { type: 'constraints', content: '', enabled: false },
 ];
 
-const STRATEGIES: StrategyType[] = ['CoT', 'ToT', 'Few-shot', 'One-shot', 'RAG', 'Agentic'];
+// The saved values stay the short names the cards, filters and other surfaces
+// show; the menu adds what each one means.
+const STRATEGY_OPTIONS: { value: StrategyType; label: string }[] = [
+  { value: 'CoT', label: 'CoT · think step by step' },
+  { value: 'ToT', label: 'ToT · compare several ideas' },
+  { value: 'Few-shot', label: 'Few-shot · learn from examples' },
+  { value: 'One-shot', label: 'One-shot · learn from one example' },
+  { value: 'RAG', label: 'RAG · answer from your material' },
+  { value: 'Agentic', label: 'Agentic · plan and act alone' },
+];
 const INTENT_CATEGORIES: IntentCategory[] = ['Writing', 'Coding', 'Support', 'SEO', 'Analysis', 'Planning', 'Research', 'Teaching'];
-const OUTPUT_TYPES: OutputType[] = ['JSON', 'Markdown', 'SOP', 'Plain'];
+const OUTPUT_OPTIONS: { value: OutputType; label: string }[] = [
+  { value: 'Plain', label: 'Plain · simple text' },
+  { value: 'Markdown', label: 'Markdown · formatted text' },
+  { value: 'JSON', label: 'JSON · data' },
+  { value: 'SOP', label: 'SOP · step-by-step guide' },
+];
 
-// Block types that map to EvalCriterion IDs for the efficiency widget.
+// Block types that map to EvalCriterion IDs for the quality score.
 const BLOCK_CRITERION_TYPES: PromptBlockType[] = [
   'role', 'objective', 'context', 'constraints', 'examples',
 ];
 
-// One-click sample that scores highly — lets a new user see what "good" looks
-// like before writing their own (mirrors a Load Example onboarding affordance).
+// One-click sample that scores highly: lets a new user see what "good" looks
+// like before writing their own.
 interface ExamplePrompt {
   name: string;
   blocks: PromptBlock[];
@@ -140,239 +205,157 @@ function withBrainKept(next: PromptBlock[], prev: PromptBlock[]): PromptBlock[] 
   return next.map((b) => (b.type === 'context' ? { ...b, brain, enabled: true } : b));
 }
 
-// ── Dark select helper ─────────────────────────────────────────────────────────
-
-interface DarkSelectProps<T extends string> {
-  value: T | null;
-  onChange: (v: T | null) => void;
-  options: { value: T; label: string }[];
-  placeholder: string;
+// What the panel works on. The task box is always on screen, so what it holds
+// is always in the prompt: it is switched on. A part missing from what was
+// opened is added, off and empty, so typing in it lands somewhere.
+function readyBlocks(blocks: PromptBlock[]): PromptBlock[] {
+  const ready = blocks.map((b) => (b.type === 'objective' && !b.enabled ? { ...b, enabled: true } : b));
+  for (const type of BLOCK_ORDER) {
+    if (!ready.some((b) => b.type === type)) {
+      ready.push({ type, content: '', enabled: type === 'objective' });
+    }
+  }
+  return ready;
 }
 
-function DarkSelect<T extends string>({
-  value,
-  onChange,
-  options,
-  placeholder,
-}: DarkSelectProps<T>) {
-  const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number }>({
-    top: 0,
-    left: 0,
-    width: 0,
-    maxHeight: 288,
-  });
+// ── Shared field styles ──────────────────────────────────────────────────────
 
-  const selectedLabel = options.find((o) => o.value === value)?.label ?? null;
+const FIELD_LABEL = 'mb-1.5 block text-[13px] font-semibold text-ink';
+const OPTIONAL = 'font-normal text-ink-subtle';
+const HINT = 'mt-1.5 block text-xs leading-relaxed text-ink-muted';
+const SELECT_CLASS =
+  'h-10 w-full rounded-[12px] border border-line bg-card px-3 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50';
+const CHIP_BUTTON =
+  'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[10px] border border-line bg-card px-2.5 text-xs font-medium text-ink-muted transition-colors hover:border-primary/30 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
 
-  const handleOpen = () => {
-    if (triggerRef.current) {
-      const r = triggerRef.current.getBoundingClientRect();
-      setPos((prev) => ({ ...prev, top: r.bottom + 4, left: r.left, width: r.width }));
-    }
-    setOpen(true);
-  };
+// ── Text box that grows with its text ────────────────────────────────────────
 
-  // Placed before paint, once the menu has rendered and can be measured. This
-  // field sits low in a tall panel, where a menu pinned under it ran off the
-  // bottom of the screen with its last options out of reach. The menu opens
-  // above when there is more room there, and a long list (every folder) is
-  // capped to the room it has and scrolls inside the menu. Same idea as the
-  // label picker's menu, which already behaved.
-  useLayoutEffect(() => {
-    if (!open) return;
-    const trigger = triggerRef.current;
-    const menu = menuRef.current;
-    if (!trigger || !menu) return;
-    const r = trigger.getBoundingClientRect();
-    // Full height with every option showing: scrollHeight leaves the border out.
-    const contentHeight = menu.scrollHeight + (menu.offsetHeight - menu.clientHeight);
-    const placed = placeMenu({
-      triggerTop: r.top,
-      triggerBottom: r.bottom,
-      contentHeight,
-      viewportHeight: window.innerHeight,
-    });
-    setPos({ top: placed.top, left: r.left, width: r.width, maxHeight: placed.maxHeight });
-  }, [open, options.length]);
+type AutoGrowTextareaProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange'> & {
+  value: string;
+  onChange: (value: string) => void;
+};
+
+// Grows instead of scrolling inside the panel, so the whole text is always in view.
+function AutoGrowTextarea({ value, onChange, className, ...rest }: AutoGrowTextareaProps) {
+  const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (!triggerRef.current?.contains(t) && !menuRef.current?.contains(t)) {
-        setOpen(false);
-      }
-    };
-    // The panel scrolls and the menu is fixed to the screen, so a menu left open
-    // while the panel moves would be hanging in the wrong place: close it, as a
-    // native menu does. Scrolling the menu's own list is left alone.
-    const onMove = (e: Event) => {
-      if (e.target instanceof Node && menuRef.current?.contains(e.target)) return;
-      setOpen(false);
-    };
-    // Escape closes this menu and nothing else. Without this the key reached the
-    // editor's own Escape handler and closed the whole panel, unsaved text and
-    // all. Capture phase and stopPropagation, as the label picker does.
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    window.addEventListener('resize', onMove);
-    window.addEventListener('scroll', onMove, true);
-    window.addEventListener('keydown', onKey, true);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      window.removeEventListener('resize', onMove);
-      window.removeEventListener('scroll', onMove, true);
-      window.removeEventListener('keydown', onKey, true);
-    };
-  }, [open]);
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
 
   return (
-    <div className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => (open ? setOpen(false) : handleOpen())}
-        className="flex h-8 w-full items-center justify-between rounded-[8px] border border-[#34343C] bg-[#1C1C22] pl-3 pr-2.5 text-xs transition-colors hover:border-[#48484F] focus:border-[#3D6FE8] focus:outline-none"
-      >
-        <span className={value !== null ? 'text-[#D6D6DE]' : 'text-[#8A8A94]'}>
-          {selectedLabel ?? placeholder}
-        </span>
-        <ChevronDown
-          className={`h-3 w-3 shrink-0 text-[#9C9CA6] transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={3}
+      className={cn(
+        'block w-full resize-none overflow-hidden rounded-[12px] border border-line bg-card px-3 py-2.5 text-sm leading-relaxed text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
+        className,
+      )}
+      {...rest}
+    />
+  );
+}
 
-      {open &&
-        createPortal(
-          <div
-            ref={menuRef}
-            style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
-            className="fixed z-[9999] overflow-y-auto overscroll-contain rounded-[10px] border border-[#3A3A42] bg-[#24242B] p-1 shadow-[0_12px_40px_rgba(0,0,0,0.7),0_2px_8px_rgba(0,0,0,0.4)]"
-          >
-            <button
-              type="button"
-              onClick={() => {
-                onChange(null);
-                setOpen(false);
-              }}
-              className="flex h-7 w-full items-center justify-between rounded-[6px] px-2.5 text-xs text-[#8A8A94] transition-colors hover:bg-[#30303A] hover:text-[#9A9AA5]"
-            >
-              {placeholder}
-              {value === null && <Check className="h-3 w-3 shrink-0 text-[#1B4FD8]" />}
-            </button>
-            {options.map((o) => (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => {
-                  onChange(o.value);
-                  setOpen(false);
-                }}
-                className="flex h-7 w-full items-center justify-between rounded-[6px] px-2.5 text-xs transition-colors hover:bg-[#30303A]"
-              >
-                <span className={value === o.value ? 'font-medium text-[#E0E0E8]' : 'text-[#B8B8C2]'}>
-                  {o.label}
-                </span>
-                {value === o.value && <Check className="h-3 w-3 shrink-0 text-[#1B4FD8]" />}
-              </button>
-            ))}
-          </div>,
-          document.body,
-        )}
+// ── One optional part ────────────────────────────────────────────────────────
+
+interface PartSectionProps {
+  spec: PartSpec;
+  block: PromptBlock;
+  /** Where the cursor goes when this part has just been added or removed. */
+  focus: 'box' | 'row' | null;
+  onAdd: () => void;
+  onRemove: () => void;
+  onChange: (content: string) => void;
+  /** Controls a part carries under its text while it is added. */
+  children?: ReactNode;
+}
+
+// Off, a part is one row that adds it. On, it is its text box with Remove.
+// Remove takes the part out of the prompt and keeps its text in the editor, so
+// adding it again brings the text back.
+function PartSection({ spec, block, focus, onAdd, onRemove, onChange, children }: PartSectionProps) {
+  const Icon = spec.icon;
+  const boxId = `prompt-part-${spec.type}`;
+
+  if (!block.enabled) {
+    return (
+      <button
+        type="button"
+        onClick={onAdd}
+        aria-label={`Add ${spec.title}`}
+        aria-describedby={`${boxId}-summary`}
+        autoFocus={focus === 'row'}
+        className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-[10px] px-2 py-2.5 text-left transition-colors hover:bg-bg-alt focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        <Icon className="h-4 w-4 shrink-0 text-ink-subtle" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm text-ink">{spec.title}</span>
+          <span id={`${boxId}-summary`} className="block text-xs text-ink-muted">{spec.summary}</span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-[13px] font-semibold text-primary" aria-hidden>
+          <Plus className="h-3.5 w-3.5" />
+          Add
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="py-2.5">
+      <div className="mb-1.5 flex items-center gap-2">
+        <Icon className="h-4 w-4 shrink-0 text-ink-subtle" aria-hidden />
+        <label htmlFor={boxId} className="min-w-0 flex-1 text-[13px] font-semibold text-ink">
+          {spec.title}
+        </label>
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`Remove ${spec.title}`}
+          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[8px] px-2 text-xs font-medium text-ink-muted transition-colors hover:bg-bg-alt hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <X className="h-3.5 w-3.5" aria-hidden />
+          Remove
+        </button>
+      </div>
+      <AutoGrowTextarea
+        id={boxId}
+        value={block.content}
+        onChange={onChange}
+        placeholder={spec.placeholder}
+        autoFocus={focus === 'box'}
+      />
+      {children}
     </div>
   );
 }
 
-// ── Panel toggle ───────────────────────────────────────────────────────────────
+// ── An on/off setting ────────────────────────────────────────────────────────
 
-interface PanelToggleProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type' | 'onClick' | 'className' | 'children'> {
+interface SettingRowProps {
+  id: string;
+  title: string;
+  hint: string;
   checked: boolean;
-  onToggle: () => void;
+  onChange: (next: boolean) => void;
 }
 
-// The on/off pill every toggle in this panel uses, so a new one cannot drift
-// from the block toggles. The knob is placed with left/top rather than inside a
-// border, which keeps it centred at fractional display scaling.
-function PanelToggle({ checked, onToggle, ...rest }: PanelToggleProps) {
+function SettingRow({ id, title, hint, checked, onChange }: SettingRowProps) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={`relative h-5 w-9 rounded-full transition-colors ${
-        checked ? 'bg-[#1B4FD8]' : 'bg-[#2A2A2E]'
-      }`}
-      {...rest}
-    >
-      <span
-        className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-4' : 'translate-x-0'
-        }`}
-      />
-    </button>
-  );
-}
-
-// ── Block section ──────────────────────────────────────────────────────────────
-
-interface BlockSectionProps {
-  block: PromptBlock;
-  onChange: (content: string) => void;
-  onToggle: () => void;
-  /** Controls a block carries under its text, shown while it is on. */
-  children?: ReactNode;
-}
-
-function BlockSection({ block, onChange, onToggle, children }: BlockSectionProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [block.content]);
-
-  return (
-    <div className={`border-b border-[#222227] transition-opacity ${block.enabled ? '' : 'opacity-60'}`}>
-      {/* Block header */}
-      <div className="flex items-center justify-between px-5 py-2.5">
-        <div className="flex items-center gap-2">
-          <div
-            className={`h-1.5 w-1.5 rounded-full ${block.enabled ? 'bg-[#1B4FD8]' : 'bg-[#48484F]'}`}
-          />
-          <span className="font-mono text-[12px] font-semibold uppercase tracking-widest text-[#CACAD4]">
-            {BLOCK_LABELS[block.type]}
-          </span>
-        </div>
-        <PanelToggle
-          checked={block.enabled}
-          onToggle={onToggle}
-          aria-label={block.enabled ? 'Disable block' : 'Enable block'}
-        />
+    <div className="flex items-start gap-3 py-2">
+      <div className="min-w-0 flex-1">
+        <label htmlFor={id} className="block text-sm text-ink">
+          {title}
+        </label>
+        <p id={`${id}-hint`} className="text-xs leading-relaxed text-ink-muted">
+          {hint}
+        </p>
       </div>
-
-      {/* Textarea (only when enabled) */}
-      {block.enabled && (
-        <div className="px-5 pb-4">
-          <textarea
-            ref={textareaRef}
-            value={block.content}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={BLOCK_HINTS[block.type]}
-            rows={3}
-            className="w-full resize-none overflow-hidden rounded-[8px] border border-[#34343C] bg-[#1C1C22] px-3 py-2.5 font-mono text-[15px] leading-relaxed text-[#D6D6DE] placeholder:text-[#7A7A85] focus:border-[#3D6FE8] focus:outline-none focus:ring-1 focus:ring-[#3D6FE8]/25"
-          />
-          {children}
-        </div>
-      )}
+      <Switch id={id} checked={checked} onChange={onChange} aria-describedby={`${id}-hint`} className="mt-0.5" />
     </div>
   );
 }
@@ -389,11 +372,11 @@ function describeItems(count: number): string {
   return count === 0 ? 'Empty' : `${count} item${count === 1 ? '' : 's'}`;
 }
 
-// The Brain a Context block carries (lib/promptBrain.ts). One select in the
-// panel's own vocabulary, listing every live Brain with how much is in it. A
-// Brain the list does not hold (in the trash, or another person's behind a
-// shared prompt) stays on the select by name, so the choice is visible and can
-// be changed or cleared rather than vanishing.
+// The Brain a Background part carries (lib/promptBrain.ts). One menu listing
+// every live Brain with how much is in it. A Brain the list does not hold (in
+// the trash, or another person's behind a shared prompt) stays in the menu by
+// name, so the choice is visible and can be changed or cleared rather than
+// vanishing.
 function BrainPicker({ value, onChange }: BrainPickerProps) {
   const spaces = useMemoryStore((s) => s.spaces);
   const totals = useMemoryStore((s) => s.totals);
@@ -416,41 +399,55 @@ function BrainPicker({ value, onChange }: BrainPickerProps) {
   }
   const unavailable = value !== null && loaded && !known;
 
-  let hint: string;
+  let hint: ReactNode;
   if (failed) {
     hint = 'Your Brains could not be loaded. Check your connection.';
   } else if (!loaded) {
     hint = 'Loading your Brains…';
   } else if (unavailable) {
-    hint = "This Brain is not available: it may be in the trash, or it belongs to the prompt's author. Pick another, or choose None.";
+    hint = "This Brain isn't available. It may be in the trash, or it belongs to the person who wrote the prompt. Pick another, or choose None.";
   } else if (value) {
-    hint = `Everything in “${known?.name ?? value.name}” goes into the prompt each time you use it, as it is that day.`;
-  } else if (loaded && spaces.length === 0) {
+    hint = (
+      <>
+        Everything in<span translate="no"> “{known?.name ?? value.name}” </span>goes into the prompt each time you use
+        it, as it is that day.
+      </>
+    );
+  } else if (spaces.length === 0) {
     hint = 'No Brains yet. Create one on the Brains page, then pick it here.';
   } else {
-    hint = 'Put a whole Brain here. Everything in it goes into the prompt each time you use it, always the latest version.';
+    hint = 'Pick a Brain and everything in it goes into the prompt each time you use it, always up to date.';
   }
 
   return (
     <div className="mt-3">
-      <label className="mb-1 flex items-center gap-1.5 text-[10px] text-[#9C9CA6]">
-        <BrainIcon className="h-3 w-3" />
+      <label htmlFor="prompt-brain" className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+        <BrainIcon className="h-3.5 w-3.5" aria-hidden />
         Brain
       </label>
-      <DarkSelect
-        value={value?.id ?? null}
-        onChange={(id) => {
-          if (id === null) {
+      <select
+        id="prompt-brain"
+        value={value?.id ?? ''}
+        onChange={(e) => {
+          const id = e.target.value;
+          if (!id) {
             onChange(null);
             return;
           }
           const space = spaces.find((candidate) => candidate.id === id);
           onChange(space ? { id: space.id, name: space.name } : value);
         }}
-        options={options}
-        placeholder="None"
-      />
-      <span className="mt-1.5 block text-[11px] leading-relaxed text-[#7A7A85]" role={failed ? 'alert' : undefined}>
+        aria-describedby="prompt-brain-hint"
+        className={SELECT_CLASS}
+      >
+        <option value="">None</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value} translate="no">
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <p id="prompt-brain-hint" className={HINT} role={failed ? 'alert' : undefined}>
         {hint}
         {failed && (
           <>
@@ -458,13 +455,13 @@ function BrainPicker({ value, onChange }: BrainPickerProps) {
             <button
               type="button"
               onClick={() => void loadSpaces()}
-              className="font-medium text-[#6080C8] underline-offset-2 hover:text-[#1B4FD8] hover:underline focus:outline-none focus:ring-1 focus:ring-[#1B4FD8]/30"
+              className="font-medium text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               Try again
             </button>
           </>
         )}
-      </span>
+      </p>
     </div>
   );
 }
@@ -497,7 +494,7 @@ export function PromptBlockEditor() {
   const removePrompt = usePromptStore((s) => s.removePrompt);
 
   // The prompt trigger is a user setting (single source of truth: user_metadata,
-  // loaded into the settings store). Never hardcode it — the extension reads the
+  // loaded into the settings store). Never hardcode it: the extension reads the
   // same value, so the hint must reflect whatever the user configured.
   const promptTrigger =
     useSettingsStore((s) => s.profile?.trigger_prompt_seq) || DEFAULT_TRIGGER_CONFIG.promptTrigger;
@@ -520,11 +517,11 @@ export function PromptBlockEditor() {
   const [intentCategory, setIntentCategory] = useState<IntentCategory | null>(null);
   const [outputType, setOutputType] = useState<OutputType | null>(null);
   const [folderId, setFolderId] = useState<string | null>(null);
-  // Labels are an association, not prompt content — they save alongside the
+  // Labels are an association, not prompt content: they save alongside the
   // prompt rather than travelling through PromptFormValues.
   const [labelIds, setLabelIds] = useState<string[]>([]);
-  // "Ask User Questions" starts on for a new prompt; an existing prompt shows
-  // what it was saved with.
+  // "Ask me questions first" starts on for a new prompt; an existing prompt
+  // shows what it was saved with.
   const [askUserQuestions, setAskUserQuestions] = useState(true);
   // "Interactive Steps" is not saved with the prompt: it is one setting for
   // every prompt copied in this browser (lib/interactiveSteps).
@@ -540,6 +537,10 @@ export function PromptBlockEditor() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [shortcutError, setShortcutError] = useState<string | null>(null);
+  // The part just added or removed, so the cursor lands on its box or its row.
+  const [focusPart, setFocusPart] = useState<{ type: OptionalPart; on: 'box' | 'row' } | null>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   // Draft with AI: what the notice says, and whether a new prompt came from a
   // draft, in which case it is saved as AI generated rather than approved.
   const [draftNotice, setDraftNotice] = useState<DraftNoticeState | null>(null);
@@ -554,7 +555,7 @@ export function PromptBlockEditor() {
 
   useEffect(() => {
     if (!isOpen) return;
-    // The Context block offers the Brains; they are not loaded on this page
+    // The Background part offers the Brains; they are not loaded on this page
     // otherwise. The store's own guard makes a repeat call harmless.
     if (!useMemoryStore.getState().loaded) void useMemoryStore.getState().loadSpaces();
     const editingPrompt = editingPromptRef.current;
@@ -565,18 +566,24 @@ export function PromptBlockEditor() {
     setSuggestion(null);
     setDraftNotice(null);
     setAiDrafted(false);
+    setFocusPart(null);
+    // The panel stays on the page between prompts, scrolled where the last one
+    // was left. Each prompt starts at its name.
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
 
     if (editingPrompt) {
       setName(editingPrompt.name);
       setShortcut(editingPrompt.shortcut ?? '');
       setBlocks(
-        editingPrompt.blocks && editingPrompt.blocks.length > 0
-          ? foldReasoningIntoConstraints(editingPrompt.blocks)
-          : DEFAULT_BLOCKS.map((b) =>
-              b.type === 'objective'
-                ? { ...b, content: editingPrompt.content, enabled: true }
-                : b,
-            ),
+        readyBlocks(
+          editingPrompt.blocks && editingPrompt.blocks.length > 0
+            ? foldReasoningIntoConstraints(editingPrompt.blocks)
+            : DEFAULT_BLOCKS.map((b) =>
+                b.type === 'objective'
+                  ? { ...b, content: editingPrompt.content, enabled: true }
+                  : b,
+              ),
+        ),
       );
       setStrategyType(editingPrompt.strategy_type);
       setThinkingMode(editingPrompt.thinking_mode);
@@ -594,7 +601,7 @@ export function PromptBlockEditor() {
       const handed = useDraftStore.getState().take('prompt', editingPrompt.id);
       if (handed?.kind === 'prompt') {
         setName(sanitizeName(handed.draft.name));
-        setBlocks((prev) => withBrainKept(promptDraftBlocks(handed.draft), prev));
+        setBlocks((prev) => readyBlocks(withBrainKept(promptDraftBlocks(handed.draft), prev)));
         setDraftNotice({ mode: 'update', changes: handed.changes, text: '', similar: [] });
       }
     } else {
@@ -603,7 +610,7 @@ export function PromptBlockEditor() {
       const seed = useUiStore.getState().newPromptSeed;
       setName(seed ? sanitizeName(seed.name) : '');
       setShortcut('');
-      setBlocks(seed ? seed.blocks : DEFAULT_BLOCKS);
+      setBlocks(readyBlocks(seed ? seed.blocks : DEFAULT_BLOCKS));
       setStrategyType(null);
       setThinkingMode(null);
       setPreferredModel(null);
@@ -613,6 +620,9 @@ export function PromptBlockEditor() {
       setFolderId(seed ? seed.folder_id : null);
       setLabelIds([]);
       setAskUserQuestions(seed ? seed.ask_user_questions : true);
+      // A new prompt starts at its name. preventScroll: the panel is still
+      // sliding in.
+      nameRef.current?.focus({ preventScroll: true });
     }
   }, [isOpen, editingPromptId]);
 
@@ -680,7 +690,7 @@ export function PromptBlockEditor() {
     setShortcut(
       draft.shortcut ? uniqueToken(draft.shortcut, prompts.map((p) => p.shortcut ?? '')) : '',
     );
-    setBlocks((prev) => withBrainKept(promptDraftBlocks(draft), prev));
+    setBlocks((prev) => readyBlocks(withBrainKept(promptDraftBlocks(draft), prev)));
     setFolderId((prev) => idByName(draft.folder, folders) ?? prev);
     setLabelIds(idsByName(draft.labels, labels));
     setNameError(null);
@@ -712,27 +722,31 @@ export function PromptBlockEditor() {
     );
   }
 
-  // The Brain the Context block carries: a choice, kept beside the text.
+  // The Brain the Background part carries: a choice, kept beside the text.
   function setBlockBrain(brain: PromptBrainRef | null) {
     setBlocks((prev) =>
       prev.map((b) => (b.type === 'context' ? { ...b, brain } : b)),
     );
   }
 
-  function toggleBlock(type: PromptBlockType) {
+  function setBlockEnabled(type: PromptBlockType, enabled: boolean) {
     setBlocks((prev) =>
-      prev.map((b) => (b.type === type ? { ...b, enabled: !b.enabled } : b)),
+      prev.map((b) => (b.type === type ? { ...b, enabled } : b)),
     );
   }
 
-  function enableBlock(type: PromptBlockType) {
-    setBlocks((prev) =>
-      prev.map((b) => (b.type === type ? { ...b, enabled: true } : b)),
-    );
+  function addPart(type: OptionalPart) {
+    setBlockEnabled(type, true);
+    setFocusPart({ type, on: 'box' });
   }
 
-  // Enables a block (if off) and appends a line on its own row — used by the
-  // signal-criterion auto-fixes that can't be satisfied by a metadata default.
+  function removePart(type: OptionalPart) {
+    setBlockEnabled(type, false);
+    setFocusPart({ type, on: 'row' });
+  }
+
+  // Switches a part on (if off) and appends a line on its own row: used by the
+  // quality fixes that can't be satisfied by a setting.
   function appendToBlock(type: PromptBlockType, line: string) {
     setBlocks((prev) =>
       prev.map((b) => {
@@ -743,16 +757,16 @@ export function PromptBlockEditor() {
     );
   }
 
-  // ── Prompt efficiency evaluation ─────────────────────────────────────────────
+  // ── Prompt quality evaluation ────────────────────────────────────────────────
 
   const evalResult = usePromptEvaluator(
     { blocks, strategyType, preferredModel, outputType },
     isOpen,
   );
 
-  // Corpus benchmark — prefer a same-intent cohort, else the whole library.
-  // The cohort + its scores depend only on the library and intent, so they are
-  // memoised separately from the per-keystroke percentile.
+  // Corpus benchmark: prefer a same-intent cohort, else the whole library.
+  // The cohort and its scores depend only on the library and intent, so they
+  // are memoised separately from the per-keystroke percentile.
   const cohort = useMemo(
     () => selectBenchmarkCohort(prompts, editingPrompt?.id ?? null, intentCategory),
     [prompts, editingPrompt?.id, intentCategory],
@@ -775,7 +789,8 @@ export function PromptBlockEditor() {
   function handleApplySuggestion(criterionId: string) {
     const asBlockType = BLOCK_CRITERION_TYPES.find((t) => t === criterionId);
     if (asBlockType) {
-      enableBlock(asBlockType);
+      if (asBlockType === 'objective') setBlockEnabled('objective', true);
+      else addPart(asBlockType);
       return;
     }
     if (criterionId === 'audience') {
@@ -793,7 +808,7 @@ export function PromptBlockEditor() {
 
   function loadExample() {
     setName(sanitizeName(EXAMPLE_PROMPT.name));
-    setBlocks((prev) => withBrainKept(EXAMPLE_PROMPT.blocks.map((b) => ({ ...b })), prev));
+    setBlocks((prev) => readyBlocks(withBrainKept(EXAMPLE_PROMPT.blocks.map((b) => ({ ...b })), prev)));
     setStrategyType(EXAMPLE_PROMPT.strategyType);
     setPreferredModel(EXAMPLE_PROMPT.preferredModel);
     setOutputType(EXAMPLE_PROMPT.outputType);
@@ -804,18 +819,20 @@ export function PromptBlockEditor() {
   function handlePreviewDraft() {
     const assembled = assembleBlocks(blocks, { askUserQuestions });
     if (assembled) openPromptDraftPreview(assembled);
+    else showToast('Write what the AI should do first, then preview it.', 'error');
   }
 
   async function handleSave() {
     if (!name.trim()) {
-      setNameError('Name is required');
+      setNameError('Give your prompt a name.');
+      nameRef.current?.focus();
       return;
     }
     setNameError(null);
 
     const trimmedShortcut = shortcut.trim();
     if (trimmedShortcut && !/^[a-zA-Z0-9_-]+$/.test(trimmedShortcut)) {
-      setShortcutError(`Use letters, numbers, hyphens or underscores only — no prefix (the ${promptTrigger} trigger is added automatically)`);
+      setShortcutError(`Use only letters, numbers, - and _. ${promptTrigger} is added for you.`);
       return;
     }
     setShortcutError(null);
@@ -851,7 +868,7 @@ export function PromptBlockEditor() {
           payload,
           aiDrafted ? { reviewStatus: 'ai_generated' } : undefined,
         );
-        // Only after the row exists — the link table has an FK to prompts.
+        // Only after the row exists: the link table has an FK to prompts.
         await setPromptLabels(created.id, labelIds);
         showToast('Prompt created');
         closeNew();
@@ -883,7 +900,7 @@ export function PromptBlockEditor() {
     if (!editingPrompt || !version) return;
     try {
       await restorePromptVersion(editingPrompt.id, version);
-      showToast(`Restored to v${version.version_number} — saved as the latest version.`);
+      showToast(`Restored version ${version.version_number}. It is saved as the latest version.`);
       setHistoryOpen(false);
       closeEdit();
     } catch (err) {
@@ -915,43 +932,35 @@ export function PromptBlockEditor() {
     }
   }
 
+  const task = blocks.find((b) => b.type === 'objective') ?? { type: 'objective', content: '', enabled: true };
+  const suggestedStrategy = suggestion?.strategies[0] ?? null;
+
   return (
     <div
       // 520px covers half of a 1024px screen. It narrows to 420px below 2xl,
-      // and PromptsPage reserves the same two widths — the pair must move
+      // and PromptsPage reserves the same two widths: the pair must move
       // together or the list ends up under the drawer.
       // The shadow belongs to the open panel only. A closed one sits just off
-      // screen, and its 70px shadow would still smear a dark band down the right
-      // edge of the page.
-      className={`fixed bottom-0 right-0 top-[60px] z-40 flex w-[420px] 2xl:w-[520px] flex-col overflow-hidden border-l border-[#222227] bg-[#0B0B0E] transition-[transform,box-shadow] duration-200 ${
-        isOpen ? 'translate-x-0 shadow-[-24px_0_70px_rgba(0,0,0,0.6)]' : 'translate-x-full'
-      }`}
+      // screen, and its shadow would still show down the right edge of the page.
+      // The panel is a night surface: dark on every theme (index.css gives the
+      // tokens their night values inside it). text-ink is set here because the
+      // page's own text colour would otherwise be inherited from outside.
+      data-surface="night"
+      className={cn(
+        'night-glow fixed bottom-0 right-0 top-[60px] z-40 flex w-[420px] flex-col overflow-hidden border-l border-line bg-bg text-ink transition-[transform,box-shadow] duration-200 2xl:w-[520px]',
+        isOpen ? 'translate-x-0 shadow-sm' : 'translate-x-full',
+      )}
     >
-      {/* ── Top bar ── */}
-      <div className="flex shrink-0 items-center justify-between border-b border-[#222227] px-5 py-4">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => {
-              setName(nameFromEvent(e));
-              if (nameError) setNameError(null);
-            }}
-            onCompositionEnd={(e) => setName(nameFromEvent(e))}
-            autoCapitalize="characters"
-            placeholder="Prompt name…"
-            className="w-full bg-transparent text-sm font-semibold text-[#F5F5FA] placeholder:text-[#7A7A85] focus:outline-none"
-          />
-          {nameError && (
-            <span className="text-[11px] text-[#FF5F57]">{nameError}</span>
-          )}
-        </div>
-        <div className="ml-3 flex shrink-0 items-center gap-1">
-          {/* About — behind an icon rather than a band in the drawer, which
+      {/* ── Top: title, then the two ways to start a new prompt ── */}
+      <div className="shrink-0 border-b border-line">
+        <div className="flex items-center gap-1 px-5 py-3.5">
+          <h2 className="min-w-0 flex-1 truncate text-base font-semibold text-ink">
+            {mode === 'edit' ? 'Edit prompt' : 'New prompt'}
+          </h2>
+          {/* About sits behind an icon rather than a band in the panel, which
               returns that space to the controls used on every edit. */}
           {mode === 'edit' && editingPrompt && (
             <AssetAboutButton
-              tone="dark"
               noun="prompt"
               assetId={editingPrompt.id}
               createdBy={editingPrompt.user_id}
@@ -959,20 +968,8 @@ export function PromptBlockEditor() {
               updatedAt={editingPrompt.updated_at}
             />
           )}
-          {mode === 'create' && (
-            <DraftFromTextButton
-              tone="dark"
-              kind="prompt"
-              noun="prompt"
-              folders={folders.map((f) => f.name)}
-              labels={labels.map((l) => l.name)}
-              disabled={saving}
-              onDrafted={applyDraft}
-            />
-          )}
           {mode === 'edit' && editingPrompt && (
             <ReviewStatusMenu
-              tone="dark"
               noun="prompt"
               status={editingPrompt.review_status}
               reviewedBy={editingPrompt.reviewed_by}
@@ -984,174 +981,226 @@ export function PromptBlockEditor() {
           <button
             type="button"
             onClick={close}
-            className="rounded-[8px] p-1.5 text-[#9C9CA6] transition-colors hover:bg-[#222227] hover:text-[#E0E0E8]"
+            className="ml-1 rounded-[8px] p-1.5 text-ink-muted transition-colors hover:bg-bg-alt hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             aria-label="Close editor"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
+        {mode === 'create' && (
+          <div className="flex flex-wrap gap-2 px-5 pb-4">
+            <DraftFromTextButton
+              kind="prompt"
+              noun="prompt"
+              folders={folders.map((f) => f.name)}
+              labels={labels.map((l) => l.name)}
+              disabled={saving}
+              onDrafted={applyDraft}
+            />
+            <button type="button" onClick={loadExample} className={CHIP_BUTTON}>
+              <Lightbulb className="h-3.5 w-3.5" aria-hidden />
+              See an example
+            </button>
+          </div>
+        )}
       </div>
 
-      {draftNotice && (
-        <DraftNotice
-          tone="dark"
-          notice={draftNotice}
-          kind="prompt"
-          onOpen={openExisting}
-          onDismiss={() => setDraftNotice(null)}
-        />
-      )}
-
-      {/* ── Intent suggestion banner ── */}
-      {suggestion && (
-        <div className="flex shrink-0 items-center gap-3 border-b border-[#222227] bg-[#0A1020] px-5 py-2.5">
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#1B4FD8]" />
-          <p className="flex-1 text-xs text-[#6080C8]">
-            Detected <span className="font-semibold text-[#7090E0]">{suggestion.intent}</span>
-            {' — '}
-            <span className="font-semibold text-[#7090E0]">{suggestion.strategies[0]}</span> recommended
-            <span className="ml-1 text-[#9C9CA6]">
-              ({Math.round(suggestion.confidence * 100)}% confidence)
-            </span>
-          </p>
-          <button
-            type="button"
-            onClick={applyIntentSuggestion}
-            className="shrink-0 rounded-[6px] border border-[#1B4FD8]/30 px-2.5 py-1 text-[11px] font-medium text-[#1B4FD8] transition-colors hover:bg-[#1B4FD8]/10"
-          >
-            Apply
-          </button>
-          <button
-            type="button"
-            onClick={() => setSuggestion(null)}
-            className="shrink-0 text-[#9C9CA6] hover:text-[#CACAD4]"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
-      )}
-
       {/* ── Scrollable content ── */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Shortcut — optional direct-expansion trigger */}
-        <div className="border-b border-[#222227] px-5 py-4">
-          <label className="mb-1.5 block text-[10px] text-[#9C9CA6]">
-            Shortcut <span className="text-[#6A6A73]">· optional</span>
-          </label>
-          <input
-            type="text"
-            value={shortcut}
-            onChange={(e) => {
-              // Cleaned on the way in, so a space lands as `_` and the save-time
-              // error can never fire on something the user typed here.
-              setShortcut(sanitizeTriggerInput(e.target.value));
-              if (shortcutError) setShortcutError(null);
-            }}
-            placeholder="followup"
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-            className="h-8 w-full rounded-[8px] border border-[#34343C] bg-[#1C1C22] px-3 font-mono text-xs text-[#D6D6DE] placeholder:text-[#7A7A85] focus:border-[#3D6FE8] focus:outline-none"
-          />
-          {shortcutError ? (
-            <span className="mt-1.5 block text-[11px] text-[#FF5F57]">{shortcutError}</span>
-          ) : (
-            <span className="mt-1.5 block text-[11px] leading-relaxed text-[#7A7A85]">
-              Type{' '}
-              <span className="font-mono text-[#9C9CA6]">{`${promptTrigger}${shortcut.trim() || 'followup'}`}</span>{' '}
-              (your prompt trigger) in any field to expand this prompt instantly. Leave empty to keep it menu-only.
-            </span>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {/* Name and task: the two things every prompt needs. */}
+        <section className="space-y-5 px-5 py-5">
+          {draftNotice && (
+            <DraftNotice
+              kind="prompt"
+              notice={draftNotice}
+              onOpen={openExisting}
+              onDismiss={() => setDraftNotice(null)}
+            />
           )}
-        </div>
-
-        {/* Blocks */}
-        <div>
-          <div className="flex items-center justify-between px-5 py-3">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-[#9C9CA6]">
-              Blocks
-            </p>
-            {mode === 'create' && (
-              <button
-                type="button"
-                onClick={loadExample}
-                className="inline-flex items-center gap-1 rounded-[6px] border border-[#26262B] bg-[#0E0E11] px-2 py-0.5 text-[10px] font-medium text-[#6080C8] transition-colors hover:border-[#1B4FD8]/40 hover:bg-[#0A1020] hover:text-[#1B4FD8] focus:outline-none focus:ring-1 focus:ring-[#1B4FD8]/30"
-              >
-                <Sparkles className="h-3 w-3" />
-                Load example
-              </button>
+          <div>
+            <label htmlFor="prompt-name" className={FIELD_LABEL}>
+              Name
+            </label>
+            <Input
+              ref={nameRef}
+              id="prompt-name"
+              value={name}
+              onChange={(e) => {
+                setName(nameFromEvent(e));
+                if (nameError) setNameError(null);
+              }}
+              onCompositionEnd={(e) => setName(nameFromEvent(e))}
+              autoCapitalize="characters"
+              placeholder="REPLY TO A COMPLAINT"
+              aria-invalid={nameError !== null}
+              aria-describedby={nameError ? 'prompt-name-error' : undefined}
+              className={nameError ? 'border-danger focus:border-danger focus:ring-danger/20' : undefined}
+            />
+            {nameError && (
+              <p id="prompt-name-error" className="mt-1.5 text-xs text-danger">
+                {nameError}
+              </p>
             )}
           </div>
-          {BLOCK_ORDER.map((type) => {
-            const block = blocks.find((b) => b.type === type) ?? {
-              type,
+          <div>
+            <label htmlFor="prompt-task" className={FIELD_LABEL}>
+              What should the AI do?
+            </label>
+            <AutoGrowTextarea
+              id="prompt-task"
+              value={task.content}
+              onChange={(content) => updateBlock('objective', content)}
+              placeholder={TASK_PLACEHOLDER}
+            />
+          </div>
+        </section>
+
+        {/* The four optional parts, each one row until it is added. */}
+        <section className="border-t border-line px-5 py-4" aria-labelledby="prompt-more-detail">
+          <h3 id="prompt-more-detail" className="mb-1 text-[13px] font-semibold text-ink">
+            Add more detail <span className={OPTIONAL}>· optional</span>
+          </h3>
+          {PARTS.map((spec) => {
+            const block = blocks.find((b) => b.type === spec.type) ?? {
+              type: spec.type,
               content: '',
               enabled: false,
             };
             return (
-              <BlockSection
-                key={type}
+              <PartSection
+                key={spec.type}
+                spec={spec}
                 block={block}
-                onChange={(content) => updateBlock(type, content)}
-                onToggle={() => toggleBlock(type)}
+                focus={focusPart?.type === spec.type ? focusPart.on : null}
+                onAdd={() => addPart(spec.type)}
+                onRemove={() => removePart(spec.type)}
+                onChange={(content) => updateBlock(spec.type, content)}
               >
-                {/* Mounted only while the panel is open: its menu is portalled
-                    to <body>, and the panel slides out without unmounting. */}
-                {type === 'context' && isOpen && (
+                {/* Mounted only while the panel is open, so a reopened panel
+                    reads the Brains afresh. */}
+                {spec.type === 'context' && isOpen && (
                   <BrainPicker value={block.brain ?? null} onChange={setBlockBrain} />
                 )}
-              </BlockSection>
+              </PartSection>
             );
           })}
-        </div>
+        </section>
 
-        {/* Ask User Questions: when on, the saved prompt ends with an instruction
-            to ask clarifying questions first (ASK_USER_QUESTIONS_SECTION). */}
-        <div className="border-b border-[#222227] px-5 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <label
-              htmlFor="prompt-ask-user-questions"
-              className="font-mono text-[12px] font-semibold uppercase tracking-widest text-[#CACAD4]"
+        {/* How the AI works with you. Ask me questions first is saved with the
+            prompt (ASK_USER_QUESTIONS_SECTION); Interactive Steps belongs to
+            this browser and is saved on the spot (lib/interactiveSteps). */}
+        <section className="border-t border-line px-5 py-3">
+          <SettingRow
+            id="prompt-ask-user-questions"
+            title="Ask me questions first"
+            hint="The AI asks you a few questions, one at a time, before it starts."
+            checked={askUserQuestions}
+            onChange={setAskUserQuestions}
+          />
+          <SettingRow
+            id="prompt-interactive-steps"
+            title="Interactive Steps"
+            hint="The AI works one step at a time and waits for you. Applies to all your prompts."
+            checked={interactiveSteps}
+            onChange={() => toggleInteractiveSteps()}
+          />
+        </section>
+
+        {/* Where to find it: the shortcut, the folder and the labels. */}
+        <section className="border-t border-line px-5 py-5">
+          <label htmlFor="prompt-shortcut" className={FIELD_LABEL}>
+            Shortcut <span className={OPTIONAL}>· optional</span>
+          </label>
+          {/* The prompt trigger sits in front of the box, as the snippet
+              editor's Trigger shows its prefix. The stored value stays a bare
+              word. */}
+          <div
+            className={cn(
+              'flex h-10 items-stretch overflow-hidden rounded-[12px] border border-line bg-card',
+              'focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
+              shortcutError && 'border-danger focus-within:border-danger focus-within:ring-danger/20',
+            )}
+          >
+            <span
+              aria-hidden
+              translate="no"
+              className="flex select-none items-center border-r border-line bg-bg-alt px-3 font-mono text-sm font-semibold text-ink-muted"
             >
-              Ask User Questions
-            </label>
-            <PanelToggle
-              id="prompt-ask-user-questions"
-              role="switch"
-              aria-checked={askUserQuestions}
-              checked={askUserQuestions}
-              onToggle={() => setAskUserQuestions((on) => !on)}
+              {promptTrigger}
+            </span>
+            <input
+              id="prompt-shortcut"
+              type="text"
+              value={shortcut}
+              onChange={(e) => {
+                // Cleaned on the way in, so a space lands as `_` and the save-time
+                // error can never fire on something the user typed here.
+                setShortcut(sanitizeTriggerInput(e.target.value));
+                if (shortcutError) setShortcutError(null);
+              }}
+              placeholder="followup"
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              aria-describedby="prompt-shortcut-hint"
+              className="min-w-0 flex-1 bg-transparent px-3 font-mono text-sm text-ink placeholder:text-ink-subtle focus:outline-none"
             />
           </div>
-          <span className="mt-1.5 block text-[11px] leading-relaxed text-[#7A7A85]">
-            The AI asks you clarifying questions before it completes the task. Turn it off to skip the questions.
-          </span>
-        </div>
+          {shortcutError ? (
+            <p id="prompt-shortcut-hint" className="mt-1.5 text-xs text-danger">
+              {shortcutError}
+            </p>
+          ) : (
+            <p id="prompt-shortcut-hint" className={HINT}>
+              Type
+              <span translate="no">
+                {' '}
+                <span className="font-mono text-ink">{`${promptTrigger}${shortcut.trim() || 'followup'}`}</span>{' '}
+              </span>
+              in any text box to insert this prompt.
+            </p>
+          )}
 
-        {/* Interactive Steps: when on, a copied prompt starts with the
-            step-by-step block. Drawn like Ask User Questions, but not saved with
-            the prompt (lib/interactiveSteps). */}
-        <div className="border-b border-[#222227] px-5 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <label
-              htmlFor="prompt-interactive-steps"
-              className="font-mono text-[12px] font-semibold uppercase tracking-widest text-[#CACAD4]"
-            >
-              Interactive Steps
-            </label>
-            <PanelToggle
-              id="prompt-interactive-steps"
-              role="switch"
-              aria-checked={interactiveSteps}
-              checked={interactiveSteps}
-              onToggle={toggleInteractiveSteps}
-            />
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="min-w-0">
+              <label htmlFor="prompt-folder" className={FIELD_LABEL}>
+                Folder
+              </label>
+              <select
+                id="prompt-folder"
+                value={folderId ?? ''}
+                onChange={(e) => setFolderId(e.target.value === '' ? null : e.target.value)}
+                disabled={saving}
+                className={SELECT_CLASS}
+              >
+                <option value="">No folder</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id} translate="no">
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="prompt-labels" className={FIELD_LABEL}>
+                Labels
+              </label>
+              {/* Mounted only while the panel is open. This panel never
+                  unmounts (it slides out), and the picker's menu is portalled
+                  to <body>, so leaving it mounted would strand an open menu on
+                  screen after Save or Close. */}
+              {isOpen && (
+                <LabelPicker
+                  id="prompt-labels"
+                  value={labelIds}
+                  onChange={setLabelIds}
+                  disabled={saving}
+                />
+              )}
+            </div>
           </div>
-          <span className="mt-1.5 block text-[11px] leading-relaxed text-[#7A7A85]">
-            The AI works one step at a time and waits for you before the next. Applies to all your prompts, not just this one.
-          </span>
-        </div>
+        </section>
 
-        {/* Efficiency score widget */}
         {evalResult && (
           <PromptEfficiencyWidget
             result={evalResult}
@@ -1160,142 +1209,148 @@ export function PromptBlockEditor() {
           />
         )}
 
-        {/* Metadata */}
-        <div className="border-b border-[#222227] px-5 py-4">
-          <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-widest text-[#9C9CA6]">
-            Metadata
-          </p>
+        <PanelDisclosure
+          id="prompt-more-options"
+          icon={SlidersHorizontal}
+          title="More options"
+          summary="Strategy, intent and answer format"
+        >
+          {/* Read from what has been written so far. Offered only while it
+              would fill something still empty. */}
+          {suggestion && (!strategyType || !intentCategory) && (
+            <div className="mb-4 flex items-center gap-3 rounded-[12px] border border-primary/20 bg-primary-light px-3 py-2.5">
+              <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+              <p className="min-w-0 flex-1 text-xs leading-relaxed text-ink">
+                Suggested: <span className="font-semibold">{suggestion.intent}</span>
+                {suggestedStrategy && (
+                  <>
+                    , with <span className="font-semibold">{suggestedStrategy}</span>
+                  </>
+                )}
+                .
+              </p>
+              <Button size="sm" variant="ghost" onClick={applyIntentSuggestion} className="shrink-0 bg-card">
+                Use it
+              </Button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-[10px] text-[#9C9CA6]">Strategy</label>
-              <DarkSelect
-                value={strategyType}
-                onChange={setStrategyType}
-                options={STRATEGIES.map((s) => ({ value: s, label: s }))}
-                placeholder="None"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] text-[#9C9CA6]">Intent</label>
-              <DarkSelect
-                value={intentCategory}
-                onChange={setIntentCategory}
-                options={INTENT_CATEGORIES.map((i) => ({ value: i, label: i }))}
-                placeholder="None"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-[10px] text-[#9C9CA6]">Output type</label>
-              <DarkSelect
-                value={outputType}
-                onChange={setOutputType}
-                options={OUTPUT_TYPES.map((o) => ({ value: o, label: o }))}
-                placeholder="None"
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="mb-1 block text-[10px] text-[#9C9CA6]">Folder</label>
-              <DarkSelect
-                value={folderId}
-                onChange={setFolderId}
-                options={folders.map((f) => ({ value: f.id, label: f.name }))}
-                placeholder="No folder"
-              />
-            </div>
-            <div className="col-span-2">
-              <label htmlFor="prompt-labels" className="mb-1 block text-[10px] text-[#9C9CA6]">
-                Labels <span className="text-[#6A6A73]">· shared with snippets</span>
+            <div className="min-w-0">
+              <label htmlFor="prompt-strategy" className={FIELD_LABEL}>
+                Strategy
               </label>
-              {/* Mounted only while the panel is open. This panel never
-                  unmounts — it slides out via translate — and the picker's menu
-                  is portalled to <body>, so leaving it mounted would strand an
-                  open menu on screen after Save or Close. */}
-              {isOpen && (
-                <LabelPicker
-                  id="prompt-labels"
-                  tone="dark"
-                  value={labelIds}
-                  onChange={setLabelIds}
-                  disabled={saving}
-                />
-              )}
+              <select
+                id="prompt-strategy"
+                value={strategyType ?? ''}
+                onChange={(e) => setStrategyType(e.target.value === '' ? null : (e.target.value as StrategyType))}
+                className={SELECT_CLASS}
+              >
+                <option value="">None</option>
+                {STRATEGY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="prompt-intent" className={FIELD_LABEL}>
+                Intent
+              </label>
+              <select
+                id="prompt-intent"
+                value={intentCategory ?? ''}
+                onChange={(e) => setIntentCategory(e.target.value === '' ? null : (e.target.value as IntentCategory))}
+                className={SELECT_CLASS}
+              >
+                <option value="">None</option>
+                {INTENT_CATEGORIES.map((i) => (
+                  <option key={i} value={i}>
+                    {i}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor="prompt-output" className={FIELD_LABEL}>
+                Answer format
+              </label>
+              <select
+                id="prompt-output"
+                value={outputType ?? ''}
+                onChange={(e) => setOutputType(e.target.value === '' ? null : (e.target.value as OutputType))}
+                className={SELECT_CLASS}
+              >
+                <option value="">None</option>
+                {OUTPUT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
-        </div>
+        </PanelDisclosure>
       </div>
 
       {/* ── Footer actions ── */}
-      <div className="flex shrink-0 flex-col gap-2 border-t border-[#222227] bg-[#121216] px-5 py-4">
+      <div className="flex shrink-0 flex-col gap-2 border-t border-line bg-bg-alt px-5 py-4">
         {submitError && (
-          <div className="flex items-center gap-2 rounded-[8px] border border-[#FF5F57]/30 bg-[#FF5F57]/5 px-3 py-2 text-xs text-[#FF5F57]">
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <div role="alert" className="flex items-start gap-2 rounded-[10px] bg-danger-bg px-3 py-2 text-sm text-danger">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             {submitError}
           </div>
         )}
         {mode === 'edit' && editingPrompt?.organization_id && editingPrompt.folder_id && (
-          <TeamLastUseLine kind="prompt" ids={[editingPrompt.id]} tone="dark" />
+          <TeamLastUseLine kind="prompt" ids={[editingPrompt.id]} />
         )}
-        {/* Every button keeps its words on one line (shrink-0, nowrap). On the
-            420px panel History is an icon, so the four buttons fit with room to
-            spare; the row may still wrap whole as a last resort, but a button is
-            never squeezed until its label breaks in two. */}
+        {/* Every button keeps its words on one line. On the 420px panel History
+            is an icon, so the four buttons fit; the row may still wrap whole as
+            a last resort, but a button is never squeezed until its label breaks. */}
         <div className="flex flex-wrap items-center gap-2">
           {mode === 'edit' && editingPrompt && (
-            <button
-              type="button"
-              onClick={handleUsePrompt}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#1B4FD8]/30 px-3 text-sm font-medium text-[#1B4FD8] transition-colors hover:bg-[#1B4FD8]/10"
-            >
-              <Zap className="h-3.5 w-3.5" />
+            <Button variant="ghost" onClick={handleUsePrompt} className="shrink-0 bg-card px-3">
+              <Zap className="h-3.5 w-3.5" aria-hidden />
               Use
-            </button>
+            </Button>
           )}
           {mode === 'create' && (
-            <button
-              type="button"
-              onClick={handlePreviewDraft}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#34343C] px-3 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8]"
-            >
-              <Eye className="h-3.5 w-3.5" />
+            <Button variant="ghost" onClick={handlePreviewDraft} className="shrink-0 bg-card px-3">
+              <Eye className="h-3.5 w-3.5" aria-hidden />
               Preview
-            </button>
+            </Button>
           )}
           <div className="flex-1" />
           {mode === 'edit' && editingPrompt && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={() => {
                 setHistoryOpen(true);
                 void loadPromptVersions(editingPrompt.id);
               }}
               aria-label="History"
               title="History"
-              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#34343C] px-2.5 text-sm font-medium text-[#8A8A95] transition-colors hover:border-[#48484F] hover:text-[#C0C0C8] 2xl:px-3"
+              className="shrink-0 bg-card px-3"
             >
-              <Clock className="h-3.5 w-3.5" />
+              <Clock className="h-3.5 w-3.5" aria-hidden />
               <span className="hidden 2xl:inline">History</span>
-            </button>
+            </Button>
           )}
           {mode === 'edit' && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={handleDelete}
               disabled={saving}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border border-[#FF5F57]/20 px-3 text-sm font-medium text-[#FF5F57] transition-colors hover:bg-[#FF5F57]/10 disabled:opacity-40"
+              className="shrink-0 border-danger/30 bg-card px-3 text-danger hover:border-danger/50 hover:bg-danger-bg"
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              {confirmDelete ? 'Confirm?' : 'Delete'}
-            </button>
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+              {confirmDelete ? 'Yes, delete' : 'Delete'}
+            </Button>
           )}
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-[10px] bg-[#1B4FD8] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1440B0] disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          <Button onClick={handleSave} disabled={saving} className="shrink-0">
+            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
             {saving ? 'Saving…' : mode === 'edit' ? 'Save changes' : 'Create prompt'}
-          </button>
+          </Button>
         </div>
       </div>
 

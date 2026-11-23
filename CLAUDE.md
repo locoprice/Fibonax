@@ -181,7 +181,7 @@ Since v3.63.0 Save to Brain also carries **Read a picture** (`readPicture`, serv
 The phone **edits** a snippet, a prompt and a Brain item: **Edit** in each one's three-dots menu opens a window with the name, the folder (snippets and prompts) and the text, **Save** and Cancel. It was taken off the phone in steps (v2.40.3, v2.58.4, v2.100.0) and brought back because a wrong sentence cannot wait for a computer. It is a small editor on purpose, and the three stay one feature: a change to one edit window is a change to all three.
 
 - **Saves go through the dashboard's own save**, so history, review status and shared-folder access behave the same: `save_snippet_with_revision`, `save_prompt_with_version`, `memory_save_shard`. Everything the window does not show is handed back as it was.
-- **A snippet's fields, formulas and rules are chips** in the text: typing cannot break them, and the window asks the moment one is taken out, putting it back where it left from or leaving it out (`editFillRich`, `editReadRich`, `editWatchChips`, `editPutBack`). Save never goes ahead with that question open. A snippet with several languages edits the language that was opened.
+- **A snippet's fields, formulas and rules are chips** in the text: typing cannot break them, and the window asks the moment one is taken out, putting it back where it left from or leaving it out (`editFillRich`, `editReadRich`, `editWatchChips`, `editPutBack`). Save never goes ahead with that question open. A snippet with several languages opens the language that was open, with the snippet page's language tiles above the text: a tap keeps what was typed in each language (`editBodies`, `editSwitchLang`), and one Save writes them all.
 - **A prompt made of parts gets one box per part** that is switched on, and its text is rebuilt as the dashboard builds it (`editAssembleBlocks`, a copy of `assembleBlocks` in `app/src/lib/promptUtils.ts`). `app/src/__tests__/mobileEdit.test.ts` holds the phone's copies to the dashboard's: a change to how a prompt is assembled reaches the phone in the same task.
 - **Left to the dashboard, and said so on the phone:** a snippet with a layout (formatted or email), and a prompt with a part the phone does not know.
 - **Its look is written down** in `docs/DESIGN_SYSTEM.md` (Phone edit window): the Save pill the three windows share, the chip, the question about a removed field, text boxes that grow instead of scrolling inside the page.
@@ -192,7 +192,7 @@ Mobile is a **quick-access companion, not a management surface**. It creates and
 The line: **what a snippet is and does, using a Brain, and fixing the words of what is already there, are synchronised; what builds and organises snippets and Brains stays on the dashboard.**
 
 ### Why it drifts, and how not to let it
-Mobile is a single self-contained file that cannot load `extension/`. It carries **generated copies** of the shared fill-form module (`node scripts/sync-fill-form.js`, gated by `scripts/check-fill-form.js`) of the memory pack (`node scripts/sync-memory-pack.js`, whose `--check` also pins that the token count and the Brain copy go through it) and of the memory chunker (`node scripts/sync-memory-chunk.js`, whose `--check` also pins that Save to Brain cuts, names, summarises and picks its Brain through it), and **its own parser and resolver**, mirrored by hand from `extension/formula-engine.js` and pinned by `scripts/check-snippets.js`. So an engine change that alters output has to be ported there deliberately. Regenerate the block, port the parser change, write the markup, then look at it on a phone-width screen.
+Mobile is a single self-contained file that cannot load `extension/`. It carries **generated copies** of the shared fill-form module (`node scripts/sync-fill-form.js`, gated by `scripts/check-fill-form.js`) of the memory pack (`node scripts/sync-memory-pack.js`, whose `--check` also pins that the token count and the Brain copy go through it) and of the memory chunker (`node scripts/sync-memory-chunk.js`, whose `--check` also pins that Save to Brain cuts, names, summarises and picks its Brain through it) and of the seasonal line's rules (`node scripts/sync-season.js`, whose `--check` also pins that every surface loads them and hands them the person's occasions) and of Your details (`node scripts/sync-my-details.js`, whose `--check` also pins that every surface hands over the account's name, company and job title), and **its own parser and resolver**, mirrored by hand from `extension/formula-engine.js` and pinned by `scripts/check-snippets.js`. So an engine change that alters output has to be ported there deliberately. Regenerate the block, port the parser change, write the markup, then look at it on a phone-width screen.
 
 Watch the file itself: it has no `.gitattributes`, so an edit can flip it to CRLF and stage a whole-file rewrite. Check `git diff --numstat` before committing.
 
@@ -383,7 +383,15 @@ At the end of every **successfully completed** task, prepare a push to `develop`
 3. Wait for a one-word confirmation (`go` / `confirm`).
 4. On confirm: `git add <specific files>`, `git commit`, `git push origin develop`; report each result and the commit hash.
 
-⛔ The only valid branch is `develop` — never create a branch. ⛔ Never push without the quick confirmation in step 3.
+⛔ The only valid branch is `develop`, with one exception: payment work lives on `payment-feature` (see below). Never create any other branch. ⛔ Never push without the quick confirmation in step 3.
+
+### Payments: `payment-feature` (Valentina, 2026-11-21)
+Payment work is built on the `payment-feature` branch, not on `develop`, so it stays offline until Valentina ships it. Payment work means Stripe checkout, the Stripe webhook, the customer portal, and buying FiboTokens and Pro. Everything else stays on `develop`.
+
+- **Start of every payment session:** `git fetch`, check out `payment-feature`, merge `origin/develop` into it. Merging often keeps conflicts small.
+- **No version bump on `payment-feature`.** Its version stamps stay as `develop` has them. The number is given once, by `node scripts/bump-version.js`, when the branch is merged into `develop`.
+- **The `develop` gates before every push**, run by hand: CI covers `develop` only. Every push still waits for the quick confirmation.
+- **Never merge `payment-feature` into `develop` or `main`** until Valentina asks. Then the End-of-Task Auto-Push workflow above applies.
 
 ---
 

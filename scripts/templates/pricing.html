@@ -177,9 +177,9 @@
 .pr-faq summary::after{content:"+";flex:none;font-size:22px;font-weight:500;color:var(--primary);transition:transform .15s}
 .pr-faq details[open] summary::after{transform:rotate(45deg)}
 .pr-faq details p{padding:0 var(--space-6) var(--space-6);font-size:15px;line-height:1.7;color:var(--text2)}
-/* FIBONAXAI in ANSI Shadow block letters. 67 columns wide, scaled to the screen so it never scrolls sideways. */
-.pr-banner{margin-top:var(--space-16);display:flex;justify-content:center;overflow:hidden}
-.pr-banner pre{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace;font-size:min(15px,calc((100vw - 32px) / 41));line-height:1;font-weight:400;color:var(--primary);white-space:pre;user-select:none}
+/* FIBONAX AI in ANSI Shadow block letters, drawn as shapes on a grid of 69 by 6 cells (6 by 10 each): no font is involved, so it fits every screen. */
+.pr-banner{margin-top:var(--space-16);display:flex;justify-content:center;color:var(--primary)}
+.pr-banner svg{display:block;width:100%;max-width:624px;height:auto}
 /* Closing call to action with the countdown repeated. */
 .pr-close{margin-top:var(--space-16);text-align:center}
 .pr-close .founding{margin-top:var(--space-8);grid-template-columns:1fr;text-align:center}
@@ -401,12 +401,7 @@ body.pricing-layout{min-height:100vh;display:flex;flex-direction:column}
     </div>
   </section>
 
-  <div class="pr-banner" aria-hidden="true"><pre>███████╗██╗██████╗  ██████╗ ███╗   ██╗ █████╗ ██╗  ██╗     █████╗ ██╗
-██╔════╝██║██╔══██╗██╔═══██╗████╗  ██║██╔══██╗╚██╗██╔╝    ██╔══██╗██║
-█████╗  ██║██████╔╝██║   ██║██╔██╗ ██║███████║ ╚███╔╝     ███████║██║
-██╔══╝  ██║██╔══██╗██║   ██║██║╚██╗██║██╔══██║ ██╔██╗     ██╔══██║██║
-██║     ██║██████╔╝╚██████╔╝██║ ╚████║██║  ██║██╔╝ ██╗    ██║  ██║██║
-╚═╝     ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝  ╚═╝╚═╝</pre></div>
+  <div class="pr-banner" aria-hidden="true"><svg viewBox="-1 -1 416 62" width="416" height="62" focusable="false"><path fill="currentColor" stroke="currentColor" stroke-width=".2" d="M0 0h42v10h-42zM48 0h12v10h-12zM66 0h36v10h-36zM120 0h36v10h-36zM168 0h18v10h-18zM210 0h12v10h-12zM234 0h30v10h-30zM276 0h12v10h-12zM306 0h12v10h-12zM354 0h30v10h-30zM396 0h12v10h-12zM0 10h12v10h-12zM48 10h12v10h-12zM66 10h12v10h-12zM96 10h12v10h-12zM114 10h12v10h-12zM150 10h12v10h-12zM168 10h24v10h-24zM210 10h12v10h-12zM228 10h12v10h-12zM258 10h12v10h-12zM282 10h12v10h-12zM300 10h12v10h-12zM348 10h12v10h-12zM378 10h12v10h-12zM396 10h12v10h-12zM0 20h30v10h-30zM48 20h12v10h-12zM66 20h36v10h-36zM114 20h12v10h-12zM150 20h12v10h-12zM168 20h12v10h-12zM186 20h12v10h-12zM210 20h12v10h-12zM228 20h42v10h-42zM288 20h18v10h-18zM348 20h42v10h-42zM396 20h12v10h-12zM0 30h12v10h-12zM48 30h12v10h-12zM66 30h12v10h-12zM96 30h12v10h-12zM114 30h12v10h-12zM150 30h12v10h-12zM168 30h12v10h-12zM192 30h12v10h-12zM210 30h12v10h-12zM228 30h12v10h-12zM258 30h12v10h-12zM282 30h12v10h-12zM300 30h12v10h-12zM348 30h12v10h-12zM378 30h12v10h-12zM396 30h12v10h-12zM0 40h12v10h-12zM48 40h12v10h-12zM66 40h36v10h-36zM120 40h36v10h-36zM168 40h12v10h-12zM198 40h24v10h-24zM228 40h12v10h-12zM258 40h12v10h-12zM276 40h12v10h-12zM306 40h12v10h-12zM348 40h12v10h-12zM378 40h12v10h-12zM396 40h12v10h-12z"/><path fill="none" stroke="currentColor" stroke-width=".7" d="M42 4h4v12h-30v4M42 6h2v8h-30v6M60 4h4v52h-14v-6M60 6h2v48h-10v-4M102 4h4v6M102 6h2v4M156 4h4v6M156 6h2v4M186 4h4v6M186 6h2v4M222 4h4v52h-26v-6M222 6h2v48h-22v-4M264 4h4v6M264 6h2v4M288 4h4v6M288 6h2v4M318 4h4v12h-6v10h-6v4M318 6h2v8h-6v10h-6v6M384 4h4v6M384 6h2v4M408 4h4v52h-14v-6M408 6h2v48h-10v-4M96 14h-16v6M96 16h-14v4M108 14h4v12h-6v4M108 16h2v8h-6v6M150 14h-22v26M150 16h-20v24M162 14h4v32h-6v10h-38v-6M162 16h2v28h-6v10h-34v-4M192 14h4v6M192 16h2v4M258 14h-16v6M258 16h-14v4M270 14h4v42h-14v-6M270 16h2v38h-10v-4M282 16h-4v-6M282 14h-2v-4M294 14h4v6M294 16h2v4M378 14h-16v6M378 16h-14v4M390 14h4v42h-14v-6M390 16h2v38h-10v-4M30 24h4v12h-18v20h-14v-6M30 26h2v8h-18v20h-10v-4M186 24h-4v30h-10v-4M186 26h-2v30h-14v-6M198 24h4v6M198 26h2v4M288 26h-4v-6M288 24h-2v-4M96 34h-16v6M96 36h-14v4M108 34h4v12h-6v10h-38v-6M108 36h2v8h-6v10h-34v-4M192 36h-4v-6M192 34h-2v-4M204 34h4v6M204 36h2v4M258 34h-16v20h-10v-4M258 36h-14v20h-14v-6M300 34h-4v10h-6v10h-10v-4M300 36h-2v10h-6v10h-14v-6M312 34h4v6M312 36h2v4M378 34h-16v20h-10v-4M378 36h-14v20h-14v-6M120 46h-4v-6M120 44h-2v-4M198 46h-4v-6M198 44h-2v-4M318 44h4v12h-14v-6M318 46h2v8h-10v-4"/></svg></div>
 
   <section class="pr-close" aria-labelledby="close-title">
     <div class="founding" data-countdown>

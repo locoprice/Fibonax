@@ -148,9 +148,9 @@ function r1(result: ReturnType<typeof evaluatePrompt>, id: string) {
 // ── Suggestions (one-click auto-fix) ─────────────────────────────────────────────
 
 describe('evaluatePrompt — suggestion labels', () => {
-  it('offers an "Enable … block" suggestion for a disabled block', () => {
+  it('offers the editor\'s Add wording as the fix for a part that is off', () => {
     const role = r1(evaluatePrompt(input()), 'role');
-    expect(role.suggestionLabel).toBe('Enable role block');
+    expect(role.suggestionLabel).toBe('Add who the AI is');
   });
 
   it('does NOT offer an enable-suggestion for an enabled-but-weak block', () => {

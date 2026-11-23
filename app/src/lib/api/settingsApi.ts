@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { toApiError } from '@/lib/api/apiError';
-import type { ActivationKey, Profile } from '@/types/database';
+import type { ActivationKey, Profile, StoredOccasion } from '@/types/database';
 import { clampAutoInsertSeconds, DEFAULT_TRIGGER_CONFIG } from '@/lib/triggerUtils';
 import { clampMonths } from '@/lib/inactivity';
 import {
@@ -45,7 +45,19 @@ export interface ProfilePatch {
    * that differed per surface would put the two libraries out of step.
    */
   inactivity_months?: number;
+  /**
+   * The occasions of the seasonal line, already packed by `packOccasions`
+   * (lib/season.ts). Kept here for the reason the triggers are: the extension
+   * and the phone read the account's settings, and one calendar that differed
+   * per surface would print different wishes for the same snippet.
+   */
+  occasions?: StoredOccasion[];
 }
+
+/** The account key the occasions live under: META_KEY in extension/shared/season.js. */
+const OCCASIONS_KEY = 'occasions';
+/** Three ready occasions and ten of the person's own (MAX_OWN in season.js). */
+const OCCASIONS_MAX = 13;
 
 export interface SettingsApi {
   getProfile(): Promise<Profile>;
@@ -105,6 +117,19 @@ function pickAutoInsert(metadata: Record<string, unknown> | undefined): boolean 
   return metadata?.['trigger_auto_insert'] === true;
 }
 
+/**
+ * The stored occasions, as a list of plain objects and no more than the
+ * calendar can hold. What each one says is cleaned by the shared module when
+ * it is read (`list` in season.js), on every surface alike.
+ */
+function pickOccasions(metadata: Record<string, unknown> | undefined): StoredOccasion[] {
+  const v = metadata?.[OCCASIONS_KEY];
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((o): o is StoredOccasion => typeof o === 'object' && o !== null && !Array.isArray(o))
+    .slice(0, OCCASIONS_MAX);
+}
+
 function pickCompanyName(metadata: Record<string, unknown> | undefined): string {
   const v = metadata?.['company_name'];
   return typeof v === 'string' ? v.trim() : '';
@@ -137,6 +162,7 @@ function userToProfile(u: { id: string; email?: string | null; user_metadata?: R
     company_logo_url: pickHttpsUrl(meta, 'company_logo_url'),
     avatar_url: pickHttpsUrl(meta, 'avatar_url'),
     inactivity_months: pickInactivityMonths(meta),
+    occasions: pickOccasions(meta),
   };
 }
 
@@ -266,6 +292,7 @@ export const settingsApi: SettingsApi = {
     // Clamped on write as well as on read: the control offers 6-9, and a value
     // outside that range must never reach the extension's copy of this rule.
     if (patch.inactivity_months !== undefined) next['inactivity_months'] = clampMonths(patch.inactivity_months);
+    if (patch.occasions !== undefined) next[OCCASIONS_KEY] = patch.occasions.slice(0, OCCASIONS_MAX);
 
     const { data, error } = await supabase.auth.updateUser({ data: next });
     if (error) throw toApiError(error);

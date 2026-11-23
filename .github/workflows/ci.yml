@@ -80,6 +80,9 @@ jobs:
       - name: Brain inside a prompt check
         run: node scripts/check-prompt-brain.js
 
+      - name: AI app link (MCP) check
+        run: node scripts/check-mcp-link.js
+
       - name: Santo del Giorno + Christmas countdown parity check
         run: node scripts/check-saint-of-day.js
 
@@ -88,6 +91,12 @@ jobs:
 
       - name: Phone Pomodoro timer parity check
         run: node scripts/sync-focus-timer.js --check
+
+      - name: Seasonal line parity check
+        run: node scripts/sync-season.js --check
+
+      - name: Your details parity check
+        run: node scripts/sync-my-details.js --check
 
       - name: Ask Fibonax parity check
         run: node scripts/check-ask-knowledge.js

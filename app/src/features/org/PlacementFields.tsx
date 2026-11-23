@@ -1,3 +1,4 @@
+import { AutofillHint } from '@/components/shared/AutofillHint';
 import { Input } from '@/components/ui/input';
 import { JOB_TITLE_MAX } from '@/lib/orgChart';
 import { cn } from '@/lib/utils';
@@ -64,9 +65,12 @@ export function PlacementFields({
       </div>
 
       <div className="grid content-start gap-1.5">
-        <label htmlFor={titleFieldId} className="text-xs font-medium text-ink-muted">
-          Job title
-        </label>
+        <span className="flex items-center gap-1.5">
+          <label htmlFor={titleFieldId} className="text-xs font-medium text-ink-muted">
+            Job title
+          </label>
+          <AutofillHint detail="job title" />
+        </span>
         <Input
           id={titleFieldId}
           value={jobTitle}

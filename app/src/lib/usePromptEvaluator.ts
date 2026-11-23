@@ -40,60 +40,69 @@ interface BlockSpec {
   signal?: RegExp;
   /** Characters needed for a length-based pass. */
   strongChars: number;
-  /** What a strong version of this block contains (used in rationale). */
+  /** What a strong version of this part contains, as a sentence (used in rationale). */
   signalHint: string;
+  /** The one-click fix when the part is off: the editor's own words for adding it. */
+  addLabel: string;
   /** Ready-to-adapt sample shown when the block is weak or missing. */
   example: string;
 }
 
+// The labels use the prompt editor's words for each part (Who the AI is,
+// Background, An example, Rules), not the block names the saved text keeps.
 const BLOCK_SPECS: BlockSpec[] = [
   {
     type: 'role',
-    label: 'Role defined',
-    description: 'The AI persona or role is specified in the Role block.',
+    label: 'Who the AI is',
+    description: 'The prompt tells the AI what role to take.',
     weight: 1.5,
     signal: /\b(you are|you're|act as|your role|as an?|expert|specialist|senior|professional)\b/i,
     strongChars: 18,
-    signalHint: 'name a clear role or area of expertise',
+    signalHint: 'Name a role or an area of expertise.',
+    addLabel: 'Add who the AI is',
     example: 'You are a senior B2B copywriter with 10 years of SaaS experience.',
   },
   {
     type: 'objective',
-    label: 'Clear objective',
-    description: 'The task or goal is clearly stated in the Objective block.',
+    label: 'Clear task',
+    description: 'The prompt says clearly what the AI should do. It counts the most.',
     weight: 2,
     signal: /\b(write|create|generate|analy[sz]e|review|summari[sz]e|explain|build|draft|produce|design|translate|classify|extract|list|compare|evaluate|plan|fix|refactor|respond|rewrite|describe)\b/i,
     strongChars: 20,
-    signalHint: 'start with a clear action verb (Write, Analyze, Generate…)',
+    signalHint: 'Start with an action, like Write, Summarise or Check.',
+    addLabel: 'Add the task',
     example: 'Write a 150-word product announcement email for a new feature.',
   },
   {
     type: 'context',
-    label: 'Context provided',
-    description: 'Relevant background information is supplied.',
+    label: 'Background given',
+    description: 'The AI gets the background it needs.',
     weight: 1,
     strongChars: 40,
-    signalHint: 'add the background the model needs (audience, goal, source data)',
+    signalHint: 'Add what the AI needs to know: who it is for, the goal, the facts.',
+    addLabel: 'Add background',
     example: 'The audience is existing Pro-plan customers; tone is friendly but concise.',
   },
   {
     type: 'constraints',
-    label: 'Constraints defined',
-    description: "Rules or boundaries for the model's response are explicit.",
+    label: 'Rules set',
+    description: 'The prompt sets limits for the answer.',
     weight: 1.5,
     signal: /\b(must|must not|do not|don'?t|never|always|only|avoid|ensure|limit|no more than|at most|at least|within|exactly|word|tone)\b/i,
     strongChars: 14,
-    signalHint: 'state limits or rules (length, tone, what to avoid)',
+    signalHint: 'Set limits, like length, tone or what to avoid.',
+    addLabel: 'Add rules',
     example: 'Keep it under 150 words. Do not use jargon. Avoid emojis.',
   },
   {
     type: 'examples',
-    label: 'Examples included',
-    description: 'Input/output examples guide the model toward the expected format.',
+    label: 'Example included',
+    description: 'An example shows the AI what a good answer looks like.',
     weight: 1,
     signal: /(example|e\.g\.|input:|output:|->|→|\n)/i,
     strongChars: 20,
-    signalHint: 'show at least one input → output example',
+    signalHint: 'Show one example of a good answer.',
+    addLabel: 'Add an example',
     example: 'Input: "great product" → Output: {"sentiment":"positive"}',
   },
 ];
@@ -119,19 +128,17 @@ function gradeBlock(blocks: PromptBlock[], spec: BlockSpec): EvalCriterion {
     return { ...base, status: 'pass', value: 1, rationale: 'A Brain provides the context.' };
   }
 
-  // Not contributing at all — empty or switched off.
+  // Not contributing at all: empty or not added.
   if (!enabled || !content) {
     return {
       ...base,
       status: 'fail',
       value: 0,
-      rationale: enabled
-        ? `The ${spec.type} block is enabled but empty — ${spec.signalHint}.`
-        : `The ${spec.type} block is off — ${spec.signalHint}.`,
+      rationale: enabled ? `Still empty. ${spec.signalHint}` : `Not added yet. ${spec.signalHint}`,
       example: spec.example,
-      // Auto-fix only makes sense when the block is off; an empty enabled
-      // block just needs the user to type.
-      suggestionLabel: !enabled ? `Enable ${spec.type} block` : undefined,
+      // Auto-fix only makes sense when the part is off; an empty part that is
+      // on just needs the user to type.
+      suggestionLabel: !enabled ? spec.addLabel : undefined,
     };
   }
 
@@ -145,11 +152,11 @@ function gradeBlock(blocks: PromptBlock[], spec: BlockSpec): EvalCriterion {
   // Present but weak → partial credit, with a targeted reason.
   let rationale: string;
   if (!hasSignal && !longEnough) {
-    rationale = `Thin — add more detail and ${spec.signalHint}.`;
+    rationale = `Add more detail. ${spec.signalHint}`;
   } else if (!hasSignal) {
-    rationale = `Present, but ${spec.signalHint}.`;
+    rationale = `Almost there. ${spec.signalHint}`;
   } else {
-    rationale = `A bit short (${content.length}/${spec.strongChars} chars) — add more detail.`;
+    rationale = `A bit short (${content.length} of ${spec.strongChars} characters). Add more detail.`;
   }
 
   return { ...base, status: 'partial', value: PARTIAL_VALUE, rationale, example: spec.example };
@@ -226,8 +233,8 @@ function signalCriterion(
 function depthCriterion(assembledLength: number): EvalCriterion {
   const base = {
     id: 'depth',
-    label: 'Sufficient depth',
-    description: 'The assembled prompt is detailed enough to be unambiguous.',
+    label: 'Enough detail',
+    description: 'The whole prompt is detailed enough to be clear.',
     weight: 1,
   };
   if (assembledLength >= DEPTH_PASS_CHARS) {
@@ -238,16 +245,16 @@ function depthCriterion(assembledLength: number): EvalCriterion {
       ...base,
       status: 'partial',
       value: PARTIAL_VALUE,
-      rationale: `Getting there (${assembledLength}/${DEPTH_PASS_CHARS} chars) — a fuller prompt scores higher.`,
-      example: 'Fuller prompts (role + objective + constraints) consistently perform better.',
+      rationale: `Getting there (${assembledLength} of ${DEPTH_PASS_CHARS} characters). A fuller prompt scores higher.`,
+      example: 'Prompts with a role, a clear task and rules work best.',
     };
   }
   return {
     ...base,
     status: 'fail',
     value: 0,
-    rationale: `Too thin (${assembledLength} chars) — the model has little to work with.`,
-    example: 'Fuller prompts (role + objective + constraints) consistently perform better.',
+    rationale: `Very short (${assembledLength} characters). The AI has little to work with.`,
+    example: 'Prompts with a role, a clear task and rules work best.',
   };
 }
 
@@ -263,45 +270,46 @@ export function evaluatePrompt(input: EvaluatorInput): EvalResult {
 
   const criteria: EvalCriterion[] = [
     ...BLOCK_SPECS.map((spec) => gradeBlock(blocks, spec)),
+    // The panel puts "e.g." in front of every example, so none starts with it.
     signalCriterion(
-      'audience', 'Audience specified',
-      'The target audience or reading level is named so the model pitches tone and depth correctly.',
+      'audience', 'Audience named',
+      'The prompt says who the answer is for, so the AI picks the right tone and depth.',
       0.75, assembled, AUDIENCE_SIGNAL,
       'An audience or reading level is named.',
-      'No audience named — tell the model who the response is for.',
-      'e.g. "Write for non-technical managers." or "Explain it to a beginner."',
+      'No audience named. Say who the answer is for.',
+      '"Write for non-technical managers." or "Explain it to a beginner."',
       'Name the audience',
     ),
     signalCriterion(
-      'refinement', 'Self-check requested',
-      'The prompt asks the model to verify its work or flag uncertainty, reducing confident mistakes.',
+      'refinement', 'Self-check asked',
+      'The prompt asks the AI to check its work or flag doubts, so it makes fewer confident mistakes.',
       0.75, assembled, REFINEMENT_SIGNAL,
-      'A verification or self-check step is requested.',
-      'No self-check step — ask the model to verify its answer or flag what it is unsure about.',
-      'e.g. "Double-check the result and flag anything you are unsure about."',
+      'The AI is asked to check its work.',
+      'No self-check. Ask the AI to check its answer and flag anything it is unsure about.',
+      '"Double-check the result and flag anything you are unsure about."',
       'Add self-check',
     ),
     metadataCriterion(
-      'output_format', 'Output format set',
-      'The expected output type (JSON, Markdown, etc.) is specified.',
+      'output_format', 'Answer format set',
+      'The answer format (Plain, Markdown, JSON or SOP) is chosen in More options.',
       1, outputType !== null,
-      'No output format set — the model may return an unexpected shape.',
-      'Set to Plain text', 'e.g. JSON, Markdown, SOP, or Plain.',
+      'No answer format chosen, so the AI may answer in a shape you did not expect.',
+      'Set to Plain text', 'Plain, Markdown, JSON or SOP.',
     ),
     metadataCriterion(
-      'strategy', 'Strategy selected',
-      'A prompting strategy (CoT, Few-shot, etc.) has been chosen.',
+      'strategy', 'Strategy chosen',
+      'A strategy (CoT, Few-shot and others) is chosen in More options.',
       1, strategyType !== null,
-      'No prompting strategy chosen.',
-      'Apply One-shot', 'e.g. Chain-of-Thought for reasoning, Few-shot for format.',
+      'No strategy chosen.',
+      'Apply One-shot', 'CoT to think step by step, Few-shot to follow examples.',
     ),
     depthCriterion(assembled.trim().length),
     metadataCriterion(
-      'model', 'Model selected',
-      'A preferred model has been specified.',
+      'model', 'AI model chosen',
+      'A preferred AI model is set.',
       0.5, preferredModel !== null,
-      'No preferred model selected.',
-      'Use Sonnet 4', 'e.g. Opus for hard reasoning, Haiku for speed.',
+      'No AI model chosen.',
+      'Use Sonnet 4', 'Opus for hard thinking, Haiku for speed.',
     ),
   ];
 

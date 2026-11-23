@@ -12,6 +12,16 @@ admits, and entering a step returns only the bodies that were newly attached, so
 a step change costs the tokens the step introduces rather than the tokens of
 everything it needs.
 
+> **Most people want the hosted link instead.** Settings > Integrations > AI apps
+> makes a private link that Claude, ChatGPT and other AI apps take as it is:
+> nothing to install, prompts as well as Brains, switched off from the same card.
+> It is `services/supabase/functions/mcp/` and is described in the manual at
+> docs.fibonax.com/integrations/ai-apps. This server is for the step-by-step
+> working memory below, which only a local process can hold.
+>
+> Keys are shared: a key made in Settings also works here (`FIBONAX_MEMORY_TOKEN`),
+> and the AI apps card lists the keys made here, so either place can switch one off.
+
 ## Requirements
 
 - Node 22.18 or newer. The server runs TypeScript directly via Node's native

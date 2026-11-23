@@ -46,9 +46,9 @@ function SnippetScene({ frame }: { frame: number }) {
 }
 
 const PROMPT_BLOCKS = [
-  { label: 'Role', text: 'You are my project assistant.', start: 8 },
-  { label: 'Objective', text: 'Turn my notes into a clear project brief.', start: 21 },
-  { label: 'Constraints', text: 'Keep it concise. End with next steps.', start: 36 },
+  { label: 'Who the AI is', text: 'You are my project assistant.', start: 8 },
+  { label: 'What should the AI do?', text: 'Turn my notes into a clear project brief.', start: 21 },
+  { label: 'Rules', text: 'Keep it concise. End with next steps.', start: 36 },
 ] as const;
 
 function PromptScene({ frame }: { frame: number }) {

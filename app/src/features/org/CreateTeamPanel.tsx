@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 import { Loader2, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { AutofillHint } from '@/components/shared/AutofillHint';
+import { COMPANY_NAME_MAX } from '@/lib/branding';
 import { useAuthStore } from '@/stores/authStore';
 import { useOrgStore } from '@/stores/orgStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { useUiStore } from '@/stores/uiStore';
 
 interface CreateTeamPanelProps {
@@ -44,19 +47,30 @@ export function CreateTeamPanel({ compact = false, blurb, onCreated }: CreateTea
   const createTeam = useOrgStore((s) => s.createTeam);
   const showToast = useUiStore((s) => s.showToast);
 
-  const [name, setName] = useState(() => prefillName(user?.user_metadata));
+  const editProfile = useSettingsStore((s) => s.editProfile);
+  const savedCompany = prefillName(user?.user_metadata);
+
+  // The company name is required here: the team's snippets sign and send
+  // their wishes with it ({my: company}), and every member uses the one of
+  // whoever created the team. It is the Company branding of Settings, not a
+  // field of its own. The team name follows it until it is typed in.
+  const [company, setCompany] = useState(savedCompany);
+  const [name, setName] = useState(savedCompany);
+  const [nameTouched, setNameTouched] = useState(false);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const trimmed = name.trim();
+  const companyTrimmed = company.trim();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (trimmed === '' || working) return;
+    if (trimmed === '' || companyTrimmed === '' || working) return;
 
     setWorking(true);
     setError(null);
     try {
+      if (companyTrimmed !== savedCompany) await editProfile({ company_name: companyTrimmed });
       await createTeam(trimmed);
       showToast(`Team created. You're the admin.`);
       await onCreated?.();
@@ -95,9 +109,37 @@ export function CreateTeamPanel({ compact = false, blurb, onCreated }: CreateTea
       {compact && blurb !== undefined && <p className="text-xs text-ink-muted">{blurb}</p>}
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-2">
+        <span className="flex items-center gap-1.5">
+          <label
+            htmlFor="create-team-company"
+            className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle"
+          >
+            Company name
+          </label>
+          <AutofillHint detail="company" />
+        </span>
+        <Input
+          id="create-team-company"
+          type="text"
+          autoFocus
+          required
+          maxLength={COMPANY_NAME_MAX}
+          autoComplete="organization"
+          placeholder="Acme Ltd"
+          value={company}
+          translate="no"
+          onChange={(e) => {
+            setCompany(e.target.value);
+            if (!nameTouched) setName(e.target.value);
+          }}
+          disabled={working}
+        />
+        <p className="text-[11px] text-ink-subtle">
+          Your team&apos;s snippets sign and send their wishes with it. Saved in Settings &gt; Company branding.
+        </p>
         <label
           htmlFor="create-team-name"
-          className="text-[11px] font-semibold uppercase tracking-wider text-ink-subtle"
+          className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-ink-subtle"
         >
           Team name
         </label>
@@ -106,16 +148,18 @@ export function CreateTeamPanel({ compact = false, blurb, onCreated }: CreateTea
             <Input
               id="create-team-name"
               type="text"
-              autoFocus
               maxLength={60}
-              autoComplete="organization"
               placeholder="Acme Ltd"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              translate="no"
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameTouched(true);
+              }}
               disabled={working}
             />
           </div>
-          <Button type="submit" disabled={working || trimmed === ''}>
+          <Button type="submit" disabled={working || trimmed === '' || companyTrimmed === ''}>
             {working ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Create team
           </Button>

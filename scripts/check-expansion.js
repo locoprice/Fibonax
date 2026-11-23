@@ -34,6 +34,12 @@ const STATS_SRC = fs.readFileSync(
 // The same goes for the Interactive Steps setting it reads while loading.
 const STEPS_SRC = fs.readFileSync(
   path.join(__dirname, '..', 'extension', 'shared', 'interactive-steps.js'), 'utf8');
+// And for the person's occasions (the seasonal line), read while loading too.
+const SEASON_SRC = fs.readFileSync(
+  path.join(__dirname, '..', 'extension', 'shared', 'season.js'), 'utf8');
+// And for the details of the person using a snippet ({my: …}).
+const MY_DETAILS_SRC = fs.readFileSync(
+  path.join(__dirname, '..', 'extension', 'shared', 'my-details.js'), 'utf8');
 
 // Mirrors the production shapes that collide: a shortcut that opens a longer
 // word ("neob"), a shortcut that is the prefix of another ("form"/"forms"), and
@@ -95,6 +101,8 @@ try {
   vm.runInContext(ENGINE_SRC, sandbox);
   vm.runInContext(STATS_SRC, sandbox);
   vm.runInContext(STEPS_SRC, sandbox);
+  vm.runInContext(MY_DETAILS_SRC, sandbox);
+  vm.runInContext(SEASON_SRC, sandbox);
   vm.runInContext(CONTENT_SRC, sandbox);
 } catch (e) {
   fail('content.js failed to evaluate in the gate context: ' + e.message);
