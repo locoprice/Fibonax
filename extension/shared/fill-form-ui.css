@@ -123,6 +123,17 @@
 .ff-next .ff-next-hide:hover{background:var(--sb-bg,var(--card,#fff));color:var(--ffn-primary);}
 .ff-next .ff-next-hide:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
 .ff-next svg{display:block;}
+/* The cross asks first: the question, Stop, and Keep (filled, the safe one).
+   The question also stands alone on the page's summary card. A pair hidden
+   with Stop stays as one quiet line with Bring back. */
+.ff-next-ask{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);display:flex;flex:1 1 auto;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;padding:6px 0;box-sizing:border-box;}
+.ff-next-q{flex:1 1 160px;min-width:0;font-size:14px;line-height:1.3;font-weight:600;color:var(--ffn-primary);overflow-wrap:anywhere;}
+.ff-next .ff-next-gone{flex:1 1 auto;min-width:0;font-size:14px;line-height:1.3;color:var(--ffn-muted);overflow-wrap:anywhere;}
+.ff-next-btn,#sb-overlay .ff-next-btn,#sb-celebrate .ff-next-btn{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:none;min-height:40px;padding:0 14px;border:1px solid var(--ffn-bdr);border-radius:10px;background:var(--sb-bg,var(--card,#fff));font:inherit;font-size:14px;font-weight:600;color:var(--ffn-primary);cursor:pointer;}
+.ff-next-btn:hover,#sb-overlay .ff-next-btn:hover,#sb-celebrate .ff-next-btn:hover{border-color:var(--ffn-primary);}
+.ff-next-btn--main,#sb-overlay .ff-next-btn--main,#sb-celebrate .ff-next-btn--main{background:var(--ffn-primary);border-color:var(--ffn-primary);color:#fff;}
+.ff-next-btn:focus-visible,#sb-overlay .ff-next-btn:focus-visible,#sb-celebrate .ff-next-btn:focus-visible{outline:2px solid var(--ffn-primary);outline-offset:2px;}
+.ff-nexts--list>.ff-next--hidden{background:transparent;border-style:dashed;}
 /* The list under a preview: a heading, then one full-width row per snippet. */
 .ff-nexts--list{--ffn-primary:var(--sb-azure,var(--primary,#1B4FD8));--ffn-bg:var(--sb-azure-bg,var(--primary-lt,#EEF2FF));--ffn-bdr:var(--sb-azure-bdr,#BED0FF);flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;margin:0;padding:12px;border:1px solid var(--ffn-bdr);border-radius:12px;background:var(--ffn-bg);}
 .ff-nexts--list .ff-nexts-head{margin:0 0 2px;font-size:13px;line-height:1.4;font-weight:600;color:var(--ffn-primary);}

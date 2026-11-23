@@ -1470,14 +1470,20 @@ function mountDetailNext(wrap){
   var acts=wrap.querySelector('.d-acts');
   if(!s||!ui||!acts) return;
   var list=ui.nextsFor(nextMap, s.id, snips, nextHidden);
-  if(!list.length) return;
-  var offer=ui.nextOffer(document, list, function(next){
-    nextHidden=ui.hideNext(nextHidden, s.id, next.id);
+  var hidden=ui.hiddenNextsFor(nextMap, s.id, snips, nextHidden);
+  if(!list.length&&!hidden.length) return;
+  // The cross asks first; a pair hidden with Stop stays as "Firma hidden"
+  // with Bring back, which takes it out of sb_next_hidden again.
+  function keep(h){
+    nextHidden=h;
     try{ chrome.storage.local.set({ sb_next_hidden: nextHidden }); }
     catch(e){ console.error('[Fibonax] could not remember the hidden suggestion:', e); }
+  }
+  var offer=ui.nextOffer(document, list, function(next){
+    keep(ui.hideNext(nextHidden, s.id, next.id));
   }, function(picked){
     ui.nextPreview(wrap.querySelector('.d-body'), picked);
-  }, { list:true });
+  }, { list:true, hidden:hidden, onShow:function(next){ keep(ui.showNext(nextHidden, s.id, next.id)); } });
   // Right under the preview and its picture line, above the note and buttons.
   wrap.insertBefore(offer.el, wrap.querySelector('.d-note')||acts);
   detailNext={ id:s.id, offer:offer };

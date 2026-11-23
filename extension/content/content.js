@@ -138,9 +138,22 @@ function _nextsFor(snip) {
   return ui && ui.nextsFor && snip ? ui.nextsFor(nextMap, snip.id, snippets, nextHidden) : [];
 }
 
-// The cross: this pair stays hidden on this browser for NEXT_HIDE_DAYS.
+// The ones the cross hid, still listed as "Firma hidden" with Bring back.
+function _hiddenNextsFor(snip) {
+  var ui = window.SBFillFormUI;
+  return ui && ui.hiddenNextsFor && snip ? ui.hiddenNextsFor(nextMap, snip.id, snippets, nextHidden) : [];
+}
+
+// The cross, once confirmed: this pair stays hidden on this browser for
+// NEXT_HIDE_DAYS. Bring back (_showNext) undoes it.
 function _hideNext(snip, next) {
-  nextHidden = window.SBFillFormUI.hideNext(nextHidden, snip.id, next.id);
+  _keepNextHidden(window.SBFillFormUI.hideNext(nextHidden, snip.id, next.id));
+}
+function _showNext(snip, next) {
+  _keepNextHidden(window.SBFillFormUI.showNext(nextHidden, snip.id, next.id));
+}
+function _keepNextHidden(hidden) {
+  nextHidden = hidden;
   try {
     chrome.storage.local.set({ sb_next_hidden: nextHidden });
   } catch (e) { console.error('[Fibonax] could not remember the hidden suggestion:', e); }
@@ -181,6 +194,7 @@ function _cardNext(el, snip, text, inField, snapshot, finish) {
   return {
     items: list,
     onHide: function(next) { _hideNext(snip, next); },
+    onShow: function(next) { _showNext(snip, next); },
     onAdd: function(picked) {
       // The first text went in formatted when one of these is: so do they all.
       var formatted = _takesFormatting(el) && picked.some(function(next) { return !!ui.nextText(next).formatted; });
@@ -2463,11 +2477,12 @@ function showOverlay(targetEl, snip, scLen, done) {
   // what each ticked one adds. Unticked: nothing extra goes in unless the
   // person ticks it, and what is ticked goes in in that order.
   var nexts = _nextsFor(snip);
+  var nextsHidden = _hiddenNextsFor(snip);
   el._sbNext = null;
-  if (nexts.length) {
+  if (nexts.length || nextsHidden.length) {
     el._sbNext = window.SBFillFormUI.nextOffer(document, nexts, function(next) { _hideNext(snip, next); }, function(picked) {
       window.SBFillFormUI.nextPreview(el.querySelector('#sb-prev'), picked);
-    }, { list: true });
+    }, { list: true, hidden: nextsHidden, onShow: function(next) { _showNext(snip, next); } });
     el.querySelector('.sb-preview').appendChild(el._sbNext.el);
   }
 
@@ -3813,11 +3828,26 @@ function showCelebration(text, onConfirm, onUndo, options) {
       // Add Firma: the card goes, and the caller puts the first text (when it
       // is not in yet) and the next one in the field.
       addBtn.addEventListener('click', function() { settle(function() { next.onAdd([nextOne]); }); });
-      // The cross hides this pair from now on.
+      // The cross asks first. Keep puts the row back; Stop hides this pair,
+      // and the popup's list keeps it as "Firma hidden" with Bring back.
       card.querySelector('#sb-cel-next-hide').addEventListener('click', function() {
         if (settled) return;
-        next.onHide(nextOne);
-        nextGone();
+        var row = card.querySelector('#sb-cel-next-row');
+        var parts = Array.prototype.slice.call(row.childNodes);
+        var ask = window.SBFillFormUI.nextAsk(document, nextOne, function() {
+          if (settled) return;
+          next.onHide(nextOne);
+          nextGone();
+        }, function() {
+          row.textContent = '';
+          parts.forEach(function(n) { row.appendChild(n); });
+          row.classList.remove('sb-cel-next-ask');
+          card.querySelector('#sb-cel-next-hide').focus();
+        });
+        row.textContent = '';
+        row.classList.add('sb-cel-next-ask');
+        row.appendChild(ask.el);
+        ask.focus();
       });
     } else {
       // Several: Add names what is ticked, and puts them in in that order.
@@ -3826,7 +3856,7 @@ function showCelebration(text, onConfirm, onUndo, options) {
         if (!left) { nextGone(); return; }
         addBtn.disabled = !picked.length;
         addBtn.textContent = !picked.length ? nw('add-none') : picked.length === 1 ? nw('add', picked[0].title) : nw('add-many', picked.length);
-      });
+      }, { onShow: next.onShow });
       addBtn.parentNode.insertBefore(nextRows.el, addBtn);
       addBtn.addEventListener('click', function() {
         // Read before the card goes: the rows answer only while they show.
