@@ -129,6 +129,7 @@ function bootContent(answer, stepsOn) {
   vm.createContext(sandbox);
   vm.runInContext(read('extension', 'formula-engine.js'), sandbox);
   vm.runInContext(read('extension', 'shared', 'snippet-stats.js'), sandbox);
+  vm.runInContext(read('extension', 'shared', 'asset-search.js'), sandbox);
   vm.runInContext(PACK_SRC, sandbox);
   vm.runInContext(STEPS_SRC, sandbox);
   vm.runInContext(CONTENT_SRC, sandbox);

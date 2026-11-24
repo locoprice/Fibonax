@@ -204,6 +204,7 @@ function bootContent(initialArea) {
   // manifest.json order, as far as content.js needs it.
   vm.runInContext(readText(path.join(ROOT, 'extension', 'formula-engine.js')), sandbox);
   vm.runInContext(readText(path.join(ROOT, 'extension', 'shared', 'snippet-stats.js')), sandbox);
+  vm.runInContext(readText(path.join(ROOT, 'extension', 'shared', 'asset-search.js')), sandbox);
   vm.runInContext(MODULE_SRC, sandbox);
   vm.runInContext(readText(path.join(ROOT, 'extension', 'content', 'content.js')), sandbox);
 

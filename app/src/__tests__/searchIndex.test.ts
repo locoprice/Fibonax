@@ -371,4 +371,33 @@ describe('hidden metadata search explanation', () => {
     expect(metadataMatch('   ', ['Disclaimer'], ['Legal'])).toBeNull();
     expect(metadataMatch('billing', ['Disclaimer'], ['Legal'])).toBeNull();
   });
+  it('shows the sentence a word was found in when only the text holds it', () => {
+    expect(metadataMatch('parking', ['Arrival'], [], [], ['We will wait for you at the parking area.']))
+      .toEqual({ kind: 'Text', before: 'We will wait for you at the ', hit: 'parking', after: ' area.' });
+    expect(metadataMatch('arrival', ['Arrival'], [], [], ['arrival time'])).toBeNull();
+  });
+});
+
+describe('several words', () => {
+  it('finds what holds every word, in any order and any distance apart', () => {
+    const row = snippet('s1', 'Arrival', { content: 'Opening hours are 9 to 18. The parking is behind the office.' });
+    expect(scoreSnippet(row, 'parking hours')).toBeGreaterThan(0);
+    expect(scoreSnippet(row, 'arrival parking')).toBeGreaterThan(0);
+    expect(scoreSnippet(row, 'parking refund')).toBe(0);
+  });
+
+  it('applies to prompts, Brain items and Brains alike', () => {
+    expect(scorePrompt(prompt('p1', 'Summarise', { content: 'keep it short' }), 'short summarise')).toBeGreaterThan(0);
+    expect(scorePrompt(prompt('p1', 'Summarise', { content: 'keep it short' }), 'short invoice')).toBe(0);
+    expect(scoreMemoryItem(item('i1', 'Tone', { body: 'never use jargon' }), 'jargon tone')).toBeGreaterThan(0);
+    expect(scoreMemoryItem(item('i1', 'Tone', { body: 'never use jargon' }), 'jargon price')).toBe(0);
+    expect(scoreSpace(space('sp1', 'Clients', { description: 'billing facts' }), 'billing clients')).toBeGreaterThan(0);
+    expect(scoreSpace(space('sp1', 'Clients', { description: 'billing facts' }), 'billing staff')).toBe(0);
+  });
+
+  it('reads a field as the name it carries, never as the code that writes it', () => {
+    const row = snippet('s1', 'Arrival', { content: 'Dear {formtext: name=client}, welcome.' });
+    expect(scoreSnippet(row, 'client')).toBeGreaterThan(0);
+    expect(scoreSnippet(row, 'formtext')).toBe(0);
+  });
 });

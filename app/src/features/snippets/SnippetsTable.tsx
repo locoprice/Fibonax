@@ -569,6 +569,7 @@ export function SnippetsTable() {
                           keywords={row.alternative_queries}
                           query={filterQuery}
                           visibleText={[displayName, ...row.triggers]}
+                          text={group.variants.flatMap((variant) => [variant.content, ...Object.values(variant.bodies)])}
                           languages={multiLang ? (
                             <LangSwitcher
                               group={group}

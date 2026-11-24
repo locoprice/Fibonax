@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Fibonax | Advanced prompt engineering | Native AI Snippets | Memory Layer",
   "short_name": "Fibonax",
-  "version": "3.157.0",
+  "version": "3.158.0",
   "description": "AI prompt library and text expander. Free team sharing and dynamic snippets with live formulas.",
   "permissions": [
     "storage",
@@ -37,6 +37,7 @@
       "js": [
         "formula-engine.js",
         "shared/snippet-stats.js",
+        "shared/asset-search.js",
         "shared/memory-pack.js",
         "shared/my-details.js",
         "shared/season.js",

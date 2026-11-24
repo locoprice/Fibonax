@@ -583,6 +583,19 @@ Close details and outside click dismiss it. Only one panel is open at a time.
 A matching hidden keyword or label is named in the result row. Search semantics
 and stored metadata remain intact. Use the existing surface, text and focus tokens.
 
+**The line that says why a result is listed.** One rule on every surface
+(`extension/shared/asset-search.js`): every typed word has to be somewhere in the
+name, trigger, keywords, labels or text. When the row does not show a word, a
+line under it says where it was found: `Keyword: …`, `Label: …`, or the piece of
+text around the word, about 40 characters each side, cut at whole words, with `…`
+where it was cut. The line is 12 px in the muted text colour and wraps to at most
+two lines in the popup and the menu on a page. The found word is semibold in the
+primary blue, with no background, so it reads the same on a highlighted row.
+Same line for snippets, prompts and Brain items: `SearchReasonLine` on the
+dashboard, `.why` in the popup, `.search-match` on the phone, written in place in
+the `::` and `"""` menus. A field in a text reads as the name it carries, never as
+its code. On the dashboard the piece of text carries `translate="no"`.
+
 On phones, Details opens the existing information sheet, with full metadata,
 a 44px close target and keyboard dismissal. This adapts the approved progressive
 disclosure pattern to touch, following Apple popover guidance and WCAG hover/focus

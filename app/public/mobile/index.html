@@ -595,6 +595,7 @@ body.sb-opening .home-hero,body.sb-opening .home-body{animation:sb-open-rise .5s
 .search-details:active{background:var(--bg-alt)}
 .search-details:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
 .search-match{font-size:12px;color:var(--text2);overflow-wrap:anywhere;margin-top:4px}
+.search-match mark{background:none;color:var(--primary-copy);font-weight:600}
 .sb-info-row.is-multi .sb-info-v{white-space:normal;overflow:visible;text-overflow:clip;
   overflow-wrap:anywhere;line-height:1.6}
 .sb-info-item{white-space:nowrap}
@@ -7569,6 +7570,213 @@ svg.brain-type-icon{stroke-width:1.8}
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
 </script>
 <!-- SB_MEMORY_CHUNK:END -->
+<!-- SB_ASSET_SEARCH:BEGIN (generated from extension/shared/asset-search.js by scripts/sync-asset-search.js, do not edit) -->
+<script>
+// SEARCHING SNIPPETS, PROMPTS AND BRAINS: one rule for "does this match, and why".
+//
+// Every search box reads this file: the popup, the menu a trigger opens on a
+// page, the phone (an inlined copy, scripts/sync-asset-search.js) and the
+// dashboard (app/src/lib/searchIndex.ts, held to this file by
+// app/src/__tests__/assetSearch.test.ts). A snippet used to be found by its
+// text on the dashboard and the phone and only by its name in the extension,
+// which is the one place people look for it while they are writing.
+//
+// The rule:
+//   1. The typed words are looked for one by one. Every word has to be
+//      somewhere in the asset; the order and the distance between them do not
+//      matter ("parking hours" finds a text that says "hours of the parking").
+//   2. An asset is read through everything it carries: what its row prints
+//      (name, trigger), its search keywords, its labels and its text.
+//   3. A result whose row already shows every word ranks above one found
+//      through something the row does not show (the popup and the menu list
+//      them in that order, so Enter still picks the one named that way). The
+//      second kind says why on a line of its own: the keyword, the label, or
+//      the piece of text around the word.
+//   4. Text is read the way a person reads it: a field or a formula counts as
+//      the name it carries, never as the code that writes it, so "formtext"
+//      finds nothing and a field called "address" is found by "address".
+(function (root) {
+  'use strict';
+
+  // Characters of text kept on each side of the word that was found.
+  var RADIUS = 40;
+
+  // A token the engine reads: {formtext: name=x}, {=price*2}, {brain: id=…},
+  // and the ones that close a rule or a button: {endif}, {else}, {/case}.
+  // Any other bare {word} is left alone: in a prompt it is the person's text.
+  var TOKEN_RE = /\{(?:=|\/?[a-z]+:)[^{}]*\}|\{(?:endif|else|\/[a-z]+)\}/gi;
+  var TOKEN_NAME_RE = /(?:^|[;:{]\s*)name=([^;}]*)/i;
+
+  // Lower case that never changes the length of the text, so a position found
+  // in the lowered copy is the same position in the text that is printed.
+  function lower(text) {
+    var low = text.toLowerCase();
+    if (low.length === text.length) return low;
+    var out = '';
+    for (var i = 0; i < text.length; i++) out += text.charAt(i).toLowerCase().charAt(0) || text.charAt(i);
+    return out;
+  }
+
+  function str(value) {
+    return value == null ? '' : String(value);
+  }
+
+  function list(values) {
+    return Array.isArray(values) ? values : [];
+  }
+
+  /** The typed words, lower case, each one once. */
+  function words(query) {
+    var parts = lower(str(query)).split(/\s+/), out = [];
+    for (var i = 0; i < parts.length; i++) {
+      if (parts[i] && out.indexOf(parts[i]) === -1) out.push(parts[i]);
+    }
+    return out;
+  }
+
+  var readCache = {}, readCount = 0;
+
+  /** A text as a person reads it: tokens as the name they carry, on one line. */
+  function readable(text) {
+    var raw = str(text);
+    if (!raw) return '';
+    var hit = readCache[raw];
+    if (hit !== undefined) return hit;
+    var out = raw, before, pass = 0;
+    // An inner token first, then the one around it.
+    do {
+      before = out;
+      out = out.replace(TOKEN_RE, function (token) {
+        var named = TOKEN_NAME_RE.exec(token);
+        return named ? ' ' + named[1] + ' ' : ' ';
+      });
+    } while (out !== before && ++pass < 4);
+    // A field taken out leaves its space behind, never in front of a comma.
+    out = out.replace(/\s+/g, ' ').replace(/ ([,.;:!?])/g, '$1').trim();
+    // Bounded: a library is a few thousand texts, typed over many times.
+    if (readCount >= 5000) { readCache = {}; readCount = 0; }
+    readCache[raw] = out; readCount++;
+    return out;
+  }
+
+  function holds(texts, word) {
+    for (var i = 0; i < texts.length; i++) {
+      if (lower(str(texts[i])).indexOf(word) > -1) return true;
+    }
+    return false;
+  }
+
+  function firstHolding(texts, word) {
+    for (var i = 0; i < texts.length; i++) {
+      if (lower(str(texts[i])).indexOf(word) > -1) return str(texts[i]);
+    }
+    return '';
+  }
+
+  /**
+   * The piece of `text` around the first of `wanted` it holds, cut at whole
+   * words: { kind: 'Text', before, hit, after }. Null when it holds none.
+   */
+  function excerpt(text, wanted) {
+    var plain = readable(text), low = lower(plain);
+    var at = -1, word = '';
+    for (var i = 0; i < wanted.length; i++) {
+      var found = low.indexOf(wanted[i]);
+      if (found > -1 && (at === -1 || found < at)) { at = found; word = wanted[i]; }
+    }
+    if (at === -1) return null;
+    var end = at + word.length;
+    var from = Math.max(0, at - RADIUS), to = Math.min(plain.length, end + RADIUS);
+    if (from > 0) {
+      var gap = plain.indexOf(' ', from);
+      from = (gap > -1 && gap < at) ? gap + 1 : from;
+    }
+    if (to < plain.length) {
+      var back = plain.lastIndexOf(' ', to);
+      to = back > end ? back : to;
+    }
+    return {
+      kind: 'Text',
+      before: (from > 0 ? '…' : '') + plain.slice(from, at),
+      hit: plain.slice(at, end),
+      after: plain.slice(end, to) + (to < plain.length ? '…' : '')
+    };
+  }
+
+  /**
+   * How an asset answers what was typed.
+   *
+   * asset:
+   *   shown    what its row prints: name, trigger, a preview
+   *   keywords its search keywords
+   *   labels   the names of its labels
+   *   also     read without a reason given: the Brain an item sits in
+   *   text     its texts, one per language
+   *
+   * Returns null when a word is nowhere in it. Otherwise { rank, why }:
+   *   rank 2   the row already shows every word
+   *   rank 1   found through something the row does not show
+   *   why      what to print under the row, or null:
+   *            { kind: 'Keyword' | 'Label', value } or
+   *            { kind: 'Text', before, hit, after }
+   *
+   * Nothing typed matches everything and explains nothing.
+   */
+  function look(query, asset) {
+    var wanted = words(query);
+    if (!wanted.length) return { rank: 2, why: null };
+    var a = asset || {};
+    var shown = list(a.shown), keywords = list(a.keywords), labels = list(a.labels), also = list(a.also);
+    var text = list(a.text).map(readable);
+    var hidden = [];
+    for (var i = 0; i < wanted.length; i++) {
+      var word = wanted[i];
+      if (holds(shown, word)) continue;
+      if (!holds(keywords, word) && !holds(labels, word) && !holds(also, word) && !holds(text, word)) return null;
+      hidden.push(word);
+    }
+    if (!hidden.length) return { rank: 2, why: null };
+    var why = null;
+    for (var h = 0; h < hidden.length && !why; h++) {
+      var keyword = firstHolding(keywords, hidden[h]);
+      if (keyword) { why = { kind: 'Keyword', value: keyword }; break; }
+      var label = firstHolding(labels, hidden[h]);
+      if (label) why = { kind: 'Label', value: label };
+    }
+    for (var t = 0; t < text.length && !why; t++) why = excerpt(text[t], hidden);
+    return { rank: 1, why: why };
+  }
+
+  function esc(value) {
+    return str(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /** `why` as the line under a row, escaped, the found word inside <mark>. */
+  function whyHtml(why) {
+    if (!why) return '';
+    if (why.kind === 'Text') return esc(why.before) + '<mark>' + esc(why.hit) + '</mark>' + esc(why.after);
+    return why.kind + ': ' + esc(why.value);
+  }
+
+  var API = {
+    words: words,
+    readable: readable,
+    excerpt: excerpt,
+    look: look,
+    whyHtml: whyHtml
+  };
+
+  // UMD: browser globals, CommonJS (the node gate and the dashboard's test).
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = API;
+  } else {
+    root.SBAssetSearch = API;
+  }
+
+}(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
+</script>
+<!-- SB_ASSET_SEARCH:END -->
 <!-- SB_USAGE_ANALYTICS:BEGIN (generated from extension/shared/usage-analytics.js by scripts/sync-usage-analytics.js, do not edit) -->
 <script>
 // USAGE ANALYTICS — one reading of "how is my library being used".
@@ -12429,15 +12637,22 @@ function promptShareBadge(p){
 }
 /* Search and category first. Labels are applied after, so the facet can count
    what picking a label would give rather than what is already showing. */
+/* The first lines of a prompt, as its card prints them. Headings out, and a
+   Brain the prompt carries reads as its name. */
+function promptPreview(p){
+  var cleaned=SBMemoryPack.labelBrainTokens((p.content||'').replace(/^##\s+\w+\n/gm,'')).trim();
+  return cleaned.length>120?cleaned.slice(0,120)+'…':cleaned;
+}
+/* How a prompt answers the search box (the shared rule, see snippetLook):
+   every typed word has to be in its name, category, shortcut, labels or text. */
+function promptLook(p,q){
+  return SBAssetSearch.look(q,{shown:[p.name,p.intent_category,promptPreview(p)],also:[p.shortcut],
+    labels:assetLabelNames(p.id,promptLabelMap,false),text:[p.content]});
+}
 function filterPromptsPreLabel(q){
   return allPrompts.filter(function(p){
     if(curCategory!=='ALL'&&(p.intent_category||'')!==curCategory)return false;
-    if(!q)return true;
-    if((p.name||'').toLowerCase().indexOf(q)>-1)return true;
-    if((p.content||'').toLowerCase().indexOf(q)>-1)return true;
-    if((p.intent_category||'').toLowerCase().indexOf(q)>-1)return true;
-    if(assetLabelNames(p.id,promptLabelMap,false).some(function(name){return name.toLowerCase().includes(q);}))return true;
-    return false;
+    return !q||!!promptLook(p,q);
   });
 }
 /* How many prompts the search and the category leave, before labels: the
@@ -12516,16 +12731,13 @@ function renderPromptList(){
     var outBadge=p.output_type
       ?'<span class="prompt-out">'+esc(p.output_type)+'</span>':'';
     var share=promptShareBadge(p);
-    // Headings out, and a Brain the prompt carries reads as its name.
-    var cleaned=SBMemoryPack.labelBrainTokens((p.content||'').replace(/^##\s+\w+\n/gm,'')).trim();
-    var preview=cleaned.slice(0,120);
-    if(cleaned.length>120)preview+='…';
+    var preview=promptPreview(p);
     var when=p.last_used_at?('Used '+timeAgo(p.last_used_at)):'Never used';
     var isPin=!!p.pinned;
     var usageCount=Number(p.usage_count)||0;
     var labels=assetLabelNames(p.id,promptLabelMap,false);
     var details=labels.length?'<button type="button" class="search-details" data-detail-pid="'+esc(p.id)+'" aria-label="Details for '+esc(p.name)+'">Details</button>':'';
-    var reason=hiddenSearchMatch(q,[p.name,p.intent_category],labels,[]);
+    var reason=q?searchWhyHtml(promptLook(p,q)):'';
     return '<div class="prompt-card'+(isPin?' is-pinned':'')+'" data-pid="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Open prompt '+esc(p.name)+', used '+esc(formatUsageCount(usageCount))+' times">'
       +'<div class="prompt-icon">'+(getFolderById(p.folder_id)?folderIcon(getFolderById(p.folder_id)):PROMPT_SVG)+usageBadgeHtml(usageCount,'prompt')+'</div>'
       +'<div class="prompt-info">'
@@ -12533,7 +12745,7 @@ function renderPromptList(){
         +(preview?'<div class="prompt-preview">'+esc(preview)+'</div>':'')
         +'<div class="prompt-meta">'+reviewChipHtml(p.review_status)+stratBadge+intentBadge+outBadge+share+'</div>'
         +'<div class="prompt-foot"><span class="prompt-when">'+esc(when)+'</span>'+details+'</div>'
-        +(reason?'<div class="search-match">'+esc(reason)+'</div>':'')
+        +reason
       +'</div>'
       +(isPin?'<span class="prompt-pin-flag" role="img" aria-label="Pinned" title="Pinned">'+PIN_SVG+'</span>':'')
       +'<button type="button" class="prompt-menu" data-menu-pid="'+esc(p.id)+'" aria-label="More actions">⋮</button>'
@@ -12930,19 +13142,27 @@ function memDefaultBrain(){
   return allBrains[0]||null;
 }
 function memKindOk(it){return curMemKind==='ALL'||it.kind===curMemKind;}
+/* The first lines of an item, as its card prints them: its summary, or the
+   start of its text. */
+function memItemPreview(it){
+  var text=String(it.summary||'').trim()||String(it.body||'').replace(/\s+/g,' ').trim();
+  return text.slice(0,120)+(text.length>120?'…':'');
+}
 /* Search reads what the dashboard's reads: an item's name, summary, body and
-   the name of its Brain; a Brain's name and description. */
-function memMatchesItem(it,q){
-  if(!q)return true;
+   the name of its Brain; a Brain's name and description. Every typed word has
+   to be somewhere in them (the shared rule, see snippetLook). */
+function memItemLook(it,q){
   var b=memBrainById(it.space_id);
-  return [it.name,it.summary,it.body,b&&b.name].some(function(f){
-    return String(f||'').toLowerCase().indexOf(q)>-1;
-  });
+  return SBAssetSearch.look(q,{shown:[it.name,memItemPreview(it)],also:[b&&b.name],text:[it.summary,it.body]});
+}
+function memBrainLook(b,q){
+  return SBAssetSearch.look(q,{shown:[b.name,b.description]});
+}
+function memMatchesItem(it,q){
+  return !!memItemLook(it,q);
 }
 function memMatchesBrain(b,q){
-  return [b.name,b.description].some(function(f){
-    return String(f||'').toLowerCase().indexOf(q)>-1;
-  });
+  return !!memBrainLook(b,q);
 }
 
 /* Every live row of a memory table, a page at a time: an uploaded file alone
@@ -13019,11 +13239,10 @@ function memBrainCardHtml(b){
   +'</div>';
 }
 /* withBrain names the item's Brain on the card: only where items from several
-   Brains share one list. */
-function memItemCardHtml(it,withBrain){
+   Brains share one list. q is what is typed in the search box, lower case. */
+function memItemCardHtml(it,withBrain,q){
   var b=withBrain?memBrainById(it.space_id):null;
-  var text=String(it.summary||'').trim()||String(it.body||'').replace(/\s+/g,' ').trim();
-  var preview=text.slice(0,120)+(text.length>120?'…':'');
+  var preview=memItemPreview(it);
   return '<div class="prompt-card'+(it.pinned?' is-pinned':'')+'" data-mid="'+esc(it.id)+'" role="button" tabindex="0">'
     +'<div class="prompt-icon">'+_FOLDER_SVGS['file-text']+'</div>'
     +'<div class="prompt-info">'
@@ -13035,6 +13254,7 @@ function memItemCardHtml(it,withBrain){
         +(b?'<span class="fbadge"><span class="fbadge-ico">'+spaceIcon(b.ico)+'</span>'+esc(b.name)+'</span>':'')
       +'</div>'
       +'<div class="prompt-foot"><span class="prompt-when">Updated '+esc(timeAgo(it.updated_at))+'</span></div>'
+      +(q?searchWhyHtml(memItemLook(it,q)):'')
     +'</div>'
     +(it.pinned?'<span class="prompt-pin-flag" role="img" aria-label="Always attached" title="Always attached">'+PIN_SVG+'</span>':'')
     +'<button type="button" class="prompt-menu" data-mem-menu="item" data-id="'+esc(it.id)+'" aria-label="More actions">⋮</button>'
@@ -13134,7 +13354,7 @@ function renderMemory(){
       ?memEmptyHtml('📝','Nothing in here yet','Tap Add text to write the first item.')
       :!items.length
         ?memEmptyHtml('🔍','Nothing matches','Try a different search or filter.')
-        :items.map(function(it){return memItemCardHtml(it,false);}).join('');
+        :items.map(function(it){return memItemCardHtml(it,false,q);}).join('');
     return;
   }
   if(!narrowed){
@@ -13152,7 +13372,7 @@ function renderMemory(){
   meta.hidden=false;
   list.innerHTML=(!brains.length&&!hits.length)
     ?memEmptyHtml('🔍','Nothing matches','Try a different search or filter.')
-    :brains.map(memBrainCardHtml).join('')+hits.map(function(it){return memItemCardHtml(it,true);}).join('');
+    :brains.map(memBrainCardHtml).join('')+hits.map(function(it){return memItemCardHtml(it,true,q);}).join('');
 }
 
 /* ── Memory: moving around ── */
@@ -14224,18 +14444,23 @@ function assetLabelNames(id,map,paths){
     return parent?parent.name+' / '+label.name:label.name;
   }).filter(Boolean);
 }
-function snippetSearchMatches(s,q){
-  if(!q)return true;
-  return [s.title||'',s.shortcut||'',s.body||'']
-    .concat(s.alternative_queries||[],assetLabelNames(s.id,snipLabelMap,false))
-    .some(function(value){return value.toLowerCase().includes(q);});
+/* How a snippet answers the search box. The rule is not defined here: it lives
+   in extension/shared/asset-search.js, inlined above by
+   scripts/sync-asset-search.js, so the popup, the menu on a page and this app
+   find a snippet by the same words. Every typed word has to be somewhere in
+   its name, shortcut, keywords, labels or text. */
+function snippetLook(s,q){
+  return SBAssetSearch.look(q,{shown:[s.title,s.shortcut],keywords:s.alternative_queries,
+    labels:assetLabelNames(s.id,snipLabelMap,false),text:[s.body]});
 }
-function hiddenSearchMatch(q,visible,labels,keywords){
-  if(!q||visible.some(function(v){return (v||'').toLowerCase().includes(q);}))return '';
-  var word=(keywords||[]).find(function(v){return v.toLowerCase().includes(q);});
-  if(word)return 'Keyword: '+word;
-  var label=labels.find(function(v){return v.toLowerCase().includes(q);});
-  return label?'Label: '+label:'';
+function snippetSearchMatches(s,q){
+  return !!snippetLook(s,q);
+}
+/* The line under a card that says why the search found it when its name does
+   not: the keyword, the label, or the piece of its text around the word.
+   Already escaped. '' when the card shows the words itself. */
+function searchWhyHtml(look){
+  return look&&look.why?'<div class="search-match">'+SBAssetSearch.whyHtml(look.why)+'</div>':'';
 }
 function groupMatches(g,q,folder,lang){
   // group matches if ANY variant satisfies every active filter
@@ -14360,10 +14585,8 @@ function renderList(){
     if(q&&!snippetSearchMatches(active,q)){
       active=g.variants.find(function(v){return (curLang==='ALL'||v.lang===curLang)&&inFolderSubtree(v.folder_id,curFolder)&&snippetSearchMatches(v,q);})||active;
     }
-    var labelNames=assetLabelNames(active.id,snipLabelMap,false);
-    var keywords=active.alternative_queries||[];
     var detailButton='<button type="button" class="search-details" data-detail-id="'+esc(vkey(active))+'" aria-label="Details for '+esc(active.title||'Snippet')+'">Details</button>';
-    var reason=hiddenSearchMatch(q,[active.title,active.shortcut],labelNames,keywords);
+    var reason=q?searchWhyHtml(snippetLook(active,q)):'';
     g.variants.forEach(function(v){ _varIndex[vkey(v)]=v; });
     _groupIndex[g.key]=g.variants;
     var fbadge='';
@@ -14390,7 +14613,7 @@ function renderList(){
           +fbadge
           +sharingBadge(active)
         +'</div>'
-        +(reason?'<div class="search-match">'+esc(reason)+'</div>':'')
+        +reason
       +'</div>'
       +(isPin?'<span class="snip-pin-flag" role="img" aria-label="Pinned" title="Pinned">'+PIN_SVG+'</span>':'')
       +'<button type="button" class="snip-menu" data-menu-id="'+esc(vkey(active))+'" aria-label="More actions">⋮</button>'
