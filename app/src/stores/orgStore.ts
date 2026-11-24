@@ -48,6 +48,8 @@ interface OrgStore {
   setCover: (cover: string | null) => Promise<void>;
   /** Upload a cover image for the active org; updates activeOrg in place. */
   uploadCover: (file: File) => Promise<void>;
+  /** Switch the Team game of the active org on or off (admins); updates activeOrg in place. */
+  setTeamGame: (on: boolean) => Promise<void>;
   /** Add a department to the active team (admins). */
   addDepartment: (name: string) => Promise<OrgDepartment>;
   /** Rename a department of the active team (admins). */
@@ -182,6 +184,16 @@ export const useOrgStore = create<OrgStore>((set, get) => ({
     set((s) => ({
       activeOrg: s.activeOrg ? { ...s.activeOrg, cover: url } : null,
       orgs: s.orgs.map((o) => (o.id === org.id ? { ...o, cover: url } : o)),
+    }));
+  },
+
+  setTeamGame: async (on) => {
+    const org = get().activeOrg;
+    if (!org) throw new Error('No active team');
+    await orgApi.setTeamGame(org.id, on);
+    set((s) => ({
+      activeOrg: s.activeOrg?.id === org.id ? { ...s.activeOrg, teamGame: on } : s.activeOrg,
+      orgs: s.orgs.map((o) => (o.id === org.id ? { ...o, teamGame: on } : o)),
     }));
   },
 

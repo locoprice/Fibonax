@@ -28,11 +28,12 @@ import { buildTrashRows, describePieces, describeTrashRows } from '@/features/me
 import { useMemoryStore } from '@/stores/memoryStore';
 import { useSearchStore } from '@/stores/searchStore';
 import { useUiStore } from '@/stores/uiStore';
-import { normalizeQuery, scoreMemoryItem } from '@/lib/searchIndex';
+import { metadataMatch, normalizeQuery, scoreMemoryItem } from '@/lib/searchIndex';
 import { memoryApi } from '@/lib/api/memoryApi';
 import { ACCEPTED_EXTENSIONS, DocumentTextError } from '@/lib/documentText';
 import type { MemoryDocument, MemoryItem } from '@/types/database';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
+import { SearchReasonLine } from '@/components/shared/SearchReasonLine';
 
 // One space and its items.
 //
@@ -146,14 +147,18 @@ function StatTile({
 
 function ItemCard({
   item,
+  query,
   onEdit,
   onTrash,
 }: {
   item: MemoryItem;
+  /** What is typed in the search bar: a word found only in the body is shown in its sentence. */
+  query: string;
   onEdit: () => void;
   onTrash: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const reason = metadataMatch(query, [item.name, item.summary], [], [], [item.body]);
 
   return (
     <Card
@@ -220,6 +225,7 @@ function ItemCard({
           No summary. Add one so this can be listed without loading its body.
         </p>
       )}
+      {reason && <SearchReasonLine reason={reason} />}
 
       <div>
         <button
@@ -689,6 +695,7 @@ export function MemorySpacePage() {
             <ItemCard
               key={item.id}
               item={item}
+              query={query}
               onEdit={() => setEditorTarget(item)}
               onTrash={() => trashItemNow(item)}
             />

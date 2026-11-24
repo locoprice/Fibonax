@@ -175,6 +175,52 @@
   }
 }
 
+/* The Black Sheep of the Team game (features/org/BlackSheep.tsx). Artwork, not
+   tokens, the way the team covers are: a black sheep on a light round ground,
+   the same on both themes. It hops once when its tile is pointed at or holds
+   the keyboard focus. Registered in docs/DESIGN_SYSTEM.md (Team game). */
+.team-game-sheep-ground {
+  fill: #f2f2f7;
+}
+.team-game-sheep-wool {
+  fill: #1c1c1e;
+}
+.team-game-sheep-face {
+  fill: #3a3a3c;
+}
+.team-game-sheep-eye {
+  fill: #ffffff;
+}
+.team-game-sheep-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+@keyframes team-game-hop {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-3px) rotate(-6deg);
+  }
+  60% {
+    transform: translateY(0) rotate(4deg);
+  }
+}
+
+.group:hover .team-game-sheep-body,
+.group:focus-within .team-game-sheep-body {
+  animation: team-game-hop 700ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group:hover .team-game-sheep-body,
+  .group:focus-within .team-game-sheep-body {
+    animation: none;
+  }
+}
+
 /* Team-cover preset artwork (TEAM-COVER-001). Decorative gradients keyed by
    preset name from lib/teamCoverPresets.ts — centralized here (not hard-coded
    in components) the same way the activity heatmap ramp is. Vivid presets read

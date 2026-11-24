@@ -10,6 +10,7 @@ import {
 import {
   AlertCircle,
   BookOpen,
+  ChevronDown,
   Clock,
   Eye,
   Lightbulb,
@@ -39,6 +40,8 @@ import { classifyPrompt } from '@/lib/intentEngine';
 import { assembleBlocks, foldReasoningIntoConstraints } from '@/lib/promptUtils';
 import { labelBrainTokens } from '@/lib/promptBrain';
 import { loadInteractiveSteps, saveInteractiveSteps } from '@/lib/interactiveSteps';
+import { DEFAULT_TEMPERATURE, TEMPERATURE_PRESETS, temperaturePreset } from '@/lib/promptTemperature';
+import { Segmented } from '@/components/ui/segmented';
 import {
   usePromptEvaluator,
   evaluatePrompt,
@@ -360,6 +363,61 @@ function SettingRow({ id, title, hint, checked, onChange }: SettingRowProps) {
   );
 }
 
+// ── Temperature ──────────────────────────────────────────────────────────────
+
+interface TemperatureSectionProps {
+  value: number | null;
+  onChange: (next: number) => void;
+}
+
+const TEMPERATURE_OPTIONS = TEMPERATURE_PRESETS.map((p) => ({
+  value: String(p.value),
+  label: `${p.label} ${p.value}`,
+}));
+
+function TemperatureSection({ value, onChange }: TemperatureSectionProps) {
+  const current = temperaturePreset(value);
+  return (
+    <section className="border-t border-line px-5 py-5" aria-labelledby="prompt-temperature">
+      <h3 id="prompt-temperature" className={FIELD_LABEL}>
+        Temperature
+      </h3>
+      <Segmented
+        options={TEMPERATURE_OPTIONS}
+        value={current ? String(current.value) : ''}
+        onChange={(next) => onChange(Number(next))}
+        ariaLabel="Temperature"
+        className="grid w-full grid-cols-3"
+      />
+      <p id="prompt-temperature-hint" className={HINT}>
+        {current
+          ? `${current.bestFor}. The AI is told this at the end of the prompt.`
+          : 'Not set. Pick one to tell the AI how precise or creative to be.'}
+      </p>
+      <details className="group mt-2">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-[6px] text-xs font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 [&::-webkit-details-marker]:hidden">
+          What is temperature?
+          <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <div className="mt-2 rounded-[12px] border border-line bg-bg-alt px-3 py-2.5 text-xs leading-relaxed text-ink-muted">
+          <p>It sets how predictable or how inventive the AI&apos;s answer is.</p>
+          <ul className="mt-1.5 space-y-1">
+            <li>
+              <span className="font-semibold text-ink">Precise (0.0 to 0.3):</span> focused and factual. Best for code, data and facts.
+            </li>
+            <li>
+              <span className="font-semibold text-ink">Balanced (0.4 to 0.7):</span> clear and natural. Best for writing and everyday answers.
+            </li>
+            <li>
+              <span className="font-semibold text-ink">Creative (0.8 and up):</span> varied and imaginative. Best for brainstorming and stories.
+            </li>
+          </ul>
+        </div>
+      </details>
+    </section>
+  );
+}
+
 // ── Brain picker ───────────────────────────────────────────────────────────────
 
 interface BrainPickerProps {
@@ -526,6 +584,9 @@ export function PromptBlockEditor() {
   // "Interactive Steps" is not saved with the prompt: it is one setting for
   // every prompt copied in this browser (lib/interactiveSteps).
   const [interactiveSteps, setInteractiveSteps] = useState(false);
+  // Temperature starts on Balanced for a new prompt. A prompt saved before it
+  // existed shows no step and keeps its text until a step is picked.
+  const [temperature, setTemperature] = useState<number | null>(DEFAULT_TEMPERATURE);
 
   // Intent suggestion
   const [suggestion, setSuggestion] = useState<ClassificationResult | null>(null);
@@ -593,6 +654,7 @@ export function PromptBlockEditor() {
       setOutputType(editingPrompt.output_type);
       setFolderId(editingPrompt.folder_id);
       setAskUserQuestions(editingPrompt.ask_user_questions);
+      setTemperature(editingPrompt.temperature);
       // Read once on open: the picker owns the draft from here, so a background
       // refresh can't stomp an in-progress edit.
       setLabelIds(useLabelStore.getState().promptLabels.get(editingPrompt.id) ?? []);
@@ -620,6 +682,7 @@ export function PromptBlockEditor() {
       setFolderId(seed ? seed.folder_id : null);
       setLabelIds([]);
       setAskUserQuestions(seed ? seed.ask_user_questions : true);
+      setTemperature(seed?.temperature ?? DEFAULT_TEMPERATURE);
       // A new prompt starts at its name. preventScroll: the panel is still
       // sliding in.
       nameRef.current?.focus({ preventScroll: true });
@@ -817,7 +880,7 @@ export function PromptBlockEditor() {
   }
 
   function handlePreviewDraft() {
-    const assembled = assembleBlocks(blocks, { askUserQuestions });
+    const assembled = assembleBlocks(blocks, { askUserQuestions, temperature });
     if (assembled) openPromptDraftPreview(assembled);
     else showToast('Write what the AI should do first, then preview it.', 'error');
   }
@@ -839,7 +902,7 @@ export function PromptBlockEditor() {
     setSubmitError(null);
     setSaving(true);
 
-    const assembled = assembleBlocks(blocks, { askUserQuestions });
+    const assembled = assembleBlocks(blocks, { askUserQuestions, temperature });
     const payload: PromptFormValues = {
       name: name.trim(),
       content: assembled,
@@ -852,6 +915,7 @@ export function PromptBlockEditor() {
       output_type: outputType,
       blocks,
       ask_user_questions: askUserQuestions,
+      temperature,
       folder_id: folderId,
     };
 
@@ -1105,6 +1169,11 @@ export function PromptBlockEditor() {
             onChange={() => toggleInteractiveSteps()}
           />
         </section>
+
+        {/* Temperature: how precise or creative the AI should be. Saved with
+            the prompt and written into its text as one sentence, because chat
+            apps take no temperature number (lib/promptTemperature). */}
+        <TemperatureSection value={temperature} onChange={setTemperature} />
 
         {/* Where to find it: the shortcut, the folder and the labels. */}
         <section className="border-t border-line px-5 py-5">

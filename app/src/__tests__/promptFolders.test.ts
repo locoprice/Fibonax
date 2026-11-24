@@ -59,6 +59,7 @@ const PROMPT_IN_FOLDER: Prompt = {
   output_type: null,
   blocks: null,
   ask_user_questions: false,
+  temperature: null,
   folder_id: 'folder-1',
   notion_page_id: null,
   pinned: false,

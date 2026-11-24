@@ -53,6 +53,22 @@ Off by default. The AI first lists the steps it plans to take, then works one st
 
 This setting isn't saved with the prompt. It applies to every prompt you copy, and is kept per browser: the dashboard and the phone page share it in the same browser. The Chrome extension has its own **Interactive Steps** switch in the popup's Prompts tab, for prompts you copy or insert with the extension.
 
+## Temperature
+
+Sets how precise or how creative the AI's answer should be. Pick one of three steps:
+
+| Step | Best for |
+|---|---|
+| **Precise 0.2** | Facts, data and code. Focused answers that stick to what the AI knows. |
+| **Balanced 0.5** | Writing and everyday answers. Clear and natural. |
+| **Creative 0.9** | Brainstorming and stories. Varied, original ideas. |
+
+New prompts start on **Balanced**. Click **What is temperature?** under the steps for a short explanation.
+
+Chat apps such as ChatGPT, Claude and Gemini have no temperature setting of their own, so Fibonax adds one short line to the end of the prompt (under **Answer style**) that tells the AI how to answer. You see it in **Preview** and in **Use**, and it travels with the prompt wherever you copy or insert it.
+
+This setting is saved with the prompt. Prompts made before it existed show no step picked and keep their text as it is until you pick one.
+
 ## Shortcut, folder and labels
 
 - **Shortcut** (optional): letters, numbers, `-` and `_`. With the shortcut `followup`, typing `"""followup` in any text box inserts the prompt at once. Leave it empty to reach the prompt from the menu only.

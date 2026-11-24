@@ -141,6 +141,8 @@ var DB = {
             pinned: s.pinned || false,
             // Deprecated snippets expand with a warning (content.js reviewWarning).
             review_status: s.review_status || 'approved',
+            // Search keywords: the search box reads them, as the menu on a page does.
+            alternative_queries: Array.isArray(s.alternative_queries) ? s.alternative_queries : [],
             // false = the person asked not to be warned when this snippet's
             // text looks unfinished (fill-form.js checksUnfinished).
             check_unfinished: s.check_unfinished !== false,
@@ -1332,7 +1334,23 @@ function updateChipNav(){
 function findSnip(id){ for(var i=0;i<snips.length;i++){ if(snips[i].id===id) return snips[i]; } return null; }
 
 function shortWord(sc){ return String(sc||'').replace(/^[^a-zA-Z0-9]+/,''); }
-function matchSnip(s,q){ q=q.toLowerCase(); return String(s.title||'').toLowerCase().indexOf(q)>-1||String(s.shortcut||'').toLowerCase().indexOf(q)>-1; }
+// How a snippet answers the search box (shared/asset-search.js): its name and
+// trigger, which the row prints, its search keywords, and its text in every
+// language it carries. Null when a typed word is nowhere in it.
+function snipLook(s,q){
+  var text=[s.body||''], k;
+  for(k in s.bodies){ if(typeof s.bodies[k]==='string') text.push(s.bodies[k]); }
+  return SBAssetSearch.look(q,{ shown:[s.title,s.shortcut], keywords:s.alternative_queries, text:text });
+}
+function matchSnip(s,q){ return !!snipLook(s,q); }
+// A prompt is read through its name and shortcut, its category and its text.
+function promptLook(p,q){
+  return SBAssetSearch.look(q,{ shown:[p.name,p.shortcut], also:[p.intent_category], text:[p.content] });
+}
+// The line under a row that says why the search found it, or ''.
+function whyLineHtml(look){
+  return look&&look.why ? '<div class="why">'+SBAssetSearch.whyHtml(look.why)+'</div>' : '';
+}
 
 // Escape a body for display, then wrap {field}/{=formula}/{if:\u2026} tokens so the
 // template's dynamic parts read at a glance in the detail preview.
@@ -1470,14 +1488,20 @@ function mountDetailNext(wrap){
   var acts=wrap.querySelector('.d-acts');
   if(!s||!ui||!acts) return;
   var list=ui.nextsFor(nextMap, s.id, snips, nextHidden);
-  if(!list.length) return;
-  var offer=ui.nextOffer(document, list, function(next){
-    nextHidden=ui.hideNext(nextHidden, s.id, next.id);
+  var hidden=ui.hiddenNextsFor(nextMap, s.id, snips, nextHidden);
+  if(!list.length&&!hidden.length) return;
+  // The cross asks first; a pair hidden with Stop stays as "Firma hidden"
+  // with Bring back, which takes it out of sb_next_hidden again.
+  function keep(h){
+    nextHidden=h;
     try{ chrome.storage.local.set({ sb_next_hidden: nextHidden }); }
     catch(e){ console.error('[Fibonax] could not remember the hidden suggestion:', e); }
+  }
+  var offer=ui.nextOffer(document, list, function(next){
+    keep(ui.hideNext(nextHidden, s.id, next.id));
   }, function(picked){
     ui.nextPreview(wrap.querySelector('.d-body'), picked);
-  }, { list:true });
+  }, { list:true, hidden:hidden, onShow:function(next){ keep(ui.showNext(nextHidden, s.id, next.id)); } });
   // Right under the preview and its picture line, above the note and buttons.
   wrap.insertBefore(offer.el, wrap.querySelector('.d-note')||acts);
   detailNext={ id:s.id, offer:offer };
@@ -1895,10 +1919,11 @@ function renderList(q){
   el.setAttribute('aria-busy','false');
 
   var effFolder=(searchAllFolders && q) ? 'ALL' : selFolder;
+  var looks={};
   var filtered=snips.filter(function(s){
     // Selecting a parent folder lists its whole subtree, matching its badge.
-    var mf=inFolderSubtree(s.folder, effFolder);
-    return mf && (!q||matchSnip(s,q));
+    if(!inFolderSubtree(s.folder, effFolder)) return false;
+    return !q || !!(looks[s.id]=snipLook(s,q));
   });
 
   if(!filtered.length){
@@ -1917,7 +1942,12 @@ function renderList(q){
     return;
   }
 
-  filtered.sort(function(a,b){ return (b.pinned?1:0)-(a.pinned?1:0); });
+  // A search lists the snippets whose row already shows the words first, then
+  // the ones found through their text, so Enter still copies the one named.
+  filtered.sort(function(a,b){
+    var byRank=q ? looks[b.id].rank-looks[a.id].rank : 0;
+    return byRank || (b.pinned?1:0)-(a.pinned?1:0);
+  });
   var groups=groupSnips(filtered);
   var libIdx=SBSnippetStats.index(snips);
   var libTotals=groupExpansions(libIdx);
@@ -1951,6 +1981,7 @@ function renderList(q){
           +'<span class="isc"><span class="isc-pfx">'+esc(trig)+'</span>'+esc(shortWord(s.shortcut))+'</span></div>'
         // usesHtml is built from a coerced Number plus literals — safe unescaped.
         +'<div class="i-r2"><span class="lb '+esc(lb)+'">'+esc(lb)+'</span><span class="i-uses">'+usesHtml+'</span></div>'
+        +whyLineHtml(looks[s.id])
       +'</div>'
       +'<button class="chev" type="button" data-chev="'+esc(s.id)+'" title="Details" aria-label="Show languages and body" aria-expanded="'+(open?'true':'false')+'"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>'
     +'</div>';
@@ -2467,12 +2498,10 @@ function renderPrompts(q) {
   var el = gi('plist'); if (!el) return;
   var ct = gi('mct-prmpt');
   var filtered = prompts;
+  var looks = {};
   if (q) {
-    var lq = q.toLowerCase().replace(/^"+/,'').trim();
-    filtered = prompts.filter(function(p) {
-      return (p.name||'').toLowerCase().indexOf(lq) !== -1 ||
-             (p.intent_category||'').toLowerCase().indexOf(lq) !== -1;
-    });
+    var lq = q.replace(/^"+/,'').trim();
+    filtered = prompts.filter(function(p) { return !!(looks[p.id] = promptLook(p, lq)); });
   }
   if (ct) ct.textContent = prompts.length;
   if (!filtered.length) {
@@ -2482,7 +2511,11 @@ function renderPrompts(q) {
   }
   // Pinned prompts float to the top (pin is set on the dashboard or mobile);
   // slice first so the shared `prompts` array is never reordered in place.
-  filtered = filtered.slice().sort(function(a, b) { return (b.pinned?1:0) - (a.pinned?1:0); });
+  // A search lists the prompts named that way first, as the snippet list does.
+  filtered = filtered.slice().sort(function(a, b) {
+    var byRank = q ? looks[b.id].rank - looks[a.id].rank : 0;
+    return byRank || (b.pinned?1:0) - (a.pinned?1:0);
+  });
   var pt = triggerCfg.promptTrigger || '"""';
   var h = '';
   filtered.forEach(function(p) {
@@ -2501,6 +2534,7 @@ function renderPrompts(q) {
       + '<div class="p-name" id="pname-'+esc(p.id)+'">'+esc(p.name||'Untitled')+reviewChipHtml(p.review_status)+'</div>'
       + '<div class="p-meta">'+stratHtml+scHtml+'</div>'
       + (luLine ? '<div class="p-lastuse">'+esc(luLine)+'</div>' : '')
+      + whyLineHtml(looks[p.id])
       + '</div>'
       + '<button class="p-copy" type="button" title="Copy prompt" aria-label="Copy prompt"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>'
       + '</div>';
@@ -2595,15 +2629,18 @@ function brainStatsLine(nBrains, nItems){
   return nItems === null ? line : line + ' · ' + nItems + ' ' + (nItems === 1 ? 'item' : 'items');
 }
 // Search reads what the phone's reads: an item's name, summary, body and the
-// name of its Brain; a Brain's name and description. `q` is lower case.
-function brainMatchesItem(it, q, brainName){
-  if (!q) return true;
-  return [it.name, it.summary, it.body, brainName].some(function(f){ return String(f || '').toLowerCase().indexOf(q) > -1; });
+// name of its Brain; a Brain's name and description. Every typed word has to
+// be somewhere in them (shared/asset-search.js), and a match the row does not
+// show comes back with the piece of text that holds it.
+function brainItemLook(it, q, brainName){
+  return SBAssetSearch.look(q, { shown: [it.name], also: [brainName], text: [it.summary, it.body] });
 }
-function brainMatchesBrain(b, q){
-  if (!q) return true;
-  return [b.name, b.description].some(function(f){ return String(f || '').toLowerCase().indexOf(q) > -1; });
+function brainLook(b, q){
+  return SBAssetSearch.look(q, { shown: [b.name], text: [b.description] });
 }
+// Search results, best first: the rows that already show every word, then the
+// ones found through their text. Rows of one rank keep the order they had.
+function byLookRank(a, b){ return b.look.rank - a.look.rank; }
 function findBrain(id){ for (var i = 0; i < brains.length; i++) { if (brains[i].id === id) return brains[i]; } return null; }
 function findBrainItem(id){ for (var i = 0; i < brainItems.length; i++) { if (brainItems[i].id === id) return brainItems[i]; } return null; }
 function brainItemsOf(bid){ return brainItems.filter(function(it){ return it.space_id === bid; }); }
@@ -2637,12 +2674,14 @@ function loadBrains(){
   });
 }
 
-function brainRowHtml(b){
+// `look` is how the row answered a search, when one is on.
+function brainRowHtml(b, look){
   var n = brainItemsOf(b.id).length;
   return '<div class="p-item brain" data-bid="'+esc(b.id)+'" tabindex="-1" role="button" aria-label="Open '+esc(b.name || 'Brain')+'">'
     + '<div class="p-body">'
     + '<div class="p-name" id="bname-'+esc(b.id)+'">'+esc(b.name || 'Brain')+'</div>'
     + '<div class="p-meta"><span class="b-info">'+esc(brainSize(n))+'</span></div>'
+    + whyLineHtml(look)
     + '</div>'
     + '<button class="p-copy" type="button" data-copy-brain="'+esc(b.id)+'" title="Copy whole Brain" aria-label="Copy whole Brain">'+BRAIN_COPY_SVG+'</button>'
     + '<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>'
@@ -2650,14 +2689,15 @@ function brainRowHtml(b){
 }
 
 // `brain` names the item's Brain on the row: only where items from several
-// Brains share one list.
-function brainItemRowHtml(it, brain){
+// Brains share one list. `look` is how the row answered a search.
+function brainItemRowHtml(it, brain, look){
   var info = BRAIN_KIND_LABEL[it.kind] || it.kind || '';
   if (brain) info += (info ? ' · ' : '') + (brain.name || '');
   return '<div class="p-item brain" data-mid="'+esc(it.id)+'" tabindex="-1" role="button" aria-label="Copy '+esc(it.name || 'item')+'">'
     + '<div class="p-body">'
     + '<div class="p-name" id="bname-'+esc(it.id)+'">'+esc(it.name || 'Untitled')+reviewChipHtml(it.review_status)+'</div>'
     + '<div class="p-meta"><span class="b-info">'+esc(info)+'</span></div>'
+    + whyLineHtml(look)
     + '</div>'
     + '<button class="p-copy" type="button" title="Copy text" aria-label="Copy text">'+BRAIN_COPY_SVG+'</button>'
     + '</div>';
@@ -2701,28 +2741,41 @@ function renderBrains(q){
     wireLibraryLink(el);
     return;
   }
-  var lq = String(q || '').trim().toLowerCase();
+  var lq = String(q || '').trim();
+  // The items of `list` the search finds, each beside how it answered.
+  function foundItems(list){
+    var out = [];
+    list.forEach(function(it){
+      var b = findBrain(it.space_id);
+      var look = brainItemLook(it, lq, b ? b.name : '');
+      if (look) out.push({ row: it, look: look });
+    });
+    return out.sort(byLookRank);
+  }
   var h;
   if (brain) {
     var all = brainItemsOf(brain.id);
-    var items = all.filter(function(it){ return brainMatchesItem(it, lq, brain.name); });
+    var items = foundItems(all);
     h = !all.length
       ? '<div class="p-empty">Nothing in this Brain yet.<br>Add items in the <strong>dashboard</strong>.</div>'
       : !items.length
         ? '<div class="p-empty">No items match &ldquo;'+esc(q)+'&rdquo;</div>'
-        : items.map(function(it){ return brainItemRowHtml(it, null); }).join('');
+        : items.map(function(f){ return brainItemRowHtml(f.row, null, f.look); }).join('');
   } else if (!lq) {
-    h = brains.map(brainRowHtml).join('');
+    h = brains.map(function(b){ return brainRowHtml(b); }).join('');
   } else {
     // Searching the list of Brains reaches into every Brain, as on the phone.
-    var hitBrains = brains.filter(function(b){ return brainMatchesBrain(b, lq); });
-    var hitItems = brainItems.filter(function(it){
-      var b = findBrain(it.space_id);
-      return brainMatchesItem(it, lq, b ? b.name : '');
+    var hitBrains = [];
+    brains.forEach(function(b){
+      var look = brainLook(b, lq);
+      if (look) hitBrains.push({ row: b, look: look });
     });
+    hitBrains.sort(byLookRank);
+    var hitItems = foundItems(brainItems);
     h = (!hitBrains.length && !hitItems.length)
       ? '<div class="p-empty">Nothing matches &ldquo;'+esc(q)+'&rdquo;</div>'
-      : hitBrains.map(brainRowHtml).join('') + hitItems.map(function(it){ return brainItemRowHtml(it, findBrain(it.space_id)); }).join('');
+      : hitBrains.map(function(f){ return brainRowHtml(f.row, f.look); }).join('')
+        + hitItems.map(function(f){ return brainItemRowHtml(f.row, findBrain(f.row.space_id), f.look); }).join('');
   }
   el.innerHTML = h;
   el.querySelectorAll('.p-item').forEach(function(row){

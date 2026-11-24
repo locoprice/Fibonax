@@ -52,6 +52,8 @@ interface FormulaEngine {
   buildFormFieldCfg: (body: string) => Record<string, { type: string; label?: string }>;
   buildFormNumberToken: (cfg: Record<string, unknown>) => string;
   resolveBody: (body: string, vals: Record<string, unknown>) => string;
+  /** One formula's answer, or null when it has none. */
+  evalFormula: (expr: string, vals: Record<string, unknown>) => number | null;
   validateTemplate: (body: string) => { ok: boolean };
 }
 
@@ -660,7 +662,7 @@ describe('formulaToken: simple and compound interest', () => {
     }
   });
 
-  it('only compound interest needs pow(), which older extensions do not read', () => {
+  it('simple interest needs no pow(), which older extensions do not read', () => {
     for (const d of [0, 1, 2] as FormulaDecimals[]) {
       expect(simple(d)).not.toMatch(/pow\(/);
       expect(compound(d)).toMatch(/pow\(/);
@@ -743,6 +745,127 @@ describe('formulaToken: simple and compound interest', () => {
 
     it('leaves the condition around a block written inside one', () => {
       const inside = buildInterestToken({ kind: 'simple', names: SIMPLE, decimals: 2, inCondition: true });
+      const body = `{if: SHOW > 0}${inside}{endif}`;
+      expect(formulasInBody(body)).toHaveLength(1);
+      expect(remove(body, 0)).toBe('{if: SHOW > 0}{endif}');
+    });
+  });
+});
+
+describe('formulaToken: present value of equal payments', () => {
+  const NAMES = ['PAYMENT', 'RATE', 'PERIODS'];
+  const value = (decimals: FormulaDecimals = 2) => buildInterestToken({ kind: 'annuity', names: NAMES, decimals });
+  const vals = (c: string, i: string, n: string) => ({ PAYMENT: c, RATE: i, PERIODS: n });
+  const FORMULA = 'PAYMENT * (1 - pow(1 + RATE / 100, -PERIODS)) / (RATE / 100)';
+
+  it('writes the boxes, the working and the guarded answer', () => {
+    expect(value()).toBe(
+      '{formtext: name=PAYMENT; type=number; label=Present value: payment} × (1 - (1 + ' +
+        '{formtext: name=RATE; type=number; label=Present value: rate % a period}%)^-' +
+        '{formtext: name=PERIODS; type=number; label=Present value: periods}) / {RATE}% = ' +
+        `{if: min(PAYMENT, RATE, PERIODS) > 0}{=${FORMULA}}{endif}`,
+    );
+  });
+
+  it('works out C × (1 - (1 + i)^-n) / i, against values from annuity tables', () => {
+    // 7.7217 at 5% for 10 periods, 11.4699 at 6% for 20, 2.7232 at 5% for 3.
+    expect(engine.resolveBody(value(), vals('100', '5', '10'))).toBe('100 × (1 - (1 + 5%)^-10) / 5% = 772.17');
+    expect(engine.resolveBody(value(), vals('500', '6', '20'))).toBe('500 × (1 - (1 + 6%)^-20) / 6% = 5734.96');
+    expect(engine.resolveBody(value(), vals('1000', '5', '3'))).toBe('1000 × (1 - (1 + 5%)^-3) / 5% = 2723.25');
+    // A rate below 1% and a rate with decimals, as monthly payments have.
+    expect(engine.evalFormula(FORMULA, vals('250', '0.5', '36'))).toBe(8217.75);
+    expect(engine.evalFormula(FORMULA, vals('1200', '3.5', '15'))).toBe(13820.89);
+    // One payment a period from now is that payment, discounted once.
+    expect(engine.evalFormula(FORMULA, vals('100', '5', '1'))).toBe(95.24);
+  });
+
+  it('reads the numbers the way they are typed, with either decimal mark', () => {
+    expect(engine.evalFormula(FORMULA, vals('1.200', '3,5', '15'))).toBe(13820.89);
+  });
+
+  it('prints no answer for an empty, zero or negative box', () => {
+    expect(engine.resolveBody(value(), vals('100', '', '10'))).toBe('100 × (1 - (1 + %)^-10) / % = ');
+    expect(engine.resolveBody(value(), vals('100', '0', '10'))).toBe('100 × (1 - (1 + 0%)^-10) / 0% = ');
+    expect(engine.resolveBody(value(), vals('100', '-5', '10'))).toBe('100 × (1 - (1 + -5%)^-10) / -5% = ');
+    expect(engine.resolveBody(value(), vals('', '5', '10'))).toBe(' × (1 - (1 + 5%)^-10) / 5% = ');
+    expect(engine.resolveBody(value(), vals('100', '5', '0'))).toBe('100 × (1 - (1 + 5%)^-0) / 5% = ');
+  });
+
+  it('never prints a broken number, even with no guard around it', () => {
+    // A rate of 0 divides by 0, and a box that holds words is not a number.
+    expect(engine.evalFormula(FORMULA, vals('100', '0', '10'))).toBeNull();
+    expect(engine.evalFormula(FORMULA, vals('100', 'five', '10'))).toBeNull();
+    const inside = buildInterestToken({ kind: 'annuity', names: NAMES, decimals: 2, inCondition: true });
+    expect(inside).not.toContain('{if:');
+    expect(engine.resolveBody(inside, vals('100', '0', '10'))).toBe('100 × (1 - (1 + 0%)^-10) / 0% = ');
+  });
+
+  it('keeps the decimals asked for, with the one-argument round() only', () => {
+    expect(engine.resolveBody(value(0), vals('100', '5', '10'))).toBe('100 × (1 - (1 + 5%)^-10) / 5% = 772');
+    expect(engine.resolveBody(value(1), vals('100', '5', '10'))).toBe('100 × (1 - (1 + 5%)^-10) / 5% = 772.2');
+    for (const token of [value(0), value(1)]) {
+      expect(token).not.toMatch(/round\([^()]*(\([^()]*\)[^()]*)*,/);
+    }
+  });
+
+  it('fills in as three number boxes, named after the calculation', () => {
+    expect(fillFormApi.fillForm(value(), {}, {}).fields.map((f) => [f.key, f.type])).toEqual([
+      ['PAYMENT', 'number'],
+      ['RATE', 'number'],
+      ['PERIODS', 'number'],
+    ]);
+    const cfg = engine.buildFormFieldCfg(value()) as Record<string, { type: string; label?: string }>;
+    expect(cfg.RATE?.label).toBe('Present value: rate % a period');
+  });
+
+  it('hands out names the body does not use yet, and refuses bad ones', () => {
+    expect(interestNames('', 'annuity')).toEqual(NAMES);
+    expect(interestNames(buildInterestToken({ kind: 'simple', names: ['PRINCIPAL', 'RATE', 'YEARS'], decimals: 2 }), 'annuity')).toEqual([
+      'PAYMENT',
+      'RATE_2',
+      'PERIODS',
+    ]);
+    expect(isValidInterest({ kind: 'annuity', names: NAMES, decimals: 2 })).toBe(true);
+    expect(isValidInterest({ kind: 'annuity', names: ['PAYMENT', 'RATE'], decimals: 2 })).toBe(false);
+    expect(isValidInterest({ kind: 'annuity', names: ['A', 'a', 'C'], decimals: 2 })).toBe(false);
+    expect(INTEREST_SPECS.annuity.roles).toHaveLength(NAMES.length);
+  });
+
+  describe('in the formula list', () => {
+    const remove = (body: string, index: number) => {
+      const f = formulasInBody(body)[index]!;
+      return body.slice(0, f.removeStart) + body.slice(f.removeEnd);
+    };
+
+    it('lists the block as one formula, with no Edit, beside the others', () => {
+      const simple = buildInterestToken({ kind: 'simple', names: ['PRINCIPAL', 'R2', 'YEARS'], decimals: 2 });
+      const body = `Worth today: ${value()}\nLoan: ${simple}`;
+      const list = formulasInBody(body);
+      expect(list.map((f) => [f.context, f.description])).toEqual([
+        ['Worth today:', 'Present value: PAYMENT at RATE% for PERIODS'],
+        ['Loan:', 'Simple interest: PRINCIPAL at R2% for YEARS'],
+      ]);
+      expect(list[0]?.expression).toBeUndefined();
+    });
+
+    it('removes the block whole, and putting the text back undoes it', () => {
+      const body = `Worth today: ${value(0)}\nThanks`;
+      const f = formulasInBody(body)[0]!;
+      const removed = body.slice(f.removeStart, f.removeEnd);
+      const after = remove(body, 0);
+      expect(after).toBe('Worth today: \nThanks');
+      expect(after.slice(0, f.removeStart) + removed + after.slice(f.removeStart)).toBe(body);
+    });
+
+    it('keeps the boxes when another formula still reads one of them', () => {
+      const body = `${value()}\nPaid in all: {=PAYMENT * PERIODS}`;
+      const after = remove(body, 0);
+      expect(after).toBe(`${value().slice(0, value().indexOf(' = ') + 3)}\nPaid in all: {=PAYMENT * PERIODS}`);
+      expect(formulasInBody(after).map((f) => f.description)).toEqual(['Multiply PAYMENT, PERIODS']);
+    });
+
+    it('leaves the condition around a block written inside one', () => {
+      const inside = buildInterestToken({ kind: 'annuity', names: NAMES, decimals: 2, inCondition: true });
       const body = `{if: SHOW > 0}${inside}{endif}`;
       expect(formulasInBody(body)).toHaveLength(1);
       expect(remove(body, 0)).toBe('{if: SHOW > 0}{endif}');

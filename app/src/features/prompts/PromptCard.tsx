@@ -229,7 +229,8 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
             return store.setPromptLabels(prompt.id, (store.promptLabels.get(prompt.id) ?? []).filter((id) => id !== labelId));
           }}
           query={query}
-          visibleText={[prompt.name, prompt.shortcut ?? '', prompt.intent_category ?? '']}
+          visibleText={[prompt.name, prompt.shortcut ?? '', prompt.intent_category ?? '', preview]}
+          text={[prompt.content]}
         />
         {prompt.intent_category && (
           <Badge variant="neutral" className="text-[11px]">

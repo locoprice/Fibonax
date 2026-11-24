@@ -5,6 +5,7 @@ import { metadataMatch } from '@/lib/searchIndex';
 import { labelPath } from '@/lib/labelTree';
 import { useUiStore } from '@/stores/uiStore';
 import { LabelBadge } from '@/components/shared/LabelBadge';
+import { SearchReasonLine } from '@/components/shared/SearchReasonLine';
 import type { Label } from '@/types/database';
 
 interface SearchDetailsProps {
@@ -16,12 +17,14 @@ interface SearchDetailsProps {
   languages?: ReactNode;
   query: string;
   visibleText: string[];
+  /** The asset's text, one per language: a word found only there is shown in its sentence. */
+  text?: string[];
 }
 
 const OPEN_EVENT = 'sprintbrain:search-details';
 
 /** Contextual metadata: hover/focus to preview, click or tap to keep it open. */
-export function SearchDetails({ name, labels, labelCatalog, onRemoveLabel, keywords = [], languages, query, visibleText }: SearchDetailsProps) {
+export function SearchDetails({ name, labels, labelCatalog, onRemoveLabel, keywords = [], languages, query, visibleText, text = [] }: SearchDetailsProps) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -32,7 +35,7 @@ export function SearchDetails({ name, labels, labelCatalog, onRemoveLabel, keywo
   const [removingLabel, setRemovingLabel] = useState<string | null>(null);
   const [removedLabel, setRemovedLabel] = useState(false);
   const removing = useRef(false);
-  const match = metadataMatch(query, visibleText, labels.map((label) => labelPath(labelCatalog, label.id)), keywords);
+  const match = metadataMatch(query, visibleText, labels.map((label) => labelPath(labelCatalog, label.id)), keywords, text);
 
   async function removeLabel(labelId: string) {
     if (!onRemoveLabel || removing.current) return;
@@ -140,7 +143,10 @@ export function SearchDetails({ name, labels, labelCatalog, onRemoveLabel, keywo
     if (mode === 'pinned') panel.current?.focus();
   }, [mode]);
 
-  if (!labels.length && !keywords.length && !languages && !mode) return null;
+  // Nothing to open: the line that says why the search found it stands alone.
+  if (!labels.length && !keywords.length && !languages && !mode) {
+    return match ? <SearchReasonLine reason={match} /> : null;
+  }
 
   return (
     <span className="inline-flex min-w-0 flex-col items-start">
@@ -175,7 +181,7 @@ export function SearchDetails({ name, labels, labelCatalog, onRemoveLabel, keywo
       >
         Details
       </button>
-      {match && <span className="max-w-full break-words text-xs text-ink-muted">{match.kind}: {match.value}</span>}
+      {match && <SearchReasonLine reason={match} />}
       {mode && createPortal(
         <div
           ref={panel}

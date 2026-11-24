@@ -1,6 +1,7 @@
 import type { ZodType } from 'zod';
 import { asRecord, downloadJson, listIn, readJsonFile } from '@/lib/fileIo';
 import { assembleBlocks } from '@/lib/promptUtils';
+import { temperaturePreset } from '@/lib/promptTemperature';
 import { sanitizeTrigger } from '@/lib/snippetIo';
 import type { Prompt, PromptBlock } from '@/types/database';
 import { promptFormSchema, type PromptFormValues } from '@/types/schemas';
@@ -21,6 +22,7 @@ export type PromptExportSource = Pick<
   | 'output_type'
   | 'blocks'
   | 'ask_user_questions'
+  | 'temperature'
 >;
 
 /** The file for these prompts. */
@@ -40,6 +42,7 @@ export function buildPromptFile(prompts: readonly PromptExportSource[]) {
       output_type: p.output_type,
       blocks: p.blocks,
       ask_user_questions: p.ask_user_questions,
+      temperature: p.temperature,
     })),
   };
 }
@@ -90,9 +93,10 @@ function coerceItem(raw: Record<string, unknown>): PromptFormValues | null {
   const name = String(raw['name'] ?? raw['title'] ?? '').trim().slice(0, 100);
   const blocks = blocksOf(raw['blocks']);
   const ask = raw['ask_user_questions'] === true;
+  const temperature = temperaturePreset(raw['temperature'] as number | null) ? (raw['temperature'] as number) : null;
   const written = raw['content'] ?? raw['prompt'] ?? raw['text'];
   const text = typeof written === 'string' ? written : '';
-  const content = text.trim() !== '' ? text : blocks ? assembleBlocks(blocks, { askUserQuestions: ask }) : '';
+  const content = text.trim() !== '' ? text : blocks ? assembleBlocks(blocks, { askUserQuestions: ask, temperature }) : '';
   if (!name || content.trim() === '') return null;
 
   const shortcutRaw = String(raw['shortcut'] ?? '').trim();
@@ -108,6 +112,7 @@ function coerceItem(raw: Record<string, unknown>): PromptFormValues | null {
     output_type: allowed(promptFormSchema.shape.output_type, raw['output_type']),
     blocks,
     ask_user_questions: ask,
+    temperature,
     folder_id: null,
   });
   return parsed.success ? parsed.data : null;

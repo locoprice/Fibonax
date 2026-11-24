@@ -584,8 +584,9 @@
   // which of them to offer and draws the offer, for the page, the popup and
   // the phone alike. Only a snippet with nothing to fill is offered: it goes
   // in as it is, a blank line before it. Several can be ticked, and they go in
-  // in the order they were ticked. The cross hides that pair for
-  // NEXT_HIDE_DAYS on the device.
+  // in the order they were ticked. The cross asks first, then hides that pair
+  // for NEXT_HIDE_DAYS on the device. A hidden pair stays in the list as one
+  // line, "Firma hidden", with Bring back, so a slip is never lost.
   var NEXT_HIDE_DAYS = 30;
   var NEXT_SEPARATOR = '\n\n';
   var NEXT_PLACES = ['1st', '2nd', '3rd', '4th', '5th'];
@@ -606,6 +607,12 @@
       case 'add-many': return 'Add ' + t + ' snippets';
       case 'add-none': return 'Tick one to add';
       case 'hide': return 'Don’t suggest ' + t + ' after this snippet';
+      case 'ask': return 'Stop suggesting ' + t + ' after this snippet?';
+      case 'ask-stop': return 'Stop';
+      case 'ask-keep': return 'Keep';
+      case 'hidden': return t + ' hidden';
+      case 'back': return 'Bring back';
+      case 'back-label': return 'Suggest ' + t + ' after this snippet again';
       default: return '';
     }
   }
@@ -617,6 +624,15 @@
    * the cross hid ({ 'from>to': iso }).
    */
   function nextsFor(map, fromId, library, hidden, now) {
+    return nextsPick(map, fromId, library, hidden, now, false);
+  }
+
+  /** The ones nextsFor leaves out because the cross hid them: drawn as "Firma hidden". */
+  function hiddenNextsFor(map, fromId, library, hidden, now) {
+    return nextsPick(map, fromId, library, hidden, now, true);
+  }
+
+  function nextsPick(map, fromId, library, hidden, now, wantHidden) {
     var hits = map && fromId ? map[fromId] : null;
     // An answer kept from before the list holds a single { id, count }.
     hits = Array.isArray(hits) ? hits : (hits ? [hits] : []);
@@ -626,7 +642,7 @@
       if (!hit || !hit.id || hit.id === fromId || !root.SBFillForm) return;
       if (out.some(function(n) { return n.id === hit.id; })) return;
       var at = hidden && hidden[fromId + '>' + hit.id] ? Date.parse(hidden[fromId + '>' + hit.id]) : NaN;
-      if (!isNaN(at) && t - at < NEXT_HIDE_DAYS * 86400000) return;
+      if ((!isNaN(at) && t - at < NEXT_HIDE_DAYS * 86400000) !== wantHidden) return;
       var next = null;
       for (var i = 0; library && i < library.length; i++) { if (library[i] && library[i].id === hit.id) { next = library[i]; break; } }
       if (!next) return;
@@ -648,6 +664,42 @@
     return out;
   }
 
+  /** Bring back: the hidden pairs without this one. Never changes `hidden`. */
+  function showNext(hidden, fromId, toId) {
+    var out = {};
+    Object.keys(hidden || {}).forEach(function(k) {
+      if (k !== fromId + '>' + toId) out[k] = hidden[k];
+    });
+    return out;
+  }
+
+  /**
+   * The question the cross asks before it hides a pair: "Stop suggesting Firma
+   * after this snippet?" with Stop and Keep. Keep is the one focused, so a slip
+   * of the thumb followed by Enter changes nothing. Returns { el, focus }.
+   */
+  function nextAsk(doc, next, onStop, onKeep) {
+    var el = doc.createElement('div');
+    el.className = 'ff-next-ask';
+    el.setAttribute('role', 'group');
+    el.setAttribute('aria-label', nextWords('ask', next.title));
+    var q = doc.createElement('span');
+    q.className = 'ff-next-q';
+    q.textContent = nextWords('ask', next.title);
+    var stop = doc.createElement('button');
+    stop.type = 'button';
+    stop.className = 'ff-next-btn';
+    stop.textContent = nextWords('ask-stop');
+    var keep = doc.createElement('button');
+    keep.type = 'button';
+    keep.className = 'ff-next-btn ff-next-btn--main';
+    keep.textContent = nextWords('ask-keep');
+    stop.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); onStop(); });
+    keep.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); onKeep(); });
+    el.appendChild(q); el.appendChild(stop); el.appendChild(keep);
+    return { el: el, focus: function() { keep.focus(); } };
+  }
+
   /**
    * The ticked ids in the order they were ticked, after one more tick: `id`
    * joins at the end when `on`, and leaves when not. Never changes `order`.
@@ -660,14 +712,18 @@
 
   /**
    * The offer: one row per snippet in `list`, each a tick box "Add Firma after
-   * it", the line "Often sent next" and a cross that hides that pair
-   * (onHide(next)). Every row starts unticked: nothing extra goes in unless
-   * the person asks. With several rows, a ticked one says where it goes
-   * ("Goes in 2nd"). onChange(picked, left) runs after each tick and each
-   * cross, `left` being the rows still shown. `opts.list` draws it as the list
-   * under a fill window's preview, headed "Often sent next: tick to add after
-   * your text"; the heading leaves with the last row. Returns { el, picked }
-   * where picked() is the ticked snippets in the order they were ticked.
+   * it", the line "Often sent next" and a cross. The cross asks first
+   * (nextAsk); Keep puts the row back as it was, Stop hides that pair
+   * (onHide(next)) and leaves the line "Firma hidden" with Bring back
+   * (opts.onShow(next)), which puts the row back unticked. `opts.hidden` are
+   * pairs hidden before, drawn as that line from the start. Every row starts
+   * unticked: nothing extra goes in unless the person asks. With several rows,
+   * a ticked one says where it goes ("Goes in 2nd"). onChange(picked, left)
+   * runs after each tick, each Stop and each Bring back, `left` being the rows
+   * still offered. `opts.list` draws it as the list under a fill window's
+   * preview, headed "Often sent next: tick to add after your text". Returns
+   * { el, picked } where picked() is the ticked snippets in the order they
+   * were ticked.
    */
   function nextOffer(doc, list, onHide, onChange, opts) {
     var asList = !!(opts && opts.list);
@@ -692,20 +748,23 @@
         return rows.filter(function(row) { return row.next.id === id; })[0].next;
       });
     }
+    function offered() {
+      return rows.filter(function(row) { return row.state !== 'hidden'; });
+    }
     function paint() {
+      var many = offered().length > 1;
       rows.forEach(function(row) {
         var at = order.indexOf(row.next.id);
-        var placed = at !== -1 && rows.length > 1;
+        var placed = at !== -1 && many;
         row.why.textContent = placed ? nextWords('place', at + 1) : nextWords('why');
         if (placed) row.el.setAttribute('data-place', String(at + 1));
         else row.el.removeAttribute('data-place');
       });
-      if (typeof onChange === 'function') onChange(picked(), rows.length);
+      if (typeof onChange === 'function') onChange(picked(), offered().length);
     }
 
-    (list || []).forEach(function(next) {
+    function addRow(next, state) {
       var box = doc.createElement('div');
-      box.className = 'ff-next';
       var label = doc.createElement('label');
       label.className = 'ff-next-tick';
       var tick = doc.createElement('input');
@@ -725,26 +784,59 @@
       hide.setAttribute('aria-label', nextWords('hide', next.title));
       hide.title = nextWords('hide', next.title);
       hide.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
-      var row = { next: next, el: box, tick: tick, why: why };
+      var row = { next: next, el: box, tick: tick, why: why, state: state };
+      var ask = nextAsk(doc, next, function() {
+        // Stop: the pair is hidden, and the row says so with Bring back.
+        order = nextToggle(order, next.id, false);
+        tick.checked = false;
+        draw('hidden');
+        back.focus();
+        if (typeof onHide === 'function') onHide(next);
+        paint();
+      }, function() {
+        // Keep: the row as it was, tick and all.
+        draw('offer');
+        hide.focus();
+      });
+      var gone = doc.createElement('span');
+      gone.className = 'ff-next-gone';
+      gone.textContent = nextWords('hidden', next.title);
+      var back = doc.createElement('button');
+      back.type = 'button';
+      back.className = 'ff-next-btn';
+      back.textContent = nextWords('back');
+      back.setAttribute('aria-label', nextWords('back-label', next.title));
+      function draw(s) {
+        row.state = s;
+        box.className = 'ff-next' + (s === 'ask' ? ' ff-next--ask' : s === 'hidden' ? ' ff-next--hidden' : '');
+        box.textContent = '';
+        if (s === 'ask') box.appendChild(ask.el);
+        else if (s === 'hidden') { box.appendChild(gone); box.appendChild(back); }
+        else { box.appendChild(label); box.appendChild(hide); }
+      }
       tick.addEventListener('change', function() {
         order = nextToggle(order, next.id, tick.checked);
         paint();
       });
       hide.addEventListener('click', function(e) {
         e.preventDefault(); e.stopPropagation();
-        order = nextToggle(order, next.id, false);
-        rows = rows.filter(function(r) { return r !== row; });
-        box.remove();
-        // The cross went with its row: the first row left takes the focus.
-        if (rows.length) rows[0].tick.focus();
-        else group.remove();
-        if (typeof onHide === 'function') onHide(next);
+        draw('ask');
+        ask.focus();
+      });
+      back.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        draw('offer');
+        tick.focus();
+        if (opts && typeof opts.onShow === 'function') opts.onShow(next);
         paint();
       });
-      box.appendChild(label); box.appendChild(hide);
+      draw(state);
       rows.push(row);
       group.appendChild(box);
-    });
+    }
+
+    (list || []).forEach(function(next) { addRow(next, 'offer'); });
+    ((opts && opts.hidden) || []).forEach(function(next) { addRow(next, 'hidden'); });
     return { el: group, picked: picked };
   }
 
@@ -804,6 +896,7 @@
     unfinishedDialog: unfinishedDialog, flag: flag, showPreview: showPreview, pictureNote: pictureNote,
     seasonNote: seasonNote,
     NEXT_HIDE_DAYS: NEXT_HIDE_DAYS, NEXT_SEPARATOR: NEXT_SEPARATOR,
-    nextWords: nextWords, nextsFor: nextsFor, hideNext: hideNext, nextToggle: nextToggle, nextOffer: nextOffer,
+    nextWords: nextWords, nextsFor: nextsFor, hiddenNextsFor: hiddenNextsFor, hideNext: hideNext, showNext: showNext,
+    nextToggle: nextToggle, nextAsk: nextAsk, nextOffer: nextOffer,
     nextText: nextText, nextAddition: nextAddition, nextPreview: nextPreview, nextNames: nextNames };
 })(typeof window !== 'undefined' ? window : this);

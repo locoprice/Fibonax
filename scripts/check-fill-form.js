@@ -733,6 +733,18 @@ console.log('OK A formatted text is filled from the same form, its plain copy ke
   assert.deepEqual(Object.keys(hidden), ['q>f'], 'hiding drops pairs older than NEXT_HIDE_DAYS');
   assert.deepEqual(ids(UI.nextsFor(map, 'q', lib, hidden, NOW)), ['a'], 'a hidden pair stays hidden, the others stay');
   assert.deepEqual(ids(UI.nextsFor(map, 'q', lib, hidden, NOW + 31 * 86400000)), ['f', 'a'], 'and comes back after NEXT_HIDE_DAYS');
+  // A hidden pair stays listed as "Firma hidden" with Bring back.
+  assert.deepEqual(ids(UI.hiddenNextsFor(map, 'q', lib, hidden, NOW)), ['f'], 'the hidden pair is listed apart');
+  assert.deepEqual(UI.hiddenNextsFor(map, 'q', lib, {}, NOW), [], 'nothing hidden lists nothing');
+  assert.deepEqual(UI.hiddenNextsFor(map, 'q', lib, hidden, NOW + 31 * 86400000), [], 'past NEXT_HIDE_DAYS it is offered again, not listed as hidden');
+  assert.deepEqual(UI.hiddenNextsFor(map, 'f', lib, { 'f>c': new Date(NOW).toISOString() }, NOW), [], 'a hidden snippet with a form is never listed');
+  const both = UI.hideNext(hidden, 'q', 'a', NOW);
+  const shown = UI.showNext(both, 'q', 'f');
+  assert.deepEqual(Object.keys(shown), ['q>a'], 'Bring back takes out that pair only');
+  assert.deepEqual(Object.keys(both), ['q>f', 'q>a'], 'and never changes the pairs handed in');
+  assert.deepEqual(ids(UI.nextsFor(map, 'q', lib, shown, NOW)), ['f'], 'a pair brought back is offered again at once');
+  assert.deepEqual(['ask', 'hidden', 'back-label'].map((k) => UI.nextWords(k, 'Firma')).concat(['ask-stop', 'ask-keep', 'back'].map((k) => UI.nextWords(k))),
+    ['Stop suggesting Firma after this snippet?', 'Firma hidden', 'Suggest Firma after this snippet again', 'Stop', 'Keep', 'Bring back']);
 
   // The ticked ones, in the order they were ticked.
   const none = [];

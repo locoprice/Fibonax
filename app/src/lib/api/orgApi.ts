@@ -18,6 +18,7 @@ import type {
   OrgMember,
   OrgRole,
   OrganizationSummary,
+  TeamGameScore,
 } from '@/types/database';
 
 // Organization reads for the dashboard. The folder-sharing UI (Phase B) needs
@@ -27,7 +28,13 @@ import type {
 // rows for orgs the user belongs to, and `org_member_directory` is a guarded
 // SECURITY DEFINER function that returns teammate identity to co-members only.
 
-type OrgRel = { id: string; name: string; slug: string | null; cover: string | null };
+type OrgRel = {
+  id: string;
+  name: string;
+  slug: string | null;
+  cover: string | null;
+  team_game: boolean | null;
+};
 type MembershipRow = {
   role: OrgRole;
   // supabase-js may surface an embedded to-one relation as an object or a
@@ -102,6 +109,16 @@ export interface OrgApi {
   setCover(orgId: string, cover: string | null, previousCover?: string | null): Promise<void>;
   /** Upload a cover image, point the org at its public URL, drop the previous upload. */
   uploadCover(orgId: string, currentCover: string | null, file: File): Promise<string>;
+  /**
+   * Switch the Team game on or off. Admin-only through the same `org_update`
+   * policy as the cover, so a non-admin's write matches no row and says so.
+   */
+  setTeamGame(orgId: string, on: boolean): Promise<void>;
+  /**
+   * The Team game standings: one row per member while the game is on, none
+   * while it is off (`team_game_scores`).
+   */
+  getTeamGameScores(orgId: string): Promise<TeamGameScore[]>;
 }
 
 export const orgApi: OrgApi = {
@@ -118,7 +135,7 @@ export const orgApi: OrgApi = {
 
     const { data, error } = await supabase
       .from('organization_members')
-      .select('role, organizations(id, name, slug, cover)')
+      .select('role, organizations(id, name, slug, cover, team_game)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true });
     if (error) throw toApiError(error);
@@ -135,6 +152,7 @@ export const orgApi: OrgApi = {
         slug: org.slug,
         myRole: row.role,
         cover: org.cover,
+        teamGame: org.team_game === true,
       });
     }
     return out;
@@ -149,7 +167,7 @@ export const orgApi: OrgApi = {
     if (typeof data !== 'string') throw new Error('Could not create the team. Try again.');
     // The caller is the only member, so the summary is fully determined here:
     // no round-trip needed to learn a role we just assigned.
-    return { id: data, name: trimmed, slug: null, myRole: 'admin', cover: null };
+    return { id: data, name: trimmed, slug: null, myRole: 'admin', cover: null, teamGame: false };
   },
 
   async listMembers(orgId) {
@@ -282,5 +300,31 @@ export const orgApi: OrgApi = {
       throw toApiError(err);
     }
     return publicUrl;
+  },
+
+  async setTeamGame(orgId, on) {
+    const { data, error } = await supabase
+      .from('organizations')
+      .update({ team_game: on })
+      .eq('id', orgId)
+      .select('id');
+    if (error) throw toApiError(error);
+    // RLS (org_update, admin-only) matches 0 rows for non-admins.
+    if (!data || data.length === 0) {
+      throw new Error('Only a team admin can switch the team game.');
+    }
+  },
+
+  async getTeamGameScores(orgId) {
+    const { data, error } = await supabase.rpc('team_game_scores', { p_org: orgId });
+    if (error) throw toApiError(error);
+    return (
+      (data ?? []) as Array<{ user_id: string; actions: number | string; is_new: boolean | null }>
+    ).map((r) => ({
+      user_id: r.user_id,
+      // bigint arrives as a string when it is large; the count never is, but read both.
+      actions: Number(r.actions) || 0,
+      is_new: r.is_new === true,
+    }));
   },
 };

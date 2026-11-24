@@ -43,18 +43,21 @@ A **Calculator** works out a number from figures you fill in, and prints the wor
 
 ## Interest
 
-**Interest** has two buttons, **Simple interest** and **Compound interest**. Each adds its number boxes and prints the working with the answers:
+**Interest** has three buttons: **Simple interest**, **Compound interest** and **Present value**. Each adds its number boxes and prints the working with the answers:
 
 | Button | Boxes | Prints |
 |---|---|---|
 | Simple interest | principal, rate % a year, years | `1000 × 5% × 3 = 150 (1000 + 150 = 1150)` |
 | Compound interest | principal, rate % a year, years, times a year | `1000 × (1 + 5% / 12)^(12 × 3) = 1161.47 (+161.47)` |
+| Present value | payment, rate % a period, periods | `100 × (1 - (1 + 5%)^-10) / 5% = 772.17` |
 
 - Simple interest prints the interest, then the total with the principal.
 - Compound interest prints the final amount, then the interest earned.
+- Present value prints what a run of equal payments is worth today, when each payment is made at the end of its period. 10 payments of 100 at 5% a period are worth 772.17 today.
+- For present value the rate is for one period. With monthly payments, type the monthly rate and the number of months.
 - **Times a year** starts on 12, which is monthly. Type 1 for yearly, 4 for quarterly or 365 for daily.
 - An empty, zero or negative box prints no answer instead of a wrong one.
-- Compound interest needs extension version 3.52.0 or later. An older one prints the working without the answer.
+- Compound interest and Present value need extension version 3.52.0 or later. An older one prints the working without the answer.
 
 ## Change or remove a formula
 

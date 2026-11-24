@@ -42,7 +42,7 @@ const library = [
     }, library);
     await page.addStyleTag({ path: root + '/extension/shared/tokens/colors_and_type.css' });
     await page.addStyleTag({ path: root + '/extension/shared/fill-form-ui.css' });
-    for (const file of ['formula-engine.js', 'shared/snippet-stats.js', 'shared/fill-form.js', 'shared/fill-form-ui.js', 'shared/interactive-steps.js', 'content/content.js']) {
+    for (const file of ['formula-engine.js', 'shared/snippet-stats.js', 'shared/asset-search.js', 'shared/fill-form.js', 'shared/fill-form-ui.js', 'shared/interactive-steps.js', 'content/content.js']) {
       await page.addScriptTag({ path: root + '/extension/' + file });
     }
 

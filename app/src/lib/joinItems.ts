@@ -56,6 +56,7 @@ export interface PromptSeed {
   blocks: PromptBlock[];
   folder_id: string | null;
   ask_user_questions: boolean;
+  temperature: number | null;
 }
 
 const BLOCK_ORDER: PromptBlockType[] = ['role', 'objective', 'context', 'examples', 'constraints'];
@@ -76,7 +77,7 @@ function textOf(p: Prompt, type: PromptBlockType): string {
  * prompt's objective as a numbered step, under its name. The role is the first
  * prompt's. Context, examples and constraints are each kept once, in order, and
  * the first Brain a Context block carries stays on it. "Ask questions first"
- * is on when any of them asked.
+ * is on when any of them asked, and the temperature is the first one set.
  */
 export function joinPrompts(parts: readonly Prompt[]): PromptSeed {
   const first = parts[0];
@@ -119,5 +120,6 @@ export function joinPrompts(parts: readonly Prompt[]): PromptSeed {
     blocks,
     folder_id: first && first.organization_id === null ? first.folder_id : null,
     ask_user_questions: parts.some((p) => p.ask_user_questions),
+    temperature: parts.map((p) => p.temperature).find((t) => t !== null) ?? null,
   };
 }

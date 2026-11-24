@@ -26,6 +26,7 @@ function prompt(over: Partial<PromptExportSource> = {}): PromptExportSource {
     output_type: 'Plain',
     blocks: [{ type: 'role', content: 'You are a support lead.', enabled: true }],
     ask_user_questions: true,
+    temperature: null,
     ...over,
   };
 }
@@ -82,6 +83,7 @@ describe('prompt files', () => {
       'preferred_model',
       'shortcut',
       'strategy_type',
+      'temperature',
       'thinking_mode',
     ]);
   });

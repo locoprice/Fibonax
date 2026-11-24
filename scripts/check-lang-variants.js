@@ -34,6 +34,9 @@ const CONTENT_SRC = fs.readFileSync(
 // manifest loads ahead of it. The gate has to load it in the same order.
 const STATS_SRC = fs.readFileSync(
   path.join(__dirname, '..', 'extension', 'shared', 'snippet-stats.js'), 'utf8');
+// And for the search rule its menu filters through.
+const SEARCH_SRC = fs.readFileSync(
+  path.join(__dirname, '..', 'extension', 'shared', 'asset-search.js'), 'utf8');
 // The same goes for the Interactive Steps setting it reads while loading.
 const STEPS_SRC = fs.readFileSync(
   path.join(__dirname, '..', 'extension', 'shared', 'interactive-steps.js'), 'utf8');
@@ -73,6 +76,7 @@ vm.createContext(sandbox);
 try {
   vm.runInContext(ENGINE_SRC, sandbox);
   vm.runInContext(STATS_SRC, sandbox);
+  vm.runInContext(SEARCH_SRC, sandbox);
   vm.runInContext(STEPS_SRC, sandbox);
   vm.runInContext(CONTENT_SRC, sandbox);
 } catch (e) {

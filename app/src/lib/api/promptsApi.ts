@@ -66,6 +66,7 @@ type DbPrompt = {
   output_type: string | null;
   blocks: PromptBlock[] | null;
   ask_user_questions: boolean | null;
+  temperature: number | string | null;
   folder_id: string | null;
   notion_page_id: string | null;
   pinned: boolean | null;
@@ -84,7 +85,7 @@ type DbPrompt = {
 const PROMPT_SELECT = [
   'id', 'user_id', 'name', 'content', 'shortcut', 'type',
   'strategy_type', 'thinking_mode', 'preferred_model', 'complexity_level',
-  'intent_category', 'output_type', 'blocks', 'ask_user_questions',
+  'intent_category', 'output_type', 'blocks', 'ask_user_questions', 'temperature',
   'folder_id', 'notion_page_id', 'pinned', 'updated_at', 'updated_by', 'last_used_at',
   // created_at is the fallback anchor for the unused-asset banner: a prompt
   // never executed is measured from the day it was added (INACTIVE-001).
@@ -93,6 +94,13 @@ const PROMPT_SELECT = [
   // Review status (AI-KNOWLEDGE P2). organization_id decides who approves.
   'organization_id', 'review_status', 'reviewed_by', 'reviewed_at',
 ].join(', ');
+
+/** A numeric column can come back as a string; anything unreadable is no choice. */
+function temperatureOf(value: number | string | null): number | null {
+  if (value === null) return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 function dbPromptToPrompt(row: DbPrompt): Prompt {
   return {
@@ -110,6 +118,7 @@ function dbPromptToPrompt(row: DbPrompt): Prompt {
     output_type: (row.output_type as OutputType) ?? null,
     blocks: row.blocks ?? null,
     ask_user_questions: row.ask_user_questions ?? false,
+    temperature: temperatureOf(row.temperature),
     folder_id: row.folder_id ?? null,
     organization_id: row.organization_id ?? null,
     review_status: toReviewStatus(row.review_status),
@@ -164,6 +173,7 @@ export const promptsApi: PromptsApi = {
         output_type: payload.output_type ?? null,
         blocks: payload.blocks ?? null,
         ask_user_questions: payload.ask_user_questions,
+        temperature: payload.temperature ?? null,
         folder_id: payload.folder_id ?? null,
         updated_at: now,
         // Sent with the row, so the prompt is never approved in between.
@@ -191,6 +201,7 @@ export const promptsApi: PromptsApi = {
     if ('output_type' in patch) update['output_type'] = patch.output_type ?? null;
     if ('blocks' in patch) update['blocks'] = patch.blocks ?? null;
     if (patch.ask_user_questions !== undefined) update['ask_user_questions'] = patch.ask_user_questions;
+    if (patch.temperature !== undefined) update['temperature'] = patch.temperature;
     if ('folder_id' in patch) update['folder_id'] = patch.folder_id ?? null;
 
     const { data, error } = await supabase
@@ -284,6 +295,8 @@ export const promptsApi: PromptsApi = {
       p_folder_id: values.folder_id ?? null,
       p_editor_display: await currentEditorDisplay(),
       p_edit_note: editNote ?? null,
+      // Null keeps the value the prompt has (save_prompt_with_version).
+      p_temperature: values.temperature ?? null,
     });
     if (error) throw toApiError(error);
     return data as number;
@@ -307,6 +320,7 @@ export const promptsApi: PromptsApi = {
         intent_category: current.intent_category,
         output_type: current.output_type,
         ask_user_questions: current.ask_user_questions,
+        temperature: current.temperature,
         folder_id: current.folder_id,
       },
       `restored from v${version.version_number}`,

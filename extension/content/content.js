@@ -138,9 +138,22 @@ function _nextsFor(snip) {
   return ui && ui.nextsFor && snip ? ui.nextsFor(nextMap, snip.id, snippets, nextHidden) : [];
 }
 
-// The cross: this pair stays hidden on this browser for NEXT_HIDE_DAYS.
+// The ones the cross hid, still listed as "Firma hidden" with Bring back.
+function _hiddenNextsFor(snip) {
+  var ui = window.SBFillFormUI;
+  return ui && ui.hiddenNextsFor && snip ? ui.hiddenNextsFor(nextMap, snip.id, snippets, nextHidden) : [];
+}
+
+// The cross, once confirmed: this pair stays hidden on this browser for
+// NEXT_HIDE_DAYS. Bring back (_showNext) undoes it.
 function _hideNext(snip, next) {
-  nextHidden = window.SBFillFormUI.hideNext(nextHidden, snip.id, next.id);
+  _keepNextHidden(window.SBFillFormUI.hideNext(nextHidden, snip.id, next.id));
+}
+function _showNext(snip, next) {
+  _keepNextHidden(window.SBFillFormUI.showNext(nextHidden, snip.id, next.id));
+}
+function _keepNextHidden(hidden) {
+  nextHidden = hidden;
   try {
     chrome.storage.local.set({ sb_next_hidden: nextHidden });
   } catch (e) { console.error('[Fibonax] could not remember the hidden suggestion:', e); }
@@ -181,6 +194,7 @@ function _cardNext(el, snip, text, inField, snapshot, finish) {
   return {
     items: list,
     onHide: function(next) { _hideNext(snip, next); },
+    onShow: function(next) { _showNext(snip, next); },
     onAdd: function(picked) {
       // The first text went in formatted when one of these is: so do they all.
       var formatted = _takesFormatting(el) && picked.some(function(next) { return !!ui.nextText(next).formatted; });
@@ -2463,11 +2477,12 @@ function showOverlay(targetEl, snip, scLen, done) {
   // what each ticked one adds. Unticked: nothing extra goes in unless the
   // person ticks it, and what is ticked goes in in that order.
   var nexts = _nextsFor(snip);
+  var nextsHidden = _hiddenNextsFor(snip);
   el._sbNext = null;
-  if (nexts.length) {
+  if (nexts.length || nextsHidden.length) {
     el._sbNext = window.SBFillFormUI.nextOffer(document, nexts, function(next) { _hideNext(snip, next); }, function(picked) {
       window.SBFillFormUI.nextPreview(el.querySelector('#sb-prev'), picked);
-    }, { list: true });
+    }, { list: true, hidden: nextsHidden, onShow: function(next) { _showNext(snip, next); } });
     el.querySelector('.sb-preview').appendChild(el._sbNext.el);
   }
 
@@ -3813,11 +3828,26 @@ function showCelebration(text, onConfirm, onUndo, options) {
       // Add Firma: the card goes, and the caller puts the first text (when it
       // is not in yet) and the next one in the field.
       addBtn.addEventListener('click', function() { settle(function() { next.onAdd([nextOne]); }); });
-      // The cross hides this pair from now on.
+      // The cross asks first. Keep puts the row back; Stop hides this pair,
+      // and the popup's list keeps it as "Firma hidden" with Bring back.
       card.querySelector('#sb-cel-next-hide').addEventListener('click', function() {
         if (settled) return;
-        next.onHide(nextOne);
-        nextGone();
+        var row = card.querySelector('#sb-cel-next-row');
+        var parts = Array.prototype.slice.call(row.childNodes);
+        var ask = window.SBFillFormUI.nextAsk(document, nextOne, function() {
+          if (settled) return;
+          next.onHide(nextOne);
+          nextGone();
+        }, function() {
+          row.textContent = '';
+          parts.forEach(function(n) { row.appendChild(n); });
+          row.classList.remove('sb-cel-next-ask');
+          card.querySelector('#sb-cel-next-hide').focus();
+        });
+        row.textContent = '';
+        row.classList.add('sb-cel-next-ask');
+        row.appendChild(ask.el);
+        ask.focus();
       });
     } else {
       // Several: Add names what is ticked, and puts them in in that order.
@@ -3826,7 +3856,7 @@ function showCelebration(text, onConfirm, onUndo, options) {
         if (!left) { nextGone(); return; }
         addBtn.disabled = !picked.length;
         addBtn.textContent = !picked.length ? nw('add-none') : picked.length === 1 ? nw('add', picked[0].title) : nw('add-many', picked.length);
-      });
+      }, { onShow: next.onShow });
       addBtn.parentNode.insertBefore(nextRows.el, addBtn);
       addBtn.addEventListener('click', function() {
         // Read before the card goes: the rows answer only while they show.
@@ -3950,25 +3980,74 @@ function _scTag(sc) {
     + '</span>';
 }
 
+// The menu reads a row's text from the fourth letter typed. Fewer than that
+// are the start of a trigger, and nearly every text holds them somewhere.
+var PICKER_TEXT_MIN = 4;
+
+// How a row of the menu answers the letters typed (shared/asset-search.js): its
+// name and trigger, its search keywords, and its text in every language it
+// carries. Null when the letters are nowhere in it.
+function _pickerLook(item, q) {
+  var text = [], bodies = item.bodies, lang;
+  if (q.length >= PICKER_TEXT_MIN) {
+    text.push(item.body || '');
+    if (bodies && typeof bodies === 'object') {
+      for (lang in bodies) { if (typeof bodies[lang] === 'string') text.push(bodies[lang]); }
+    }
+  }
+  return SBAssetSearch.look(q, { shown: [item.title, item.shortcut], keywords: item.alternative_queries, text: text });
+}
+
+// True when a row was found by what it is called (name, trigger, keyword), not
+// through a word inside its text.
+function _pickerNamed(look) {
+  return look.rank === 2 || !look.why || look.why.kind !== 'Text';
+}
+
+// The row's name, with the piece of its text that holds the typed letters on a
+// second line when that is how it was found. The found word is bold and azure:
+// the menu draws on other people's pages, so its styles are written in place.
+function _pickerNameHtml(item, why) {
+  var name = '<span style="' + (why ? '' : 'flex:1 1 auto;min-width:0;') + 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + xesc(item.title) + '</span>';
+  if (!why) return name;
+  return '<span style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px">' + name
+    + '<span style="font-size:12px;font-weight:400;color:#52525B;line-height:1.35;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden">'
+    + SBAssetSearch.whyHtml(why).replace('<mark>', '<mark style="background:none;color:#1B4FD8;font-weight:600">')
+    + '</span></span>';
+}
+
+// How many rows of the menu were found by what they are called. "Insert
+// automatically" counts these, so a word that also sits inside another
+// snippet's text never stops a typed trigger from inserting.
+var triggerPickerNamed = 0;
+
 // Re-render picker items filtered by query string
 function _renderPickerItems(query) {
   if (!triggerPickerEl) return;
   var allItems = triggerPickerMode === 'snippet' ? snippets : promptTemplates();
   var q = (query || '').toLowerCase();
-  var filtered = q
-    ? allItems.filter(function(s) {
-        if ((s.title    || '').toLowerCase().indexOf(q) > -1) return true;
-        if ((s.shortcut || '').toLowerCase().indexOf(q) > -1) return true;
-        var aqs = Array.isArray(s.alternative_queries) ? s.alternative_queries : [];
-        for (var ai = 0; ai < aqs.length; ai++) {
-          if ((aqs[ai] || '').toLowerCase().indexOf(q) > -1) return true;
-        }
-        return false;
-      })
-    : allItems.slice();
+  // Rows found by what they are called come first, then the ones found through
+  // their text, so Tab / Enter still inserts the snippet named that way.
+  // A snippet is one row for all its languages, so the reason is kept per row.
+  var named = [], inText = [], whyOf = {};
+  function rowKey(item) { return triggerPickerMode === 'snippet' ? _groupKeyOf(item) : item.id; }
+  if (q) {
+    allItems.forEach(function(s) {
+      var look = _pickerLook(s, q);
+      if (!look) return;
+      var key = rowKey(s);
+      if (_pickerNamed(look)) { named.push(s); whyOf[key] = null; }
+      else { inText.push(s); if (whyOf[key] === undefined) whyOf[key] = look.why; }
+    });
+  }
+  var filtered = q ? named.concat(inText) : allItems.slice();
 
-  if (triggerPickerMode === 'snippet') filtered = _dedupByLangBase(filtered);
-  else filtered = _foldBuiltIns(filtered, q);
+  if (triggerPickerMode === 'snippet') {
+    filtered = _dedupByLangBase(filtered);
+    triggerPickerNamed = q ? _dedupByLangBase(named).length : filtered.length;
+  } else {
+    filtered = _foldBuiltIns(filtered, q);
+  }
   triggerPickerFiltered = filtered;
 
   var itemsEl = triggerPickerEl.querySelector('.sb-tp-items');
@@ -4002,9 +4081,10 @@ function _renderPickerItems(query) {
     var sc = item.shortcut
       ? _scTag(item.shortcut)
       : '';
-    h += '<div class="sb-tp-item" data-idx="' + i + '" style="display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:14px;font-weight:500;color:#18181B;line-height:1.3;'
+    var why = whyOf[rowKey(item)];
+    h +='<div class="sb-tp-item" data-idx="' + i + '" style="display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:14px;font-weight:500;color:#18181B;line-height:1.3;'
       + (i === 0 ? 'background:#EEF2FF;' : '') + '">'
-      + '<span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + xesc(item.title) + '</span>'
+      + _pickerNameHtml(item, why)
       // A deprecated item still works; the menu says so before it is picked.
       + (item.review_status === 'deprecated'
         ? '<span style="flex:none;padding:0 6px;border-radius:9999px;font-size:10px;font-weight:600;line-height:16px;color:var(--sb-warn);background:var(--sb-warn-bg);">Deprecated</span>'
@@ -4147,13 +4227,15 @@ function _armPickerAuto() {
   }, secs * 1000);
 }
 
-// True when the menu holds exactly one snippet and the typed letters are a real
-// prefix of its shortcut or one of its alternative queries (not a word that
-// merely appears inside a title), at least MIN_PREFIX_CHARS of them.
+// True when the menu holds exactly one snippet found by what it is called (it
+// is the first row; snippets found through their text come after it) and the
+// typed letters are a real prefix of its shortcut or one of its alternative
+// queries (not a word that merely appears inside a title), at least
+// MIN_PREFIX_CHARS of them.
 function _pickerHasOnePrefixMatch() {
   if (!triggerPickerEl || triggerPickerMode !== 'snippet') return false;
   if (triggerPickerQuery.length < MIN_PREFIX_CHARS) return false;
-  if (triggerPickerFiltered.length !== 1) return false;
+  if (triggerPickerNamed !== 1) return false;
   var seq = (triggerCfg && triggerCfg.snippetTrigger) || '::';
   return !!_uniquePrefixSnippet(triggerPickerQuery, seq);
 }

@@ -254,6 +254,12 @@ export interface Prompt extends ReviewFields {
    * instruction to ask clarifying questions first (see assembleBlocks).
    */
   ask_user_questions: boolean;
+  /**
+   * How precise (low) or creative (high) the AI should be, 0 to 2; null when no
+   * choice was made. The saved content carries it as a sentence
+   * (lib/promptTemperature.ts, assembleBlocks).
+   */
+  temperature: number | null;
   folder_id: Uuid | null;
   /** The team this prompt belongs to (derived from its folder), or null when personal. Decides who approves it. */
   organization_id: Uuid | null;
@@ -409,6 +415,17 @@ export interface OrganizationSummary {
   myRole: OrgRole;
   /** Team-page cover (TEAM-COVER-001): a preset key, an https image URL, or null. */
   cover: string | null;
+  /** The Team game (Team Leader and Black Sheep) is on. Admins switch it. */
+  teamGame: boolean;
+}
+
+/** One person's line in the Team game, from `team_game_scores`. */
+export interface TeamGameScore {
+  user_id: Uuid;
+  /** Uses, additions and saved changes in the team's folders over the last 30 days. */
+  actions: number;
+  /** Joined the team in the last 14 days, so never the Black Sheep. */
+  is_new: boolean;
 }
 
 /** A teammate, resolved via the `org_member_directory` RPC. */

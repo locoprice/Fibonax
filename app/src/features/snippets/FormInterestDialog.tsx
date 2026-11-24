@@ -37,6 +37,12 @@ const COPY: Record<InterestKind, { description: string; numbers: string }> = {
     numbers:
       'Principal, rate % a year, years, and times a year the interest is added. Times a year starts on 12: 1 is yearly, 4 quarterly, 365 daily.',
   },
+  annuity: {
+    description:
+      'Numbers filled in when the snippet expands. The working and what the payments are worth today print on one line.',
+    numbers:
+      'Payment, rate % a period and number of periods. Each one is a box you fill in. The payments are equal, each made at the end of its period, and the rate is for one period: for monthly payments, the monthly rate.',
+  },
 };
 
 interface FormInterestDialogProps {
@@ -55,7 +61,8 @@ interface FormInterestDialogProps {
 }
 
 /**
- * Simple or compound interest on numbers typed in when the snippet expands. It
+ * Simple interest, compound interest or the present value of equal payments,
+ * on numbers typed in when the snippet expands. It
  * adds the boxes itself and prints the working with the answers on one line.
  * What it writes comes from `buildInterestToken` in `@/lib/formulaToken`.
  */

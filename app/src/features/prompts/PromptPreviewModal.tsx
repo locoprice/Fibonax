@@ -51,7 +51,7 @@ export function PromptPreviewModal() {
     ? (promptDraftContent ?? '')
     : prompt
       ? (prompt.blocks && prompt.blocks.length > 0
-          ? assembleBlocks(prompt.blocks, { askUserQuestions: prompt.ask_user_questions })
+          ? assembleBlocks(prompt.blocks, { askUserQuestions: prompt.ask_user_questions, temperature: prompt.temperature })
           : prompt.content)
       : '';
 
