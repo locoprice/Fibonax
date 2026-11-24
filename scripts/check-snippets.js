@@ -493,6 +493,16 @@ const formulaCases = [
     { PRINCIPAL: '1000', RATE: '5', PER_YEAR: '12', YEARS: '3' }, 1161.47],
   ['PRINCIPAL * pow(1 + RATE / 100 / PER_YEAR, PER_YEAR * YEARS) - PRINCIPAL',
     { PRINCIPAL: '1000', RATE: '5', PER_YEAR: '1', YEARS: '3' }, 157.63],
+  // What the Present value window writes: C × (1 - (1 + i)^-n) / i.
+  ['PAYMENT * (1 - pow(1 + RATE / 100, -PERIODS)) / (RATE / 100)',
+    { PAYMENT: '100', RATE: '5', PERIODS: '10' }, 772.17],
+  ['PAYMENT * (1 - pow(1 + RATE / 100, -PERIODS)) / (RATE / 100)',
+    { PAYMENT: '1.200', RATE: '3,5', PERIODS: '15' }, 13820.89],
+  ['round(PAYMENT * (1 - pow(1 + RATE / 100, -PERIODS)) / (RATE / 100))',
+    { PAYMENT: '500', RATE: '6', PERIODS: '20' }, 5735],
+  // A rate of 0 divides by 0: no answer, never NaN.
+  ['PAYMENT * (1 - pow(1 + RATE / 100, -PERIODS)) / (RATE / 100)',
+    { PAYMENT: '100', RATE: '0', PERIODS: '10' }, null],
   ['pow(NUM_1, NUM_2)', { NUM_1: '2', NUM_2: '0.5' }, 1.41],
   ['pow(NUM_1, NUM_2)', { NUM_1: '-8', NUM_2: '0.5' }, null],
 ];
@@ -597,7 +607,15 @@ try {
 }
 if (typeof mobile.resolveBody !== 'function') fail('mobile/index.html no longer defines resolveBody');
 const RATE_RULE = '{if: R = "REFUNDABLE"}Full refund.{elseif: R = "NOT REFUNDABLE"}No refund.{endif}';
+// The line the Present value window writes, with its boxes and its guard.
+const PRESENT_VALUE =
+  '{formtext: name=PAYMENT; type=number} × (1 - (1 + {formtext: name=RATE; type=number}%)^-' +
+  '{formtext: name=PERIODS; type=number}) / {RATE}% = {if: min(PAYMENT, RATE, PERIODS) > 0}' +
+  '{=PAYMENT * (1 - pow(1 + RATE / 100, -PERIODS)) / (RATE / 100)}{endif}';
 const expansionCases = [
+  [PRESENT_VALUE, { PAYMENT: '100', RATE: '5', PERIODS: '10' }],
+  [PRESENT_VALUE, { PAYMENT: '100', RATE: '0', PERIODS: '10' }],
+  [PRESENT_VALUE, { PAYMENT: '100', RATE: '', PERIODS: '10' }],
   ['Rate: {formmenu: A,B; name=R}.', { R: 'B' }],
   ['Rate: {formmenu: A,B; name=R; print=no}.', { R: 'B' }],
   ['Hi\n{formmenu: REFUNDABLE,NOT REFUNDABLE; name=R; print=no}\n' + RATE_RULE + '\nBye', { R: 'REFUNDABLE' }],

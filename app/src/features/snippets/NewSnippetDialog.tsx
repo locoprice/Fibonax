@@ -368,7 +368,7 @@ const FORMULA_REMOVE = {
 // the way the field toggles above read. A new formula is one entry here. The
 // Calculator's By hand is the engine's own vocabulary
 // (extension/formula-engine.js: FUNS, safeEval), for anything no window writes.
-type FormulaWindow = 'price' | 'calculator' | 'simple' | 'compound';
+type FormulaWindow = 'price' | 'calculator' | 'simple' | 'compound' | 'annuity';
 
 const MATH_FORMULAS: readonly {
   label: string;
@@ -403,16 +403,19 @@ const MATH_FORMULAS: readonly {
   {
     label: 'Interest',
     description:
-      'Interest on a principal at a yearly rate, from numbers filled in when the snippet expands. Prints the working and the answers.',
+      'Interest on a principal, or what a run of equal payments is worth today, from numbers filled in when the snippet expands. Prints the working and the answers.',
     actions: [
       { window: 'simple', label: 'Simple interest' },
       { window: 'compound', label: 'Compound interest' },
+      { window: 'annuity', label: 'Present value' },
     ],
     fields: [
       { label: 'Simple',
         hint: 'The interest and the total: 1000 × 5% × 3 = 150 (1000 + 150 = 1150).' },
       { label: 'Compound',
         hint: 'The final amount and the interest earned, added 12 times a year unless changed: 1000 × (1 + 5% / 12)^(12 × 3) = 1161.47 (+161.47).' },
+      { label: 'Present value',
+        hint: 'What equal payments, each made at the end of its period, are worth today: 100 × (1 - (1 + 5%)^-10) / 5% = 772.17.' },
       FORMULA_REMOVE,
     ],
   },
@@ -2912,7 +2915,7 @@ export function NewSnippetDialog() {
               onSave={saveFormula}
             />
 
-            {(['simple', 'compound'] as const).map((kind) => (
+            {(['simple', 'compound', 'annuity'] as const).map((kind) => (
               <FormInterestDialog
                 key={kind}
                 kind={kind}

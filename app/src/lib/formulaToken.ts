@@ -530,21 +530,29 @@ export function buildPriceAdjustToken(cfg: PriceAdjustConfig): string {
 }
 
 // ── INTEREST ────────────────────────────────────────────────────────
-// Simple and compound interest, each a Math toggle with its own window. Like a
-// Calculator block, the window writes the number boxes and the working, then
-// the answers, so the fill form asks for every number:
+// Simple interest, compound interest and present value, each a button on the
+// Interest toggle with its own window. Like a Calculator block, the window
+// writes the number boxes and the working, then the answers, so the fill form
+// asks for every number:
 //
 //   1000 × 5% × 3 = 150 (1000 + 150 = 1150)
 //   1000 × (1 + 5% / 12)^(12 × 3) = 1161.47 (+161.47)
+//   100 × (1 - (1 + 5%)^-10) / 5% = 772.17
+//
+// Present value is what a run of equal payments, each made at the end of its
+// period, is worth today: C × (1 - (1 + i)^-n) / i, with the rate i for one
+// period and n the number of periods.
 //
 // Signs, never words, so the line reads the same in any language. The answers
 // sit behind `min(...) > 0`: an empty, zero or negative box prints no answer
-// rather than a wrong one (an empty "times a year" would divide by 0).
+// rather than a wrong one (an empty "times a year" or a rate of 0 would divide
+// by 0).
 //
-// Compound interest calls pow(), which only the engine from v3.52.0 knows. An
-// older extension prints the working and no answer until it updates.
+// Compound interest and present value call pow(), which only the engine from
+// v3.52.0 knows. An older extension prints the working and no answer until it
+// updates.
 
-export type InterestKind = 'simple' | 'compound';
+export type InterestKind = 'simple' | 'compound' | 'annuity';
 
 export interface InterestSpec {
   id: InterestKind;
@@ -577,11 +585,22 @@ export const INTEREST_SPECS: Record<InterestKind, InterestSpec> = {
     defaults: ['', '', '', '12'],
     sample: ['1000', '5', '3', '12'],
   },
+  annuity: {
+    id: 'annuity',
+    label: 'Present value',
+    roles: ['Payment', 'Rate % a period', 'Periods'],
+    baseNames: ['PAYMENT', 'RATE', 'PERIODS'],
+    defaults: ['', '', ''],
+    sample: ['100', '5', '10'],
+  },
 };
 
 export interface InterestConfig {
   kind: InterestKind;
-  /** Principal, rate, years and, for compound, times a year. */
+  /**
+   * Principal, rate, years and, for compound, times a year. For present value:
+   * payment, rate a period, periods.
+   */
   names: string[];
   decimals: FormulaDecimals;
   /** As in `FormulaConfig`: the answers land inside an `{if:}` already. */
@@ -634,10 +653,15 @@ export function buildInterestToken(cfg: InterestConfig): string {
     const interest = `${p} * ${r} / 100 * ${t}`;
     working = `${box(0)} × ${box(1)}% × ${box(2)}`;
     result = `${answer(interest)} ({${p}} + ${answer(interest)} = ${answer(`${p} + ${interest}`)})`;
-  } else {
+  } else if (cfg.kind === 'compound') {
     const amount = `${p} * pow(1 + ${r} / 100 / ${n}, ${n} * ${t})`;
     working = `${box(0)} × (1 + ${box(1)}% / ${box(3)})^({${n}} × ${box(2)})`;
     result = `${answer(amount)} (+${answer(`${amount} - ${p}`)})`;
+  } else {
+    // Here the third box is the number of periods, and the rate is for one.
+    const value = `${p} * (1 - pow(1 + ${r} / 100, -${t})) / (${r} / 100)`;
+    working = `${box(0)} × (1 - (1 + ${box(1)}%)^-${box(2)}) / {${r}}%`;
+    result = answer(value);
   }
   const guarded = cfg.inCondition ? result : `{if: min(${cfg.names.join(', ')}) > 0}${result}{endif}`;
   return `${working} = ${guarded}`;
@@ -795,14 +819,26 @@ const BOX = String.raw`\{formtext:[^}]*\}`;
 const REF = String.raw`\{[A-Za-z_][A-Za-z0-9_]*\}`;
 const ANS = String.raw`\{=[^}]*\}`;
 const GUARD = String.raw`(\{if:[^}]*\})?`;
-const INTEREST_BLOCKS: readonly { kind: InterestKind; re: RegExp }[] = [
+const INTEREST_BLOCKS: readonly {
+  kind: InterestKind;
+  re: RegExp;
+  /** The block in plain words, from its box names in the order the working prints them. */
+  describe: (boxes: string[]) => string;
+}[] = [
   {
     kind: 'simple',
     re: new RegExp(`${BOX} × ${BOX}% × ${BOX} = ${GUARD}(${ANS} \\(${REF} \\+ ${ANS} = ${ANS}\\))(\\{endif\\})?`, 'g'),
+    describe: ([p, r, t]) => `Simple interest: ${p} at ${r}% for ${t}`,
   },
   {
     kind: 'compound',
     re: new RegExp(`${BOX} × \\(1 \\+ ${BOX}% / ${BOX}\\)\\^\\(${REF} × ${BOX}\\) = ${GUARD}(${ANS} \\(\\+${ANS}\\))(\\{endif\\})?`, 'g'),
+    describe: ([p, r, n, t]) => `Compound interest: ${p} at ${r}% for ${t}, ${n} times a year`,
+  },
+  {
+    kind: 'annuity',
+    re: new RegExp(`${BOX} × \\(1 - \\(1 \\+ ${BOX}%\\)\\^-${BOX}\\) / ${REF}% = ${GUARD}(${ANS})(\\{endif\\})?`, 'g'),
+    describe: ([c, r, n]) => `Present value: ${c} at ${r}% for ${n}`,
   },
 ];
 
@@ -815,7 +851,7 @@ interface InterestBlock {
 
 function interestBlocks(body: string): InterestBlock[] {
   const out: InterestBlock[] = [];
-  for (const { kind, re } of INTEREST_BLOCKS) {
+  for (const { re, describe } of INTEREST_BLOCKS) {
     const all = new RegExp(re.source, 'g');
     let m: RegExpExecArray | null;
     while ((m = all.exec(body)) !== null) {
@@ -829,10 +865,6 @@ function interestBlocks(body: string): InterestBlock[] {
       const end = start + m[0].length - (guard === undefined && endif !== undefined ? endif.length : 0);
       const answersAt = start + m[0].indexOf(m[2] ?? '', m[0].indexOf(' = '));
       const names = [...m[0].matchAll(/name=([A-Za-z_][A-Za-z0-9_]*)/g)].map((b) => b[1] ?? '');
-      const [p, r, t, n] = kind === 'simple' ? names : [names[0], names[1], names[3], names[2]];
-      const description = kind === 'simple'
-        ? `Simple interest: ${p} at ${r}% for ${t}`
-        : `Compound interest: ${p} at ${r}% for ${t}, ${n} times a year`;
       // The boxes go with the block, unless another formula reads one of them.
       // Then only the answers go, the way a Calculator block keeps shared boxes.
       const ownsBoxes = names.every((b) => !usedElsewhere(body, b, start, end));
@@ -845,7 +877,7 @@ function interestBlocks(body: string): InterestBlock[] {
           removeStart,
           removeEnd: end,
           context: lineContext(body, start, end),
-          description,
+          description: describe(names),
         },
       });
     }
