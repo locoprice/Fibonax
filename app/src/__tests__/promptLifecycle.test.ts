@@ -42,6 +42,7 @@ const BASE_PROMPT: Prompt = {
   output_type: null,
   blocks: null,
   ask_user_questions: false,
+  temperature: null,
   folder_id: null,
   notion_page_id: null,
   pinned: false,

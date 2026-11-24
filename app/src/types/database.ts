@@ -254,6 +254,12 @@ export interface Prompt extends ReviewFields {
    * instruction to ask clarifying questions first (see assembleBlocks).
    */
   ask_user_questions: boolean;
+  /**
+   * How precise (low) or creative (high) the AI should be, 0 to 2; null when no
+   * choice was made. The saved content carries it as a sentence
+   * (lib/promptTemperature.ts, assembleBlocks).
+   */
+  temperature: number | null;
   folder_id: Uuid | null;
   /** The team this prompt belongs to (derived from its folder), or null when personal. Decides who approves it. */
   organization_id: Uuid | null;

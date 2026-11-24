@@ -12003,7 +12003,7 @@ var PROMPT_STRATEGY_CLASS={'CoT':'pstrat-CoT','ToT':'pstrat-ToT','Few-shot':'pst
 /* Full column set — kept in parity with the desktop promptsApi so Duplicate
    round-trips every field (blocks, thinking_mode, etc.) without data loss. */
 var PROMPT_SELECT='id,name,content,shortcut,type,strategy_type,thinking_mode,preferred_model,'
-  +'complexity_level,intent_category,output_type,blocks,ask_user_questions,folder_id,'
+  +'complexity_level,intent_category,output_type,blocks,ask_user_questions,temperature,folder_id,'
   +'organization_id,created_at,updated_at,last_used_at,usage_count,pinned,review_status';
 var FOLDER_SHARED_SVG='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 
@@ -16378,7 +16378,19 @@ function editWithout(list,taken){
 /* A prompt's text from its parts, as the dashboard writes it (assembleBlocks in
    app/src/lib/promptUtils.ts, pinned by app/src/__tests__/mobileEdit.test.ts). */
 var EDIT_ASK_SECTION='## Questions\nBefore you start, ask me clarifying questions about anything you need to know to do this task well.\nAsk one question at a time and wait for my answer, so I can respond easily.\nAsk no more than 5 questions in total.\nOnce you have enough information, ask me to confirm before you give the final result.';
-function editAssembleBlocks(blocks,askUserQuestions){
+/* The answer style a prompt's temperature adds (app/src/lib/promptTemperature.ts):
+   up to 0.3 Precise, up to 0.7 Balanced, above that Creative; none when unset. */
+function editTemperatureSection(t){
+  if(typeof t==='string'&&t.trim()!=='')t=Number(t);
+  if(typeof t!=='number'||!isFinite(t)||t<0||t>2)return '';
+  var line=t<=0.3
+    ?'Answer as if your temperature were set to 0.2: precise and factual. Stick to what you know and say so when you are unsure.'
+    :t<=0.7
+      ?'Answer as if your temperature were set to 0.5: balanced, clear and natural.'
+      :'Answer as if your temperature were set to 0.9: creative and varied. Offer original ideas and unexpected angles.';
+  return '## Answer style\n'+line;
+}
+function editAssembleBlocks(blocks,askUserQuestions,temperature){
   var parts=[];
   (blocks||[]).forEach(function(b){
     var text=String(b.content||'').trim();
@@ -16391,8 +16403,10 @@ function editAssembleBlocks(blocks,askUserQuestions){
     parts.push('## '+b.type.charAt(0).toUpperCase()+b.type.slice(1)+'\n'+text);
   });
   var assembled=parts.join('\n\n');
-  if(!assembled||!askUserQuestions)return assembled;
-  return assembled+'\n\n'+EDIT_ASK_SECTION;
+  if(!assembled)return assembled;
+  /* The answer style follows the task, and the questions stay last. */
+  return [assembled,editTemperatureSection(temperature),askUserQuestions?EDIT_ASK_SECTION:'']
+    .filter(function(part){return part!=='';}).join('\n\n');
 }
 /* The parts of a prompt the phone can show, or null when it has none it knows:
    a prompt with a part from an older version is changed on the dashboard. */
@@ -17037,7 +17051,7 @@ function editPromptWith(texts){
    show is handed back as it was: the save rewrites every column. */
 function savePromptEdit(p,now){
   var blocks=now.blocks?editPromptWith(now.blocks):(p.blocks||null);
-  var content=now.blocks?editAssembleBlocks(blocks,!!p.ask_user_questions):now.body;
+  var content=now.blocks?editAssembleBlocks(blocks,!!p.ask_user_questions,p.temperature):now.body;
   return editCall('save_prompt_with_version',{
     p_prompt_id:p.id, p_name:now.title, p_content:content, p_blocks:blocks,
     p_shortcut:String(p.shortcut||'').trim(),
@@ -17045,7 +17059,8 @@ function savePromptEdit(p,now){
     p_preferred_model:p.preferred_model||null, p_complexity_level:p.complexity_level||null,
     p_intent_category:p.intent_category||null, p_output_type:p.output_type||null,
     p_ask_user_questions:!!p.ask_user_questions, p_folder_id:now.folder_id,
-    p_editor_display:memEditorDisplay(), p_edit_note:null
+    p_editor_display:memEditorDisplay(), p_edit_note:null,
+    p_temperature:p.temperature==null?null:Number(p.temperature)
   },'prompt').then(function(refused){
     if(refused)return refused;
     p.name=now.title;p.content=content;p.blocks=blocks;p.folder_id=now.folder_id;

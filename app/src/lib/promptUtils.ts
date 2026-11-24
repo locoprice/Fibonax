@@ -1,4 +1,5 @@
 import { brainToken } from '@/lib/promptBrain';
+import { temperatureSection } from '@/lib/promptTemperature';
 import type { PromptBlock, PromptBrainRef } from '@/types/database';
 
 /**
@@ -11,6 +12,8 @@ export const ASK_USER_QUESTIONS_SECTION =
 export interface AssembleOptions {
   /** End the prompt with ASK_USER_QUESTIONS_SECTION. */
   askUserQuestions?: boolean;
+  /** The prompt's temperature (lib/promptTemperature.ts); null or missing adds nothing. */
+  temperature?: number | null;
 }
 
 /** A block as the assembler reads it: a stored or edited block, Brain included. */
@@ -52,8 +55,12 @@ export function assembleBlocks(
     .join('\n\n');
   // An empty prompt stays empty: with no task written there is nothing to ask
   // about, and the editor's empty-draft states depend on ''.
-  if (!assembled || !options.askUserQuestions) return assembled;
-  return `${assembled}\n\n${ASK_USER_QUESTIONS_SECTION}`;
+  if (!assembled) return assembled;
+  // The answer style follows the task, and the questions stay last.
+  const style = temperatureSection(options.temperature);
+  return [assembled, style, options.askUserQuestions ? ASK_USER_QUESTIONS_SECTION : '']
+    .filter((part) => part !== '')
+    .join('\n\n');
 }
 
 /** A block as it is stored, which can still be the retired Reasoning type. */

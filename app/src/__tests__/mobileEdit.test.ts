@@ -15,7 +15,7 @@ const api = runInNewContext(
   source + ';({editAssembleBlocks, editRemovedChips, editWithout, editChipLabel, editPromptBlocks})',
   { SBMemoryPack: { brainToken }, document: {} },
 ) as {
-  editAssembleBlocks: (blocks: AssemblableBlock[], ask: boolean) => string;
+  editAssembleBlocks: (blocks: AssemblableBlock[], ask: boolean, temperature?: number | string | null) => string;
   editRemovedChips: (before: string, after: string) => string[];
   editWithout: (list: string[], taken: string[]) => string[];
   editChipLabel: (raw: string) => string;
@@ -37,6 +37,16 @@ describe('phone edit window', () => {
     const typed = blocks.map((b) => (b.type === 'context' ? { ...b, content: 'Reply in English.' } : b));
     expect(api.editAssembleBlocks(typed, true)).toBe(assembleBlocks(typed, { askUserQuestions: true }));
     expect(api.editAssembleBlocks([{ type: 'role', content: ' ', enabled: true }], true)).toBe('');
+  });
+
+  it('adds the answer style of a temperature as the dashboard does', () => {
+    for (const t of [0, 0.2, 0.3, 0.31, 0.5, 0.7, 0.9, 1.2, 2, null, -1, 2.5]) {
+      expect(api.editAssembleBlocks(blocks, true, t)).toBe(assembleBlocks(blocks, { askUserQuestions: true, temperature: t }));
+      expect(api.editAssembleBlocks(blocks, false, t)).toBe(assembleBlocks(blocks, { temperature: t }));
+    }
+    // A numeric column can arrive as text.
+    expect(api.editAssembleBlocks(blocks, false, '0.9')).toBe(assembleBlocks(blocks, { temperature: 0.9 }));
+    expect(api.editAssembleBlocks([{ type: 'role', content: ' ', enabled: true }], true, 0.5)).toBe('');
   });
 
   it('leaves a prompt with a part it does not know to the dashboard', () => {
