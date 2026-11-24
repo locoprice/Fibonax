@@ -51,6 +51,7 @@ describe('orgApi.createTeam', () => {
       slug: null,
       myRole: 'admin',
       cover: null,
+      teamGame: false,
     });
   });
 

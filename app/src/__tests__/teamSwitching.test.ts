@@ -4,7 +4,7 @@ import { isCommitKey, parseEmailList, summarizeInvites } from '@/lib/emailList';
 import type { OrganizationSummary } from '@/types/database';
 
 function org(id: string, name: string): OrganizationSummary {
-  return { id, name, slug: null, myRole: 'admin', cover: null };
+  return { id, name, slug: null, myRole: 'admin', cover: null, teamGame: false };
 }
 
 const acme = org('org-1', 'Acme Ltd');

@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/layout/EmptyState';
 import { LoadingBlock } from '@/components/layout/LoadingBlock';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
+import { CardHeading } from '@/features/org/CardHeading';
 import { CreateTeamPanel } from '@/features/org/CreateTeamPanel';
 import { DepartmentsDialog } from '@/features/org/DepartmentsDialog';
 import { FolderShareModal } from '@/features/org/FolderShareModal';
@@ -16,6 +17,13 @@ import {
 } from '@/features/org/InviteMemberPanel';
 import { MemberPlacementDialog } from '@/features/org/MemberPlacementDialog';
 import { TeamCover } from '@/features/org/TeamCover';
+import {
+  TeamGameBadge,
+  TeamGameCard,
+  TeamGameStart,
+  useTeamGameScores,
+  type TeamGameTitle,
+} from '@/features/org/TeamGame';
 import { Avatar } from '@/components/shared/Avatar';
 import { AvatarStack, type StackMember } from '@/components/shared/AvatarStack';
 import { useSnippetStore } from '@/stores/snippetStore';
@@ -26,6 +34,7 @@ import { permissionsApi } from '@/lib/api/permissionsApi';
 import { FolderIcon } from '@/lib/folderIcons';
 import { groupByDepartment, hasOwnName } from '@/lib/orgChart';
 import { describeFolderContents } from '@/lib/teamFolders';
+import { teamGameStandings } from '@/lib/teamGame';
 import type {
   Folder,
   FolderPermission,
@@ -186,6 +195,20 @@ export function TeamPage() {
     );
   }
 
+  // The Team game: read only while the team's game is on.
+  const gameOn = activeOrg?.teamGame === true;
+  const game = useTeamGameScores(activeOrg?.id ?? null, gameOn);
+  const standings = useMemo(
+    () => (gameOn && game.scores ? teamGameStandings(members, game.scores) : null),
+    [gameOn, game.scores, members],
+  );
+  const gameTitles = useMemo(() => {
+    const titles = new Map<string, TeamGameTitle>();
+    for (const p of standings?.leaders ?? []) titles.set(p.member.user_id, 'leader');
+    for (const p of standings?.sheep ?? []) titles.set(p.member.user_id, 'sheep');
+    return titles;
+  }, [standings]);
+
   // The first load has nothing to show yet; an empty state here would flash
   // "Nothing shared yet" at people whose folders are still on their way.
   const foldersLoading = snippetsLoading && folders.length === 0;
@@ -201,11 +224,23 @@ export function TeamPage() {
         <CreateTeamPanel />
       ) : (
         <div className="flex flex-col gap-4">
+          {gameOn && (
+            <TeamGameCard
+              isAdmin={activeOrg.myRole === 'admin'}
+              canInvite={canInvite(activeOrg.myRole)}
+              standings={standings}
+              error={game.error}
+              onRetry={game.retry}
+              currentUserId={currentUserId}
+            />
+          )}
+
           <PeopleCard
             org={activeOrg}
             members={members}
             departments={departments}
             currentUserId={currentUserId}
+            gameTitles={gameTitles}
           />
 
           {foldersLoading ? (
@@ -221,7 +256,7 @@ export function TeamPage() {
               className="rounded-[16px] border border-line bg-card"
               aria-labelledby="team-folders-title"
             >
-              <CardHeading id="team-folders-title" title="Shared folders" count={sharedFolders.length} />
+              <CardHeading id="team-folders-title" title="Shared folders" detail={sharedFolders.length} />
               {mine.length > 0 && <FolderGroup title="Shared by you">{mine.map(renderRow)}</FolderGroup>}
               {mine.length > 0 && withMe.length > 0 && <div className="h-px bg-line" />}
               {withMe.length > 0 && (
@@ -229,6 +264,8 @@ export function TeamPage() {
               )}
             </section>
           )}
+
+          {!gameOn && activeOrg.myRole === 'admin' && <TeamGameStart />}
         </div>
       )}
 
@@ -243,27 +280,6 @@ export function TeamPage() {
 
 /* ------------------------------------------------------------------ */
 
-function CardHeading({
-  id,
-  title,
-  count,
-  action,
-}: {
-  id: string;
-  title: string;
-  count: number;
-  action?: React.ReactNode;
-}) {
-  return (
-    <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
-      <h2 id={id} className="text-sm font-semibold text-ink">
-        {title} <span className="font-normal text-ink-subtle">· {count}</span>
-      </h2>
-      {action}
-    </header>
-  );
-}
-
 /** The tile grid every group of people uses, grouped by department or not. */
 const PEOPLE_GRID = 'grid grid-cols-2 gap-x-2 gap-y-1 p-3 xl:grid-cols-3 2xl:grid-cols-4';
 
@@ -272,11 +288,14 @@ function PeopleCard({
   members,
   departments,
   currentUserId,
+  gameTitles,
 }: {
   org: OrganizationSummary;
   members: OrgMember[];
   departments: OrgDepartment[];
   currentUserId: string | null;
+  /** Who holds a Team game title, by user id. Empty while the game is off. */
+  gameTitles: ReadonlyMap<string, TeamGameTitle>;
 }) {
   const inviter = canInvite(org.myRole);
   const isAdmin = org.myRole === 'admin';
@@ -306,6 +325,7 @@ function PeopleCard({
         key={m.user_id}
         member={m}
         isYou={isYou}
+        gameTitle={gameTitles.get(m.user_id) ?? null}
         // Admins place anyone; everyone else sets their own department and title.
         onEdit={
           isAdmin || isYou
@@ -336,7 +356,7 @@ function PeopleCard({
       <CardHeading
         id="team-people-title"
         title="People"
-        count={members.length}
+        detail={members.length}
         action={
           (isAdmin || inviter) && (
             <div className="flex items-center gap-2">
@@ -416,15 +436,18 @@ function PeopleCard({
 /**
  * One person: their photo (or initial), name, job title when they have one,
  * then role and email on one muted line. The pencil opens their department
- * and job title, and shows only to whoever may change them.
+ * and job title, and shows only to whoever may change them. While the Team
+ * game is on, its crown or its sheep sits on the face of whoever holds a title.
  */
 function MemberTile({
   member,
   isYou,
+  gameTitle,
   onEdit,
 }: {
   member: OrgMember;
   isYou: boolean;
+  gameTitle: TeamGameTitle | null;
   onEdit?: () => void;
 }) {
   // The directory falls back to the email as the display name, so only a
@@ -433,13 +456,16 @@ function MemberTile({
   const name = named ? member.display_name.trim() : member.email;
   return (
     <li className="flex min-w-0 items-center gap-3 rounded-[12px] px-2 py-2">
-      <Avatar
-        src={member.avatar_url}
-        name={member.display_name}
-        email={member.email}
-        highlight={isYou}
-        size="lg"
-      />
+      <span className="relative shrink-0">
+        <Avatar
+          src={member.avatar_url}
+          name={member.display_name}
+          email={member.email}
+          highlight={isYou}
+          size="lg"
+        />
+        {gameTitle && <TeamGameBadge title={gameTitle} />}
+      </span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-sm font-medium text-ink">

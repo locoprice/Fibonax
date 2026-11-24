@@ -415,6 +415,17 @@ export interface OrganizationSummary {
   myRole: OrgRole;
   /** Team-page cover (TEAM-COVER-001): a preset key, an https image URL, or null. */
   cover: string | null;
+  /** The Team game (Team Leader and Black Sheep) is on. Admins switch it. */
+  teamGame: boolean;
+}
+
+/** One person's line in the Team game, from `team_game_scores`. */
+export interface TeamGameScore {
+  user_id: Uuid;
+  /** Uses, additions and saved changes in the team's folders over the last 30 days. */
+  actions: number;
+  /** Joined the team in the last 14 days, so never the Black Sheep. */
+  is_new: boolean;
 }
 
 /** A teammate, resolved via the `org_member_directory` RPC. */
