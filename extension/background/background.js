@@ -1218,8 +1218,9 @@ function refreshPromptCache() {
 // expanding its previous body until the user happened to open the popup —
 // a menu added there would not appear in the overlay at all.
 //
-// The menu refresh already runs on the 5-minute alarm and on tab focus, so the
-// cache now rides the same fetch and stays as fresh as the context menu.
+// The menu refresh already runs on the 5-minute alarm, on tab and window
+// switches and on a typed trigger, so the cache now rides the same fetch and
+// stays as fresh as the context menu.
 //
 // The row shape MUST match DB.loadAll() in popup/popup.js — content.js reads
 // `folder`, `fieldCfg` and `bodies` off these objects. Change both together.
@@ -1556,52 +1557,111 @@ chrome.runtime.onStartup.addListener(function() {
   sbFocusApply({ type: 'auto' });
 });
 
-// ── ALARM LISTENER — fires every 5 minutes ──────────────────────
+// ── ALARM LISTENER: fires every 5 minutes ───────────────────────
+// Chrome stays open all day and night on many machines, and each library
+// refresh is several reads of the whole library: run around the clock, it was
+// most of the database's work. So the library is refreshed only while someone
+// is at the computer, and caught up when they come back (onStateChanged below).
+var SYNC_AWAY_SEC = 5 * 60;
+// A refresh from a tab switch or a typed trigger in the last few minutes
+// already did this tick's work. A little under the alarm's period, so the
+// alarm's own refresh five minutes ago never holds it back.
+var ALARM_REFRESH_MIN_MS = 4 * 60 * 1000;
 chrome.alarms.onAlarm.addListener(function(alarm) {
   if (alarm.name !== 'sb_sync_alarm') return;
-  // Liveness first: a session revoked from the dashboard (Settings → Security
-  // "Sign out from all devices") clears local auth within one alarm tick —
-  // sbClearSession fires auth_changed, which rebuilds the menus signed-out.
+  // Liveness on every tick, even with nobody at the computer: a session
+  // revoked from the dashboard (Settings, Security, "Sign out from all
+  // devices") clears local auth within one tick, before anyone else can use
+  // the library left in this browser. It is one small lookup, not a library
+  // read. sbClearSession fires auth_changed, which rebuilds the menus signed-out.
   if (typeof sbCheckSessionAlive === 'function') sbCheckSessionAlive(function() {});
-  // Refresh the context menu from Supabase so snippets/folders created on the
-  // dashboard show up without needing to open the popup.
-  forceRefreshMenus();
+  chrome.idle.queryState(SYNC_AWAY_SEC, function(state) {
+    // Refresh the context menu from Supabase so snippets/folders created on the
+    // dashboard show up without needing to open the popup.
+    if (state === 'active') maybeRefreshMenus(ALARM_REFRESH_MIN_MS);
+  });
+});
+// Back at the computer after a pause: catch up at once if ticks were skipped,
+// so the first shortcut typed after lunch already has the edits made on the
+// phone or by a teammate meanwhile. A short pause changes nothing, because
+// the copy is still younger than the alarm's period.
+chrome.idle.onStateChanged.addListener(function(state) {
+  if (state === 'active') maybeRefreshMenus(ALARM_REFRESH_MIN_MS);
 });
 
-// ── MENU FRESHNESS — keep the right-click menu in sync with the dashboard ──
+// ── MENU FRESHNESS: keep the right-click menu in sync with the dashboard ──
 // The dashboard writes snippets and folders straight to Supabase; the service
 // worker gets no push for those edits. Rebuild the menu when the user changes
-// tab or refocuses the browser (e.g. switching from the dashboard back to Gmail
-// to expand a snippet), throttled so we don't refetch on every flick between
-// tabs. The 5-minute alarm above is the periodic backstop.
-var MENU_REFRESH_MIN_MS = 10000;
+// tab or refocuses a window (e.g. putting the phone down after an edit and
+// clicking back into Gmail), unless the copy is less than a minute old. It
+// used to refresh after 10 seconds of switching, which made a busy day
+// thousands of full library reads. Leaving the dashboard is the exception: it
+// is where the library is changed, so the next tab or window gets a fresh
+// copy at once (TRIGGER_REFRESH_MIN_MS, below).
+var MENU_REFRESH_MIN_MS = 60 * 1000;
 // A trigger typed on a page asks for a refresh too (content.js,
 // _askLibraryRefresh): that is the moment a stale copy shows, as a snippet or
 // a prompt saved a minute ago that is missing from the menu. A shorter wait
 // than a tab switch, because here someone is looking at the list.
 var TRIGGER_REFRESH_MIN_MS = 3000;
+// The same stamp in memory, set the moment a refresh starts. Two events in
+// the same instant (a tab switch and a window focus) both read the stored
+// stamp before either writes it; this one stops the second refresh.
+var sbRefreshStartedAt = 0;
 function forceRefreshMenus() {
-  chrome.storage.local.set({ sb_menu_last_refresh: Date.now() });
+  sbRefreshStartedAt = Date.now();
+  chrome.storage.local.set({ sb_menu_last_refresh: sbRefreshStartedAt });
   initMenus();
   // Same "pull latest dashboard state" hook (sbPullTriggerMetadata) refreshes the
   // trigger settings (user_metadata → chrome.storage.local cache) AND the toolbar
   // action icon (company logo → chrome.action.setIcon), so a change made on the
   // dashboard reflects without the user opening the popup. Fires on the 5-min
-  // alarm and on tab-switch / window-focus (throttled) — see call sites.
+  // alarm while someone is at the computer, on coming back to it, on a typed
+  // trigger and on tab-switch / window-focus (throttled). See call sites.
   sbRefreshActionIcon();
 }
 function maybeRefreshMenus(minMs) {
   var wait = typeof minMs === 'number' ? minMs : MENU_REFRESH_MIN_MS;
   chrome.storage.local.get('sb_menu_last_refresh', function(d) {
-    var last = (d && d.sb_menu_last_refresh) ? d.sb_menu_last_refresh : 0;
-    if (Date.now() - last < wait) return;
+    var stored = (d && d.sb_menu_last_refresh) ? d.sb_menu_last_refresh : 0;
+    var age = Date.now() - Math.max(stored, sbRefreshStartedAt);
+    // A stamp in the future (the computer's clock was moved back) counts as
+    // old: it would otherwise hold every refresh back until that date.
+    if (age >= 0 && age < wait) return;
     forceRefreshMenus();
   });
 }
-chrome.tabs.onActivated.addListener(function() { maybeRefreshMenus(); });
+// Which tab each window shows, and which browser window had focus last, so a
+// switch can tell whether it is leaving the dashboard. Kept in session storage
+// because the worker sleeps between events and would forget them.
+function sbIsDashboardTab(tab) {
+  var url = tab && tab.url ? tab.url : '';
+  return SB_DASHBOARD_ORIGINS.some(function(o) { return url.indexOf(o) === 0; });
+}
+function sbRefreshAfterLeaving(tab) {
+  void chrome.runtime.lastError; // the tab left behind may be closed already
+  maybeRefreshMenus(sbIsDashboardTab(tab) ? TRIGGER_REFRESH_MIN_MS : MENU_REFRESH_MIN_MS);
+}
+chrome.tabs.onActivated.addListener(function(info) {
+  chrome.storage.session.get('sb_active_tabs', function(d) {
+    var active = (d && d.sb_active_tabs) || {};
+    var left = active[info.windowId];
+    active[info.windowId] = info.tabId;
+    chrome.storage.session.set({ sb_active_tabs: active });
+    if (left == null || left === info.tabId) { maybeRefreshMenus(); return; }
+    chrome.tabs.get(left, sbRefreshAfterLeaving);
+  });
+});
 chrome.windows.onFocusChanged.addListener(function(winId) {
   if (winId === chrome.windows.WINDOW_ID_NONE) return; // focus left the browser
-  maybeRefreshMenus();
+  chrome.storage.session.get('sb_focused_window', function(d) {
+    var left = d && d.sb_focused_window;
+    chrome.storage.session.set({ sb_focused_window: winId });
+    if (left == null || left === winId) { maybeRefreshMenus(); return; }
+    chrome.tabs.query({ active: true, windowId: left }, function(tabs) {
+      sbRefreshAfterLeaving(tabs && tabs[0]);
+    });
+  });
 });
 // Message handler from popup
 chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
