@@ -152,6 +152,8 @@ var DB = {
             // is the only reading under which a never-used snippet can ever be
             // flagged at all.
             created_at: s.created_at || null,
+            // When it last changed: the search window's Date edited chip.
+            updated_at: s.updated_at || null,
             stats: { uses: st.uses || 0, fills: st.fills || 0, lastUsed: st.last_used || null }
           };
         })
@@ -195,7 +197,7 @@ var DB = {
     // created_at joins the projection for INACTIVE-001: it is the anchor for a
     // prompt that has never been used, the same way snippets fall back to theirs.
     return supaFetch('prompts', 'GET', null,
-      'select=id,user_id,name,content,shortcut,strategy_type,intent_category,last_used_at,created_at,pinned,review_status,folder_id,organization_id' +
+      'select=id,user_id,name,content,shortcut,strategy_type,intent_category,last_used_at,created_at,updated_at,pinned,review_status,folder_id,organization_id' +
       // Archived prompts are kept to be restored, not offered (AI-KNOWLEDGE P2).
       '&review_status=neq.archived&order=updated_at.desc'
     ).then(function(r) { return r.ok ? r.json() : []; })
@@ -207,12 +209,63 @@ var DB = {
   // dashboard, not to be pasted into a chat.
   loadBrainSpaces: function() {
     return supaFetchAll('memory_spaces',
-      'select=id,name,description,is_default&deleted_at=is.null&order=is_default.desc,name.asc,id.asc');
+      'select=id,name,description,is_default,user_id,updated_at&deleted_at=is.null&order=is_default.desc,name.asc,id.asc');
   },
   loadBrainItems: function() {
     return supaFetchAll('memory_shards',
-      'select=id,space_id,name,summary,body,kind,token_estimate,pinned,review_status' +
+      'select=id,space_id,name,summary,body,kind,token_estimate,pinned,review_status,user_id,updated_at' +
       '&deleted_at=is.null&review_status=neq.archived&order=pinned.desc,updated_at.desc,id.asc');
+  },
+  // What the search window's chips offer beyond the library itself: the
+  // teammates (Created by) and the labels (Labels). Read once, the first time
+  // the window opens. Each part fails soft to nothing, and the chip it feeds
+  // is then simply not offered.
+  loadSearchMeta: function() {
+    function rows(table, qs) {
+      return supaFetch(table, 'GET', null, qs)
+        .then(function(r) { return r.ok ? r.json() : []; })
+        .then(function(data) { return Array.isArray(data) ? data : []; })
+        .catch(function(e) { console.error('[Fibonax] Search filters: could not read ' + table + ':', e); return []; });
+    }
+    // The team directory is a function that takes the team, so it is asked
+    // for directly: supaFetch tells the server to answer a POST with no body.
+    function directory(orgId) {
+      return new Promise(function(resolve) {
+        sbAuthHeaders(function(err, headers) {
+          if (err || !headers) { resolve([]); return; }
+          fetch(SUPA_URL + '/rest/v1/rpc/org_member_directory', {
+            method: 'POST',
+            headers: { apikey: headers.apikey, Authorization: headers.Authorization, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_org: orgId })
+          }).then(function(r) { return r.ok ? r.json() : []; })
+            .then(function(data) { resolve(Array.isArray(data) ? data : []); })
+            .catch(function(e) { console.error('[Fibonax] Search filters: could not read the team:', e); resolve([]); });
+        });
+      });
+    }
+    function people() {
+      if (!SB_CURRENT_USER_ID) return Promise.resolve([]);
+      return rows('organization_members',
+        'select=organization_id&user_id=eq.' + encodeURIComponent(SB_CURRENT_USER_ID) + '&order=created_at.asc&limit=1')
+        .then(function(mine) { return mine.length && mine[0].organization_id ? directory(mine[0].organization_id) : []; });
+    }
+    return Promise.all([
+      rows('labels', 'select=id,name'),
+      rows('snippet_labels', 'select=snippet_id,label_id'),
+      rows('prompt_labels', 'select=prompt_id,label_id'),
+      people()
+    ]).then(function(res) {
+      var labelName = {}, meta = { names: {}, snippetLabels: {}, promptLabels: {} };
+      res[0].forEach(function(l) { if (l && l.id) labelName[l.id] = l.name || ''; });
+      function assign(map, id, labelId) {
+        var name = labelName[labelId];
+        if (id && name) (map[id] = map[id] || []).push(name);
+      }
+      res[1].forEach(function(row) { assign(meta.snippetLabels, row.snippet_id, row.label_id); });
+      res[2].forEach(function(row) { assign(meta.promptLabels, row.prompt_id, row.label_id); });
+      res[3].forEach(function(m) { if (m && m.user_id) meta.names[m.user_id] = m.display_name || m.email || ''; });
+      return meta;
+    });
   }
 };
 
@@ -1106,6 +1159,10 @@ function refreshUI(){
   if(activeMode==='prompts') renderPrompts(gi('sq')?gi('sq').value:'');
   else if(activeMode==='brains') renderBrains(gi('sq')?gi('sq').value:'');
   else renderList(gi('sq')?gi('sq').value:'');
+  // The search window lists the same library: fresh rows go in with the
+  // highlight left where it was.
+  searchItemsCache=null;
+  if(searchWindow) searchWindow.refresh();
 }
 
 // FOLDERS
@@ -2371,7 +2428,7 @@ function toggleDetail(id){
   detailLinked={}; detailLink=newDetailLink(); detailLinkSeq++;
   detailSeasonOff=false;
   if(expandedId===id){ expandedId=null; detailFieldVals={}; detailFieldFmts={}; }
-  else { expandedId=id; detailLang=null; detailFieldVals={}; detailFieldFmts={}; }
+  else { expandedId=id; detailLang=null; detailFieldVals={}; detailFieldFmts={}; searchNote('snippet:'+id); }
   renderList(gi('sq')?gi('sq').value:'');
   reSel(id);
 }
@@ -2577,6 +2634,7 @@ function promptBrainText(p, cb){
 
 function copyPrompt(pid){
   var p = findPrompt(pid); if (!p) return;
+  searchNote('prompt:'+p.id);
   promptBrainText(p, function(content, note){
     var text = SBInteractiveSteps.apply(content, interactiveStepsOn);
     var msg = text !== content ? 'Prompt copied with Interactive Steps' : 'Prompt copied';
@@ -2798,6 +2856,7 @@ function activateBrainRow(row){
 // Opening a Brain shows all of it, so a search that led there is cleared.
 function openBrain(id){
   if (!findBrain(id)) return;
+  searchNote('brain:'+id);
   openBrainId = id;
   var sq = gi('sq'); if (sq) sq.value = '';
   renderBrains('');
@@ -2832,6 +2891,7 @@ function copyBrain(id){
 }
 function copyBrainItem(id){
   var it = findBrainItem(id); if (!it) return;
+  searchNote('item:'+id);
   copyBrainText(it.body || '', 'bname-'+id,
     it.review_status === 'deprecated' ? 'Copied. Deprecated: check it is still right' : 'Text copied');
 }
@@ -3334,6 +3394,190 @@ document.querySelectorAll('.mode-tab').forEach(function(tab){
   tab.addEventListener('click', function(){ setMode(tab.dataset.mode); });
 });
 
+// SEARCH WINDOW ("Search or ask")
+// The search bar no longer takes the typing itself. A click on it, Ctrl+K, or
+// the first letter typed while it has focus opens the search window every
+// surface shares (shared/command-palette.js), with that letter already in it:
+// "open the popup, type, Enter" needs no click, as before. The window looks
+// across snippets, prompts and Brains at once; this block hands it the popup's
+// library and says what "open" means here.
+var searchWindow = null;
+var searchRecents = null, searchRecentsFor = null;
+var searchMeta = null, searchMetaAsked = false;
+var searchItemsCache = null;
+
+function searchPerson(id){
+  if(!id) return '';
+  if(id===SB_CURRENT_USER_ID) return 'You';
+  return (searchMeta && searchMeta.names[id]) || 'Teammate';
+}
+function searchFolderName(id){
+  for(var i=0;i<folders.length;i++){ if(folders[i].id===id) return folders[i].name||''; }
+  return '';
+}
+function searchWhen(iso){
+  var at=iso ? Date.parse(iso) : NaN;
+  return isFinite(at) ? at : 0;
+}
+function searchLabelsOf(kind,id){
+  return (searchMeta && searchMeta[kind][id]) || [];
+}
+function searchOnce(values){
+  var out=[];
+  values.forEach(function(v){ if(v && out.indexOf(v)<0) out.push(v); });
+  return out;
+}
+
+// The library as the rows the window lists. A snippet in several languages is
+// one row, found by the text of any of them, as it is one row in the list.
+function searchItems(){
+  if(searchItemsCache) return searchItemsCache;
+  var out=[];
+  groupSnips(snips).forEach(function(g){
+    var s=g.master, text=[], keywords=[], labels=[], edited=0;
+    g.rows.forEach(function(r){
+      text.push(r.body||'');
+      for(var k in r.bodies){ if(typeof r.bodies[k]==='string') text.push(r.bodies[k]); }
+      keywords=keywords.concat(r.alternative_queries||[]);
+      labels=labels.concat(searchLabelsOf('snippetLabels', r.id));
+      edited=Math.max(edited, searchWhen(r.updated_at));
+    });
+    out.push({
+      key:'snippet:'+s.id, kind:'snippet', id:s.id, spaceId:null,
+      title:String(s.title||'').replace(/\s*(EN|ES|IT|FR)$/,''),
+      shortcut:s.shortcut ? trig+shortWord(s.shortcut) : '',
+      place:searchFolderName(s.folder), placeKey:s.folder ? 'folder:'+s.folder : '',
+      byName:searchPerson(s.user_id), edited:edited,
+      labels:searchOnce(labels), keywords:searchOnce(keywords), text:searchOnce(text)
+    });
+  });
+  prompts.forEach(function(p){
+    out.push({
+      key:'prompt:'+p.id, kind:'prompt', id:p.id, spaceId:null,
+      title:p.name||'', shortcut:p.shortcut||'',
+      place:searchFolderName(p.folder_id), placeKey:p.folder_id ? 'folder:'+p.folder_id : '',
+      byName:searchPerson(p.user_id), edited:searchWhen(p.updated_at),
+      labels:searchLabelsOf('promptLabels', p.id),
+      keywords:p.intent_category ? [p.intent_category] : [], text:[p.content||'']
+    });
+  });
+  brains.forEach(function(b){
+    out.push({
+      key:'brain:'+b.id, kind:'brain', id:b.id, spaceId:null,
+      title:b.name||'Brain', shortcut:'', place:'', placeKey:'brain:'+b.id,
+      byName:searchPerson(b.user_id), edited:searchWhen(b.updated_at),
+      labels:[], keywords:[], text:[b.description||'']
+    });
+  });
+  brainItems.forEach(function(it){
+    var b=findBrain(it.space_id); if(!b) return;
+    out.push({
+      key:'item:'+it.id, kind:'item', id:it.id, spaceId:it.space_id,
+      title:it.name||'Untitled', shortcut:'', place:b.name||'Brain', placeKey:'brain:'+it.space_id,
+      byName:searchPerson(it.user_id), edited:searchWhen(it.updated_at),
+      labels:[], keywords:[], text:[it.summary||'', it.body||'']
+    });
+  });
+  searchItemsCache=out;
+  return out;
+}
+
+// What was opened lately, kept on this computer, one list per account.
+function searchRecentStore(){
+  if(!window.SBRecents) return null;
+  if(!searchRecents || searchRecentsFor!==SB_CURRENT_USER_ID){
+    searchRecentsFor=SB_CURRENT_USER_ID;
+    searchRecents=SBRecents.open(SBRecents.chromeStore('sb_recents_'+(SB_CURRENT_USER_ID||'guest')));
+  }
+  return searchRecents;
+}
+function searchNote(key){
+  var store=searchRecentStore();
+  if(store) store.record(key);
+}
+
+// The item's own page on the dashboard, in a new tab: the links the Review
+// button of the unused-item notice uses.
+function searchOpenInDashboard(item){
+  var id=encodeURIComponent(item.id);
+  var url=item.kind==='snippet' ? SB_DASHBOARD_HOME_URL+'?snippet='+id
+    : item.kind==='prompt' ? SB_DASHBOARD_HOME_URL+'prompts?prompt='+id
+    : item.kind==='brain' ? SB_DASHBOARD_HOME_URL+'memory/'+id
+    : SB_DASHBOARD_HOME_URL+'memory/'+encodeURIComponent(item.spaceId)+'?item='+id;
+  try { chrome.tabs.create({ url: url }); }
+  catch(e) {
+    try { window.open(url, '_blank'); }
+    catch(e2) { console.error('[Fibonax] Could not open the dashboard:', e2); showToast('Could not open the dashboard'); }
+  }
+}
+
+// Opening means what a click on that row means in its own tab: a snippet shows
+// its detail with the fill form, a prompt or a Brain item is copied, a Brain
+// opens.
+function searchOpen(item, secondary){
+  if(secondary){ searchOpenInDashboard(item); return; }
+  if(item.kind==='snippet'){
+    if(activeMode!=='snippets') setMode('snippets');
+    var s=null;
+    for(var i=0;i<snips.length;i++){ if(snips[i].id===item.id){ s=snips[i]; break; } }
+    // A folder chip that does not hold it would leave the row off the list.
+    if(s && !inFolderSubtree(s.folder, selFolder)){ selFolder='ALL'; searchAllFolders=false; renderFolders(); }
+    if(expandedId!==item.id) toggleDetail(item.id); else reSel(item.id);
+  } else if(item.kind==='prompt'){
+    if(activeMode!=='prompts') setMode('prompts');
+    copyPrompt(item.id);
+  } else if(item.kind==='brain'){
+    if(activeMode!=='brains') setMode('brains');
+    openBrain(item.id);
+  } else {
+    if(activeMode!=='brains') setMode('brains');
+    openBrain(item.spaceId);
+    copyBrainItem(item.id);
+  }
+}
+
+// The first time the window opens it asks for what it lists beyond the tab in
+// view: the Brains (loaded with their own tab otherwise), and the teammates
+// and labels its chips offer.
+function searchOpened(){
+  if(!brainsLoaded) loadBrains();
+  if(searchMetaAsked) return;
+  searchMetaAsked=true;
+  DB.loadSearchMeta().then(function(meta){
+    searchMeta=meta;
+    searchItemsCache=null;
+    if(searchWindow) searchWindow.refresh();
+  });
+}
+
+function openSearchWindow(text){
+  if(!window.SBCommandPalette || !window.SBRecents) return;
+  // Another account signed in since it was built: its recents are not this one's.
+  if(searchWindow && searchRecentsFor!==SB_CURRENT_USER_ID){ searchWindow.destroy(); searchWindow=null; }
+  if(!searchWindow){
+    searchWindow=SBCommandPalette.create({
+      name:'sb-search',
+      items:searchItems,
+      loading:function(){ return !loaded && !snips.length; },
+      recents:searchRecentStore(),
+      secondaryLabel:'Open in dashboard',
+      onOpen:searchOpen,
+      onToggle:function(open){ if(open) searchOpened(); },
+      trigger:function(){ return gi('sq'); }
+    });
+  }
+  searchWindow.open(text||'');
+}
+
+on('sq','click', function(){ openSearchWindow(''); });
+// Pasting into the bar searches for what was pasted.
+on('sq','paste', function(e){
+  var data=e.clipboardData||window.clipboardData;
+  var text=data ? String(data.getData('text')||'') : '';
+  e.preventDefault();
+  openSearchWindow(text.replace(/\s+/g,' ').replace(/^ | $/g,''));
+});
+
 // ── KEYBOARD NAVIGATION (popup only, guarded by #pane-list) ─────────────
 function listRows(){ var el=gi('list'); return el?Array.prototype.slice.call(el.querySelectorAll('.item')):[]; }
 function setSel(i){
@@ -3369,6 +3613,11 @@ document.addEventListener('keydown', function(e){
   if(ae && ae.closest && (ae.closest('.d-fields') || ae.closest('.d-link'))) return;
 
   if(k==='/' && document.activeElement!==sq){ if(sq){ e.preventDefault(); sq.focus(); } return; }
+
+  // The search window: Ctrl+K from anywhere on the list, or the first letter
+  // typed while the search bar has focus, which goes into the window with it.
+  if((e.ctrlKey||e.metaKey) && String(k).toLowerCase()==='k'){ e.preventDefault(); openSearchWindow(''); return; }
+  if(ae===sq && String(k).length===1 && k!==' ' && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); openSearchWindow(k); return; }
 
   if(activeMode==='prompts'){
     if(k==='ArrowDown'){ e.preventDefault(); setPSel(pSelIdx+1); }
@@ -3549,12 +3798,6 @@ function showToast(msg){
   clearTimeout(t._to); t._to=setTimeout(function(){ t.style.opacity='0'; },1800);
 }
 
-// Paste handler for the search input — route by active mode.
-on('sq','paste', function(){ setTimeout(function(){
-  var v=gi('sq')?gi('sq').value:'';
-  expandedId=null; if(!v) searchAllFolders=false;
-  if(activeMode==='prompts') renderPrompts(v); else if(activeMode==='brains') renderBrains(v); else renderList(v);
-},0); });
 
 // ── AUTH GATE (AUTH-EXT-001 phase A) ──────────────────────────────
 // The extension signs in only through the dashboard (AUTH-EXT-002). Sign-in
