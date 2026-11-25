@@ -63,7 +63,11 @@ export function AuthCallback() {
     // mobile companion app instead. `next` is dashboard-only so it is ignored,
     // except /invite: that page is served on phones precisely because that is
     // where an invitation email usually gets opened.
-    if (window.matchMedia('(max-width: 1023px)').matches && !next.startsWith('/invite')) {
+    if (
+      window.matchMedia('(max-width: 1023px)').matches &&
+      !next.startsWith('/invite') &&
+      !next.startsWith('/connect')
+    ) {
       void leaveForMobile();
       return null;
     }

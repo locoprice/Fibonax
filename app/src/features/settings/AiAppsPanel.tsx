@@ -129,7 +129,8 @@ export function AiAppsPanel() {
                       {link.name}
                     </span>
                     <p className="text-xs text-ink-muted">
-                      {aiAppAbilities(link.scopes)} · {usedLine(link)}
+                      {aiAppAbilities(link.scopes)} · {link.signedIn ? 'Connected by signing in · ' : ''}
+                      {usedLine(link)}
                     </p>
                   </div>
                   <Button

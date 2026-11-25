@@ -15,6 +15,10 @@
 //                                                reads as its owner under row level
 //                                                security, and switches back
 //   app/src/lib/aiAppLink.ts                     the link the dashboard hands out
+//   20261125130000_ai_app_sign_in.sql            "Sign in with Fibonax": an AI app
+//                                                registers, the person approves on
+//                                                /connect, the app trades a one-time
+//                                                code for a 1 hour key and renews it
 //
 // What the database itself does (who sees which prompt, FiboTokens, the rate
 // limit) was tested against a real Postgres when the migration was written;
@@ -98,7 +102,31 @@ async function main() {
   const server = await import(pathToFileURL(path.join(ROOT, 'services', 'supabase', 'functions', 'mcp', 'server.js')).href);
   const { createMcpServer, TEXT, LIMITS, PROTOCOL_VERSIONS, SERVER_VERSION } = server;
   const logs = [];
-  const mcp = createMcpServer({ callDb, pack, log: (m) => logs.push(m) });
+  // The sign-in functions, in mcp_oauth_*'s shapes.
+  const CLIENT = '8a420c4d-9ad3-429a-8fb9-8adb7369f1b0';
+  const BACK = 'https://ai.example/callback?x=1';
+  const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
+  const rpcCalls = [];
+  async function oauthRpc(name, params) {
+    rpcCalls.push({ name, params });
+    if (name === 'mcp_oauth_client') return params.p_client_id === CLIENT ? { name: 'Example AI', redirect_ok: params.p_redirect_uri === BACK } : null;
+    if (name === 'mcp_oauth_register') {
+      if (params.p_redirect_uris.some((u) => !u.startsWith('https://'))) return { error: 'invalid_redirect_uri' };
+      return { client_id: CLIENT, client_name: params.p_name || 'AI app', redirect_uris: params.p_redirect_uris };
+    }
+    if (name === 'mcp_oauth_token') {
+      if (params.p_grant_type === 'authorization_code' && params.p_code === 'sbmc_good') {
+        return { access_token: KEYS.full, token_type: 'Bearer', expires_in: 3600, refresh_token: 'sbmr_' + '1'.repeat(64), scope: 'fibonax' };
+      }
+      return { error: params.p_grant_type === 'password' ? 'unsupported_grant_type' : 'invalid_grant' };
+    }
+    throw new Error('unexpected function ' + name);
+  }
+  const PUBLIC = 'https://mcp.example.test';
+  const mcp = createMcpServer({
+    callDb, pack, rpc: oauthRpc, publicUrl: PUBLIC, consentUrl: 'https://app.example.test/connect',
+    openaiChallenge: 'challenge-123', log: (m) => logs.push(m),
+  });
 
   const URL_BASE = 'https://example.test/functions/v1/mcp';
   async function post(body, { key = KEYS.full, header = false } = {}) {
@@ -190,10 +218,70 @@ async function main() {
   check('prompts/get hands out the finished prompt', got.messages[0].content.text, pack.resolvePromptBrains(PROMPT_TEXT, lookup));
   check('a Brains-only link offers no prompts', (await rpc('prompts/list', {}, { key: KEYS.brains })).body.result.prompts, []);
 
+  console.log('Sign in with Fibonax');
+  const get = (pathAndQuery) => mcp.handle(new Request(PUBLIC + pathAndQuery));
+  const form = (pathname, fields) => mcp.handle(new Request(PUBLIC + pathname, {
+    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(fields).toString(),
+  }));
+  const noKeyRes = await mcp.handle(new Request(PUBLIC + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' }));
+  check('no key: 401 that says where to sign in', [noKeyRes.status, noKeyRes.headers.get('www-authenticate')],
+    [401, 'Bearer resource_metadata="' + PUBLIC + '/.well-known/oauth-protected-resource"']);
+  const resource = await (await get('/.well-known/oauth-protected-resource/mcp')).json();
+  check('the resource document names this server and where to sign in', [resource.resource, resource.authorization_servers], [PUBLIC + '/mcp', [PUBLIC]]);
+  const meta = await (await get('/.well-known/oauth-authorization-server')).json();
+  check('the sign-in document lists the three addresses, PKCE S256 and public clients',
+    [meta.issuer, meta.authorization_endpoint, meta.token_endpoint, meta.registration_endpoint, meta.code_challenge_methods_supported, meta.token_endpoint_auth_methods_supported],
+    [PUBLIC, PUBLIC + '/authorize', PUBLIC + '/token', PUBLIC + '/register', ['S256'], ['none']]);
+  check("OpenAI's domain check text is served as plain text", await (await get('/.well-known/openai-apps-challenge')).text(), 'challenge-123');
+
+  const authQuery = (over) => '/authorize?' + new URLSearchParams({ response_type: 'code', client_id: CLIENT, redirect_uri: BACK, code_challenge: CHALLENGE, code_challenge_method: 'S256', state: 's 1', ...over });
+  const sent = await get(authQuery({}));
+  const consent = new URL(sent.headers.get('location'));
+  check('a good request sends the person to the dashboard, with what it needs',
+    [sent.status, consent.origin + consent.pathname, Object.fromEntries(consent.searchParams)],
+    [302, 'https://app.example.test/connect', { client_id: CLIENT, redirect_uri: BACK, code_challenge: CHALLENGE, state: 's 1' }]);
+  const stranger = await get(authQuery({ redirect_uri: 'https://evil.example/cb' }));
+  check('a return address the app did not register sends nobody anywhere', [stranger.status, stranger.headers.get('location')], [400, null]);
+  check('an unknown app sends nobody anywhere', (await get(authQuery({ client_id: 'ffffffff-0000-4000-8000-000000000000' }))).status, 400);
+  const noPkce = await get(authQuery({ code_challenge_method: 'plain' }));
+  check('a request without PKCE S256 is refused here: the server never forwards anyone to an app by itself',
+    [noPkce.status, noPkce.headers.get('location')], [400, null]);
+  check('the only place this server sends a person is the dashboard',
+    (read('services', 'supabase', 'functions', 'mcp', 'server.js').match(/redirectTo\([^)]*\)/g) || []).filter((c) => !c.includes('location')), ['redirectTo(withParams(deps.consentUrl, { client_id: clientId, redirect_uri: redirect, code_challenge: challenge, state })']);
+
+  const traded = await form('/token', { grant_type: 'authorization_code', client_id: CLIENT, code: 'sbmc_good', code_verifier: 'v'.repeat(43), redirect_uri: BACK });
+  check('a code is traded for a key, never cached', [traded.status, traded.headers.get('cache-control'), (await traded.json()).access_token], [200, 'no-store', KEYS.full]);
+  check('the token step hands the database every field under its own name', rpcCalls.filter((c) => c.name === 'mcp_oauth_token').pop().params,
+    { p_grant_type: 'authorization_code', p_client_id: CLIENT, p_code: 'sbmc_good', p_verifier: 'v'.repeat(43), p_redirect_uri: BACK, p_refresh: null });
+  const badCode = await form('/token', { grant_type: 'authorization_code', client_id: CLIENT, code: 'sbmc_bad' });
+  check('a wrong code is invalid_grant', [badCode.status, await badCode.json()], [400, { error: 'invalid_grant' }]);
+  check('a client id that is not one is refused before the database', await (async () => { const before = rpcCalls.length; const r = await form('/token', { grant_type: 'refresh_token', client_id: 'x' }); return [r.status, rpcCalls.length - before]; })(), [401, 0]);
+
+  const reg = (body) => mcp.handle(new Request(PUBLIC + '/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }));
+  const registered = await reg({ client_name: 'Example AI', redirect_uris: [BACK] });
+  const regBody = await registered.json();
+  check('an AI app registers as a public client', [registered.status, regBody.client_id, regBody.token_endpoint_auth_method, regBody.redirect_uris], [201, CLIENT, 'none', [BACK]]);
+  check('a return address that is not safe is refused', (await reg({ client_name: 'X', redirect_uris: ['http://evil.example/cb'] })).status, 400);
+  check('redirect_uris must be a list of addresses', (await reg({ client_name: 'X', redirect_uris: 'https://a.example' })).status, 400);
+
+  const bearer = (key, body) => mcp.handle(new Request(PUBLIC + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + key }, body: JSON.stringify(body) }));
+  const ended = await bearer(KEYS.off, { jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name: 'list_brains', arguments: {} } });
+  check('a signed-in app whose key ended gets 401 invalid_token, so it renews or asks again',
+    [ended.status, /^Bearer error="invalid_token", resource_metadata=/.test(ended.headers.get('www-authenticate') || '')], [401, true]);
+  check('and learns it at the first hello', (await bearer(KEYS.off, { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} })).status, 401);
+  check('a signed-in app with a good key is served', (await bearer(KEYS.full, { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} })).status, 200);
+  check('a copied link whose key ended still answers in words', (await rpc('tools/call', { name: 'list_brains', arguments: {} }, { key: KEYS.off })).status, 200);
+
   console.log('Wiring');
   const index = read('services', 'supabase', 'functions', 'mcp', 'index.ts');
   check('the server function holds no service-role key', /SERVICE_ROLE/.test(index), false);
-  check('it calls one database function, mcp_call', (index.match(/\/rest\/v1\/[a-z_/]+/g) || []), ['/rest/v1/rpc/mcp_call']);
+  check('it calls database functions through one address', (index.match(/\/rest\/v1\/[a-z_/${}]+/g) || []), ['/rest/v1/rpc/${name}']);
+  check('and only these four, each deciding for itself who may do what',
+    /const FUNCTIONS = new Set\(\[([^\]]+)\]\)/.exec(index)[1].replace(/['\s]/g, '').split(','),
+    ['mcp_call', 'mcp_oauth_client', 'mcp_oauth_register', 'mcp_oauth_token']);
+  check('every sign-in function the server asks for is on that list',
+    [...new Set([...read('services', 'supabase', 'functions', 'mcp', 'server.js').matchAll(/oauthRpc\('([a-z_]+)'/g)].map((m) => m[1]))].sort(),
+    ['mcp_oauth_client', 'mcp_oauth_register', 'mcp_oauth_token']);
   check('it loads the shared Brain module and the conversation', (index.match(/^import .*$/gm) || []), ["import '../_shared/memory-pack.js';", "import { createMcpServer } from './server.js';"]);
 
   const sql = read('services', 'supabase', 'migrations', '20261121120000_ai_app_link.sql');
@@ -210,6 +298,34 @@ async function main() {
   const migrations = fs.readdirSync(path.join(ROOT, 'services', 'supabase', 'migrations')).map((f) => read('services', 'supabase', 'migrations', f)).join('\n');
   check('the limits match the Brain item columns',
     [`char_length(btrim(name)) <= ${LIMITS.name}`, `char_length(body) between 1 and ${LIMITS.text}`, `char_length(summary) <= ${LIMITS.summary}`].map((s) => migrations.includes(s)), [true, true, true]);
+
+  const signIn = read('services', 'supabase', 'migrations', '20261125130000_ai_app_sign_in.sql');
+  check('only a signed-in person can approve an AI app',
+    [/revoke all on function public\.mcp_oauth_approve\([^)]*\) from public, anon;/.test(signIn), /grant execute on function public\.mcp_oauth_approve\([^)]*\) to authenticated;/.test(signIn)], [true, true]);
+  const tokenFn = signIn.slice(signIn.indexOf('create or replace function public.mcp_oauth_token('));
+  check('a code is deleted before it is judged, so it works once, right or wrong',
+    tokenFn.indexOf('delete from app.mcp_oauth_codes k') !== -1 && tokenFn.indexOf('delete from app.mcp_oauth_codes k') < tokenFn.indexOf("v_code.code_challenge then"), true);
+  check('the PKCE proof is S256, compared with the stored challenge',
+    tokenFn.includes("translate(rtrim(encode(sha256(p_verifier::bytea), 'base64'), '='), '+/', '-_') <> v_code.code_challenge"), true);
+  check('both secrets change at every refresh', /set token_hash\s+= encode\(sha256\(v_access::bytea\), 'hex'\),[\s\S]*?refresh_hash = encode\(sha256\(v_refresh::bytea\), 'hex'\)/.test(tokenFn), true);
+  check('a switched-off connection cannot be renewed', tokenFn.includes('or v_row.revoked_at is not null'), true);
+  const readable = /grant select \(([^)]+)\)\s+on public\.memory_tokens to authenticated;/.exec(signIn)[1];
+  check('no hash is readable from a browser', [/hash/.test(readable), /revoke select on public\.memory_tokens from authenticated;/.test(signIn)], [false, true]);
+  check('the sign-in tables are closed to everyone but the functions',
+    ['mcp_oauth_clients', 'mcp_oauth_codes'].map((t) => signIn.includes('revoke all on app.' + t) && signIn.includes('alter table app.' + t)), [true, true]);
+  check('the keys it hands out are the kind the server accepts', /app\.mcp_secret\('sbmw_'\)/.test(signIn) && /p_prefix\s*\|\| replace\(gen_random_uuid\(\)::text, '-', ''\)\s*\|\| replace\(gen_random_uuid\(\)::text, '-', ''\)/.test(signIn), true);
+
+  const app = read('app', 'src', 'App.tsx');
+  check('the approval page is served on computers and on phones', (app.match(/path="\/connect"/g) || []).length, 2);
+  check('signing in on a phone comes back to the approval page, not to the phone app',
+    [read('app', 'src', 'routes', 'LoginPage.tsx'), read('app', 'src', 'routes', 'AuthCallback.tsx')].map((t) => t.includes("!next.startsWith('/connect')")), [true, true]);
+  const toml = read('netlify.toml');
+  check('the approval page cannot be shown inside another site',
+    [/for = "\/connect"\s*\n\s*\[headers\.values\]\s*\n\s*X-Frame-Options = "DENY"\s*\n\s*Content-Security-Policy = "frame-ancestors 'none'"/.test(toml),
+     read('app', 'src', 'routes', 'ConnectAppPage.tsx').includes('window.top !== window.self')], [true, true]);
+  check('mcp.fibonax.com forwards to the server function, ahead of every other rule',
+    [/from\s*=\s*"https:\/\/mcp\.fibonax\.com\/\*"\s*\n\s*to\s*=\s*"https:\/\/eyowustlbqujaimaxggt\.supabase\.co\/functions\/v1\/mcp\/:splat"\s*\n\s*status\s*=\s*200\s*\n\s*force\s*=\s*true/.test(toml),
+     toml.indexOf('mcp.fibonax.com') < toml.indexOf('from   = "/*"')], [true, true]);
 
   const link = read('app', 'src', 'lib', 'aiAppLink.ts');
   check('the dashboard hands out the function address with the key in it', /\$\{SUPABASE_URL\}\/functions\/v1\/mcp\?key=\$\{/.test(link), true);

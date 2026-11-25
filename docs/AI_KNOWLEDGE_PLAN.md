@@ -135,3 +135,9 @@ Owner decisions, 2026-11-21: people connect an AI app by pasting a link made in 
 
 Not here: snippets (owner decision), editing or deleting anything through a link, sign-in with OAuth (most AI apps take a plain link; OAuth can be added later without changing the database).
 
+## 10. Sign in with Fibonax, for the AI app directories (2026-11-25)
+
+Owner decision, 2026-11-25: publish Fibonax in Claude's and ChatGPT's directories. Both want a person to connect by signing in, not by pasting a key.
+
+Built on our own keys rather than on Supabase's OAuth server, whose tokens are full user sessions. Pieces, the steps to go live and the submission material are in `docs/ai-app-directories/README.md`. Not live until the owners' go and the `mcp.fibonax.com` address.
+

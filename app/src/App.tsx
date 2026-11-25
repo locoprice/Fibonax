@@ -14,6 +14,7 @@ import { SignupPage } from '@/routes/SignupPage';
 import { AuthCallback } from '@/routes/AuthCallback';
 import { ExtensionLinkPage } from '@/routes/ExtensionLinkPage';
 import { InvitePage } from '@/routes/InvitePage';
+import { ConnectAppPage } from '@/routes/ConnectAppPage';
 import { AuthGate } from '@/components/auth/AuthGate';
 import { DesktopGate } from '@/components/layout/DesktopGate';
 import { useIsDesktop } from '@/lib/useViewportGate';
@@ -26,6 +27,8 @@ export function App() {
   // non-auth paths fall through to DesktopGate which points to /mobile/.
   // `/invite` is served here too: an invitation email gets opened on a phone
   // more often than not, and accepting must not require finding a laptop.
+  // So is `/connect`, where a person allows an AI app from whatever device
+  // that app runs on.
   if (!isDesktop) {
     return (
       <BrowserRouter>
@@ -38,6 +41,14 @@ export function App() {
             element={
               <AuthGate>
                 <InvitePage />
+              </AuthGate>
+            }
+          />
+          <Route
+            path="/connect"
+            element={
+              <AuthGate>
+                <ConnectAppPage />
               </AuthGate>
             }
           />
@@ -69,6 +80,14 @@ export function App() {
           element={
             <AuthGate>
               <InvitePage />
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/connect"
+          element={
+            <AuthGate>
+              <ConnectAppPage />
             </AuthGate>
           }
         />
