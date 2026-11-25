@@ -91,6 +91,16 @@ describe('bodyItems: read back, written again, nothing lost', () => {
     expect(buildFormButtonToken(parseFormButtonToken(raw)!)).toBe(raw);
   });
 
+  it('long text', () => {
+    const raw = buildFormTextToken({ name: 'NOTE', default: 'none', long: true, link: 'after:Note' });
+    expect(raw).toBe('{formtext: name=NOTE; long=yes; default=none; link=after:Note}');
+    expect(parseFormTextToken(raw)).toEqual({ name: 'NOTE', default: 'none', long: true, link: 'after:Note' });
+    expect(buildFormTextToken(parseFormTextToken(raw)!)).toBe(raw);
+    // Typed by hand with a setting the window would drop: Remove only.
+    expect(parseFormTextToken('{formtext: name=NOTE; long=yes; format=name}')).toBeNull();
+    expect(parseFormTextToken('{formtext: name=NOTE; long=no}')).toBeNull();
+  });
+
   it('automatic date', () => {
     const raw = buildFormTimeToken({ format: 'DD/MM/YYYY HH:mm', shift: '+3D', at: '09:00' });
     expect(buildFormTimeToken(parseFormTimeToken(raw)!)).toBe(raw);

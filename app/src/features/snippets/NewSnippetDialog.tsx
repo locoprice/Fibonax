@@ -1757,6 +1757,12 @@ export function NewSnippetDialog() {
                     </dd>
                   </div>
                   <div>
+                    <dt className="font-mono text-[10px] text-ink">Long text</dt>
+                    <dd className="text-[11px] text-ink-subtle leading-tight">
+                      Optional. A taller box for several lines, like a note or an address.
+                    </dd>
+                  </div>
+                  <div>
                     <dt className="font-mono text-[10px] text-ink">Person name</dt>
                     <dd className="text-[11px] text-ink-subtle leading-tight">
                       Optional. A name typed in lowercase gets its capitals when the snippet

@@ -2355,6 +2355,8 @@ function showOverlay(targetEl, snip, scLen, done) {
     // A checkbox group is block-level, so it cannot sit inside an inline
     // sentence — its context goes above and below instead.
     var blockControl = false;
+    // A group of ticks is named as a group; every other control is one box.
+    var groupControl = false;
     if (cfg.type === 'dd' && opts.length) {
       // {formmenu: …; cols=N} sizes the field in characters; capped at the
       // overlay width so a long value can never push the panel out of view.
@@ -2368,6 +2370,7 @@ function showOverlay(targetEl, snip, scLen, done) {
       // out what is on offer. Both are block-level, so the prose around the
       // token goes above and below rather than beside it.
       blockControl = true;
+      groupControl = true;
       var oType = cfg.multiple ? 'checkbox' : 'radio';
       // Radios need a group name, or every single-choice menu in one form would
       // share a group and picking in either would clear the other.
@@ -2382,6 +2385,11 @@ function showOverlay(targetEl, snip, scLen, done) {
       inp = '<input type="time" class="sb-inp" data-key="'+key+'" value="'+xesc(cfg.value)+'">';
     } else if (cfg.type === 'datetime' || cfg.type === 'datetime-local') {
       inp = '<input type="datetime-local" class="sb-inp" data-key="'+key+'"'+_sbOrderAttrs(cfg)+' value="'+xesc(cfg.value)+'">';
+    } else if (cfg.long) {
+      // A long text: several lines, the row's whole width. Enter starts a new
+      // line in it and never inserts the message.
+      blockControl = true;
+      inp = '<textarea class="sb-inp" rows="3" data-key="'+key+'" placeholder="'+key.replace(/_/g,' ')+'">'+xesc(cfg.value)+'</textarea>';
     } else {
       // A number is a text box with the number keypad. type="number" lets the
       // browser drop a comma or a second dot as it is typed ("1,5" became 15),
@@ -2391,7 +2399,7 @@ function showOverlay(targetEl, snip, scLen, done) {
     // Presentation-only naming: answer keys, defaults and handlers stay intact.
     var fieldId = 'sb-fill-' + i;
     var fieldLabel = cfg.label || cfg.before || key.replace(/_/g, ' ');
-    if (blockControl) {
+    if (groupControl) {
       inp = inp.replace('class="sb-multi"', 'class="sb-multi" role="group" aria-label="'+xesc(fieldLabel)+'"');
     } else {
       inp = inp.replace('class="sb-inp"', 'class="sb-inp" id="'+fieldId+'" aria-label="'+xesc(fieldLabel)+'"');
@@ -2403,8 +2411,8 @@ function showOverlay(targetEl, snip, scLen, done) {
     var post = cfg.after  ? '<span class="sb-ctx">'+xesc(cfg.after)+'</span>'  : '';
     // A caption the author gave the box wins; otherwise only a box with no prose
     // around it falls back to its key.
-    var lbl  = cfg.label ? '<label class="sb-lbl"'+(blockControl ? '' : ' for="'+fieldId+'"')+'>'+xesc(cfg.label)+'</label>'
-      : ((pre || post) ? '' : '<label class="sb-lbl"'+(blockControl ? '' : ' for="'+fieldId+'"')+'>'+xesc(key.replace(/_/g,' '))+'</label>');
+    var lbl  = cfg.label ? '<label class="sb-lbl"'+(groupControl ? '' : ' for="'+fieldId+'"')+'>'+xesc(cfg.label)+'</label>'
+      : ((pre || post) ? '' : '<label class="sb-lbl"'+(groupControl ? '' : ' for="'+fieldId+'"')+'>'+xesc(key.replace(/_/g,' '))+'</label>');
     // Where a field that reads its value off a page says what the last read
     // found ("From link", "Not on the page"). Empty and hidden until a read,
     // and absent from every field the author never pointed at a page.
@@ -4764,6 +4772,7 @@ document.addEventListener('input', function(e) {
     "#sb-overlay .sb-inp:hover{border-color:var(--sb-ink-muted);}" +
     "#sb-overlay .sb-inp:focus{border-color:var(--sb-azure);box-shadow:0 0 0 3px var(--sb-azure-glow);}" +
     "#sb-overlay .sb-inp[type=text]{font-weight:700;}" +
+    "#sb-overlay textarea.sb-inp{font-weight:700;resize:vertical;min-height:calc(var(--sb-s-10)*2);}" +
     "#sb-overlay .sb-inp[hidden]{display:none;}" +
     "#sb-overlay .sb-inp::placeholder{font-weight:400;color:var(--sb-ink-muted);opacity:1;}" +
     "#sb-overlay .sb-inp[type=date],#sb-overlay .sb-inp[type=time],#sb-overlay .sb-inp[type=datetime-local]{color:var(--sb-azure);}" +

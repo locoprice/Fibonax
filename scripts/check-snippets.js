@@ -637,7 +637,19 @@ const expansionCases = [
   ['{A} giorn(o/i), {B} giorn(o/i)', { A: '1', B: '0' }],
   ['1.000 item(s), 1,00 item(s), A1 item(s), item(s)', {}],
   ['{if: A > 0}{A} item(s){endif}', { A: '1' }],
+  // LONG TEXT: what is typed prints as written, line breaks and all, and is
+  // never re-cased as a name, whatever the field is called.
+  ['Note:\n{formtext: name=guest_name; long=yes}\nBye {guest_name}', { guest_name: 'first line\nsecond line' }],
+  ['{formtext: name=NOTE; long=yes; default=none}', {}],
 ];
+// A long text in a formatted text breaks its lines with a tag, and stays text.
+for (const [body, vals] of [['<p>{formtext: name=NOTE; long=yes}</p>', { NOTE: 'a<b\r\nc\nd' }]]) {
+  const gotE = engine.resolveBody(body, Object.assign({}, vals), { html: true });
+  const gotM = mobile.resolveBody(body, Object.assign({}, vals), { html: true });
+  if (gotE !== '<p>a&lt;b<br>c<br>d</p>' || gotM !== gotE) {
+    fail('formatted long text: engine ' + JSON.stringify(gotE) + ', mobile ' + JSON.stringify(gotM));
+  }
+}
 // The same in a formatted text, where the number and the word may sit in
 // different tags.
 for (const [body, vals] of [['<b>{A}</b> item(s) and {B}&nbsp;<i>day(s)</i>', { A: '1', B: '2' }]]) {
@@ -867,6 +879,14 @@ const fieldCfgCases = [
   '{formtext: name=nome; format=plain}',
   '{formtext: name=guest_name; FORMAT=Plain; default=cliente}',
   '{formtext: name=guest_name}',
+  // LONG TEXT: long=yes on a text field. Both parsers must mark it long and
+  // plain, or the phone draws one line where the page draws several. Anything
+  // but yes is a one-line field, and a number is never long.
+  '{formtext: name=NOTE; long=yes}',
+  '{formtext: name=guest_name; LONG = Yes; default=none}',
+  '{formtext: name=NOTE; long=yes; format=name; label=Your note; link=after:Note}',
+  '{formtext: name=NOTE; long=no}',
+  '{formtext: name=N; type=number; long=yes}',
   '{formdate: name=CHECKIN; default=2026-08-06}',
   // NUMBER FIELD — the type and format ride on {formtext:} rather than a token
   // of their own, so both parsers must read the same attributes off the same
