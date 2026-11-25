@@ -145,7 +145,7 @@ function nameIn(raw: string): string {
 
 export function parseFormTextToken(raw: string): FormTextConfig | null {
   const attrs = attrsOf(raw);
-  if (!attrs || !onlyKeys(attrs, ['name', 'default', 'format', 'link'])) return null;
+  if (!attrs || !onlyKeys(attrs, ['name', 'default', 'format', 'long', 'link'])) return null;
   const name = attrs.get('name') ?? '';
   if (!isValidFieldName(name)) return null;
   const format = attrs.get('format');
@@ -153,6 +153,7 @@ export function parseFormTextToken(raw: string): FormTextConfig | null {
   const cfg: FormTextConfig = {
     name,
     default: attrs.get('default') ?? '',
+    ...(attrs.get('long') === 'yes' ? { long: true } : {}),
     ...(format === 'name' ? { personName: true } : format === 'plain' ? { personName: false } : {}),
     link: readLinkAttr(innerOf(raw)),
   };
@@ -331,7 +332,8 @@ export function bodyItems(body: string): BodyItem[] {
 export function itemDetail(item: BodyItem): string {
   switch (item.kind) {
     case 'text':
-      return item.cfg?.default ? `Starts with "${item.cfg.default}"` : 'Text';
+      if (item.cfg?.default) return `Starts with "${item.cfg.default}"`;
+      return item.cfg?.long ? 'Long text' : 'Text';
     case 'number':
       return item.cfg?.label || (item.cfg?.format === 'currency' ? `Currency, ${item.cfg.currency}` : item.cfg?.format === 'percent' ? 'Percent' : 'Number');
     case 'date':

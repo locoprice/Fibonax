@@ -1760,6 +1760,9 @@ function renderDetailHtml(s){
           inp='<div class="d-multi"'+wide+'>'+f.options.map(function(o){
             return '<label class="d-opt"><input type="'+oType+'"'+oName+' data-fkey="'+esc(k)+'" value="'+esc(o)+'"'+(f.picks.indexOf(o)>=0?' checked':'')+'><span>'+esc(o)+'</span></label>';
           }).join('')+detailOtherHtml(f, oType, oName)+'</div>';
+        } else if(f.long){
+          // A long text: several lines. Enter starts a new line in it.
+          inp='<textarea rows="3" data-fkey="'+esc(k)+'" placeholder="'+esc(label)+'">'+esc(val)+'</textarea>';
         } else {
           // A number is a text box with the number keypad. type="number" lets
           // the browser drop a comma or a second dot as it is typed ("1,5"

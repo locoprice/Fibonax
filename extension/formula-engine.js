@@ -9,7 +9,7 @@
 //   {= EXPRESSION}             — legacy single-brace formula
 //   {var: NAME = EXPRESSION}   — local variable declaration
 //   {time: FORMAT[; shift=+3D|next monday][; at=09:00][; from=FIELD]}  — automatic date
-//   {formtext: name=VAR; default=X}   — text input field
+//   {formtext: name=VAR; default=X[; long=yes]}   (text input field; long=yes: several lines)
 //   {formdate: name=VAR[; type=time][; format=DD/MM/YYYY]}  — date or time field
 //   {formmenu: opt1,opt2; name=VAR[; default=opt1][; multiple=yes][; cols=N][; print=no][; other=Other]}  (dropdown field)
 //     (print=no: the menu is asked and decides rules, but prints nothing itself)
@@ -655,7 +655,10 @@
     if (!html) return sbInflectGreeting(out, s, lock) + s;
     var tags = /(?:<[^>]*>)+$/.exec(out);
     var cut = tags ? tags.index : out.length;
-    return sbInflectGreeting(out.slice(0, cut), s, lock) + out.slice(cut) + sbEscapeHtml(s);
+    // A long text field holds several lines, and a layout only breaks a line
+    // where a tag says so.
+    return sbInflectGreeting(out.slice(0, cut), s, lock) + out.slice(cut) +
+      sbEscapeHtml(s).replace(/\r\n?|\n/g, '<br>');
   }
 
   // ── FORMATTED LAYOUT ────────────────────────────────────────────
@@ -2490,11 +2493,21 @@
     return m ? _linkValue(m[1]) : '';
   }
 
+  // LONG TEXT: `long=yes` asks for a box that holds several lines (a note, an
+  // address, a message to pass on). It is still a text field: a release from
+  // before the attribute draws the one-line box and prints what is typed. What
+  // is typed prints as written, line breaks and all, so a long text is never
+  // re-cased as a person's name, whatever the field is called.
+  //
+  // MIRRORED in app/public/mobile/index.html (sbTextCfg).
   function _textCfg(attrSrc, defVal) {
     var out = { type: 'text', 'default': defVal };
+    var isLong = /(?:^|;)\s*long\s*=\s*(?:yes|true|1)\s*(?:;|$)/i.test(attrSrc);
+    if (isLong) out.long = true;
     var fmtM = /(?:^|;)\s*format\s*=\s*([A-Za-z]+)/i.exec(attrSrc);
     var fmt = fmtM ? fmtM[1].toLowerCase() : '';
-    if (fmt === 'name' || fmt === 'plain') out.format = fmt;
+    if (isLong) out.format = 'plain';
+    else if (fmt === 'name' || fmt === 'plain') out.format = fmt;
     var label = _labelAttr(attrSrc);
     if (label) out.label = label;
     var link = _linkAttr(attrSrc);

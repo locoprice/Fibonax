@@ -97,6 +97,8 @@ export interface SbFillField {
   otherText: string;
   /** Author-requested width in characters; 0 when unset. */
   cols: number;
+  /** A text field that holds several lines (`long=yes`): drawn as a taller box. */
+  long: boolean;
   default: string;
   value: string;
   /** The prose immediately before/after the token, so a row reads like the body. */

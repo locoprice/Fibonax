@@ -4,8 +4,9 @@
  * A text field is stored inline in the body as
  *   `{formtext: name=TEXT_1; default=Ada}`
  * and read back by the formula engine when the snippet expands, where
- * `buildFormFieldCfg` turns it into `{ type: 'text', default: 'Ada' }` — one
- * line of arbitrary text, typed in by whoever expands the snippet.
+ * `buildFormFieldCfg` turns it into `{ type: 'text', default: 'Ada' }`: one
+ * line of arbitrary text, typed in by whoever expands the snippet, or several
+ * lines when the token carries `long=yes`.
  *
  * Unlike `{formmenu:}`, a text field cannot go unnamed: the engine's
  * `_formFieldName` has no fallback key for it, so `buildFormFieldCfg` skips the
@@ -38,6 +39,12 @@ export interface FormTextConfig {
    * the engine adding the capitals by itself. Left out, the engine decides.
    */
   personName?: boolean;
+  /**
+   * A long text, written as `long=yes`: the fill form draws a taller box that
+   * holds several lines, and what is typed prints as written, line breaks
+   * included. Never a person's name, so `personName` is not written with it.
+   */
+  long?: boolean;
   /**
    * Where on a pasted web page the value is (Fill from link), as
    * `after:Order number` or `before:Box|Boxes`; '' or left out for a field
@@ -146,7 +153,9 @@ export function buildFormTextToken(cfg: FormTextConfig): string {
   // Switched on, the attribute is always written, even where the name alone
   // would do: a release from before automatic names still reads format=name.
   let out = head;
-  if (cfg.personName === true) out = `${head}; format=name`;
+  // A long text prints as typed: the engine reads no name format beside it.
+  if (cfg.long === true) out = `${head}; long=yes`;
+  else if (cfg.personName === true) out = `${head}; format=name`;
   else if (cfg.personName === false && isPersonNameKey(name)) out = `${head}; format=plain`;
   if (value !== '') out += `; default=${value}`;
   // Last, in the engine's one spelling (`_linkValue`), the way the number,

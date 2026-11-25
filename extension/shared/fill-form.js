@@ -676,6 +676,7 @@
 
       var type = raw.type || inferType(key);
       var isMenu = type === 'dd';
+      var isLong = type === 'text' && raw.long === true;
       var options = (isMenu && raw.opts)
         ? String(raw.opts).split('\n').filter(function(x) { return trim(x) !== ''; })
         : [];
@@ -769,13 +770,18 @@
         otherOn: otherOn,
         otherText: otherText,
         cols: raw.cols || 0,
+        // A text field that holds several lines ({formtext: …; long=yes}). A
+        // renderer draws a taller box where Enter starts a new line. Always
+        // false for every other kind of field.
+        long: isLong,
         'default': def,
         value: val,
         before: ctx.before || '',
         after: ctx.after || '',
         // A choice list is block level, so the prose around its token goes
-        // above and below rather than beside it on one line.
-        block: isMenu,
+        // above and below rather than beside it on one line. So is a long
+        // text box, which takes the row's whole width.
+        block: isMenu || isLong,
         // What the Adjust panel offers this field — formats, named days, units,
         // clock. null for everything that is not a date, so a renderer asks one
         // question rather than three.

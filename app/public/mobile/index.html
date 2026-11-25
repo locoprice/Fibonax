@@ -822,6 +822,8 @@ body.sb-opening .home-hero,body.sb-opening .home-body{animation:sb-open-rise .5s
    and regular, so an empty box never looks filled. Same on all four fill
    surfaces. */
 .field-in[type=text]{font-weight:700}
+/* A long text field: several lines, growing with what is typed. */
+textarea.field-long{font-weight:700;line-height:1.4;resize:none;min-height:68px;display:block}
 .field-in::placeholder{color:var(--text3);font-weight:400}
 .field-in[type=date],.field-in[type=time],.field-in[type=datetime-local]{
   color:#C2410C;font-weight:600}
@@ -3553,6 +3555,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
       var type = raw.type || inferType(key);
       var isMenu = type === 'dd';
+      var isLong = type === 'text' && raw.long === true;
       var options = (isMenu && raw.opts)
         ? String(raw.opts).split('\n').filter(function(x) { return trim(x) !== ''; })
         : [];
@@ -3646,13 +3649,18 @@ svg.brain-type-icon{stroke-width:1.8}
         otherOn: otherOn,
         otherText: otherText,
         cols: raw.cols || 0,
+        // A text field that holds several lines ({formtext: …; long=yes}). A
+        // renderer draws a taller box where Enter starts a new line. Always
+        // false for every other kind of field.
+        long: isLong,
         'default': def,
         value: val,
         before: ctx.before || '',
         after: ctx.after || '',
         // A choice list is block level, so the prose around its token goes
-        // above and below rather than beside it on one line.
-        block: isMenu,
+        // above and below rather than beside it on one line. So is a long
+        // text box, which takes the row's whole width.
+        block: isMenu || isLong,
         // What the Adjust panel offers this field — formats, named days, units,
         // clock. null for everything that is not a date, so a renderer asks one
         // question rather than three.
@@ -10499,7 +10507,8 @@ function sbEmitValue(out,value,lock,html){
   if(!html)return sbInflectGreeting(out,s,lock)+s;
   var tags=/(?:<[^>]*>)+$/.exec(out);
   var cut=tags?tags.index:out.length;
-  return sbInflectGreeting(out.slice(0,cut),s,lock)+out.slice(cut)+sbEscapeHtml(s);
+  /* A long text field holds several lines; a layout breaks a line at a tag. */
+  return sbInflectGreeting(out.slice(0,cut),s,lock)+out.slice(cut)+sbEscapeHtml(s).replace(/\r\n?|\n/g,'<br>');
 }
 /* ── FORMATTED LAYOUT ── A snippet's layout is resolved with opts.html: every
    value printed into it is escaped, so typed or page-read text never becomes
@@ -11042,11 +11051,17 @@ function sbLinkAttr(attrSrc){
   return r?r.mode+':'+r.words.join('|'):'';
 }
 
+/* LONG TEXT: long=yes asks for a box that holds several lines. Still a text
+   field, printed as typed, so never re-cased as a person's name. MIRRORED from
+   _textCfg in extension/formula-engine.js. */
 function sbTextCfg(attrSrc,defVal){
   var out={type:'text',default:defVal};
+  var isLong=/(?:^|;)\s*long\s*=\s*(?:yes|true|1)\s*(?:;|$)/i.test(attrSrc);
+  if(isLong)out.long=true;
   var fmtM=/(?:^|;)\s*format\s*=\s*([A-Za-z]+)/i.exec(attrSrc);
   var fmt=fmtM?fmtM[1].toLowerCase():'';
-  if(fmt==='name'||fmt==='plain')out.format=fmt;
+  if(isLong)out.format='plain';
+  else if(fmt==='name'||fmt==='plain')out.format=fmt;
   var label=sbLabelAttr(attrSrc);
   if(label)out.label=label;
   var link=sbLinkAttr(attrSrc);
@@ -14792,6 +14807,12 @@ function renderDetail(snip,keepVals){
         inp='<input class="field-in" data-f="'+esc(f)+'" type="time" value="'+esc(def)+'">';
       }else if(t==='datetime'||t==='datetime-local'){
         inp='<input class="field-in" data-f="'+esc(f)+'"'+sbOrderAttrs(fld)+' type="datetime-local" value="'+esc(def)+'">';
+      }else if(fld.long){
+        /* A long text: several lines, the row's whole width, growing with what
+           is typed. Return starts a new line. */
+        blockControl=true;
+        inp='<textarea class="field-in field-long" data-f="'+esc(f)+'" rows="3" '
+          +'placeholder="'+esc(lbl)+'" autocomplete="off">'+esc(def)+'</textarea>';
       }else{
         /* A number is a text box with the number keypad. type="number" lets
            the browser drop a comma or a second dot as it is typed ("1,5" became
@@ -14816,7 +14837,7 @@ function renderDetail(snip,keepVals){
         : '<div class="field-inline">'+pre+inp+post+'</div>')+mark+mobAdjustHtml(fld)+'</div>';
     }).join('');
     form.querySelectorAll('.field-in').forEach(function(inp){
-      inp.addEventListener('input',function(){linkTouched(this);sbReorderDates(form,this);updatePrev();});
+      inp.addEventListener('input',function(){linkTouched(this);sbReorderDates(form,this);if(this.tagName==='TEXTAREA')editGrow(this);updatePrev();});
       /* Selects and checkboxes report a pick through 'change', not 'input'. */
       inp.addEventListener('change',function(){
         linkTouched(this);mobSyncOther(form);sbReorderDates(form,this);updatePrev();

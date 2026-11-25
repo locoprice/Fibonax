@@ -1174,6 +1174,28 @@ function PreviewField({
     );
   }
 
+  // A long text: several lines, the row's whole width. Enter starts a new line.
+  if (field.long) {
+    return (
+      <div className="flex flex-col gap-1">
+        <FieldTitle label={label + (field.required ? ' *' : '')} fromLink={field.fromLink} />
+        <textarea
+          rows={3}
+          aria-label={label}
+          value={field.value}
+          placeholder={label}
+          onChange={(e) => onChange(e.target.value)}
+          translate="no"
+          className={cn(
+            'min-h-16 w-full min-w-0 resize-y rounded-lg border border-line bg-card px-2.5 py-1.5 text-xs font-bold text-ink transition-colors',
+            'placeholder:font-normal placeholder:text-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
+          )}
+        />
+        <FieldNoteLine note={note} />
+      </div>
+    );
+  }
+
   const type = inputType(field);
   return (
     <div className="flex flex-col gap-1">
