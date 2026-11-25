@@ -68,6 +68,19 @@ describe('bodyItems: what the editor lists', () => {
   });
 });
 
+describe('bodyItems: the cursor position', () => {
+  it('lists the bare word only, with nothing to edit and a place to remove', () => {
+    const body = 'Hi,\n\n{cursor}\n\nBye {cursors} { Cursor }';
+    const marks = bodyItems(body).filter((i) => i.kind === 'cursor');
+    expect(marks.map((i) => i.raw)).toEqual(['{cursor}', '{ Cursor }']);
+    expect(marks[0]?.cfg).toBeNull();
+    expect(itemTitle(marks[0]!)).toBe('Cursor position');
+    expect(body.slice(marks[0]!.start, marks[0]!.end)).toBe('{cursor}');
+    // Taken out, the line it stood on is left as it was.
+    expect(body.slice(0, marks[0]!.start) + body.slice(marks[0]!.end)).toBe('Hi,\n\n\n\nBye {cursors} { Cursor }');
+  });
+});
+
 describe('bodyItems: read back, written again, nothing lost', () => {
   it('text', () => {
     const raw = buildFormTextToken({ name: 'GUEST', default: 'Ada', personName: true, link: 'after:Name' });

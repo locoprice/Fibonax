@@ -513,6 +513,7 @@ export function chipLabel(raw: string): string {
   if (head === 'time') return 'Automatic date';
   if (head === 'greeting' || inner === 'greeting') return 'Greeting';
   if (inner.toLowerCase() === 'seasonal') return 'Seasonal line';
+  if (inner.toLowerCase() === 'cursor') return 'Cursor position';
   if (head === 'my') {
     const word = rest.replace(/[_\s]+/g, ' ').trim().toLowerCase();
     return word === 'name' ? 'Your name' : word === 'company' ? 'Company name' : word === 'job title' ? 'Job title' : 'Your details';

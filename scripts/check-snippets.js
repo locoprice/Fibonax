@@ -734,6 +734,38 @@ if (mobile.sbTokenFieldKey('seasonal') !== '' || mobile.sbTokenFieldKey('seasona
     engine.extractFields('{seasonal} {seasonally}').join() !== 'seasonally') {
   fail('{seasonal} must not be a field, and {seasonally} must stay one, on the engine and the phone');
 }
+// CURSOR POSITION: {cursor} is never a field and prints nothing, on the engine
+// and on the phone, as text and as a layout, and keeps the line it stands on.
+// Only a caller that asks (cursorMark) is told where the first one stood.
+if (mobile.sbTokenFieldKey('cursor') !== '' || mobile.sbTokenFieldKey('cursors') !== 'cursors' ||
+    engine.extractFields('{cursor} {Cursor} {cursors}').join() !== 'cursors') {
+  fail('{cursor} must not be a field, and {cursors} must stay one, on the engine and the phone');
+}
+const cursorCases = [
+  ['Hi {A},\n\n{cursor}\n\nBye', { A: 'Ada' }, 'Hi Ada,\n\n\n\nBye', 9],
+  ['{ CURSOR }start', {}, 'start', 0],
+  ['end{cursor}', {}, 'end', 3],
+  ['{if: A > 1}in {cursor}here{endif} and {cursor}there', { A: '2' }, 'in here and there', 3],
+  ['{if: A > 1}in {cursor}here{endif} and {cursor}there', { A: '0' }, ' and there', 5],
+  ['{case: upper}ab{cursor}cd{/case}', {}, 'ABCD', 2],
+  ['no mark at all', {}, 'no mark at all', -1],
+];
+for (const [body, vals, want, at] of cursorCases) {
+  const plainE = engine.resolveBody(body, Object.assign({}, vals));
+  const plainM = mobile.resolveBody(body, Object.assign({}, vals));
+  const htmlE = engine.resolveBody(body, Object.assign({}, vals), { html: true });
+  const htmlM = mobile.resolveBody(body, Object.assign({}, vals), { html: true });
+  if (plainE !== want || plainM !== want || htmlE !== htmlM || htmlE.indexOf(engine.CURSOR_MARK) !== -1) {
+    fail('{cursor} must print nothing: ' + JSON.stringify(body) + ' -> engine ' + JSON.stringify(plainE) +
+      ', mobile ' + JSON.stringify(plainM));
+  }
+  const split = engine.sbSplitCursor(engine.resolveBody(body, Object.assign({}, vals), { cursorMark: engine.CURSOR_MARK }));
+  if (split.text !== want || split.at !== at) {
+    fail('cursor position of ' + JSON.stringify(body) + ' is ' + split.at + ' in ' + JSON.stringify(split.text) +
+      ', expected ' + at);
+  }
+}
+console.log('OK Cursor position: prints nothing on engine and phone, found where asked (' + cursorCases.length + ' cases)');
 // Without an answer from a fill form, both ask the page's own SBSeason, and
 // a wish carrying the account's details asks SBMyDetails.
 const myDetails = require(path.join(__dirname, '..', 'extension', 'shared', 'my-details.js'));

@@ -3421,6 +3421,18 @@ svg.brain-type-icon{stroke-width:1.8}
     }
     var preview = finished(values);
 
+    // Where {cursor} stands in the finished text, or -1: the text resolved once
+    // more with the engine's mark in its place. Decided here so the page reads
+    // one answer; a surface that copies text never looks at it. An engine that
+    // cannot mark it (the phone's) leaves it at -1.
+    var cursor = -1;
+    if (E.CURSOR_MARK && E.sbSplitCursor && /\{\s*cursor\s*\}/i.test(src)) {
+      resolveOpts.cursorMark = E.CURSOR_MARK;
+      var split = E.sbSplitCursor(finished(values));
+      delete resolveOpts.cursorMark;
+      if (split.text === preview) cursor = split.at;
+    }
+
     // Whether an empty box's answer would reach the text. A box inside a Show
     // or hide section that is closed prints nothing either way, so the
     // unfinished-text check does not call it empty. Answered one at a time with
@@ -3492,7 +3504,7 @@ svg.brain-type-icon{stroke-width:1.8}
         }).join('');
       }
     }
-    return { preview: preview, errors: errors, formatted: formatted, parts: parts };
+    return { preview: preview, errors: errors, formatted: formatted, parts: parts, cursor: cursor };
   }
 
   // ── FORMATTED LAYOUT ────────────────────────────────────────────
@@ -3521,7 +3533,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], progress: progress([]), season: null, layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, cursor: -1, errors: [], sections: [], progress: progress([]), season: null, layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -3758,6 +3770,10 @@ svg.brain-type-icon{stroke-width:1.8}
       // The text with its pictures, in order: [{ text } | { picture }], or
       // null when there is no picture. What a preview draws.
       parts: resolved.parts,
+      // Where the caret lands in `preview` once the text is in a field on a
+      // page ({cursor}), or -1 for the end as always. Only the page places a
+      // caret; the popup and the phone copy the text and leave this alone.
+      cursor: resolved.cursor,
       errors: resolved.errors,
       sections: sectionsFor(fields),
       // How far along the form is, for the line a long form carries above its
@@ -12260,6 +12276,11 @@ function sbSeasonalText(opts){
    {my: name}, {my: company}, {my: job title} print what the account holds,
    through SBMyDetails, the generated copy of extension/shared/my-details.js. */
 function sbIsMyHead(tokLow){return /^my\s*:/.test(tokLow);}
+/* Cursor position. MIRRORED from _isCursorHead in extension/formula-engine.js.
+   {cursor} marks where the caret lands once the text is in a field on a page.
+   The phone copies text and has no caret to place, so it prints nothing here
+   and is never a field. */
+function sbIsCursorHead(tokLow){return tokLow==='cursor';}
 function sbMyText(tok){
   var D=typeof SBMyDetails!=='undefined'?SBMyDetails:null;
   return D&&typeof D.value==='function'?String(D.value(D.wordOf(tok))||''):'';
@@ -13185,7 +13206,8 @@ function sbTokenFieldKey(t){
      tLow.slice(0,7)==='elseif:'||
      tLow.slice(0,5)==='time:'||
      sbIsButtonHead(tLow)||sbIsCaseHead(tLow)||sbIsGreetingHead(tLow)||
-     sbIsPictureHead(tLow)||sbIsSeasonalHead(tLow)||sbIsMyHead(tLow))return '';
+     sbIsPictureHead(tLow)||sbIsSeasonalHead(tLow)||sbIsMyHead(tLow)||
+     sbIsCursorHead(tLow))return '';
   if(tLow.slice(0,7)==='gender:')return sbGenderTokenField(t.slice(7));
   if(sbIsFormToken(tLow))return sbFormTokenName(tLow,t.slice(9));
   return t;
@@ -13462,6 +13484,9 @@ function resolveBody(body,vals,opts){
         var sD=(html?sbDropQuietLineHtml:sbDropQuietLine)(out,body,cl+1,outer);
         out=sD.out;i=sD.i;continue;
       }
+
+      /* {cursor}: where the caret lands on a page. Nothing here, line kept. */
+      if(sbIsCursorHead(tok.toLowerCase())){i=cl+1;continue;}
 
       /* {my: company}: a detail of the account, or nothing at all */
       if(sbIsMyHead(tok.toLowerCase())){
@@ -17997,7 +18022,7 @@ var editChipsNow=[], editChipLost=[], editChipAccepted=[];
 var EDIT_TOKEN=/\{[^{}]*\}/g;
 var EDIT_CHIP_WORDS={formtext:'Text',formparagraph:'Text',formnumber:'Number',formmenu:'Choice',
   formdate:'Date',formtoggle:'Tick box',time:'Date',date:'Date','if':'Rule',elseif:'Or if',
-  'else':'Otherwise',endif:'End of rule','var':'Saved value',button:'Button',cursor:'Cursor',
+  'else':'Otherwise',endif:'End of rule','var':'Saved value',button:'Button',cursor:'Cursor position',
   clipboard:'Clipboard',key:'Key',note:'Note',link:'Link',picture:'Picture',greeting:'Greeting',
   seasonal:'Seasonal line',my:'Your details',snippet:'Snippet',brain:'Brain'};
 var EDIT_BLOCK_TYPES=['role','objective','context','examples','constraints'];

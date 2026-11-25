@@ -542,6 +542,18 @@
     }
     var preview = finished(values);
 
+    // Where {cursor} stands in the finished text, or -1: the text resolved once
+    // more with the engine's mark in its place. Decided here so the page reads
+    // one answer; a surface that copies text never looks at it. An engine that
+    // cannot mark it (the phone's) leaves it at -1.
+    var cursor = -1;
+    if (E.CURSOR_MARK && E.sbSplitCursor && /\{\s*cursor\s*\}/i.test(src)) {
+      resolveOpts.cursorMark = E.CURSOR_MARK;
+      var split = E.sbSplitCursor(finished(values));
+      delete resolveOpts.cursorMark;
+      if (split.text === preview) cursor = split.at;
+    }
+
     // Whether an empty box's answer would reach the text. A box inside a Show
     // or hide section that is closed prints nothing either way, so the
     // unfinished-text check does not call it empty. Answered one at a time with
@@ -613,7 +625,7 @@
         }).join('');
       }
     }
-    return { preview: preview, errors: errors, formatted: formatted, parts: parts };
+    return { preview: preview, errors: errors, formatted: formatted, parts: parts, cursor: cursor };
   }
 
   // ── FORMATTED LAYOUT ────────────────────────────────────────────
@@ -642,7 +654,7 @@
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], progress: progress([]), season: null, layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, cursor: -1, errors: [], sections: [], progress: progress([]), season: null, layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -879,6 +891,10 @@
       // The text with its pictures, in order: [{ text } | { picture }], or
       // null when there is no picture. What a preview draws.
       parts: resolved.parts,
+      // Where the caret lands in `preview` once the text is in a field on a
+      // page ({cursor}), or -1 for the end as always. Only the page places a
+      // caret; the popup and the phone copy the text and leave this alone.
+      cursor: resolved.cursor,
       errors: resolved.errors,
       sections: sectionsFor(fields),
       // How far along the form is, for the line a long form carries above its
