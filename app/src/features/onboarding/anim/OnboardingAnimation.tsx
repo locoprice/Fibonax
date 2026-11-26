@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
-import { SnippetIcon } from '@/components/shared/SnippetIcon';
+import { BrainIcon } from '@/components/shared/BrainIcon';
 import { PromptIcon } from '@/components/shared/PromptIcon';
+import { SnippetIcon } from '@/components/shared/SnippetIcon';
 import {
   AnimationStage,
   Sprite,
@@ -11,28 +12,31 @@ import {
 } from '@/features/onboarding/anim/timeline';
 
 /**
- * Fibonax onboarding animation — Chrome install → mobile companion
- * (5 steps) → trigger expansion → logo outro. Ported from the imported
- * design (claude.ai/design "Fibonax Onboarding"); the brand accents were
- * recolored from the source's Iris purple to the shipped Azure primary
- * (design system v1.1). Self-contained illustrative surface: inline styles and
- * fixed 1280×720 coordinates are intrinsic to the piece and don't follow the
- * dashboard's Tailwind-token rule.
+ * The Getting started animation, in five scenes that follow the user manual's
+ * Quickstart: add Fibonax to Chrome and sign in, type a snippet's trigger and
+ * fill its form, type `"""` for a prompt that carries a Brain, use the same
+ * library on the phone, and the T. Every word and control on screen is one the
+ * product shows today, with sample content that fits any industry.
+ *
+ * Self-contained illustration: inline styles and fixed 1280x720 coordinates
+ * are intrinsic to the piece and don't follow the dashboard's Tailwind-token
+ * rule. The stage stays light in both themes, like a video.
  */
 
-/* ─── palette / type ─────────────────────────────────────────── */
-const AZURE = '#1B4FD8'; // brand primary (was Iris #6C5CE7)
-const AZURE_L = '#3D6FE8'; // gradient endpoint (was Iris-light #8B7CF6)
-const AZURE_BG = '#EEF2FF'; // tinted surface (was Iris-bg #F0EDFF)
-const AZURE_DK = '#1440B0';
+/* Palette and type */
+const AZURE = '#1B4FD8';
+const AZURE_L = '#3D6FE8';
+const AZURE_BG = '#EEF2FF';
+const NAVY = '#101C39'; // mobile-navy
+const NAVY_SOFT = '#203151'; // mobile-navy-soft
+const NAVY_COPY = '#C1CBE0'; // mobile-navy-copy
 const INK = '#18181B';
 const INK_MUT = '#52525B';
-const INK_SUB = '#A1A1AA';
+const INK_SUB = '#71717A';
 const LINE = '#E4E4E7';
-const CARD = '#FFFFFF';
-const DESK = '#F4F3F1'; // calm warm neutral desk
-const FONT =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
+const SOFT = '#FAFAFA';
+const DESK = '#F4F3F1';
+const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
 const MONO = '"SF Mono", ui-monospace, Menlo, Consolas, monospace';
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
@@ -40,43 +44,55 @@ const ease = Easing.easeInOutCubic;
 const easeOut = Easing.easeOutCubic;
 const back = Easing.easeOutBack;
 
-/* ─── brand logo mark (gradient square + white bolt) ─────────── */
-function Logo({ size = 44, radius }: { size?: number; radius?: number }): ReactElement {
-  const r = radius != null ? radius : Math.round(size * 0.28);
+/** 0 before `start`, 1 after `start + span`, eased in between. */
+const appear = (lt: number, start: number, span = 0.4): number =>
+  easeOut(clamp((lt - start) / span, 0, 1));
+
+/** The first characters of `text` typed from `start`, one every `per` seconds. */
+const typed = (text: string, lt: number, start: number, per: number): string =>
+  text.slice(0, clamp(Math.floor((lt - start) / per), 0, text.length));
+
+/* The Fibonax T: the same picture as the dashboard's BrandMark, as a mask. */
+const T_MASK = 'url(/landing/leib-tour-icon.png) center / contain no-repeat';
+
+function TMark({ size, color }: { size: number; color: string }): ReactElement {
+  return (
+    <span
+      style={{
+        display: 'block',
+        width: size,
+        height: size,
+        background: color,
+        WebkitMask: T_MASK,
+        mask: T_MASK,
+      }}
+    />
+  );
+}
+
+/** The app icon: the white T on an azure tile. */
+function AppIcon({ size, radius }: { size: number; radius?: number }): ReactElement {
   return (
     <div
       style={{
         width: size,
         height: size,
-        borderRadius: r,
+        borderRadius: radius ?? Math.round(size * 0.26),
         background: `linear-gradient(135deg, ${AZURE}, ${AZURE_L})`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         boxShadow: `0 6px 18px ${AZURE}44`,
+        flexShrink: 0,
       }}
     >
-      <svg
-        viewBox="0 0 24 24"
-        width={size * 0.56}
-        height={size * 0.56}
-        style={{ display: 'block' }}
-      >
-        <path
-          d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-          fill="#fff"
-          stroke="#fff"
-          strokeWidth="1"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <TMark size={Math.round(size * 0.62)} color="#fff" />
     </div>
   );
 }
 
-/* ─── cursor pointer ─────────────────────────────────────────── */
+/* Pointer, click ring and tap pulse */
 function Cursor({ x, y, press }: { x: number; y: number; press?: boolean }): ReactElement {
-  const s = press ? 0.86 : 1;
   return (
     <div
       style={{
@@ -85,9 +101,8 @@ function Cursor({ x, y, press }: { x: number; y: number; press?: boolean }): Rea
         top: y,
         width: 26,
         height: 26,
-        transform: `translate(-3px,-2px) scale(${s})`,
+        transform: `translate(-3px,-2px) scale(${press ? 0.86 : 1})`,
         transformOrigin: '3px 3px',
-        transition: 'transform 80ms ease',
         pointerEvents: 'none',
         zIndex: 60,
         filter: 'drop-shadow(0 3px 5px rgba(0,0,0,.32))',
@@ -97,7 +112,7 @@ function Cursor({ x, y, press }: { x: number; y: number; press?: boolean }): Rea
         <path
           d="M4 2l6.5 16 2.3-6.7 6.7-2.3L4 2z"
           fill="#fff"
-          stroke="#18181B"
+          stroke={INK}
           strokeWidth="1.4"
           strokeLinejoin="round"
         />
@@ -106,18 +121,8 @@ function Cursor({ x, y, press }: { x: number; y: number; press?: boolean }): Rea
   );
 }
 
-function ClickRing({
-  x,
-  y,
-  on,
-  t,
-}: {
-  x: number;
-  y: number;
-  on: boolean;
-  t: number;
-}): ReactElement | null {
-  if (!on) return null;
+function ClickRing({ x, y, t }: { x: number; y: number; t: number }): ReactElement | null {
+  if (t < 0 || t > 0.42) return null;
   const p = clamp(t / 0.42, 0, 1);
   const r = lerp(4, 26, easeOut(p));
   return (
@@ -138,21 +143,8 @@ function ClickRing({
   );
 }
 
-/* touch tap pulse (filled) */
-function TapPulse({
-  x,
-  y,
-  on,
-  t,
-  color = AZURE,
-}: {
-  x: number;
-  y: number;
-  on: boolean;
-  t: number;
-  color?: string;
-}): ReactElement | null {
-  if (!on) return null;
+function TapPulse({ x, y, t }: { x: number; y: number; t: number }): ReactElement | null {
+  if (t < 0 || t > 0.5) return null;
   const p = clamp(t / 0.5, 0, 1);
   const r = lerp(6, 30, easeOut(p));
   return (
@@ -164,8 +156,8 @@ function TapPulse({
         width: r * 2,
         height: r * 2,
         borderRadius: '50%',
-        background: color,
-        opacity: (1 - p) * 0.28,
+        background: AZURE,
+        opacity: (1 - p) * 0.3,
         pointerEvents: 'none',
         zIndex: 30,
       }}
@@ -173,68 +165,34 @@ function TapPulse({
   );
 }
 
-/* ─── scene shell: crossfade + gentle push-in camera ─────────── */
+/* Scene shell: crossfade and a gentle push-in */
 function Scene({
   children,
-  fadeIn = 0.45,
-  fadeOut = 0.4,
-  zoom = 0.03,
+  zoom = 0.02,
   bg = DESK,
 }: {
   children: ReactNode;
-  fadeIn?: number;
-  fadeOut?: number;
   zoom?: number;
   bg?: string;
 }): ReactElement {
   const { localTime: lt, duration: d } = useSprite();
   let op = 1;
-  if (lt < fadeIn) op = easeOut(clamp(lt / fadeIn, 0, 1));
-  else if (lt > d - fadeOut) op = easeOut(clamp((d - lt) / fadeOut, 0, 1));
+  if (lt < 0.45) op = easeOut(clamp(lt / 0.45, 0, 1));
+  else if (lt > d - 0.4) op = easeOut(clamp((d - lt) / 0.4, 0, 1));
   const sc = lerp(1, 1 + zoom, clamp(lt / d, 0, 1));
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: bg,
-        opacity: op,
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          transform: `scale(${sc})`,
-          transformOrigin: '50% 46%',
-        }}
-      >
+    <div style={{ position: 'absolute', inset: 0, background: bg, opacity: op, overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', inset: 0, transform: `scale(${sc})`, transformOrigin: '50% 46%' }}>
         {children}
       </div>
     </div>
   );
 }
 
-/* ─── caption (lower third) ──────────────────────────────────── */
-function Caption({
-  text,
-  show,
-  t,
-  y = 636,
-  align = 'center',
-  size = 40,
-}: {
-  text: string;
-  show: boolean;
-  t: number;
-  y?: number;
-  align?: 'left' | 'center' | 'right';
-  size?: number;
-}): ReactElement | null {
-  if (!show) return null;
-  const p = clamp(t / 0.55, 0, 1);
-  const e = easeOut(p);
+/** The lower third: a short azure rule and one plain sentence. */
+function Caption({ text, at, lt, y = 644 }: { text: string; at: number; lt: number; y?: number }): ReactElement | null {
+  if (lt < at) return null;
+  const e = appear(lt, at, 0.55);
   return (
     <div
       style={{
@@ -242,7 +200,7 @@ function Caption({
         left: 0,
         right: 0,
         top: y,
-        textAlign: align,
+        textAlign: 'center',
         opacity: e,
         transform: `translateY(${lerp(16, 0, e)}px)`,
         zIndex: 40,
@@ -250,1098 +208,577 @@ function Caption({
     >
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14 }}>
         <span style={{ width: 26, height: 3, borderRadius: 2, background: AZURE }} />
-        <span
-          style={{
-            fontFamily: FONT,
-            fontSize: size,
-            fontWeight: 600,
-            letterSpacing: '-0.5px',
-            color: INK,
-          }}
-        >
-          {text}
-        </span>
+        <span style={{ fontFamily: FONT, fontSize: 36, fontWeight: 600, letterSpacing: '-0.5px', color: INK }}>{text}</span>
       </div>
     </div>
   );
 }
 
-/* ════════════════════════════════════════════════════════════ */
-/* SCENE 1 — Chrome Web Store install                            */
-/* ════════════════════════════════════════════════════════════ */
-function Scene1(): ReactElement {
-  const { localTime: lt } = useSprite();
-  const bx = 90;
-  const by = 60;
-  const bw = 1100;
-  const cx = interpolate(
-    [0, 1.7, 2.4, 3.3, 3.95, 6.8],
-    [1010, 900, 900, 1082, 1082, 1082],
-    ease,
-  )(lt);
-  const cy = interpolate(
-    [0, 1.7, 2.4, 3.3, 3.95, 6.8],
-    [648, 300, 300, 250, 250, 250],
-    ease,
-  )(lt);
-  const clicks = [2.4, 3.95];
-  const press = clicks.some((c) => lt >= c && lt < c + 0.14);
-
-  const added = lt >= 2.4;
-  const confirmOn = lt >= 2.55 && lt < 4.0;
-  const pinned = lt >= 4.05;
-  const pinP = clamp((lt - 4.05) / 0.5, 0, 1);
-  const toastOn = lt >= 4.15 && lt < 6.6;
-
-  const navBtn = (d: ReactNode): ReactElement => (
+/** A step number and label above a scene, the same place in every scene. */
+function StepTag({ n, label, lt }: { n: number; label: string; lt: number }): ReactElement {
+  const e = appear(lt, 0.2, 0.5);
+  return (
     <div
       style={{
-        width: 30,
-        height: 30,
-        borderRadius: '50%',
+        position: 'absolute',
+        left: 90,
+        top: 24,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        color: '#5f6368',
+        gap: 12,
+        opacity: e,
+        transform: `translateX(${lerp(-12, 0, e)}px)`,
+        zIndex: 45,
       }}
     >
-      <svg
-        viewBox="0 0 24 24"
-        width="18"
-        height="18"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {d}
-      </svg>
+      <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: AZURE, letterSpacing: '.5px' }}>
+        STEP {n}
+        <span style={{ color: INK_SUB }}> / 4</span>
+      </span>
+      <span style={{ width: 22, height: 3, borderRadius: 2, background: AZURE }} />
+      <span style={{ fontFamily: FONT, fontSize: 15, fontWeight: 600, color: INK_MUT }}>{label}</span>
     </div>
+  );
+}
+
+/** A floating menu row, as the extension's menus draw them. */
+function MenuRow({
+  icon,
+  name,
+  detail,
+  active,
+}: {
+  icon: ReactNode;
+  name: string;
+  detail: string;
+  active: boolean;
+}): ReactElement {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '9px 12px',
+        borderRadius: 9,
+        background: active ? AZURE_BG : 'transparent',
+      }}
+    >
+      <span style={{ color: AZURE, display: 'flex' }}>{icon}</span>
+      <span style={{ fontFamily: FONT, fontSize: 14.5, fontWeight: 600, color: INK }}>{name}</span>
+      <span style={{ fontFamily: MONO, fontSize: 12, color: active ? AZURE : INK_SUB, marginLeft: 'auto' }}>{detail}</span>
+    </div>
+  );
+}
+
+function FloatingMenu({
+  title,
+  show,
+  children,
+  left,
+  top,
+  width = 360,
+}: {
+  title: string;
+  show: number;
+  children: ReactNode;
+  left: number;
+  top: number;
+  width?: number;
+}): ReactElement | null {
+  if (show <= 0.001) return null;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left,
+        top,
+        width,
+        background: '#fff',
+        border: `1px solid ${LINE}`,
+        borderRadius: 14,
+        padding: 6,
+        boxShadow: '0 18px 44px rgba(16,28,57,.18), 0 3px 10px rgba(0,0,0,.06)',
+        opacity: show,
+        transform: `translateY(${lerp(8, 0, show)}px)`,
+        zIndex: 20,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px 8px' }}>
+        <TMark size={14} color={AZURE} />
+        <span style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: INK_SUB }}>{title}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/* ================================================================ */
+/* SCENE 1: add Fibonax to Chrome, pin it, sign in                   */
+/* ================================================================ */
+function SceneInstall(): ReactElement {
+  const { localTime: lt } = useSprite();
+  const bx = 90;
+  const by = 64;
+  const bw = 1100;
+  const bh = 548;
+
+  // Pointer path: Add to Chrome, the puzzle, the pin, the T, Sign in.
+  const T = [0, 1.1, 1.5, 2.2, 2.55, 2.95, 3.3, 3.75, 4.1, 4.55, 4.9, 7];
+  const cx = interpolate(T, [1000, 1040, 1040, 1103, 1103, 1078, 1078, 1069, 1069, 1010, 1010, 1010], ease)(lt);
+  const cy = interpolate(T, [640, 292, 292, 141, 141, 214, 214, 141, 141, 300, 300, 300], ease)(lt);
+  const clicks = [1.5, 2.55, 3.3, 4.1, 4.9];
+  const press = clicks.some((c) => lt >= c && lt < c + 0.14);
+
+  const added = lt >= 1.5;
+  const extMenu = lt >= 2.6 && lt < 3.4 ? appear(lt, 2.6, 0.2) : 0;
+  const pinned = lt >= 3.3;
+  const popup = lt >= 4.15 ? appear(lt, 4.15, 0.25) : 0;
+  const signedIn = lt >= 4.95;
+
+  const iconBtn = (child: ReactNode, key: string): ReactElement => (
+    <div
+      key={key}
+      style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5F6368' }}
+    >
+      {child}
+    </div>
+  );
+  const puzzle = (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19.4 13a2 2 0 1 0 0-4H18V6a2 2 0 0 0-2-2h-3v1.4a2 2 0 1 1-4 0V4H6a2 2 0 0 0-2 2v3h1.4a2 2 0 1 1 0 4H4v3a2 2 0 0 0 2 2h3v-1.4a2 2 0 1 1 4 0V20h3a2 2 0 0 0 2-2v-5z" />
+    </svg>
   );
 
   return (
     <Scene>
+      <StepTag n={1} label="Add Fibonax to Chrome" lt={lt} />
       <div
         style={{
           position: 'absolute',
           left: bx,
           top: by,
           width: bw,
-          height: 600,
-          background: CARD,
+          height: bh,
+          background: '#fff',
           borderRadius: 14,
           overflow: 'hidden',
-          boxShadow: '0 40px 90px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.08)',
+          boxShadow: '0 40px 90px rgba(0,0,0,.16), 0 8px 24px rgba(0,0,0,.07)',
           border: `1px solid ${LINE}`,
         }}
       >
-        <div
-          style={{
-            height: 44,
-            background: '#DEE1E6',
-            display: 'flex',
-            alignItems: 'flex-end',
-            padding: '0 10px',
-            gap: 6,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#fff',
-              height: 34,
-              borderRadius: '10px 10px 0 0',
-              padding: '0 16px',
-              maxWidth: 260,
-            }}
-          >
-            <div
-              style={{
-                width: 15,
-                height: 15,
-                borderRadius: 4,
-                background: `linear-gradient(135deg,${AZURE},${AZURE_L})`,
-              }}
-            />
-            <span
-              style={{
-                fontFamily: FONT,
-                fontSize: 12.5,
-                color: '#3c4043',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              Fibonax – Chrome Web Store
-            </span>
-            <span style={{ color: '#80868b', fontSize: 15, marginLeft: 4 }}>×</span>
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              height: 34,
-              borderRadius: '10px 10px 0 0',
-              padding: '0 14px',
-              color: '#5f6368',
-              fontFamily: FONT,
-              fontSize: 12.5,
-              opacity: 0.7,
-            }}
-          >
-            New tab
+        {/* tab strip */}
+        <div style={{ height: 42, background: '#DEE1E6', display: 'flex', alignItems: 'flex-end', padding: '0 10px', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', height: 32, borderRadius: '10px 10px 0 0', padding: '0 16px' }}>
+            <AppIcon size={15} radius={4} />
+            <span style={{ fontFamily: FONT, fontSize: 12.5, color: '#3C4043' }}>Fibonax · Chrome Web Store</span>
           </div>
         </div>
-        <div
-          style={{
-            height: 52,
-            background: '#fff',
-            borderBottom: `1px solid ${LINE}`,
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 12px',
-            gap: 4,
-          }}
-        >
-          {navBtn(<path d="M15 18l-6-6 6-6" />)}
-          {navBtn(<path d="M9 18l6-6-6-6" />)}
-          {navBtn(<path d="M3 12a9 9 0 1 0 3-6.7L3 8" />)}
+        {/* address bar */}
+        <div style={{ height: 50, borderBottom: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 6 }}>
+          <div style={{ flex: 1, height: 34, borderRadius: 17, background: '#F1F3F4', display: 'flex', alignItems: 'center', padding: '0 16px', fontFamily: FONT, fontSize: 13.5, color: '#5F6368' }}>
+            chromewebstore.google.com/detail/<b style={{ color: INK, fontWeight: 600 }}>fibonax</b>
+          </div>
+          {pinned && (
+            <div style={{ transform: `scale(${back(appear(lt, 3.3, 0.35))})`, display: 'flex' }}>
+              {iconBtn(<AppIcon size={20} radius={5} />, 'pin')}
+            </div>
+          )}
+          {iconBtn(puzzle, 'puzzle')}
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#5F6368', color: '#fff', fontFamily: FONT, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A</div>
+        </div>
+
+        {/* listing */}
+        <div style={{ display: 'flex', gap: 28, padding: '56px 64px' }}>
+          <AppIcon size={112} radius={26} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: FONT, fontSize: 40, fontWeight: 700, color: INK, letterSpacing: '-1px' }}>Fibonax</div>
+            <div style={{ fontFamily: FONT, fontSize: 15, color: AZURE, marginTop: 4 }}>fibonax.com</div>
+            <div style={{ fontFamily: FONT, fontSize: 18, color: INK_MUT, marginTop: 18, lineHeight: 1.5, maxWidth: 520 }}>
+              Snippets, prompts and Brains in every text box. Type a shortcut, get the whole message.
+            </div>
+          </div>
           <div
             style={{
-              flex: 1,
-              height: 36,
-              background: '#F1F3F4',
-              borderRadius: 18,
+              alignSelf: 'flex-start',
+              height: 46,
+              padding: '0 26px',
+              borderRadius: 23,
               display: 'flex',
               alignItems: 'center',
-              padding: '0 16px',
-              margin: '0 10px',
               gap: 8,
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#5f6368" strokeWidth="2">
-              <rect x="5" y="11" width="14" height="10" rx="2" />
-              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-            </svg>
-            <span style={{ fontFamily: FONT, fontSize: 13.5, color: '#3c4043' }}>
-              chromewebstore.google.com/detail/<b style={{ color: INK }}>sprintbrain</b>
-            </span>
-          </div>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-          >
-            {pinned && (
-              <div
-                style={{
-                  transform: `scale(${back(pinP)})`,
-                  filter: pinP < 1 ? `drop-shadow(0 0 10px ${AZURE}88)` : 'none',
-                }}
-              >
-                <Logo size={24} radius={7} />
-              </div>
-            )}
-          </div>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#5f6368',
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 12v4a2 2 0 0 1-2 2h-4a1.5 1.5 0 0 1-3 0H6a2 2 0 0 1-2-2v-4a1.5 1.5 0 0 1 0-3V6a2 2 0 0 1 2-2h4a1.5 1.5 0 0 1 3 0h4a2 2 0 0 1 2 2v3" />
-            </svg>
-          </div>
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: '50%',
-              background: `linear-gradient(135deg,${AZURE},${AZURE_DK})`,
-              marginLeft: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
               fontFamily: FONT,
-              fontSize: 12,
-              fontWeight: 700,
+              fontSize: 15,
+              fontWeight: 600,
+              background: added ? '#E8EAED' : AZURE,
+              color: added ? INK_MUT : '#fff',
+              marginTop: 18,
             }}
           >
-            L
+            {added ? '✓ Added to Chrome' : 'Add to Chrome'}
           </div>
         </div>
 
-        <div style={{ position: 'absolute', top: 96, left: 0, right: 0, bottom: 0, background: '#fff' }}>
+        {/* extensions menu, with the pin */}
+        {extMenu > 0 && (
           <div
             style={{
-              height: 52,
-              borderBottom: `1px solid ${LINE}`,
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0 28px',
-              gap: 12,
+              position: 'absolute',
+              right: 30,
+              top: 92,
+              width: 250,
+              background: '#fff',
+              border: `1px solid ${LINE}`,
+              borderRadius: 12,
+              padding: '10px 14px',
+              boxShadow: '0 16px 40px rgba(0,0,0,.16)',
+              opacity: extMenu,
             }}
           >
-            <svg viewBox="0 0 24 24" width="22" height="22">
-              <circle cx="12" cy="12" r="9" fill="none" stroke="#1a73e8" strokeWidth="2" />
-              <circle cx="12" cy="12" r="3.4" fill="#1a73e8" />
-            </svg>
-            <span style={{ fontFamily: FONT, fontSize: 17, color: '#3c4043' }}>chrome web store</span>
+            <div style={{ fontFamily: FONT, fontSize: 12, fontWeight: 600, color: INK_SUB, marginBottom: 8 }}>Extensions</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <AppIcon size={22} radius={6} />
+              <span style={{ fontFamily: FONT, fontSize: 14, color: INK, flex: 1 }}>Fibonax</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke={pinned ? AZURE : '#5F6368'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 17v5" />
+                <path d="M9 10.8V4h6v6.8l3 3.2H6l3-3.2z" />
+              </svg>
+            </div>
           </div>
-          <div style={{ padding: '44px 56px', display: 'flex', gap: 34, alignItems: 'flex-start' }}>
-            <Logo size={104} radius={24} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: FONT, fontSize: 30, fontWeight: 700, color: INK, letterSpacing: '-0.6px' }}>
-                Fibonax
-              </div>
-              <div style={{ fontFamily: FONT, fontSize: 14.5, color: '#1a73e8', marginTop: 6 }}>fibonax.com</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 14 }}>
-                <span style={{ fontFamily: FONT, fontSize: 13.5, color: INK_MUT }}>Featured</span>
-                <span style={{ width: 4, height: 4, borderRadius: '50%', background: INK_SUB }} />
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: FONT, fontSize: 13.5, color: INK_MUT }}>
-                  4.9 <span style={{ color: '#f5a623', letterSpacing: 1 }}>★★★★★</span> (1,204)
-                </span>
-                <span style={{ width: 4, height: 4, borderRadius: '50%', background: INK_SUB }} />
-                <span style={{ fontFamily: FONT, fontSize: 13.5, color: INK_MUT }}>Productivity</span>
-              </div>
-              <div style={{ fontFamily: FONT, fontSize: 15, color: INK_MUT, marginTop: 18, lineHeight: 1.55, maxWidth: 520 }}>
-                Type a shortcut, get a full multilingual message. Text expansion built for every team.
-              </div>
+        )}
+
+        {/* the popup: sign in once */}
+        {popup > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              right: 40,
+              top: 96,
+              width: 300,
+              background: '#fff',
+              border: `1px solid ${LINE}`,
+              borderRadius: 14,
+              padding: 18,
+              boxShadow: '0 20px 50px rgba(16,28,57,.2)',
+              opacity: popup,
+              transform: `translateY(${lerp(-6, 0, popup)}px)`,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <TMark size={26} color={INK} />
+              <span style={{ fontFamily: FONT, fontSize: 18, fontWeight: 700, color: INK }}>Fibonax</span>
+            </div>
+            <div style={{ fontFamily: FONT, fontSize: 13.5, color: INK_MUT, margin: '12px 0 14px', lineHeight: 1.45 }}>
+              {signedIn ? 'Your snippets, prompts and Brains are ready.' : 'Sign in to use your library on any page.'}
             </div>
             <div
               style={{
-                height: 48,
-                minWidth: 190,
-                padding: '0 26px',
-                borderRadius: 24,
-                background: added ? '#E8EAED' : '#1a73e8',
-                color: added ? '#5f6368' : '#fff',
+                height: 40,
+                borderRadius: 10,
+                background: signedIn ? AZURE_BG : AZURE,
+                color: signedIn ? AZURE : '#fff',
+                fontFamily: FONT,
+                fontSize: 14,
+                fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                fontFamily: FONT,
-                fontSize: 15,
-                fontWeight: 600,
-                transform: press && !added ? 'scale(0.97)' : 'scale(1)',
-                boxShadow: added ? 'none' : '0 2px 8px rgba(26,115,232,.35)',
-                transition: 'transform 80ms ease',
               }}
             >
-              {added ? (
-                <>
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  Added to Chrome
-                </>
-              ) : (
-                'Add to Chrome'
-              )}
+              {signedIn ? '✓ Signed in' : 'Sign in via dashboard'}
             </div>
           </div>
-        </div>
+        )}
+
+        <Cursor x={cx - bx} y={cy - by} press={press} />
+        {clicks.map((c) => (
+          <ClickRing key={c} x={cx - bx} y={cy - by} t={lt - c} />
+        ))}
       </div>
-
-      {confirmOn &&
-        (() => {
-          const p = clamp((lt - 2.55) / 0.28, 0, 1);
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                left: 918,
-                top: 118,
-                width: 300,
-                background: '#fff',
-                borderRadius: 12,
-                border: `1px solid ${LINE}`,
-                boxShadow: '0 20px 50px rgba(0,0,0,.22)',
-                padding: 18,
-                zIndex: 50,
-                opacity: easeOut(p),
-                transform: `translateY(${lerp(-8, 0, easeOut(p))}px)`,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <Logo size={30} radius={8} />
-                <span style={{ fontFamily: FONT, fontSize: 15, fontWeight: 600, color: INK }}>
-                  Add “Fibonax”?
-                </span>
-              </div>
-              <div style={{ fontFamily: FONT, fontSize: 12.5, color: INK_MUT, lineHeight: 1.5, marginBottom: 16 }}>
-                It can read and change your data on sites you use.
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                <div style={{ padding: '8px 14px', fontFamily: FONT, fontSize: 13.5, color: '#1a73e8', fontWeight: 600 }}>Cancel</div>
-                <div style={{ padding: '8px 16px', borderRadius: 8, background: '#1a73e8', color: '#fff', fontFamily: FONT, fontSize: 13.5, fontWeight: 600 }}>
-                  Add extension
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-      {toastOn &&
-        (() => {
-          const p = clamp((lt - 4.15) / 0.3, 0, 1);
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                left: 830,
-                top: 122,
-                width: 300,
-                background: '#fff',
-                borderRadius: 12,
-                border: `1px solid ${LINE}`,
-                boxShadow: '0 20px 50px rgba(0,0,0,.20)',
-                padding: 16,
-                zIndex: 48,
-                opacity: easeOut(p),
-                transform: `translateY(${lerp(-8, 0, easeOut(p))}px)`,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Logo size={34} radius={9} />
-                <div>
-                  <div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 600, color: INK }}>Fibonax added</div>
-                  <div style={{ fontFamily: FONT, fontSize: 12, color: INK_MUT, marginTop: 2 }}>Pinned to your toolbar ✓</div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-      <ClickRing x={cx} y={cy} on={lt >= 2.4 && lt < 2.82} t={lt - 2.4} />
-      <ClickRing x={cx} y={cy} on={lt >= 3.95 && lt < 4.37} t={lt - 3.95} />
-      <Cursor x={cx} y={cy} press={press} />
-      <Caption text="Install once. Works everywhere." show={lt >= 4.6} t={lt - 4.6} />
+      <Caption text="Add it once. Sign in once." at={5.3} lt={lt} />
     </Scene>
   );
 }
 
-/* ════════════════════════════════════════════════════════════ */
-/* SCENE 2 — Mobile companion, step by step                      */
-/* ════════════════════════════════════════════════════════════ */
-function LangBadge({ l }: { l: string }): ReactElement {
-  const map: Record<string, [string, string]> = {
-    EN: ['#EEF2FF', '#1B4FD8'],
-    IT: ['#F0FDF4', '#15803D'],
-    ES: ['#FFF7ED', '#C2410C'],
-    MULTI: ['#F5F3FF', '#7C3AED'],
-  };
-  const [bg, c] = map[l] ?? map.EN ?? ['#EEF2FF', '#1B4FD8'];
-  return (
-    <span
-      style={{
-        background: bg,
-        color: c,
-        fontSize: 9,
-        fontWeight: 700,
-        padding: '2px 6px',
-        borderRadius: 4,
-        textTransform: 'uppercase',
-        letterSpacing: '.3px',
-        fontFamily: FONT,
-      }}
-    >
-      {l === 'MULTI' ? 'Multi' : l}
-    </span>
-  );
-}
+/* ================================================================ */
+/* SCENE 2: type a trigger, fill the form, insert                    */
+/* ================================================================ */
+const SNIPPET_TRIGGER = '::followup';
 
-function SnipCard({
-  title,
-  sc,
-  lang,
-  hi,
-}: {
-  title: string;
-  sc: string;
-  lang: string;
-  hi?: boolean;
-}): ReactElement {
-  return (
-    <div
-      style={{
-        background: '#fff',
-        borderRadius: 18,
-        padding: 13,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        boxShadow: hi
-          ? `0 0 0 2px ${AZURE}, 0 10px 24px rgba(27,79,216,.18)`
-          : '0 1px 3px rgba(0,0,0,.04),0 4px 14px rgba(0,0,0,.04)',
-      }}
-    >
-      <div
-        style={{
-          width: 42,
-          height: 42,
-          borderRadius: 12,
-          background: '#EEF2FF',
-          color: AZURE,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <SnippetIcon size={20} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14.5, fontWeight: 700, color: INK, letterSpacing: '-.2px', fontFamily: FONT }}>{title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 4 }}>
-          <span style={{ fontFamily: MONO, fontSize: 12, color: AZURE, fontWeight: 600 }}>{sc}</span>
-          <LangBadge l={lang} />
-        </div>
-      </div>
-      <span style={{ color: INK_SUB, fontSize: 20, fontWeight: 700, marginRight: 4 }}>⋯</span>
-    </div>
-  );
-}
+function SceneSnippet(): ReactElement {
+  const { localTime: lt } = useSprite();
+  const x = 250;
+  const y = 70;
+  const w = 780;
 
-function MobStatus({ dark = true }: { dark?: boolean }): ReactElement {
-  const c = dark ? '#1C1C1E' : '#fff';
-  return (
-    <div
-      style={{
-        height: 30,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 20px',
-        color: c,
-        flexShrink: 0,
-        position: 'relative',
-        zIndex: 6,
-      }}
-    >
-      <span style={{ fontFamily: FONT, fontSize: 12.5, fontWeight: 600 }}>9:41</span>
-      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-        <svg viewBox="0 0 18 12" width="17" height="11">
-          <rect x="1" y="3" width="6" height="7" rx="1" fill="currentColor" />
-          <rect x="8" y="1" width="6" height="9" rx="1" fill="currentColor" />
-        </svg>
-        <div style={{ width: 22, height: 11, border: '1.5px solid currentColor', borderRadius: 3, position: 'relative' }}>
-          <div style={{ position: 'absolute', inset: 1.5, width: '72%', background: 'currentColor', borderRadius: 1 }} />
-        </div>
-      </div>
-    </div>
-  );
-}
+  const shortcut = typed(SNIPPET_TRIGGER, lt, 0.5, 0.08);
+  const menu = lt >= 0.75 && lt < 1.95 ? appear(lt, 0.75, 0.25) : 0;
+  const formOn = lt >= 1.95 && lt < 4.0;
+  const form = formOn ? Math.min(appear(lt, 1.95, 0.3), 1 - appear(lt, 3.75, 0.25)) : 0;
+  const name = typed('Alex', lt, 2.45, 0.12);
+  const inserted = lt >= 3.95;
+  const done = appear(lt, 3.95, 0.5);
+  const caret = Math.floor(lt * 2) % 2 === 0;
 
-/* Chrome mobile chrome wrapping a page */
-function ChromeMobile({
-  url,
-  loadP = 1,
-  children,
-}: {
-  url: string;
-  loadP?: number;
-  children: ReactNode;
-}): ReactElement {
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', background: '#fff' }}>
-      <MobStatus dark />
-      <div style={{ padding: '2px 10px 8px', position: 'relative' }}>
-        <div style={{ height: 36, background: '#F1F3F4', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px' }}>
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#5f6368" strokeWidth="2">
-            <rect x="5" y="11" width="14" height="10" rx="2" />
-            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-          </svg>
-          <span
-            style={{
-              flex: 1,
-              fontFamily: FONT,
-              fontSize: 13.5,
-              color: INK,
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {url}
-          </span>
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="#5f6368">
-            <circle cx="12" cy="5" r="2" />
-            <circle cx="12" cy="12" r="2" />
-            <circle cx="12" cy="19" r="2" />
-          </svg>
-        </div>
-        {loadP < 1 && (
-          <div style={{ position: 'absolute', left: 0, bottom: 4, height: 2.5, background: AZURE, width: `${clamp(loadP / 0.6, 0, 1) * 100}%` }} />
-        )}
-      </div>
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#fff' }}>{children}</div>
-    </div>
-  );
-}
-
-/* ── STEP 1: open + redirect ── */
-function RedirectScreen({ t }: { t: number }): ReactElement {
-  const loaded = clamp(t / 0.9, 0, 1);
-  const url = t < 1.1 ? 'fibonax.com' : 'fibonax.com/mobile';
-  const showRedirect = t >= 0.95;
-  return (
-    <ChromeMobile url={url} loadP={loaded < 1 ? loaded * 0.6 : 1}>
+    <Scene zoom={0.015}>
+      <StepTag n={2} label="Type a shortcut anywhere" lt={lt} />
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 18,
+          left: x,
+          top: y,
+          width: w,
           background: '#fff',
+          borderRadius: 16,
+          overflow: 'hidden',
+          boxShadow: '0 40px 90px rgba(0,0,0,.14), 0 6px 20px rgba(0,0,0,.07)',
+          border: `1px solid ${LINE}`,
         }}
       >
-        <div style={{ opacity: 0.95 }}>
-          <Logo size={52} />
+        <div style={{ height: 52, borderBottom: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', padding: '0 22px', background: SOFT, fontFamily: FONT, fontSize: 14.5, fontWeight: 700, color: INK }}>
+          New message
         </div>
-        {!showRedirect ? (
-          <div
-            className="animate-spin"
-            style={{ width: 30, height: 30, borderRadius: '50%', border: `3px solid ${LINE}`, borderTopColor: AZURE }}
-          />
-        ) : (
-          (() => {
-            const p = clamp((t - 0.95) / 0.35, 0, 1);
-            return (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  background: '#EEF2FF',
-                  border: '1px solid #BED0FF',
-                  color: AZURE,
-                  borderRadius: 9999,
-                  padding: '8px 16px',
-                  fontFamily: FONT,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  opacity: easeOut(p),
-                  transform: `translateY(${lerp(6, 0, easeOut(p))}px)`,
-                }}
-              >
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14" />
-                  <path d="M13 6l6 6-6 6" />
-                </svg>
-                Redirecting to mobile view…
-              </div>
-            );
-          })()
-        )}
-      </div>
-    </ChromeMobile>
-  );
-}
-
-/* ── STEP 2: OTP login ── */
-function LoginScreen({ t }: { t: number }): ReactElement {
-  const emailStage = t < 1.15;
-  const digits = '483921';
-  const filled = clamp(Math.floor((t - 1.2) / 0.16), 0, 6);
-  const done = t >= 2.35;
-  return (
-    <ChromeMobile url="fibonax.com/mobile">
-      <div style={{ position: 'absolute', inset: 0, padding: '26px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#fff' }}>
-        <Logo size={54} />
-        <div style={{ fontFamily: FONT, fontSize: 20, fontWeight: 800, color: INK, letterSpacing: '-.4px', marginTop: 18 }}>Sign in to Fibonax</div>
-        <div style={{ fontFamily: FONT, fontSize: 13, color: INK_MUT, marginTop: 6, textAlign: 'center' }}>One code signs you in everywhere.</div>
-
-        {emailStage ? (
-          <div style={{ width: '100%', marginTop: 26 }}>
-            <div style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, color: INK_MUT, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Email</div>
-            <div style={{ height: 46, border: `1.5px solid ${AZURE}`, boxShadow: '0 0 0 3px rgba(27,79,216,.14)', borderRadius: 10, display: 'flex', alignItems: 'center', padding: '0 14px', fontFamily: FONT, fontSize: 15, color: INK }}>
-              team@leibtour.com
+        {[
+          ['To', 'Alex'],
+          ['Subject', 'Project update'],
+        ].map(([k, v]) => (
+          <div key={k} style={{ height: 44, borderBottom: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', gap: 12, padding: '0 22px', fontFamily: FONT, fontSize: 14 }}>
+            <span style={{ color: INK_SUB, width: 56 }}>{k}</span>
+            <span style={{ color: INK }}>{v}</span>
+          </div>
+        ))}
+        <div style={{ padding: '22px 22px', minHeight: 240, fontFamily: FONT, fontSize: 17, color: INK, lineHeight: 1.65, position: 'relative' }}>
+          {!inserted ? (
+            <div>
+              <span style={{ fontFamily: MONO, fontSize: 16.5, fontWeight: 700, color: AZURE }}>{shortcut}</span>
+              <span style={{ display: 'inline-block', width: 2, height: 20, background: INK, marginLeft: 1, verticalAlign: '-4px', opacity: caret ? 1 : 0 }} />
             </div>
+          ) : (
+            <div style={{ opacity: done, transform: `translateY(${lerp(8, 0, done)}px)` }}>
+              <div>
+                Hi <b style={{ background: AZURE_BG, borderRadius: 4, padding: '0 3px' }}>Alex</b>,
+              </div>
+              <div style={{ height: 12 }} />
+              <div>The first draft is ready for your review.</div>
+              <div>Let me know what you think.</div>
+              <div style={{ height: 12 }} />
+              <div>Best regards</div>
+            </div>
+          )}
+        </div>
+        <div style={{ borderTop: `1px solid ${LINE}`, padding: '12px 22px', display: 'flex', alignItems: 'center', background: SOFT }}>
+          <div style={{ height: 38, padding: '0 22px', borderRadius: 10, background: AZURE, color: '#fff', display: 'flex', alignItems: 'center', fontFamily: FONT, fontSize: 14, fontWeight: 600 }}>Send</div>
+        </div>
+      </div>
+
+      {/* the Insert snippet menu, at the cursor */}
+      <FloatingMenu title="Insert snippet" show={menu} left={x + 22} top={y + 196}>
+        <MenuRow icon={<SnippetIcon className="h-4 w-4" />} name="Follow-up" detail="::followup" active />
+        <MenuRow icon={<SnippetIcon className="h-4 w-4" />} name="Meeting recap" detail="::recap" active={false} />
+        <MenuRow icon={<SnippetIcon className="h-4 w-4" />} name="Thank you" detail="::thanks" active={false} />
+      </FloatingMenu>
+
+      {/* the fill form */}
+      {form > 0.001 && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 300,
+            top: 150,
+            width: 680,
+            background: '#fff',
+            borderRadius: 16,
+            border: `1px solid ${LINE}`,
+            boxShadow: '0 30px 80px rgba(16,28,57,.28)',
+            opacity: form,
+            transform: `scale(${lerp(0.97, 1, form)})`,
+            zIndex: 25,
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ padding: '16px 22px', borderBottom: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <SnippetIcon className="h-4 w-4" />
+            <span style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, color: INK }}>Follow-up</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 22, padding: 22 }}>
+            <div>
+              <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: INK_MUT, marginBottom: 6 }}>Name</div>
+              <div style={{ height: 42, borderRadius: 10, border: `2px solid ${AZURE}`, display: 'flex', alignItems: 'center', padding: '0 12px', fontFamily: FONT, fontSize: 15, fontWeight: 700, color: INK }}>
+                {name}
+                <span style={{ display: 'inline-block', width: 2, height: 18, background: INK, marginLeft: 1, opacity: Math.floor(lt * 3) % 2 ? 1 : 0 }} />
+              </div>
+            </div>
+            <div>
+              <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 600, color: INK_MUT, marginBottom: 6 }}>Message preview</div>
+              <div style={{ borderRadius: 10, background: SOFT, border: `1px solid ${LINE}`, padding: '10px 12px', fontFamily: FONT, fontSize: 13.5, color: INK, lineHeight: 1.55 }}>
+                Hi {name ? <b>{name}</b> : <span style={{ color: INK_SUB }}>Name</span>},
+                <br />
+                The first draft is ready for your review.
+              </div>
+            </div>
+          </div>
+          <div style={{ padding: '12px 22px', borderTop: `1px solid ${LINE}`, display: 'flex', justifyContent: 'flex-end', background: SOFT }}>
             <div
               style={{
-                marginTop: 14,
-                height: 48,
-                borderRadius: 12,
+                height: 38,
+                padding: '0 20px',
+                borderRadius: 10,
                 background: AZURE,
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
                 fontFamily: FONT,
-                fontSize: 15,
-                fontWeight: 700,
-                transform: t > 0.9 ? 'scale(.97)' : 'scale(1)',
-                transition: 'transform 80ms',
+                fontSize: 14,
+                fontWeight: 600,
+                transform: `scale(${lt >= 3.5 && lt < 3.65 ? 0.95 : 1})`,
               }}
             >
-              Send code →
+              Insert message
             </div>
           </div>
-        ) : (
-          <div style={{ width: '100%', marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ fontFamily: FONT, fontSize: 13, color: INK_MUT, marginBottom: 16 }}>Enter the 6-digit code</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: 34,
-                    height: 44,
-                    borderRadius: 9,
-                    border: `1.5px solid ${i < filled ? AZURE : LINE}`,
-                    background: i < filled ? '#EEF2FF' : '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: MONO,
-                    fontSize: 20,
-                    fontWeight: 700,
-                    color: AZURE,
-                  }}
-                >
-                  {i < filled ? digits[i] : ''}
-                </div>
-              ))}
-            </div>
-            {done &&
-              (() => {
-                const p = clamp((t - 2.35) / 0.35, 0, 1);
-                return (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      marginTop: 22,
-                      color: '#16A34A',
-                      fontFamily: FONT,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      opacity: easeOut(p),
-                      transform: `scale(${lerp(0.9, 1, back(p))})`,
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                    Signed in
-                  </div>
-                );
-              })()}
-          </div>
-        )}
-      </div>
-    </ChromeMobile>
-  );
-}
-
-/* ── STEP 3: Add to Home Screen ── */
-const MENU: Array<{ t: string; hi?: boolean }> = [
-  { t: 'New tab' },
-  { t: 'History' },
-  { t: 'Downloads' },
-  { t: 'Add to Home screen', hi: true },
-  { t: 'Share…' },
-  { t: 'Settings' },
-];
-
-function AddHomeScreen({ t }: { t: number }): ReactElement {
-  const sheet = t < 1.5; // Chrome menu phase
-  const springP = clamp((t - 1.55) / 0.6, 0, 1); // springboard phase
-  const iconPop = clamp((t - 1.85) / 0.55, 0, 1);
-  if (sheet) {
-    const up = easeOut(clamp(t / 0.4, 0, 1));
-    return (
-      <ChromeMobile url="fibonax.com/mobile">
-        {/* faded companion behind */}
-        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(160deg,${AZURE},${AZURE_DK})`, opacity: 0.5 }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.28)' }} />
-        {/* bottom sheet menu */}
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: '#fff',
-            borderRadius: '18px 18px 0 0',
-            padding: '8px 0 14px',
-            transform: `translateY(${lerp(100, 0, up)}%)`,
-            boxShadow: '0 -8px 30px rgba(0,0,0,.2)',
-          }}
-        >
-          <div style={{ width: 34, height: 4, background: LINE, borderRadius: 2, margin: '6px auto 8px' }} />
-          {MENU.map((m) => (
-            <div key={m.t} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', background: m.hi ? AZURE_BG : 'transparent' }}>
-              <div style={{ width: 22, height: 22, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.hi ? AZURE : INK_SUB }}>
-                {m.hi ? (
-                  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="4" y="4" width="16" height="16" rx="4" />
-                    <path d="M12 8v8" />
-                    <path d="M8 12h8" />
-                  </svg>
-                ) : (
-                  <div style={{ width: 15, height: 15, borderRadius: 4, background: '#E4E4E7' }} />
-                )}
-              </div>
-              <span style={{ fontFamily: FONT, fontSize: 14, whiteSpace: 'nowrap', color: m.hi ? AZURE : INK, fontWeight: m.hi ? 700 : 500 }}>{m.t}</span>
-            </div>
-          ))}
-        </div>
-        <TapPulse x={80} y={452} on={t > 0.55 && t < 1.2} t={t - 0.55} color={AZURE} />
-      </ChromeMobile>
-    );
-  }
-  // springboard
-  const tiles = ['#D4D4D8', '#C7D2E8', '#D8CFE8', '#CFE8D6', '#E8D6CF', '#CFE0E8', '#E0CFE8'];
-  return (
-    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(200deg,#EDE9FF 0%,#E4ECFF 60%,#EAF3FF 100%)', opacity: easeOut(springP) }}>
-      <MobStatus dark />
-      <div style={{ textAlign: 'center', marginTop: 24, fontFamily: FONT, color: INK, opacity: 0.85 }}>
-        <div style={{ fontSize: 46, fontWeight: 300, letterSpacing: '-2px' }}>9:41</div>
-        <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>Friday, 11 July</div>
-      </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 150, padding: '0 30px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '22px 20px' }}>
-        {tiles.slice(0, 3).map((c, i) => (
-          <div key={i}>
-            <div style={{ width: 50, height: 50, borderRadius: 13, background: c, boxShadow: '0 4px 10px rgba(0,0,0,.08)' }} />
-          </div>
-        ))}
-        {/* Fibonax icon pops */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-          <div style={{ transform: `scale(${back(iconPop)})`, filter: iconPop < 1 ? `drop-shadow(0 0 12px ${AZURE}aa)` : 'none' }}>
-            <Logo size={50} radius={13} />
-          </div>
-          <span style={{ fontFamily: FONT, fontSize: 10, color: INK, fontWeight: 600, opacity: iconPop }}>Fibonax</span>
-        </div>
-        {tiles.slice(3).map((c, i) => (
-          <div key={i}>
-            <div style={{ width: 50, height: 50, borderRadius: 13, background: c, boxShadow: '0 4px 10px rgba(0,0,0,.08)' }} />
-          </div>
-        ))}
-      </div>
-      {/* "added" toast */}
-      {iconPop > 0.3 && (
-        <div
-          style={{
-            position: 'absolute',
-            left: '50%',
-            bottom: 120,
-            transform: 'translateX(-50%)',
-            background: 'rgba(28,28,30,.92)',
-            color: '#fff',
-            fontFamily: FONT,
-            fontSize: 12,
-            fontWeight: 600,
-            padding: '8px 16px',
-            borderRadius: 9999,
-            opacity: clamp((iconPop - 0.3) / 0.4, 0, 1),
-            whiteSpace: 'nowrap',
-          }}
-        >
-          Added to Home screen
         </div>
       )}
-      {/* dock */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 16,
-          right: 16,
-          bottom: 20,
-          height: 74,
-          borderRadius: 26,
-          background: 'rgba(255,255,255,.5)',
-          backdropFilter: 'blur(20px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-around',
-          padding: '0 18px',
-        }}
-      >
-        {['#C7D2E8', '#CFE8D6', '#E8D6CF', '#D8CFE8'].map((c, i) => (
-          <div key={i} style={{ width: 48, height: 48, borderRadius: 13, background: c }} />
-        ))}
-      </div>
-    </div>
+      <Caption text="Type a shortcut. Get the whole message." at={4.5} lt={lt} />
+    </Scene>
   );
 }
 
-/* ── STEP 4: companion home ── */
-function CompanionHome({ scroll = 0 }: { scroll?: number }): ReactElement {
-  const quick: Array<[string, boolean]> = [
-    ['Prompts', false],
-    ['Sync', false],
-    ['Snippets', true],
-  ];
-  const chips: Array<[string, boolean]> = [
-    ['All', true],
-    ['EN', false],
-    ['ES', false],
-    ['IT', false],
-    ['Multi', false],
-  ];
+/* ================================================================ */
+/* SCENE 3: a prompt from the """ menu, with a Brain                 */
+/* ================================================================ */
+const PROMPT_TEXT = 'You are my project assistant. Turn my notes into a clear project brief. Keep it concise. End with next steps.';
+const BRAIN_ITEMS = ['Project brief', 'Launch plan', 'Decisions so far'];
+
+function ScenePrompt(): ReactElement {
+  const { localTime: lt } = useSprite();
+  const x = 250;
+  const y = 70;
+  const w = 780;
+
+  const quotes = typed('"""', lt, 0.5, 0.14);
+  const menu = lt >= 1.0 && lt < 2.35 ? appear(lt, 1.0, 0.25) : 0;
+  const active = lt >= 1.6 ? 0 : 1;
+  const inserted = lt >= 2.35;
+  const words = inserted ? typed(PROMPT_TEXT, lt, 2.4, 0.012) : '';
+  const brain = appear(lt, 3.3, 0.4);
+  const caret = Math.floor(lt * 2) % 2 === 0;
+
   return (
-    <div style={{ position: 'absolute', inset: 0, background: '#F2F2F7', overflow: 'hidden' }}>
-      <MobStatus dark={false} />
-      <div style={{ position: 'absolute', inset: 0, transform: `translateY(${-scroll}px)` }}>
-        <div style={{ padding: '56px 20px 46px', background: `linear-gradient(160deg,${AZURE} 0%,${AZURE_DK} 100%)`, color: '#fff', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', right: -40, top: -40, width: 200, height: 200, background: 'radial-gradient(circle,rgba(255,255,255,.16),transparent 60%)' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: FONT, fontSize: 13, opacity: 0.78, fontWeight: 500 }}>Welcome</span>
-              <span style={{ fontFamily: FONT, fontSize: 20, fontWeight: 700, letterSpacing: '-.4px' }}>Aurora Studio</span>
-            </div>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,.18)', border: '2px solid rgba(255,255,255,.3)' }} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontFamily: FONT, fontSize: 42, fontWeight: 800, letterSpacing: '-1.5px', lineHeight: 1 }}>24</span>
-            <span style={{ fontFamily: FONT, fontSize: 18, fontWeight: 600, opacity: 0.78 }}>snippets</span>
-          </div>
-        </div>
-        <div style={{ padding: '0 16px', marginTop: -22, position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, background: '#fff', borderRadius: 18, padding: '14px 10px', boxShadow: '0 8px 24px rgba(0,0,0,.10)' }}>
-            {quick.map(([lbl, on]) => (
-              <div key={lbl} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7 }}>
-                <div
-                  style={{
-                    alignSelf: 'stretch',
-                    height: 44,
-                    borderRadius: 14,
-                    background: on ? `linear-gradient(158deg,#4F7FE8,${AZURE_DK})` : 'linear-gradient(158deg,#fff,#EEF2FF)',
-                    color: on ? '#fff' : AZURE,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: on ? 'none' : '1px solid rgba(27,79,216,.10)',
-                    boxShadow: on ? '0 1px 2px rgba(20,64,176,.35)' : '0 4px 8px rgba(27,79,216,.16)',
-                  }}
-                >
-                  {lbl === 'Snippets' ? (
-                    <SnippetIcon size={22} />
-                  ) : lbl === 'Prompts' ? (
-                    <PromptIcon size={22} />
-                  ) : (
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-                      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                    </svg>
-                  )}
-                </div>
-                <span style={{ fontFamily: FONT, fontSize: 10.5, fontWeight: on ? 700 : 600, color: on ? AZURE : INK }}>{lbl}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ padding: '18px 16px 8px' }}>
-          <div style={{ background: '#fff', border: `1px solid ${LINE}`, borderRadius: 12, padding: '10px 14px 10px 38px', fontFamily: FONT, fontSize: 15, color: INK_SUB, position: 'relative' }}>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#6E6E73" strokeWidth="2.2" style={{ position: 'absolute', left: 12, top: 12 }}>
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            Search snippets…
-          </div>
-        </div>
-        <div style={{ padding: '10px 16px 4px', fontFamily: FONT, fontSize: 19, fontWeight: 800, letterSpacing: '-.5px', color: INK }}>All snippets</div>
-        <div style={{ display: 'flex', gap: 6, padding: '6px 16px 4px' }}>
-          {chips.map(([tt, on]) => (
-            <span
-              key={tt}
-              style={{
-                border: `1px solid ${on ? INK : LINE}`,
-                background: on ? INK : '#fff',
-                color: on ? '#fff' : INK,
-                borderRadius: 9999,
-                padding: '7px 14px',
-                fontSize: 13,
-                fontWeight: 600,
-                fontFamily: FONT,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {tt}
-            </span>
-          ))}
-        </div>
-        <div style={{ padding: '8px 16px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <SnipCard title="Price Quote" sc="!!quoteEN" lang="EN" />
-          <SnipCard title="Preventivo" sc="!!quoteIT" lang="IT" />
-          <SnipCard title="Appointment Reminder" sc="!!remind" lang="MULTI" />
-          <SnipCard title="Firma / Signature" sc="!!firm" lang="MULTI" />
-        </div>
-      </div>
+    <Scene zoom={0.015}>
+      <StepTag n={3} label="Bring your prompts and Brains to any AI" lt={lt} />
       <div
         style={{
           position: 'absolute',
-          bottom: 20,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          background: 'rgba(16,16,18,.9)',
-          backdropFilter: 'blur(18px)',
-          borderRadius: 9999,
-          padding: 7,
-          alignItems: 'center',
-          boxShadow: '0 8px 32px rgba(0,0,0,.36)',
+          left: x,
+          top: y,
+          width: w,
+          height: 520,
+          background: '#fff',
+          borderRadius: 16,
+          overflow: 'hidden',
+          boxShadow: '0 40px 90px rgba(0,0,0,.14), 0 6px 20px rgba(0,0,0,.07)',
+          border: `1px solid ${LINE}`,
         }}
       >
-        <div style={{ width: 44, height: 44, borderRadius: 9999, background: 'rgba(255,255,255,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" />
+        <div style={{ height: 52, borderBottom: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', gap: 10, padding: '0 22px', background: SOFT }}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke={INK_MUT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z" />
           </svg>
+          <span style={{ fontFamily: FONT, fontSize: 14.5, fontWeight: 700, color: INK }}>Your AI chat</span>
         </div>
-        <div style={{ width: 44, height: 44, borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.38)' }}>
-          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.9">
-            <circle cx="11" cy="11" r="7" />
-            <line x1="16.5" y1="16.5" x2="22" y2="22" />
-          </svg>
-        </div>
-        <div style={{ width: 44, height: 44, borderRadius: 9999, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 3px' }}>
-          <Logo size={26} radius={8} />
-        </div>
-        <div style={{ width: 44, height: 44, borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.38)' }}>
-          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
-            <path d="M3 3v18h18" />
-            <path d="M7 14l3-4 3 3 4-6" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
-}
+        <div style={{ padding: '26px 26px 0', fontFamily: FONT, fontSize: 15, color: INK_SUB }}>How can I help you today?</div>
 
-/* ── STEP 5: detail page → copy ── */
-function DetailScreen({ t }: { t: number }): ReactElement {
-  const copied = t >= 1.7;
-  // Code over name, the same tile the mobile app draws. No flag: see LangBadge.
-  const langs: Array<[string, string, boolean]> = [
-    ['EN', 'English', true],
-    ['IT', 'Italiano', false],
-    ['ES', 'Español', false],
-  ];
-  return (
-    <div style={{ position: 'absolute', inset: 0, background: '#F2F2F7', display: 'flex', flexDirection: 'column' }}>
-      {/* azure header */}
-      <div style={{ background: AZURE, color: '#fff', paddingBottom: 12 }}>
-        <MobStatus dark={false} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 16px 0' }}>
-          <svg viewBox="0 0 9 16" width="9" height="16" fill="none">
-            <path d="M8 1L1 8L8 15" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span style={{ fontFamily: FONT, fontSize: 16, fontWeight: 700, letterSpacing: '-.3px', marginLeft: 4 }}>Price Quote</span>
-          <span style={{ marginLeft: 'auto', background: 'rgba(255,255,255,.22)', borderRadius: 5, padding: '3px 7px', fontFamily: FONT, fontSize: 10, fontWeight: 700 }}>EN</span>
-        </div>
-      </div>
-      <div style={{ flex: 1, overflow: 'hidden', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div>
-          <div style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, color: INK_MUT, textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 8 }}>Language</div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            {langs.map(([l, langName, on]) => (
-              <div
-                key={l}
-                style={{
-                  flex: 1,
-                  minHeight: 56,
-                  borderRadius: 14,
-                  border: `1.5px solid ${on ? AZURE : LINE}`,
-                  background: on ? '#EEF2FF' : '#fff',
-                  color: on ? AZURE : INK_MUT,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 3,
-                  fontFamily: FONT,
-                  fontWeight: on ? 800 : 600,
-                }}
-              >
-                <span style={{ fontSize: 15, letterSpacing: '.4px' }}>{l}</span>
-                <span style={{ fontSize: 11 }}>{langName}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, color: INK_MUT, textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 8 }}>Preview</div>
-          <div style={{ background: '#fff', borderRadius: 14, padding: 15, boxShadow: '0 1px 3px rgba(0,0,0,.04),0 4px 14px rgba(0,0,0,.04)', fontFamily: FONT, fontSize: 13, lineHeight: 1.6, color: INK }}>
-            Dear Marco,
-            <br />
-            <br />
-            Thank you for choosing <b>Aurora Studio</b>. For the project from 12 to 19 July, your total is <b>€4,900</b>, including materials and support.
-            <br />
-            <br />
-            Warm regards,
-            <br />
-            Aurora Studio
-          </div>
-        </div>
-      </div>
-      {/* copy footer */}
-      <div style={{ padding: '10px 16px 20px', background: 'rgba(242,242,247,.92)', borderTop: `1px solid ${LINE}` }}>
+        {/* the message box, at the bottom */}
         <div
           style={{
-            height: 52,
-            borderRadius: 14,
-            background: copied ? '#34C759' : AZURE,
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
+            position: 'absolute',
+            left: 22,
+            right: 22,
+            bottom: 22,
+            minHeight: 120,
+            borderRadius: 16,
+            border: `1px solid ${LINE}`,
+            padding: '16px 18px 56px',
             fontFamily: FONT,
-            fontSize: 16,
-            fontWeight: 700,
-            transform: t > 1.5 && t < 1.7 ? 'scale(.97)' : 'scale(1)',
-            transition: 'transform 90ms',
+            fontSize: 15.5,
+            color: INK,
+            lineHeight: 1.6,
+            boxShadow: '0 4px 14px rgba(0,0,0,.05)',
           }}
         >
-          {copied ? (
-            <>
-              <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-              Copied ✓
-            </>
+          {!inserted ? (
+            <span>
+              <span style={{ fontFamily: MONO, fontWeight: 700, color: AZURE }}>{quotes}</span>
+              <span style={{ display: 'inline-block', width: 2, height: 18, background: INK, marginLeft: 1, verticalAlign: '-3px', opacity: caret ? 1 : 0 }} />
+            </span>
           ) : (
-            <>
-              <span style={{ fontSize: 17 }}>📋</span>Copy to clipboard
-            </>
+            <div>
+              <div>{words}</div>
+              {brain > 0.001 && (
+                <div style={{ marginTop: 12, opacity: brain, transform: `translateY(${lerp(6, 0, brain)}px)` }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: INK_MUT, marginBottom: 8 }}>
+                    Base your answer on my Brain “Project Atlas”:
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {BRAIN_ITEMS.map((item, i) => {
+                      const e = appear(lt, 3.45 + i * 0.18, 0.3);
+                      return (
+                        <span
+                          key={item}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '5px 10px',
+                            borderRadius: 999,
+                            background: AZURE_BG,
+                            color: AZURE,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            opacity: e,
+                            transform: `scale(${lerp(0.9, 1, e)})`,
+                          }}
+                        >
+                          <BrainIcon className="h-3.5 w-3.5" />
+                          {item}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
+          <div style={{ position: 'absolute', right: 14, bottom: 12, width: 34, height: 34, borderRadius: '50%', background: inserted ? INK : LINE, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 19V5" />
+              <path d="M5 12l7-7 7 7" />
+            </svg>
+          </div>
         </div>
       </div>
-      <TapPulse x={143} y={548} on={t > 1.35 && t < 1.9} t={t - 1.35} />
-    </div>
+
+      {/* the Prompt mode menu, opening upward from the box */}
+      <FloatingMenu title="Prompt mode" show={menu} left={x + 22} top={y + 196} width={400}>
+        <MenuRow icon={<PromptIcon className="h-4 w-4" />} name="Project brief" detail="+ Brain" active={active === 0} />
+        <MenuRow icon={<PromptIcon className="h-4 w-4" />} name="Rewrite in my voice" detail="voice" active={active === 1} />
+        <MenuRow icon={<PromptIcon className="h-4 w-4" />} name="Summarize my notes" detail="notes" active={false} />
+      </FloatingMenu>
+      <Caption text="Your best prompts. Your own knowledge." at={4.6} lt={lt} />
+    </Scene>
   );
 }
 
+/* ================================================================ */
+/* SCENE 4: the same library on the phone                            */
+/* ================================================================ */
 function PhoneShell({ children }: { children: ReactNode }): ReactElement {
   return (
     <div
       style={{
-        width: 306,
-        height: 620,
+        width: 300,
+        height: 610,
         borderRadius: 46,
         background: '#0D0D0F',
         padding: 10,
@@ -1354,280 +791,158 @@ function PhoneShell({ children }: { children: ReactNode }): ReactElement {
   );
 }
 
-const STEPS: Array<{ tag: string; h: string; d: string }> = [
-  {
-    tag: 'OPEN & REDIRECT',
-    h: 'Open it in Chrome',
-    d: 'Go to fibonax.com on your phone. Chrome sees the small screen and sends you straight to the mobile view — /mobile — never the desktop dashboard.',
-  },
-  {
-    tag: 'SIGN IN ONCE',
-    h: 'One email code',
-    d: 'First visit only: type your email, get a one-time 6-digit code. The session is shared, so the extension, dashboard and mobile all recognise you afterwards.',
-  },
-  {
-    tag: 'PIN A SHORTCUT',
-    h: 'Add to Home Screen',
-    d: 'In Chrome’s ⋮ menu tap “Add to Home screen.” Fibonax gets a real home-screen icon that opens full-screen — one tap, no address bar.',
-  },
-  {
-    tag: 'THE HOME SCREEN',
-    h: 'Everything in reach',
-    d: 'Your snippet count up top; Prompts / Sync / Snippets tiles; a search bar; then folder and language chips (All · EN · ES · IT · Multi) to narrow the list.',
-  },
-  {
-    tag: 'USE A SNIPPET',
-    h: 'Tap → pick → copy',
-    d: 'Fixed-text snippets copy in one tap. Multilingual or field snippets open a detail page: pick the language, fill fields, check the live preview, then Copy.',
-  },
-];
-
-function Scene2(): ReactElement {
-  const { localTime: lt } = useSprite();
-  const B = [0, 2.6, 5.4, 8.2, 10.6, 14.1];
-  const F = 0.42;
-  const seg = (i: number): number => {
-    const s = B[i]!;
-    const e = B[i + 1]!;
-    if (lt < s - 0.001) return 0;
-    if (i !== 4 && lt > e + F) return 0;
-    const up = i === 0 ? 1 : clamp((lt - s) / F, 0, 1);
-    const down = i === 4 ? 1 : clamp((e + F - lt) / F, 0, 1);
-    return easeOut(Math.min(up, down));
-  };
-  const localT = (i: number): number => lt - B[i]!;
-  const homeScroll = interpolate([8.4, 10.6], [0, 96], ease)(clamp(lt, 8.4, 10.6));
-  const enter = easeOut(clamp(lt / 0.5, 0, 1));
-  const phoneX = 150;
-  const phoneY = 46;
-  const activeStep = lt < B[1]! ? 0 : lt < B[2]! ? 1 : lt < B[3]! ? 2 : lt < B[4]! ? 3 : 4;
-
-  const screens: ReactElement[] = [
-    <RedirectScreen t={localT(0)} />,
-    <LoginScreen t={localT(1)} />,
-    <AddHomeScreen t={localT(2)} />,
-    <CompanionHome scroll={homeScroll} />,
-    <DetailScreen t={localT(4)} />,
+function PhoneHome(): ReactElement {
+  const tasks: Array<[ReactNode, string, string]> = [
+    [<SnippetIcon key="s" className="h-4 w-4" />, 'Use a snippet', 'Find, personalize, and copy'],
+    [<PromptIcon key="p" className="h-4 w-4" />, 'Prepare a prompt', 'Pick one and copy it'],
+    [<BrainIcon key="b" className="h-4 w-4" />, 'Capture a note', 'Save text into a Brain'],
   ];
-
   return (
-    <Scene zoom={0.015}>
-      {/* phone */}
-      <div style={{ position: 'absolute', left: phoneX, top: phoneY, transform: `translateY(${lerp(24, 0, enter)}px)`, opacity: enter }}>
-        <PhoneShell>
-          {screens.map((sc, i) => {
-            const o = seg(i);
-            if (o <= 0.001) return null;
-            return (
-              <div key={i} style={{ position: 'absolute', inset: 0, opacity: o }}>
-                {sc}
-              </div>
-            );
-          })}
-        </PhoneShell>
-      </div>
-
-      {/* right-side step explainer */}
-      <div style={{ position: 'absolute', left: 530, top: 150, width: 610, height: 420 }}>
-        {STEPS.map((st, i) => {
-          const o = seg(i);
-          if (o <= 0.001) return null;
-          const e = o;
-          return (
-            <div key={i} style={{ position: 'absolute', inset: 0, opacity: e, transform: `translateX(${lerp(26, 0, e)}px)` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: AZURE, letterSpacing: '.5px' }}>
-                  STEP {i + 1}
-                  <span style={{ color: INK_SUB }}> / 5</span>
-                </span>
-                <span style={{ width: 22, height: 3, borderRadius: 2, background: AZURE }} />
-                <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 600, color: INK_SUB, letterSpacing: '.5px' }}>{st.tag}</span>
-              </div>
-              <div style={{ fontFamily: FONT, fontSize: 52, fontWeight: 700, color: INK, letterSpacing: '-1.6px', lineHeight: 1.05 }}>{st.h}</div>
-              <div style={{ fontFamily: FONT, fontSize: 19, color: INK_MUT, marginTop: 20, lineHeight: 1.55, maxWidth: 500 }}>{st.d}</div>
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <div style={{ background: NAVY, padding: '46px 18px 22px', color: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <TMark size={20} color="#fff" />
+          <span style={{ fontFamily: FONT, fontSize: 15, fontWeight: 700 }}>Fibonax</span>
+        </div>
+        <div style={{ fontFamily: FONT, fontSize: 24, fontWeight: 700, marginTop: 18, letterSpacing: '-.5px' }}>What&apos;s next?</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+          {tasks.map(([icon, title, sub]) => (
+            <div key={title} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, background: NAVY_SOFT, border: '1px solid #6B7C9C55' }}>
+              <span style={{ color: '#fff', display: 'flex' }}>{icon}</span>
+              <span style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontFamily: FONT, fontSize: 13.5, fontWeight: 700 }}>{title}</span>
+                <span style={{ fontFamily: FONT, fontSize: 11, color: NAVY_COPY }}>{sub}</span>
+              </span>
             </div>
-          );
-        })}
-        {/* progress dots */}
-        <div style={{ position: 'absolute', top: 400, left: 2, display: 'flex', gap: 8 }}>
-          {STEPS.map((_, i) => (
-            <span
-              key={i}
-              style={{
-                width: i === activeStep ? 26 : 8,
-                height: 8,
-                borderRadius: 4,
-                background: i === activeStep ? AZURE : LINE,
-                transition: 'all .3s ease',
-              }}
-            />
           ))}
         </div>
       </div>
-    </Scene>
+      <div style={{ padding: '16px 14px' }}>
+        <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: INK_MUT, marginBottom: 8 }}>Ready to reuse</div>
+        <div style={{ background: '#fff', borderRadius: 18, border: `1px solid ${LINE}`, padding: 14 }}>
+          <div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 700, color: INK }}>Follow-up</div>
+          <div style={{ fontFamily: FONT, fontSize: 12, color: INK_SUB, marginTop: 3 }}>Used 128 times</div>
+        </div>
+      </div>
+    </div>
   );
 }
 
-/* ════════════════════════════════════════════════════════════ */
-/* SCENE 3 — Trigger expansion                                   */
-/* ════════════════════════════════════════════════════════════ */
-const TRIGGER = '!!quoteEN';
-
-function Scene3(): ReactElement {
-  const { localTime: lt } = useSprite();
-  const cardX = 300;
-  const cardY = 118;
-  const cardW = 680;
-
-  const typeStart = 0.5;
-  const typePer = 0.1;
-  const nChars = clamp(Math.floor((lt - typeStart) / typePer), 0, TRIGGER.length);
-  const typed = TRIGGER.slice(0, nChars);
-  const typing = lt >= typeStart && lt < 2.0;
-  const chipOn = lt >= 1.15 && lt < 2.15;
-  const fire = lt >= 2.1;
-  const exP = clamp((lt - 2.25) / 0.7, 0, 1);
-  const zoomP = clamp((lt - 1.9) / 0.6, 0, 1);
-  const sc = lerp(1, 1.05, easeOut(zoomP));
-  const caret = Math.floor(lt * 2) % 2 === 0;
-
+function PhoneSnippets({ copied }: { copied: number }): ReactElement {
+  const cards: Array<[string, string]> = [
+    ['Follow-up', 'Hi Alex, the first draft is ready for your review.'],
+    ['Meeting recap', 'Here is a short recap of today.'],
+    ['Thank you', 'Thank you, Alex. I really appreciate it.'],
+  ];
   return (
-    <Scene zoom={0.01}>
-      <div style={{ position: 'absolute', left: cardX, top: cardY, width: cardW, transform: `scale(${sc})`, transformOrigin: '40% 30%' }}>
-        <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 40px 90px rgba(0,0,0,.16), 0 6px 20px rgba(0,0,0,.08)', border: `1px solid ${LINE}` }}>
-          <div style={{ height: 56, borderBottom: `1px solid ${LINE}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 12, background: '#FAFAFA' }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#EDEDF0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, fontWeight: 700, color: INK_MUT, fontSize: 14 }}>M</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: FONT, fontSize: 14.5, fontWeight: 700, color: INK }}>Reply to customer · Marco Rossi</div>
-              <div style={{ fontFamily: FONT, fontSize: 12, color: INK_SUB, marginTop: 1 }}>quote request · 12–19 Jul</div>
-            </div>
-            <span style={{ color: INK_SUB, fontSize: 18 }}>⋯</span>
-          </div>
-          <div style={{ padding: '24px 26px', minHeight: 250, fontFamily: FONT, fontSize: 17, color: INK, lineHeight: 1.65 }}>
-            <div style={{ color: INK }}>Hi Marco,</div>
-            <div style={{ height: 12 }} />
-            {!fire ? (
-              <div>
-                <span style={{ fontFamily: MONO, fontSize: 16.5, fontWeight: 700, color: AZURE, background: AZURE_BG, padding: '1px 4px', borderRadius: 4 }}>{typed}</span>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: 2,
-                    height: 20,
-                    background: INK,
-                    marginLeft: 1,
-                    verticalAlign: '-4px',
-                    opacity: caret && typing ? 1 : typing ? 0 : caret ? 1 : 0,
-                  }}
-                />
-              </div>
-            ) : (
-              <div style={{ opacity: easeOut(exP), transform: `translateY(${lerp(8, 0, easeOut(exP))}px)` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <LangBadge l="EN" />
-                  <span style={{ fontFamily: FONT, fontSize: 12, color: INK_SUB, fontWeight: 600 }}>English</span>
-                </div>
-                <div style={{ fontSize: 15.5, lineHeight: 1.6, color: INK }}>
-                  Thank you for choosing <b>Aurora Studio</b>. For the project from 12 to 19 July, your total is <b>€4,900</b>, including materials and support. A 30% deposit confirms your dates.
-                </div>
-                <div style={{ height: 16 }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, opacity: easeOut(clamp((lt - 2.7) / 0.6, 0, 1)) }}>
-                  <LangBadge l="IT" />
-                  <span style={{ fontFamily: FONT, fontSize: 12, color: INK_SUB, fontWeight: 600 }}>Italiano</span>
-                </div>
-                <div style={{ fontSize: 15.5, lineHeight: 1.6, color: INK, opacity: easeOut(clamp((lt - 2.7) / 0.6, 0, 1)) }}>
-                  Grazie per aver scelto <b>Aurora Studio</b>. Per il progetto dal 12 al 19 luglio, il totale è <b>€4.900</b>, inclusi materiali e assistenza.
-                </div>
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <div style={{ background: NAVY, padding: '46px 16px 16px', color: '#fff' }}>
+        <div style={{ fontFamily: FONT, fontSize: 22, fontWeight: 700, letterSpacing: '-.4px' }}>
+          Snippets <span style={{ fontSize: 13, color: NAVY_COPY, fontWeight: 600 }}>12</span>
+        </div>
+        <div style={{ marginTop: 12, height: 36, borderRadius: 12, background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.24)', display: 'flex', alignItems: 'center', padding: '0 12px', fontFamily: FONT, fontSize: 13, color: NAVY_COPY }}>
+          Search snippets
+        </div>
+      </div>
+      <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {cards.map(([title, text], i) => (
+          <div key={title} style={{ background: '#fff', borderRadius: 18, border: `1px solid ${LINE}`, padding: 14 }}>
+            <div style={{ fontFamily: FONT, fontSize: 14, fontWeight: 700, color: INK }}>{title}</div>
+            <div style={{ fontFamily: FONT, fontSize: 12, color: INK_MUT, marginTop: 4, lineHeight: 1.4 }}>{text}</div>
+            {i === 0 && (
+              <div style={{ marginTop: 10, height: 32, borderRadius: 10, background: copied > 0 ? AZURE_BG : AZURE, color: copied > 0 ? AZURE : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT, fontSize: 12.5, fontWeight: 700 }}>
+                {copied > 0 ? '✓ Copied' : 'Fill & copy'}
               </div>
             )}
           </div>
-          <div style={{ borderTop: `1px solid ${LINE}`, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, background: '#FAFAFA' }}>
-            <div style={{ height: 40, padding: '0 24px', borderRadius: 10, background: AZURE, color: '#fff', display: 'flex', alignItems: 'center', gap: 8, fontFamily: FONT, fontSize: 14.5, fontWeight: 600 }}>
-              Send
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 2L11 13" />
-                <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-              </svg>
-            </div>
-            <span style={{ fontFamily: FONT, fontSize: 12.5, color: INK_SUB }}>Draft saved</span>
-          </div>
-        </div>
-
-        {chipOn &&
-          (() => {
-            const p = clamp((lt - 1.15) / 0.22, 0, 1);
-            return (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 26,
-                  top: 148,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  background: '#fff',
-                  border: `1px solid ${AZURE_BG}`,
-                  borderRadius: 12,
-                  padding: '9px 14px',
-                  boxShadow: '0 12px 30px rgba(27,79,216,.22)',
-                  opacity: easeOut(p),
-                  transform: `translateY(${lerp(6, 0, easeOut(p))}px)`,
-                }}
-              >
-                <Logo size={26} radius={7} />
-                <div>
-                  <div style={{ fontFamily: FONT, fontSize: 13, fontWeight: 700, color: INK }}>Price Quote · EN</div>
-                  <div style={{ fontFamily: MONO, fontSize: 11, color: AZURE, fontWeight: 600 }}>{TRIGGER} → expand</div>
-                </div>
-                <span style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, color: INK_SUB, background: '#F4F4F5', borderRadius: 5, padding: '3px 7px', marginLeft: 4 }}>TAB</span>
-              </div>
-            );
-          })()}
+        ))}
       </div>
-      <Caption text="Type less. Say more." show={lt >= 3.1} t={lt - 3.1} y={648} />
+    </div>
+  );
+}
+
+function ScenePhone(): ReactElement {
+  const { localTime: lt } = useSprite();
+  const px = 170;
+  const py = 56;
+  const enter = appear(lt, 0, 0.5);
+  const list = appear(lt, 1.6, 0.35);
+  const copied = lt >= 3.0 ? 1 : 0;
+  const text = appear(lt, 0.4, 0.5);
+
+  return (
+    <Scene zoom={0.015}>
+      <StepTag n={4} label="Take it with you" lt={lt} />
+      <div style={{ position: 'absolute', left: px, top: py, opacity: enter, transform: `translateY(${lerp(24, 0, enter)}px)` }}>
+        <PhoneShell>
+          <div style={{ position: 'absolute', inset: 0, opacity: 1 - list }}>
+            <PhoneHome />
+          </div>
+          {list > 0.001 && (
+            <div style={{ position: 'absolute', inset: 0, opacity: list }}>
+              <PhoneSnippets copied={copied} />
+            </div>
+          )}
+        </PhoneShell>
+        {/* taps: Use a snippet, then Fill & copy */}
+        <TapPulse x={150} y={165} t={lt - 1.3} />
+        <TapPulse x={150} y={256} t={lt - 2.8} />
+      </div>
+
+      <div style={{ position: 'absolute', left: 560, top: 190, width: 600, opacity: text, transform: `translateX(${lerp(26, 0, text)}px)` }}>
+        <div style={{ fontFamily: FONT, fontSize: 52, fontWeight: 700, color: INK, letterSpacing: '-1.6px', lineHeight: 1.05 }}>On your phone too</div>
+        <div style={{ fontFamily: FONT, fontSize: 20, color: INK_MUT, marginTop: 22, lineHeight: 1.55, maxWidth: 520 }}>
+          Open <b style={{ color: INK }}>app.fibonax.com/mobile</b> and sign in. Your snippets, prompts and Brains are there, ready to fill and copy.
+        </div>
+      </div>
     </Scene>
   );
 }
 
-/* ════════════════════════════════════════════════════════════ */
-/* OUTRO — logo + tagline                                        */
-/* ════════════════════════════════════════════════════════════ */
+/* ================================================================ */
+/* OUTRO: the T                                                      */
+/* ================================================================ */
 function Outro(): ReactElement {
   const { localTime: lt } = useSprite();
   const lp = clamp(lt / 0.7, 0, 1);
-  const wp = clamp((lt - 0.35) / 0.6, 0, 1);
-  const tp = clamp((lt - 0.7) / 0.6, 0, 1);
-  const uw = clamp((lt - 0.9) / 0.7, 0, 1);
+  const wp = appear(lt, 0.35, 0.6);
+  const uw = appear(lt, 0.8, 0.7);
+  const tp = appear(lt, 0.7, 0.6);
   return (
-    <Scene fadeOut={0.5} zoom={0.02} bg="#FFFFFF">
+    <Scene zoom={0.02} bg="#FFFFFF">
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 26 }}>
         <div style={{ transform: `scale(${back(lp)})`, opacity: clamp(lp * 1.5, 0, 1) }}>
-          <Logo size={104} radius={26} />
+          <AppIcon size={112} radius={28} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: easeOut(wp), transform: `translateY(${lerp(14, 0, easeOut(wp))}px)` }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: wp, transform: `translateY(${lerp(14, 0, wp)}px)` }}>
           <div style={{ fontFamily: FONT, fontSize: 58, fontWeight: 700, color: INK, letterSpacing: '-1.6px' }}>Fibonax</div>
-          <div style={{ height: 4, background: AZURE, borderRadius: 2, marginTop: 12, width: lerp(0, 300, easeOut(uw)) }} />
+          <div style={{ height: 4, background: AZURE, borderRadius: 2, marginTop: 12, width: lerp(0, 300, uw) }} />
         </div>
-        <div style={{ fontFamily: FONT, fontSize: 22, color: INK_MUT, opacity: easeOut(tp), letterSpacing: '-.2px' }}>Text expansion for every team.</div>
+        <div style={{ fontFamily: FONT, fontSize: 22, color: INK_MUT, opacity: tp, letterSpacing: '-.2px' }}>
+          Snippets, prompts and Brains for every team.
+        </div>
       </div>
     </Scene>
   );
 }
 
-/* ════════════════════════════════════════════════════════════ */
+/* ================================================================ */
 export function OnboardingAnimation(): ReactElement {
   return (
-    <AnimationStage duration={27} background={DESK}>
-      <Sprite start={0} end={6.9}>
-        <Scene1 />
+    <AnimationStage duration={30} background={DESK}>
+      <Sprite start={0} end={6.6}>
+        <SceneInstall />
       </Sprite>
-      <Sprite start={6.9} end={21.0}>
-        <Scene2 />
+      <Sprite start={6.6} end={12.9}>
+        <SceneSnippet />
       </Sprite>
-      <Sprite start={21.0} end={25.9}>
-        <Scene3 />
+      <Sprite start={12.9} end={19.6}>
+        <ScenePrompt />
       </Sprite>
-      <Sprite start={25.9} end={27}>
+      <Sprite start={19.6} end={25.4}>
+        <ScenePhone />
+      </Sprite>
+      <Sprite start={25.4} end={30}>
         <Outro />
       </Sprite>
     </AnimationStage>

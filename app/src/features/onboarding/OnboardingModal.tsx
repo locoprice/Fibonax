@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
-import { RotateCcw, X, Zap } from 'lucide-react';
+import { RotateCcw, X } from 'lucide-react';
+import { BrandMark } from '@/components/layout/BrandMark';
 import { Button } from '@/components/ui/button';
 import { OnboardingAnimation } from '@/features/onboarding/anim/OnboardingAnimation';
 
@@ -10,10 +11,10 @@ interface Props {
 }
 
 /**
- * "Getting Started" modal — plays the Fibonax onboarding animation
- * (install → mobile companion → trigger expansion → outro). Follows the
- * ChangelogModal pattern: scrim + Escape-to-close + click-outside. The
- * animation autoplays and loops; "Replay" remounts it from the first frame.
+ * "Getting Started" modal: plays the Fibonax onboarding animation (add to
+ * Chrome and sign in, a snippet, a prompt with a Brain, the phone, the T).
+ * Follows the ChangelogModal pattern: scrim, Escape to close, click outside.
+ * The animation autoplays and loops; "Replay" remounts it from the first frame.
  */
 export function OnboardingModal({ open, onClose }: Props): ReactElement | null {
   const [replayKey, setReplayKey] = useState(0);
@@ -39,7 +40,7 @@ export function OnboardingModal({ open, onClose }: Props): ReactElement | null {
       <div className="flex max-h-[92vh] w-[960px] max-w-[96vw] animate-fade-in flex-col overflow-hidden rounded-lg bg-card shadow-md">
         {/* Header */}
         <div className="flex shrink-0 items-center gap-2 border-b border-line bg-card px-5 py-4">
-          <Zap className="h-4 w-4 shrink-0 text-primary" />
+          <BrandMark className="h-4 w-4 text-primary" />
           <span className="flex-1 text-[15px] font-bold text-ink">
             Getting started with Fibonax
           </span>
@@ -60,7 +61,7 @@ export function OnboardingModal({ open, onClose }: Props): ReactElement | null {
 
         {/* Footer */}
         <div className="flex shrink-0 items-center justify-between border-t border-line bg-bg-alt px-5 py-3">
-          <span className="text-xs text-ink-subtle">Install → sign in → expand. Loops automatically.</span>
+          <span className="text-xs text-ink-subtle">Add to Chrome, sign in, type a shortcut. Plays on a loop.</span>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
