@@ -20,9 +20,11 @@ Why our own sign-in and not Supabase's OAuth server: its tokens are full user se
 ## To go live, in order
 
 1. ✅ **Live database change and server update**, done 2026-11-25 after the owners' go: migration `ai_app_sign_in` applied, `mcp` server function at version 2, both checked live and the test rows deleted (see `services/supabase/migrations/README.md`).
-2. **`mcp.fibonax.com`** (owners, about 5 minutes): in Netlify, open the dashboard's site, the one named **fibonaxai** (it serves app.fibonax.com) > Domain management > Add a domain alias > `mcp.fibonax.com`. If the domain's DNS is not at Netlify, add at the DNS provider: `CNAME  mcp  →  fibonaxai.netlify.app`. Wait for the padlock (HTTPS) to show. Claude's tools cannot add a domain, so this step is the owners'.
-3. Release `develop` to `main` (the forwarding rule and `/connect` ship with the dashboard).
-4. Claude checks the live address end to end with the official MCP client, then restores the manual text below.
+2. ✅ **`mcp.fibonax.com`**, added 2026-11-26 by the owners as a domain alias of the Netlify site **fibonaxai**. DNS is at Netlify (record made by Netlify itself); the existing `*.fibonax.com` certificate covers it.
+3. ✅ **`develop` released to `main`** (v3.167.0): the forwarding rule and `/connect` are live.
+4. ✅ **Checked end to end on `https://mcp.fibonax.com`** the same day, through a temporary app deleted afterwards: both discovery documents, registration, `/authorize` sending the person to `/connect` (served with frame protection), code for key, the tools (saving offered when allowed), the person's prompts as MCP prompts, search, renewal (the old key ended at once), and after Switch off no renewal and a 401 `invalid_token`. The sign-in steps are in `user-docs/integrations/ai-apps.mdx`.
+
+What is left is the directory submissions below.
 
 ## Sending to Claude's directory
 
@@ -79,13 +81,3 @@ A separate Fibonax account, email and password, no two-step verification, holdin
 - **Privacy policy and terms:** add a short paragraph on AI apps (what an app the person connects can read, that Fibonax sends it only on the person's request, how to switch it off). Claude can draft it; legal wording is the owners' to approve.
 - **Icon and listing pictures:** the Fibonax T and 2 or 3 captures, in the sizes each form asks for.
 - **Which inbox** receives the reviewers' questions.
-
-## Manual text held back until the address is live
-
-For `user-docs/integrations/ai-apps.mdx`, as its first way to connect:
-
-> ## Connect from the AI app
->
-> If your AI app lists Fibonax among its connectors, choose it there and click **Connect**. If it asks for an address, enter `https://mcp.fibonax.com/mcp`. Fibonax opens and asks you to sign in, then shows what the app will be able to do. Turn on **Let it save to your Brains** if you want that, and click **Allow**. You go back to the AI app, connected. Nothing to copy.
->
-> The connection appears on the **AI apps** card in Settings with "Connected by signing in". **Switch off** ends it at once.

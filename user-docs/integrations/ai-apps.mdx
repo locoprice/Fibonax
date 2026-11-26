@@ -1,10 +1,10 @@
 ---
 title: "Connect an AI app"
 sidebarTitle: "AI apps"
-description: "Give Claude, ChatGPT or another AI app a private link, so it can find and use your prompts and Brains while it works for you."
+description: "Connect Claude, ChatGPT or another AI app to Fibonax, so it can find and use your prompts and Brains while it works for you."
 ---
 
-An AI app such as Claude or ChatGPT can work with your Fibonax prompts and Brains. You make a private link in Fibonax and paste it into the app once. After that, the app can look up a prompt or a Brain when you ask it to, with no copying and pasting.
+An AI app such as Claude or ChatGPT can work with your Fibonax prompts and Brains. You connect it once, by signing in to Fibonax from the app or by pasting a private link. After that, the app can look up a prompt or a Brain when you ask it to, with no copying and pasting.
 
 ## What the AI app can do
 
@@ -15,7 +15,22 @@ An AI app such as Claude or ChatGPT can work with your Fibonax prompts and Brain
 
 It sees what you see in the dashboard: your own prompts, the prompts in team folders shared with you, and your own Brains. It never reaches your snippets. Archived items are left out, and a deprecated item comes with a note saying so.
 
-## Make a link
+## Connect by signing in
+
+The quickest way, with nothing to copy.
+
+1. Open the AI app's settings and find **Connectors**. Some apps call them **Integrations** or **Apps**.
+2. Add a custom connector, name it Fibonax, and enter this address: `https://mcp.fibonax.com/mcp`
+3. The app opens Fibonax. Sign in if you are asked to.
+4. Fibonax shows which app is asking and what it will be able to do. To let it save notes to your Brains, turn on **Let it save to your Brains**.
+5. Click **Allow**. You go back to the AI app, connected. **Cancel** connects nothing.
+
+The connection appears on the **AI apps** card in Settings, marked **Connected by signing in**. The app keeps itself connected; if it is not used for 90 days, connect it again.
+
+## Or make a link
+
+Use a link when your AI app does not offer to sign in, or when you prefer it.
+
 
 1. In the dashboard, open **Settings**, then **Integrations**.
 2. On the **AI apps** card, click **Connect an AI app**.
@@ -33,7 +48,7 @@ AI apps keep this in their settings, usually under **Connectors**. Some apps cal
 
 1. Open the AI app's settings and find **Connectors**.
 2. Add a custom connector, name it Fibonax, and paste the link.
-3. No sign-in is needed: the link carries everything the app needs.
+3. No sign-in is needed: the link carries everything the app needs. If the app still asks you to sign in, use the address above instead, without the link.
 
 Then just ask. For example: "Use my Fibonax prompt for the weekly report", or "Check my Fibonax Brain about our prices before you answer."
 
@@ -45,12 +60,14 @@ Each time the app reads the full text of a prompt, a Brain item or a whole Brain
 
 ## See and switch off links
 
-The **AI apps** card lists every link that works: the app's name, what it can do and when it was last used. Click **Switch off** to stop a link at once. To connect that app again, make a new link. You can have up to 21 links at a time.
+The **AI apps** card lists every link and connection that works: the app's name, what it can do and when it was last used. Click **Switch off** to stop it at once. To connect that app again, sign in from the app again or make a new link. You can have up to 21 at a time.
 
 ## If something goes wrong
 
 The AI app passes on a short message from Fibonax:
 
+- **Connect Fibonax again**: the connection was switched off or not used for 90 days. Connect it again from the AI app.
+- **This connection request is not valid**: go back to the AI app and connect Fibonax again.
 - **This Fibonax link was switched off or is not valid**: make a new link and add it to the app again.
 - **This link reaches Brains only**: the link was made before prompts could be shared this way. Make a new link.
 - **This link can read but not save**: make a new link with **Let it save to your Brains** turned on.

@@ -139,5 +139,5 @@ Not here: snippets (owner decision), editing or deleting anything through a link
 
 Owner decision, 2026-11-25: publish Fibonax in Claude's and ChatGPT's directories. Both want a person to connect by signing in, not by pasting a key.
 
-Built on our own keys rather than on Supabase's OAuth server, whose tokens are full user sessions. Pieces, the steps to go live and the submission material are in `docs/ai-app-directories/README.md`. Not live until the owners' go and the `mcp.fibonax.com` address.
+Built on our own keys rather than on Supabase's OAuth server, whose tokens are full user sessions. Pieces, the steps to go live and the submission material are in `docs/ai-app-directories/README.md`. Live since 2026-11-26 (v3.167.0) at `https://mcp.fibonax.com/mcp`, checked end to end; the manual page is `user-docs/integrations/ai-apps.mdx`.
 
