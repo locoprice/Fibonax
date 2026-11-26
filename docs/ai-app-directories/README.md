@@ -19,7 +19,7 @@ Why our own sign-in and not Supabase's OAuth server: its tokens are full user se
 
 ## To go live, in order
 
-1. **Owners' go** for the live database change and the server update. (Claude does both.)
+1. ✅ **Live database change and server update**, done 2026-11-25 after the owners' go: migration `ai_app_sign_in` applied, `mcp` server function at version 2, both checked live and the test rows deleted (see `services/supabase/migrations/README.md`).
 2. **`mcp.fibonax.com`** (owners, about 5 minutes): in Netlify, open the dashboard's site, the one named **fibonaxai** (it serves app.fibonax.com) > Domain management > Add a domain alias > `mcp.fibonax.com`. If the domain's DNS is not at Netlify, add at the DNS provider: `CNAME  mcp  →  fibonaxai.netlify.app`. Wait for the padlock (HTTPS) to show. Claude's tools cannot add a domain, so this step is the owners'.
 3. Release `develop` to `main` (the forwarding rule and `/connect` ship with the dashboard).
 4. Claude checks the live address end to end with the official MCP client, then restores the manual text below.
