@@ -630,7 +630,12 @@ avoid assigning an industry to a user's content. Choices collapse into a native
 details disclosure retaining the existing radio/checkbox controls and Other.
 Date/time adjustment is named Options. The popup adapts the split to 320 px
 scroll panels; the dashboard preview can expand within its editor. Mobile has
-Fill in / Preview views and an untruncated result. Shared vanilla presentation
+Fill in / Preview views and an untruncated result; a snippet with no fields
+shows its text alone under a Text label, and in the switch's place one line
+(`.det-ready-note`: `mobile-primary-bg` ground, `r-in`, 44 px tall, a ticked
+circle and a bold "Ready to copy." in `mobile-primary-copy`, then "Nothing to
+fill in." in `mobile-muted`, 14 px), so the tick and the words tell a ready
+snippet from one to fill in, not the colour. Shared vanilla presentation
 is extension/shared/fill-form-ui.{js,css}; mobile copies are generated.
 
 

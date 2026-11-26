@@ -899,8 +899,14 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
 .field-note{font-size:12.5px;font-weight:600;color:var(--warn-deep)}
 .field-note.none{font-weight:500;color:var(--text2)}
 
-.no-fields{background:var(--card);border-radius:var(--r);padding:20px 16px;
-  text-align:center;color:var(--text2);font-size:14px;box-shadow:var(--shadow-sm)}
+/* A snippet with nothing to fill in says so where a form's Fill in / Preview
+   switch would sit. The tick and the words carry it, not the colour. */
+.det-ready{margin:0;padding:8px 16px;border-bottom:1px solid var(--border)}
+.det-ready-note{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;min-height:44px;
+  padding:8px 12px;border-radius:var(--r-in);background:var(--primary-lt);
+  color:var(--text2);font-size:14px;line-height:1.4}
+.det-ready-note svg{width:20px;height:20px;flex-shrink:0;color:var(--primary-copy)}
+.det-ready-note strong{font-weight:700;color:var(--primary-copy)}
 
 .prev-card{background:var(--card);border-radius:var(--r);
   padding:16px;box-shadow:var(--shadow-sm)}
@@ -1937,7 +1943,8 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <span id="det-lang" class="lbadge"></span>
   </div>
-  <nav class="fill-switch" aria-label="Snippet view"><button type="button" data-detail-pane="fields" aria-pressed="true">Fill in</button><button type="button" data-detail-pane="preview" aria-pressed="false">Preview</button></nav>
+  <nav class="fill-switch" id="det-switch" aria-label="Snippet view"><button type="button" data-detail-pane="fields" aria-pressed="true">Fill in</button><button type="button" data-detail-pane="preview" aria-pressed="false">Preview</button></nav>
+  <p class="det-ready sb-hidden" id="det-ready"><span class="det-ready-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg><strong>Ready to copy.</strong> <span>Nothing to fill in.</span></span></p>
   <div class="det-body" id="det-body">
     <div id="det-revwarn" class="mrevwarn sb-hidden" role="alert"></div>
     <div id="det-lang-section" class="sb-hide">
@@ -1958,7 +1965,7 @@ svg.brain-type-icon{stroke-width:1.8}
       <div class="fields-card" id="fform"></div>
     </div>
     <div class="mobile-preview-pane">
-      <div class="sec-lbl">Preview</div>
+      <div class="sec-lbl" id="prev-lbl">Preview</div>
       <div class="prev-card"><pre id="prev-text"></pre></div>
       <p class="ff-picnote" id="prev-picnote" role="status" hidden></p>
       <p class="ff-picnote" id="prev-picnote-share" hidden></p>
@@ -16323,8 +16330,15 @@ function renderDetail(snip,keepVals){
      is on a page. */
   document.getElementById('det-link').classList.toggle('sb-hidden',!_vm.linkable);
 
-  if(!_vm.fields.length){
-    form.innerHTML='<div class="no-fields">No input fields — ready to copy ✓</div>';
+  /* A snippet with nothing to fill in says "Ready to copy" where the switch
+     would sit and shows its text straight away, with no empty Fields card in
+     front of it. */
+  detailHasFields=_vm.fields.length>0;
+  document.getElementById('det-switch').classList.toggle('sb-hidden',!detailHasFields);
+  document.getElementById('det-ready').classList.toggle('sb-hidden',detailHasFields);
+  document.getElementById('prev-lbl').textContent=detailHasFields?'Preview':'Text';
+  if(!detailHasFields){
+    form.innerHTML='';
   }else{
     form.innerHTML=_vm.fields.map(function(fld){
       var f=fld.key;
@@ -16417,7 +16431,7 @@ function renderDetail(snip,keepVals){
     bindAdjust(form);
   }
   window.SBFillFormUI.enhance(form, _vm, {prefix: 'mobile', row: '.field-row', caption: '.field-lbl,.field-ctx,.field-ctxline', menu: '.field-opts', control: '.field-in,.field-othertxt'});
-  setDetailPane('fields');
+  setDetailPane(detailHasFields?'fields':'preview');
   updatePrev();
   mountMobNext();
   document.getElementById('det-body').scrollTop=0;
@@ -16672,7 +16686,11 @@ function validateDetail() {
   if(vm.errors.length) setDetailPane('fields');
   return window.SBFillFormUI.validate(document.getElementById('fform'),vm);
 }
+/* Whether the snippet on the page has anything to fill in. Without fields
+   there is one pane, the text, and nothing switches away from it. */
+var detailHasFields=true;
 function setDetailPane(pane) {
+  if(!detailHasFields)pane='preview';
   document.getElementById('view-detail').dataset.pane=pane;
   document.querySelectorAll('[data-detail-pane]').forEach(function(b) {b.setAttribute('aria-pressed',String(b.dataset.detailPane===pane));});
 }
