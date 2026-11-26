@@ -137,6 +137,22 @@ export function groupByDepartment(
   return groups;
 }
 
+/**
+ * The chart as the page lays it out: the groups with people in them, in the
+ * chart's own order, and apart from them the departments nobody sits in yet,
+ * so an empty department never opens the list.
+ */
+export function splitEmptyDepartments(groups: readonly DepartmentGroup[]): {
+  filled: DepartmentGroup[];
+  empty: OrgDepartment[];
+} {
+  const filled = groups.filter((g) => g.members.length > 0);
+  const empty = groups.flatMap((g) =>
+    g.members.length === 0 && g.department !== null ? [g.department] : [],
+  );
+  return { filled, empty };
+}
+
 /** How many people sit in each department, by department id. */
 export function countByDepartment(members: readonly OrgMember[]): Map<string, number> {
   const counts = new Map<string, number>();

@@ -10,6 +10,7 @@ import {
   normalizeDepartmentName,
   normalizeJobTitle,
   peopleCount,
+  splitEmptyDepartments,
   STARTER_DEPARTMENTS,
   suggestedDepartments,
   validateDepartmentName,
@@ -100,6 +101,23 @@ describe('groupByDepartment', () => {
       [sales],
     );
     expect(groups.at(-1)?.members.map((m) => m.user_id)).toEqual(['amy', 'm', 'zoe']);
+  });
+});
+
+describe('splitEmptyDepartments', () => {
+  it('keeps the groups with people in their order and sets the empty departments apart', () => {
+    const groups = groupByDepartment(
+      [member('a', 'Ada', { department_id: sales.id }), member('b', 'Bo')],
+      [sales, legal, admin],
+    );
+    const { filled, empty } = splitEmptyDepartments(groups);
+    expect(filled.map((g) => g.department?.name ?? null)).toEqual(['Sales', null]);
+    expect(empty.map((d) => d.name)).toEqual(['Administration', 'legal']);
+  });
+
+  it('has no empty departments when everyone has a seat in each', () => {
+    const groups = groupByDepartment([member('a', 'Ada', { department_id: sales.id })], [sales]);
+    expect(splitEmptyDepartments(groups)).toEqual({ filled: groups, empty: [] });
   });
 });
 
