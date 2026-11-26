@@ -26,14 +26,11 @@ import { KIND_LABEL } from '@/features/memory/kindLabel';
 import { TrashPanel, type TrashPanelRow } from '@/features/memory/TrashPanel';
 import { buildTrashRows, describePieces, describeTrashRows } from '@/features/memory/trashRows';
 import { useMemoryStore } from '@/stores/memoryStore';
-import { useSearchStore } from '@/stores/searchStore';
 import { useUiStore } from '@/stores/uiStore';
-import { metadataMatch, normalizeQuery, scoreMemoryItem } from '@/lib/searchIndex';
 import { memoryApi } from '@/lib/api/memoryApi';
 import { ACCEPTED_EXTENSIONS, DocumentTextError } from '@/lib/documentText';
 import type { MemoryDocument, MemoryItem } from '@/types/database';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
-import { SearchReasonLine } from '@/components/shared/SearchReasonLine';
 
 // One space and its items.
 //
@@ -147,18 +144,14 @@ function StatTile({
 
 function ItemCard({
   item,
-  query,
   onEdit,
   onTrash,
 }: {
   item: MemoryItem;
-  /** What is typed in the search bar: a word found only in the body is shown in its sentence. */
-  query: string;
   onEdit: () => void;
   onTrash: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const reason = metadataMatch(query, [item.name, item.summary], [], [], [item.body]);
 
   return (
     <Card
@@ -225,7 +218,6 @@ function ItemCard({
           No summary. Add one so this can be listed without loading its body.
         </p>
       )}
-      {reason && <SearchReasonLine reason={reason} />}
 
       <div>
         <button
@@ -264,9 +256,6 @@ export function MemorySpacePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const wantedItemId = searchParams.get('item');
-  // The one search bar in the header owns the text (SEARCH-001).
-  const query = useSearchStore((s) => s.query);
-  const clearSearch = useSearchStore((s) => s.clear);
 
   const documents = useMemoryStore((s) => s.documents);
   const importing = useMemoryStore((s) => s.importing);
@@ -396,14 +385,6 @@ export function MemorySpacePage() {
     [trashRows],
   );
 
-  // A space had no way to filter its own contents before the one search bar
-  // (SEARCH-001). The tiles above stay whole-space counts: they describe the
-  // space, not the search.
-  const needle = normalizeQuery(query);
-  const visible = useMemo(() => {
-    if (needle === '') return live;
-    return live.filter((item) => scoreMemoryItem(item, needle, space?.name ?? null) > 0);
-  }, [live, needle, space]);
   const tokens = useMemo(
     () => live.reduce((total, item) => total + item.token_estimate, 0),
     [live],
@@ -651,7 +632,7 @@ export function MemorySpacePage() {
 
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-ink">
-          Contents ({visible.length})
+          Contents ({live.length})
         </h2>
         <button
           type="button"
@@ -667,35 +648,24 @@ export function MemorySpacePage() {
         <div className="flex items-center justify-center py-16 text-sm text-ink-subtle">
           Loading items…
         </div>
-      ) : visible.length === 0 ? (
+      ) : live.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title={live.length === 0 ? 'Nothing in here yet' : 'Nothing matches'}
-          description={
-            live.length === 0
-              ? 'Add one fact. Keep it to a single idea, and give it a summary so it can be listed without being read.'
-              : 'Try a different search, or clear the search box in the header.'
-          }
+          title="Nothing in here yet"
+          description="Add one fact. Keep it to a single idea, and give it a summary so it can be listed without being read."
           action={
-            live.length === 0 ? (
-              <Button onClick={() => setEditorTarget('new')}>
-                <Plus className="h-4 w-4" />
-                Add text
-              </Button>
-            ) : (
-              <Button variant="ghost" size="sm" onClick={clearSearch}>
-                Clear search
-              </Button>
-            )
+            <Button onClick={() => setEditorTarget('new')}>
+              <Plus className="h-4 w-4" />
+              Add text
+            </Button>
           }
         />
       ) : (
         <div className="flex flex-col gap-3">
-          {visible.map((item) => (
+          {live.map((item) => (
             <ItemCard
               key={item.id}
               item={item}
-              query={query}
               onEdit={() => setEditorTarget(item)}
               onTrash={() => trashItemNow(item)}
             />

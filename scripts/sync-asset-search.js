@@ -6,14 +6,16 @@
 //   app/public/mobile/index.html   single-file app by design, cannot load
 //                                  extension/shared/asset-search.js at runtime
 //
-// The phone's three search boxes read from the module what the popup and the
-// menu on a page read, so a snippet, a prompt or a Brain item is found by the
+// The phone's search window (scripts/sync-command-palette.js inlines it right
+// after this block) reads from the module what the popup, the dashboard and the
+// menus on a page read, so a snippet, a prompt or a Brain item is found by the
 // same words on every device:
 //
 //   look      whether every typed word is somewhere in the asset, and why
-//   whyHtml   the line under a card that says why: keyword, label or text
+//   whyHtml   the line under a result that says why: keyword, label or text
 //
-// --check also fails if the phone stops reaching them through the module.
+// --check also fails if the phone's own code starts matching by itself again:
+// the search window is the one place that asks the module.
 
 const fs = require('fs');
 const path = require('path');
@@ -65,16 +67,15 @@ function apply(source, check) {
   return 'written';
 }
 
-// The source of one function: from its declaration to the next top-level one.
-function fnSource(text, decl) {
-  const start = text.indexOf(decl);
-  if (start === -1) return '';
-  const next = text.indexOf('\nfunction ', start + decl.length);
-  return text.slice(start, next === -1 ? undefined : next);
+// The page without one generated block, so what is left is the phone's own code.
+function without(html, begin, end) {
+  const a = html.indexOf(begin);
+  const b = html.indexOf(end);
+  return a === -1 || b === -1 ? html : html.slice(0, a) + html.slice(b + end.length);
 }
 
 // What the gate pins beyond the copy itself: where the block sits, and that
-// the phone's own code goes through it rather than around it.
+// the phone's own code leaves the matching to the search window.
 function structure() {
   const html = readText(MOBILE);
   const problems = [];
@@ -87,18 +88,18 @@ function structure() {
   const open = (before.match(/<script\b/g) || []).length - (before.match(/<\/script>/g) || []).length;
   if (open !== 0) problems.push('the block opens inside another <script>');
 
-  [
-    ['function snippetLook(', 'snippets'],
-    ['function promptLook(', 'prompts'],
-    ['function memItemLook(', 'Brain items'],
-    ['function memBrainLook(', 'Brains'],
-  ].forEach(([decl, what]) => {
-    if (fnSource(html, decl).indexOf('SBAssetSearch.look(') === -1) {
-      problems.push('Search: ' + what + ' are matched by the module (' + decl + '... must call SBAssetSearch.look(...)');
-    }
-  });
-  if (fnSource(html, 'function searchWhyHtml(').indexOf('SBAssetSearch.whyHtml(') === -1) {
-    problems.push('Search: the line under a card comes from the module (function searchWhyHtml(... must call SBAssetSearch.whyHtml(...)');
+  // The search window is the only reader. A second matcher in the phone's own
+  // code is how the lists and the window would start to disagree.
+  const own = without(
+    without(html, BEGIN, END),
+    '<!-- SB_COMMAND_PALETTE:BEGIN',
+    '<!-- SB_COMMAND_PALETTE:END -->',
+  );
+  if (own.indexOf('SBAssetSearch.') !== -1) {
+    problems.push('Search: the phone matches through the search window only (its own code must not call SBAssetSearch)');
+  }
+  if (html.indexOf('<!-- SB_COMMAND_PALETTE:BEGIN') === -1) {
+    problems.push('Search: the search window that reads this block is missing -> run: node scripts/sync-command-palette.js');
   }
   return problems;
 }

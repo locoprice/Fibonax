@@ -57,7 +57,7 @@ interface MemoryStore {
    */
   items: MemoryItem[];
   /**
-   * Live items across every space, for the one search bar's panel (SEARCH-001).
+   * Live items across every space, for the search window (SEARCH-001).
    * Separate from `items` on purpose: that one is the space being viewed and is
    * refetched on every write, while this is a read-only index fetched once.
    */
@@ -70,7 +70,7 @@ interface MemoryStore {
   spaceSortBy: SpaceSortColumn;
   spaceSortDir: SortDir;
   setSpaceSort: (column: SpaceSortColumn) => void;
-  /** The Contents and Updated menus on the Brains index. The search box in the header narrows it further. */
+  /** The Contents and Updated menus on the Brains index. */
   spaceFilters: SpaceFilters;
   setSpaceFilters: (patch: Partial<SpaceFilters>) => void;
   resetSpaceFilters: () => void;

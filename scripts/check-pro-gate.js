@@ -122,9 +122,7 @@ check('the phone hands the search window the same lock', MOBILE.includes("get lo
 check('the search window shows the lock in plain sight', PALETTE.includes("'<p class=\"sbcp-ask-lock\">' + esc(locked) + '</p>'"));
 check('the search window asks nothing while the lock is on', PALETTE.includes('if (!cfg.ask || cfg.ask.locked || text.length < askMin()) return;'));
 check('the phone guards the question before any request', /function openAsk\(question\)\{\s*if\(!askOn\(\)\)return;/.test(MOBILE));
-check('a tap on a locked phone row says the label', MOBILE.includes('if(!askOn()){showToast(PRO_SOON_LABEL);return;}'));
-check('the phone shows the lock on all three Ask rows', (MOBILE.match(/class="ask-lock"/g) || []).length === 3);
-check('the phone row shows the label in plain sight, since a phone has no hover', MOBILE.includes(':PRO_SOON_LABEL;'));
+check('the phone says the label in plain sight, since a phone has no hover', MOBILE.includes(':PRO_SOON_LABEL;'));
 check('the phone reads no picture while its switch is off', /function readPicture\(file\)\{\s*if\(!pictureOn\(\)\|\|/.test(MOBILE));
 check('a tap on the locked Read a picture row says the label', MOBILE.includes("if(!pictureOn()){showToast(PRO_SOON_LABEL);return;}"));
 check('the locked Read a picture row shows the lock and the label in plain sight',

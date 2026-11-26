@@ -20,7 +20,6 @@ import {
   useSnippetStore,
 } from '@/stores/snippetStore';
 import type { SortColumn } from '@/stores/snippetStore';
-import { useSearchStore } from '@/stores/searchStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useLabelStore } from '@/stores/labelStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -212,7 +211,7 @@ export function SnippetsTable() {
   const groups = useMemo(() => groupSnippetsByLanguage(rows), [rows]);
   const loading = useSnippetStore((s) => s.loading);
   // Status badges read the whole library, not the filtered page: "top" is
-  // relative to every snippet the user owns, so paging or searching never
+  // relative to every snippet the user owns, so paging or filtering never
   // changes which rows earn the trophy. Compared group-to-group, since a
   // translated snippet's expansions are spread across its variant rows.
   const library = useSnippetStore((s) => s.snippets);
@@ -224,8 +223,7 @@ export function SnippetsTable() {
       ),
     [library],
   );
-  // Validate once per data change rather than once per render — the table
-  // re-renders on every keystroke in the search box.
+  // Validate once per data change rather than once per render.
   const issues = useMemo(() => {
     const map = new Map<string, TemplateValidation>();
     for (const snippet of library) {
@@ -251,9 +249,6 @@ export function SnippetsTable() {
   const notionPushingIds = useSnippetStore((s) => s.notionPushingIds);
   // Only the team whose Notion database the push writes to sees the column.
   const canPushNotion = useCanPushToNotion();
-  // The search text lives in the header bar now (SEARCH-001), so "Clear
-  // filters" has to reach across and empty a box this page does not own.
-  const clearSearch = useSearchStore((s) => s.clear);
   const setFolder = useSnippetStore((s) => s.setSelectedFolder);
   const setLanguageFilter = useSnippetStore((s) => s.setLanguageFilter);
   const setLabelFilter = useSnippetStore((s) => s.setLabelFilter);
@@ -282,7 +277,6 @@ export function SnippetsTable() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Read filter state to reset to page 1 whenever the visible set changes
-  const filterQuery = useSearchStore((s) => s.query);
   const filterFolder = useSnippetStore((s) => s.selectedFolderId);
   const filterLang = useSnippetStore((s) => s.languageFilter);
   const filterLabels = useSnippetStore((s) => s.labelFilter);
@@ -291,7 +285,7 @@ export function SnippetsTable() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterQuery, filterFolder, filterLang, filterLabels, filterSortBy, filterSortDir]);
+  }, [filterFolder, filterLang, filterLabels, filterSortBy, filterSortDir]);
 
   // Derived pagination values — paginate over groups, not raw rows.
   const totalGroups = groups.length;
@@ -348,13 +342,12 @@ export function SnippetsTable() {
       <EmptyState
         icon={Search}
         title="No snippets match your filters"
-        description="Try a different folder, or clear the search box in the header."
+        description="Try a different folder, or clear the filters."
         action={
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
-              clearSearch();
               setFolder(null);
               setLanguageFilter(null);
               setLabelFilter([]);
@@ -567,9 +560,6 @@ export function SnippetsTable() {
                             return store.setSnippetLabels(row.id, (store.snippetLabels.get(row.id) ?? []).filter((id) => id !== labelId));
                           }}
                           keywords={row.alternative_queries}
-                          query={filterQuery}
-                          visibleText={[displayName, ...row.triggers]}
-                          text={group.variants.flatMap((variant) => [variant.content, ...Object.values(variant.bodies)])}
                           languages={multiLang ? (
                             <LangSwitcher
                               group={group}
@@ -684,7 +674,6 @@ export function SnippetsTable() {
           {totalGroups === 0 ? '0 snippets' : (
             <>
               {startIdx + 1}–{endIdx} of {totalGroups} snippet{totalGroups === 1 ? '' : 's'}
-              {filterQuery.trim().length > 0 ? ` matching "${filterQuery.trim()}"` : ''}
             </>
           )}
         </span>

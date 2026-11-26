@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { searchPlaceholder } from '@/features/search/MasterSearch';
 
-// The one search bar names what it is about to filter (SEARCH-001). The order
+// The one search bar names the section it sits over (SEARCH-001). The order
 // of the two memory cases is the fragile part: a space's own page has to be
 // tested before the index, or every space reads "Search Brains…".
 describe('searchPlaceholder', () => {

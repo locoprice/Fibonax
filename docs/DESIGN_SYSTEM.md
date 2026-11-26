@@ -601,10 +601,11 @@ text around the word, about 40 characters each side, cut at whole words, with `â
 where it was cut. The line is 12 px in the muted text colour and wraps to at most
 two lines in the popup and the menu on a page. The found word is semibold in the
 primary blue, with no background, so it reads the same on a highlighted row.
-Same line for snippets, prompts and Brain items: `SearchReasonLine` on the
-dashboard, `.why` in the popup, `.search-match` on the phone, written in place in
-the `::` and `"""` menus. A field in a text reads as the name it carries, never as
-its code. On the dashboard the piece of text carries `translate="no"`.
+Same line for snippets, prompts and Brain items: `.sbcp-w` in the search window
+(dashboard, popup and phone alike), written in place in the `::` and `"""` menus.
+A field in a text reads as the name it carries, never as its code. The piece of
+text carries `translate="no"`. The lists on the pages no longer draw this line:
+since v3.163.0 they are narrowed by their filters, never by typed text.
 
 On phones, Details opens the existing information sheet, with full metadata,
 a 44px close target and keyboard dismissal. This adapts the approved progressive

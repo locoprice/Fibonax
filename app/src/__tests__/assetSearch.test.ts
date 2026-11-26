@@ -1,21 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import {
-  metadataMatch,
-  readableText,
-  scoreMemoryItem,
-  scorePrompt,
-  scoreSnippet,
-  searchWords,
-  textExcerpt,
-} from '@/lib/searchIndex';
-import type { MemoryItem, Prompt, SnippetRow } from '@/types/database';
 
 // One rule for "does this match, and why" (extension/shared/asset-search.js).
-// The popup, the menu a trigger opens on a page and the phone read the file
-// itself; the dashboard keeps a copy in lib/searchIndex.ts. This suite runs
-// the real module, then holds every reader to it.
+// The search window on every surface and the menus a trigger opens on a page
+// read the file itself. This suite runs the real module, then holds the menus
+// to it; the search window has its own suite (commandPalette.test.ts).
 
 type Why =
   | { kind: 'Keyword' | 'Label'; value: string }
@@ -147,66 +137,7 @@ describe('the shared search rule', () => {
   });
 });
 
-describe("the dashboard's copy of the rule", () => {
-  const texts = [
-    BODY,
-    'İstanbul PARKING is near',
-    'Write about {topic} as {"tone": "calm"}',
-    '{case: upper}{formtext: name=city}{/case} and {button: label=Go}x{/button}',
-    'Line one\n\nline   two\ttabbed',
-    'The café opens at 8, and the RÉSUMÉ goes to Zoë',
-    '',
-  ];
-  const queries = ['parking', 'hours parking', 'ARRIVAL parking', 'welcome', 'clients', 'formtext', 'city', 'two line', 'cafe', 'resume zoe', 'nope', ''];
-
-  it('reads words and texts as the module does', () => {
-    for (const query of queries) expect(searchWords(query)).toEqual(S.words(query));
-    for (const text of texts) expect(readableText(text)).toBe(S.readable(text));
-  });
-
-  it('cuts the same piece of text around the word', () => {
-    for (const text of texts) {
-      for (const query of queries) {
-        const wanted = S.words(query);
-        expect(textExcerpt(text, wanted)).toEqual(S.excerpt(text, wanted));
-      }
-    }
-  });
-
-  it('gives the reason the module gives', () => {
-    const shown = ['Arrival', '::arr'];
-    const keywords = ['welcome note'];
-    const labels = ['Clients'];
-    for (const text of texts) {
-      for (const query of queries) {
-        const found = S.look(query, { shown, keywords, labels, text: [text] });
-        if (found) expect(metadataMatch(query, shown, labels, keywords, [text])).toEqual(found.why);
-      }
-    }
-  });
-
-  it('lists exactly what the module finds', () => {
-    for (const text of texts) {
-      for (const query of queries.filter((value) => value !== '')) {
-        const snippet = { name: 'Arrival', triggers: ['::arr'], alternative_queries: ['welcome note'], content: text, bodies: { IT: 'due parole' } } as unknown as SnippetRow;
-        expect(scoreSnippet(snippet, query, ['Clients']) > 0).toBe(
-          S.look(query, { shown: ['Arrival', '::arr'], keywords: ['welcome note'], labels: ['Clients'], text: [text, 'due parole'] }) !== null,
-        );
-        const prompt = { name: 'Arrival', shortcut: 'arr', intent_category: 'Writing', content: text } as unknown as Prompt;
-        expect(scorePrompt(prompt, query, ['Clients']) > 0).toBe(
-          S.look(query, { shown: ['Arrival', 'arr'], also: ['Writing'], labels: ['Clients'], text: [text] }) !== null,
-        );
-        const item = { name: 'Arrival', summary: 'welcome note', body: text } as unknown as MemoryItem;
-        expect(scoreMemoryItem(item, query, 'Clients') > 0).toBe(
-          S.look(query, { shown: ['Arrival'], also: ['Clients'], text: ['welcome note', text] }) !== null,
-        );
-      }
-    }
-  });
-});
-
-describe('the extension reads the module', () => {
-  const POPUP = read('extension', 'popup', 'popup.js');
+describe('the menus on a page read the module', () => {
   const CONTENT = read('extension', 'content', 'content.js');
 
   interface Row {
@@ -222,17 +153,6 @@ describe('the extension reads the module', () => {
   }
   type Look = { rank: number; why: Why } | null;
 
-  const popup = new Function(
-    'SBAssetSearch',
-    ['function snipLook(s,q){', 'function promptLook(p,q){', 'function whyLineHtml(look){']
-      .map((signature) => sliceFunction(POPUP, signature))
-      .join('\n') + '\nreturn { snipLook, promptLook, whyLineHtml };',
-  )(S) as {
-    snipLook: (s: Row, q: string) => Look;
-    promptLook: (p: Row, q: string) => Look;
-    whyLineHtml: (look: Look) => string;
-  };
-
   const textMin = Number(/var PICKER_TEXT_MIN = (\d+);/.exec(CONTENT)?.[1]);
   const menu = new Function(
     'SBAssetSearch',
@@ -246,27 +166,6 @@ describe('the extension reads the module', () => {
   };
 
   const snippet: Row = { id: 's1', title: 'Arrival', shortcut: '::arr', body: BODY, bodies: { IT: 'Vi aspettiamo al parcheggio' }, alternative_queries: ['welcome note'] };
-
-  it('the popup finds a snippet by a word of its text, in any language it carries', () => {
-    expect(popup.snipLook(snippet, 'parking')?.why?.kind).toBe('Text');
-    expect(popup.snipLook(snippet, 'parcheggio')?.why?.kind).toBe('Text');
-    expect(popup.snipLook(snippet, 'welcome')?.why).toEqual({ kind: 'Keyword', value: 'welcome note' });
-    expect(popup.snipLook(snippet, 'arr')).toEqual({ rank: 2, why: null });
-    expect(popup.snipLook(snippet, 'refund')).toBeNull();
-  });
-
-  it('the popup finds a prompt by a word of its text', () => {
-    const prompt: Row = { id: 'p1', name: 'Summarise', shortcut: 'sum', intent_category: 'Writing', content: 'Keep the tone calm and short.' };
-    expect(popup.promptLook(prompt, 'calm')?.why?.kind).toBe('Text');
-    expect(popup.promptLook(prompt, 'writing')).toEqual({ rank: 1, why: null });
-    expect(popup.promptLook(prompt, 'invoice')).toBeNull();
-  });
-
-  it('the popup prints the reason under the row, and nothing when the row says it', () => {
-    expect(popup.whyLineHtml(popup.snipLook(snippet, 'parking'))).toContain('<div class="why">');
-    expect(popup.whyLineHtml(popup.snipLook(snippet, 'parking'))).toContain('<mark>parking</mark>');
-    expect(popup.whyLineHtml(popup.snipLook(snippet, 'arr'))).toBe('');
-  });
 
   it('the menu on a page finds the same rows, and knows which were found by name', () => {
     const byText = menu._pickerLook(snippet, 'parking');

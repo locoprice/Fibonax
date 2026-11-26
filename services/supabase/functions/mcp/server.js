@@ -37,7 +37,7 @@
 // What the app receives is one of our own keys, so it can do exactly what a
 // link can do and is listed and switched off in the same Settings card.
 
-export const SERVER_VERSION = '3.166.0';
+export const SERVER_VERSION = '3.166.1';
 
 /** Protocol versions this server speaks, newest first. */
 export const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];

@@ -166,12 +166,6 @@ body .sbcp{--cp-top:55px;--cp-h:440px}
 /* The count carries the weight; the unit stays muted, so a column of these reads
    as numbers with a label rather than as sentences. */
 .i-usen{font-weight:600;color:var(--sb-ink)}
-/* Why a search found this row when its name does not say so: the keyword, the
-   label, or the piece of its text around the word (shared/asset-search.js).
-   One style for snippets, prompts and Brain items. */
-.why{font-size:var(--sb-fs-12);color:var(--sb-ink-muted);line-height:1.4;margin-top:3px;overflow-wrap:anywhere;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.why mark{background:none;color:var(--sb-azure);font-weight:600}
 
 /* ── STATUS BADGE (STATUS-ICONS-001) ──
    Mirrors the dashboard's StatusBadge component (app/src/components/shared/).
@@ -325,11 +319,11 @@ body .sbcp{--cp-top:55px;--cp-h:440px}
 .d-edit:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px;border-radius:var(--sb-r-sm)}
 .d-edit svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-/* ── EMPTY / SEARCH-ALL ── */
+/* ── EMPTY ── */
 .empty{padding:36px 20px;text-align:center;color:var(--sb-ink-subtle);font-size:var(--sb-fs-13);line-height:1.7}
 .empty small{color:var(--sb-ink-subtle)}
-.searchall,.lib-link{margin-top:12px;height:34px;padding:0 14px;border-radius:var(--sb-r-md);border:1px solid var(--sb-line);background:var(--sb-bg);color:var(--sb-azure);font-size:var(--sb-fs-12);font-weight:600;font-family:inherit;cursor:pointer}
-.searchall:hover,.lib-link:hover{background:var(--sb-azure-bg);border-color:var(--sb-azure-bdr)}
+.lib-link{margin-top:12px;height:34px;padding:0 14px;border-radius:var(--sb-r-md);border:1px solid var(--sb-line);background:var(--sb-bg);color:var(--sb-azure);font-size:var(--sb-fs-12);font-weight:600;font-family:inherit;cursor:pointer}
+.lib-link:hover{background:var(--sb-azure-bg);border-color:var(--sb-azure-bdr)}
 
 /* ── SKELETON ── */
 .sk{background:linear-gradient(90deg,var(--sb-bg-muted) 25%,var(--sb-bg-alt) 50%,var(--sb-bg-muted) 75%);background-size:200% 100%;animation:sbShim var(--sb-dur-loop) linear infinite;border-radius:var(--sb-r-xs)}

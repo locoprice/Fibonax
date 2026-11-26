@@ -19,9 +19,7 @@ import { buildFolderShares } from '@/lib/folderShares';
 import { matchesLabelFilter } from '@/lib/labelUtils';
 import { expandWithDescendants } from '@/lib/labelTree';
 import { useLabelStore } from '@/stores/labelStore';
-import { useSearchStore } from '@/stores/searchStore';
 import { useTeamLastUseStore } from '@/stores/teamLastUseStore';
-import { labelNameLookup, normalizeQuery, scorePrompt } from '@/lib/searchIndex';
 import { sortPrompts, type PromptSortColumn } from '@/lib/promptSort';
 import { nextSort, type SortDir } from '@/lib/sortToggle';
 import { reviewApi } from '@/lib/api/reviewApi';
@@ -412,13 +410,6 @@ export function useFilteredPrompts(): Prompt[] {
     [labelCatalog, filters.labels],
   );
 
-  // The one search bar in the header owns the text (SEARCH-001).
-  const query = useSearchStore((s) => normalizeQuery(s.query));
-  const labelNamesFor = useMemo(
-    () => labelNameLookup(labelCatalog, labelAssignments),
-    [labelCatalog, labelAssignments],
-  );
-
   return useMemo(() => {
     const list = prompts.filter((p) => {
       if (selectedFolderId !== null && p.folder_id !== selectedFolderId) return false;
@@ -429,7 +420,6 @@ export function useFilteredPrompts(): Prompt[] {
       if (filters.model && p.preferred_model !== filters.model) return false;
       if (filters.complexity && p.complexity_level !== filters.complexity) return false;
       if (filters.outputType && p.output_type !== filters.outputType) return false;
-      if (query !== '' && scorePrompt(p, query, labelNamesFor(p.id)) === 0) return false;
       return true;
     });
     return sortPrompts(list, sortBy, sortDir);
@@ -439,8 +429,6 @@ export function useFilteredPrompts(): Prompt[] {
     selectedFolderId,
     labelAssignments,
     labelScope,
-    query,
-    labelNamesFor,
     sortBy,
     sortDir,
   ]);
@@ -449,9 +437,6 @@ export function useFilteredPrompts(): Prompt[] {
 export function useActiveFilterCount(): number {
   const filters = usePromptStore((s) => s.filters);
   const selectedFolderId = usePromptStore((s) => s.selectedFolderId);
-  // The search text counts as an active filter even though its box now lives in
-  // the header: it is narrowing this list, so "Clear 2 filters" must include it.
-  const query = useSearchStore((s) => normalizeQuery(s.query));
   let count = 0;
   if (selectedFolderId !== null) count++;
   if (filters.type !== 'all') count++;
@@ -461,6 +446,5 @@ export function useActiveFilterCount(): number {
   if (filters.complexity) count++;
   if (filters.outputType) count++;
   if (filters.labels.length > 0) count++;
-  if (query !== '') count++;
   return count;
 }

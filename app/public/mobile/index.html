@@ -272,8 +272,6 @@ body.sb-opening .home-hero,body.sb-opening .home-body{animation:sb-open-rise .5s
 .lib-search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
 .lib-search input::placeholder{color:rgba(255,255,255,.62)}
 .lib-search input:focus{background-color:rgba(255,255,255,.16);border-color:#D8E3FF;box-shadow:0 0 0 3px rgba(216,227,255,.22)}
-.lib-search .psearch-clear{color:#fff;background:rgba(255,255,255,.14)}
-.lib-search .psearch-clear:active{background:rgba(255,255,255,.28)}
 .lib-filter-slot{display:flex;flex-shrink:0}
 /* Filters: the pill beside the search box. It turns white while its panel is
    out, and carries how many filters are on, so an active filter is never
@@ -594,8 +592,6 @@ body.sb-opening .home-hero,body.sb-opening .home-body{animation:sb-open-rise .5s
   background:transparent;color:var(--text2);font:inherit;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0}
 .search-details:active{background:var(--bg-alt)}
 .search-details:focus-visible{outline:2px solid var(--primary-border);outline-offset:2px}
-.search-match{font-size:12px;color:var(--text2);overflow-wrap:anywhere;margin-top:4px}
-.search-match mark{background:none;color:var(--primary-copy);font-weight:600}
 .sb-info-row.is-multi .sb-info-v{white-space:normal;overflow:visible;text-overflow:clip;
   overflow-wrap:anywhere;line-height:1.6}
 .sb-info-item{white-space:nowrap}
@@ -1026,24 +1022,9 @@ select.field-in{appearance:none;-webkit-appearance:none;cursor:pointer;
   color:var(--warn-deep);font-size:13px;font-weight:600}
 
 /* ── ASK FIBONAX (AI-KNOWLEDGE P1) ─────────────
-   The row under each search field, and the sheet that answers from the
-   reader's own snippets and Brains. Same states and words as the dashboard's
+   The sheet that answers from the reader's own snippets and Brains, opened
+   from the search window's sparkle button. Same states and words as the dashboard's
    search panel (app/src/features/search/AskAnswer.tsx). */
-.ask-row{display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;
-  padding:10px 14px;border:none;border-radius:var(--r-in);
-  background:rgba(255,255,255,.16);color:#fff;font:inherit;text-align:left;
-  cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:48px;
-  position:relative;z-index:1}
-.ask-row:active{background:rgba(255,255,255,.26)}
-.ask-row svg{width:20px;height:20px;flex-shrink:0;stroke:currentColor;fill:none;
-  stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.ask-row .ask-lock{display:none;width:16px;height:16px}
-.ask-row.locked{opacity:.7;cursor:not-allowed}
-.ask-row.locked .ask-lock{display:block}
-.ask-row-t{min-width:0;flex:1}
-.ask-row-l{display:block;font-size:14px;font-weight:700}
-.ask-row-q{display:block;font-size:12.5px;font-weight:500;opacity:.85;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ask-body{padding:6px 20px 8px;max-height:72dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .ask-q{font-size:15px;font-weight:700;color:var(--text);margin:4px 0 12px;word-break:break-word;
   white-space:pre-wrap;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
@@ -1417,18 +1398,8 @@ svg.brain-type-icon{stroke-width:1.8}
 .share-folder{background:var(--primary-lt);color:var(--primary-copy)}
 .share-team{background:#F0FDF4;color:#15803D}
 
-/* ── SEARCH: clear button (every band) ── */
+/* ── SEARCH BOX ── */
 .psearch-wrap{position:relative}
-.psearch-clear{
-  position:absolute;top:50%;right:8px;transform:translateY(-50%);
-  width:30px;height:30px;border:none;background:none;cursor:pointer;
-  color:var(--text3);font-size:15px;line-height:1;border-radius:50%;
-  display:none;align-items:center;justify-content:center;padding:0;
-  -webkit-tap-highlight-color:transparent;transition:background .15s
-}
-.psearch-clear:active{background:rgba(0,0,0,.06)}
-.psearch-wrap.has-text .psearch-clear{display:flex}
-.psearch-wrap.has-text input{padding-right:40px}
 
 /* ── PROMPT CARD: pin flag + menu + last-used footer ── */
 .prompt-card{position:relative;padding-right:48px}
@@ -1450,16 +1421,6 @@ svg.brain-type-icon{stroke-width:1.8}
 .prompt-menu:active{background:rgba(0,0,0,.06)}
 .prompt-menu:focus-visible{outline:2px solid var(--primary-border);outline-offset:-2px}
 
-/* ── EMPTY-STATE SUGGESTIONS ── */
-.empty-sug{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.empty-sug-lbl{width:100%;font-size:12px;color:var(--text3);margin-bottom:2px}
-.empty-sug-chip{
-  border:1px solid var(--border);background:var(--card);border-radius:9999px;
-  padding:6px 14px;font-size:13px;font-weight:600;color:var(--primary-copy);
-  cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;
-  min-height:34px;transition:transform .1s
-}
-.empty-sug-chip:active{transform:scale(.96)}
 
 /* ── SNIPPETS + PROMPTS + MEMORY: 2-column grid on medium devices ── */
 @media (min-width:600px){
@@ -1907,15 +1868,9 @@ svg.brain-type-icon{stroke-width:1.8}
       <div class="psearch-wrap" id="srch-wrap">
         <input id="srch" type="search" readonly aria-haspopup="dialog" placeholder="Search snippets…" aria-label="Search snippets"
           autocomplete="off" autocorrect="off" spellcheck="false">
-        <button type="button" id="srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
       <span class="lib-filter-slot" data-filter-slot></span>
     </div>
-    <button type="button" class="ask-row sb-hidden" data-ask-for="srch">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-      <span class="ask-row-t"><span class="ask-row-l">FiboChat</span><span class="ask-row-q"></span></span>
-      <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    </button>
     <div data-filter-panel-slot></div>
   </header>
 
@@ -2037,15 +1992,9 @@ svg.brain-type-icon{stroke-width:1.8}
       <div class="psearch-wrap" id="prompt-srch-wrap">
         <input id="prompt-srch" type="search" readonly aria-haspopup="dialog" placeholder="Search prompts…" aria-label="Search prompts"
           autocomplete="off" autocorrect="off" spellcheck="false">
-        <button type="button" id="prompt-srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
       <span class="lib-filter-slot" data-filter-slot></span>
     </div>
-    <button type="button" class="ask-row sb-hidden" data-ask-for="prompt-srch">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-      <span class="ask-row-t"><span class="ask-row-l">FiboChat</span><span class="ask-row-q"></span></span>
-      <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    </button>
     <div data-filter-panel-slot></div>
   </header>
 
@@ -2097,15 +2046,9 @@ svg.brain-type-icon{stroke-width:1.8}
       <div class="psearch-wrap" id="mem-srch-wrap">
         <input id="mem-srch" type="search" readonly aria-haspopup="dialog" placeholder="Search Brains…" aria-label="Search Brains"
           autocomplete="off" autocorrect="off" spellcheck="false">
-        <button type="button" id="mem-srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
       <span class="lib-filter-slot" data-filter-slot></span>
     </div>
-    <button type="button" class="ask-row sb-hidden" data-ask-for="mem-srch">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-      <span class="ask-row-t"><span class="ask-row-l">FiboChat</span><span class="ask-row-q"></span></span>
-      <svg class="ask-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    </button>
     <div data-filter-panel-slot></div>
   </header>
 
@@ -13610,7 +13553,7 @@ window.SBFillFormEngine = {
 };
 
 /* ── STATE ─────────────────────────────────────── */
-var allSnips=[], allFolders=[], curSnip=null, curVariants=[], curLang='ALL', curFolder='ALL', curSearch='';
+var allSnips=[], allFolders=[], curSnip=null, curVariants=[], curLang='ALL', curFolder='ALL';
 var snippetUsageMap={}, snippetUsageLoaded=false, snippetUsageAvailable=false;
 var snipsLoaded=false, snipsFailed=false;
 /* snippet_id → {used_at, used_by_name} for ORG-SHARED snippets, from the
@@ -13724,7 +13667,7 @@ var LOCK_SVG='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke
 var TEAM_SVG='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
 
 /* ── PROMPTS STATE ──────────────────────────────── */
-var allPrompts=[], promptSearch='',promptsLoaded=false,promptsLoading=false,promptsFailed=false;
+var allPrompts=[], promptsLoaded=false,promptsLoading=false,promptsFailed=false;
 var PROMPT_STRATEGY_CLASS={'CoT':'pstrat-CoT','ToT':'pstrat-ToT','Few-shot':'pstrat-Few-shot','One-shot':'pstrat-One-shot','RAG':'pstrat-RAG','Agentic':'pstrat-Agentic'};
 /* Full column set — kept in parity with the desktop promptsApi so Duplicate
    round-trips every field (blocks, thinking_mode, etc.) without data loss. */
@@ -14373,23 +14316,16 @@ function promptPreview(p){
   var cleaned=SBMemoryPack.labelBrainTokens((p.content||'').replace(/^##\s+\w+\n/gm,'')).trim();
   return cleaned.length>120?cleaned.slice(0,120)+'…':cleaned;
 }
-/* How a prompt answers the search box (the shared rule, see snippetLook):
-   every typed word has to be in its name, category, shortcut, labels or text. */
-function promptLook(p,q){
-  return SBAssetSearch.look(q,{shown:[p.name,p.intent_category,promptPreview(p)],also:[p.shortcut],
-    labels:assetLabelNames(p.id,promptLabelMap,false),text:[p.content]});
-}
-function filterPromptsPreLabel(q){
+function filterPromptsPreLabel(){
   return allPrompts.filter(function(p){
-    if(curCategory!=='ALL'&&(p.intent_category||'')!==curCategory)return false;
-    return !q||!!promptLook(p,q);
+    return curCategory==='ALL'||(p.intent_category||'')===curCategory;
   });
 }
-/* How many prompts the search and the category leave, before labels: the
-   number on the chip of the category that is on. */
+/* How many prompts the category leaves, before labels: the number on the chip
+   of the category that is on. */
 var _promptsPreLabel=0;
-function filterPrompts(q){
-  var pre=filterPromptsPreLabel(q);
+function filterPrompts(){
+  var pre=filterPromptsPreLabel();
   computePromptLabelCounts(pre);
   _promptsPreLabel=pre.length;
   return pre.filter(function(p){return matchesLabels(promptLabelIds(p));});
@@ -14404,51 +14340,26 @@ function promptCategories(){
 }
 function renderPromptList(){
   var el=document.getElementById('prompt-list');
-  var q=promptSearch.trim().toLowerCase();
   var total=allPrompts.length;
-  var filtered=filterPrompts(q);
+  var filtered=filterPrompts();
   paintActiveFilters('prompts',{category:_promptsPreLabel,results:filtered.length});
   // Pinned prompts float to the top; each half keeps its updated_at order.
   var pinnedP=[],restP=[];
   filtered.forEach(function(p){(p.pinned?pinnedP:restP).push(p);});
   filtered=pinnedP.concat(restP);
 
-  // Header count (always total) + live result counter (only while searching).
+  // Header count (always total) + live result counter (only while a filter is on).
   var cnt=document.getElementById('prompts-count');
   if(cnt)cnt.textContent=String(total);
   var meta=document.getElementById('prompt-srch-meta');
   if(meta){
-    // Any facet narrows the list, not only the search box.
-    var narrowed=!!q||curCategory!=='ALL'||!!curLabels.length;
+    var narrowed=curCategory!=='ALL'||!!curLabels.length;
     meta.textContent=filtered.length+' of '+total;
     meta.hidden=!narrowed;
   }
 
   if(!filtered.length){
-    if(q){
-      var cats=promptCategories();
-      var sug='';
-      if(cats.length){
-        sug='<div class="empty-sug"><span class="empty-sug-lbl">Browse by category</span>'
-          +cats.slice(0,6).map(function(c){
-            return '<button type="button" class="empty-sug-chip" data-sug="'+esc(c)+'">'+esc(c)+'</button>';
-          }).join('')+'</div>';
-      }
-      el.innerHTML='<div class="empty"><div class="emo">🔍</div>'
-        +'<p>No prompts match "'+esc(promptSearch)+'"</p>'+sug+'</div>';
-      el.querySelectorAll('.empty-sug-chip').forEach(function(chip){
-        chip.addEventListener('click',function(){
-          var term=this.getAttribute('data-sug')||'';
-          var input=document.getElementById('prompt-srch');
-          if(input)input.value=term;
-          promptSearch=term;
-          syncPromptClear();
-          renderPromptList();
-        });
-      });
-    }else{
-      el.innerHTML=memEmptyHtml('🤖','No prompts yet',LIBRARY_PHONE_HINT);
-    }
+    el.innerHTML=memEmptyHtml('🤖','No prompts yet',LIBRARY_PHONE_HINT);
     return;
   }
 
@@ -14467,7 +14378,6 @@ function renderPromptList(){
     var usageCount=Number(p.usage_count)||0;
     var labels=assetLabelNames(p.id,promptLabelMap,false);
     var details=labels.length?'<button type="button" class="search-details" data-detail-pid="'+esc(p.id)+'" aria-label="Details for '+esc(p.name)+'">Details</button>':'';
-    var reason=q?searchWhyHtml(promptLook(p,q)):'';
     return '<div class="prompt-card'+(isPin?' is-pinned':'')+'" data-pid="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Open prompt '+esc(p.name)+', used '+esc(formatUsageCount(usageCount))+' times">'
       +'<div class="prompt-icon">'+(getFolderById(p.folder_id)?folderIcon(getFolderById(p.folder_id)):PROMPT_SVG)+usageBadgeHtml(usageCount,'prompt')+'</div>'
       +'<div class="prompt-info">'
@@ -14475,7 +14385,6 @@ function renderPromptList(){
         +(preview?'<div class="prompt-preview">'+esc(preview)+'</div>':'')
         +'<div class="prompt-meta">'+reviewChipHtml(p.review_status)+stratBadge+intentBadge+outBadge+share+'</div>'
         +'<div class="prompt-foot"><span class="prompt-when">'+esc(when)+'</span>'+details+'</div>'
-        +reason
       +'</div>'
       +(isPin?'<span class="prompt-pin-flag" role="img" aria-label="Pinned" title="Pinned">'+PIN_SVG+'</span>':'')
       +'<button type="button" class="prompt-menu" data-menu-pid="'+esc(p.id)+'" aria-label="More actions">⋮</button>'
@@ -14513,12 +14422,6 @@ function renderPromptList(){
 }
 function findPrompt(id){
   return allPrompts.find(function(x){return x.id===id;});
-}
-function syncPromptClear(){
-  var wrap=document.getElementById('prompt-srch-wrap');
-  var input=document.getElementById('prompt-srch');
-  if(wrap&&input)wrap.classList.toggle('has-text',!!input.value);
-  syncAskRow('prompt-srch');
 }
 /* A prompt that carries a Brain (its Context block holds a `{brain: …}` token,
    extension/shared/memory-pack.js, here as the generated SBMemoryPack) gets the
@@ -14753,7 +14656,7 @@ var memLoaded=false, memLoading=false, memFailed=false;
 var memReloadQueued=false;
 var curBrain=null;          // id of the Brain on screen; null lists the Brains
 var curMemItem=null;        // the item open in the reader
-var memSearch='', curMemKind='ALL';
+var curMemKind='ALL';
 var MEM_PAGE=1000;          // a full page means there may be more rows
 var MEM_SPACE_SELECT='id,name,description,ico,is_default,created_at,updated_at';
 var MEM_ITEM_SELECT='id,space_id,name,summary,body,kind,metadata,priority,token_estimate,pinned,source_id,created_at,updated_at,review_status';
@@ -14879,22 +14782,6 @@ function memItemPreview(it){
   var text=String(it.summary||'').trim()||String(it.body||'').replace(/\s+/g,' ').trim();
   return text.slice(0,120)+(text.length>120?'…':'');
 }
-/* Search reads what the dashboard's reads: an item's name, summary, body and
-   the name of its Brain; a Brain's name and description. Every typed word has
-   to be somewhere in them (the shared rule, see snippetLook). */
-function memItemLook(it,q){
-  var b=memBrainById(it.space_id);
-  return SBAssetSearch.look(q,{shown:[it.name,memItemPreview(it)],also:[b&&b.name],text:[it.summary,it.body]});
-}
-function memBrainLook(b,q){
-  return SBAssetSearch.look(q,{shown:[b.name,b.description]});
-}
-function memMatchesItem(it,q){
-  return !!memItemLook(it,q);
-}
-function memMatchesBrain(b,q){
-  return !!memBrainLook(b,q);
-}
 
 /* Every live row of a memory table, a page at a time: an uploaded file alone
    can become hundreds of items, and a read that stopped at the server's row
@@ -14971,8 +14858,8 @@ function memBrainCardHtml(b){
   +'</div>';
 }
 /* withBrain names the item's Brain on the card: only where items from several
-   Brains share one list. q is what is typed in the search box, lower case. */
-function memItemCardHtml(it,withBrain,q){
+   Brains share one list. */
+function memItemCardHtml(it,withBrain){
   var b=withBrain?memBrainById(it.space_id):null;
   var preview=memItemPreview(it);
   return '<div class="prompt-card'+(it.pinned?' is-pinned':'')+'" data-mid="'+esc(it.id)+'" role="button" tabindex="0">'
@@ -14986,7 +14873,6 @@ function memItemCardHtml(it,withBrain,q){
         +(b?'<span class="fbadge"><span class="fbadge-ico">'+spaceIcon(b.ico)+'</span>'+esc(b.name)+'</span>':'')
       +'</div>'
       +'<div class="prompt-foot"><span class="prompt-when">Updated '+esc(timeAgo(it.updated_at))+'</span></div>'
-      +(q?searchWhyHtml(memItemLook(it,q)):'')
     +'</div>'
     +(it.pinned?'<span class="prompt-pin-flag" role="img" aria-label="Always attached" title="Always attached">'+PIN_SVG+'</span>':'')
     +'<button type="button" class="prompt-menu" data-mem-menu="item" data-id="'+esc(it.id)+'" aria-label="More actions">⋮</button>'
@@ -15074,19 +14960,18 @@ function renderMemory(){
     list.innerHTML=memEmptyHtml(BRAIN_SVG,'No Brains yet','Create one in the dashboard, or add a ready-made one from the starter library there.');
     return;
   }
-  var q=memSearch.trim().toLowerCase();
-  var narrowed=!!q||curMemKind!=='ALL';
+  var narrowed=curMemKind!=='ALL';
   if(brain){
     var all=memItemsOf(brain.id);
-    var items=all.filter(function(it){return memKindOk(it)&&memMatchesItem(it,q);});
+    var items=all.filter(memKindOk);
     // A kind lists items of that kind, so its chip carries the items found.
     paintActiveFilters('memory',{kind:items.length,results:items.length});
     if(narrowed){meta.textContent=items.length+' of '+all.length;meta.hidden=false;}
     list.innerHTML=!all.length
       ?memEmptyHtml('📝','Nothing in here yet','Tap Add text to write the first item.')
       :!items.length
-        ?memEmptyHtml('🔍','Nothing matches','Try a different search or filter.')
-        :items.map(function(it){return memItemCardHtml(it,false,q);}).join('');
+        ?memEmptyHtml('🔍','Nothing matches','Try a different filter.')
+        :items.map(function(it){return memItemCardHtml(it,false);}).join('');
     return;
   }
   if(!narrowed){
@@ -15094,17 +14979,15 @@ function renderMemory(){
     list.innerHTML=allBrains.map(memBrainCardHtml).join('');
     return;
   }
-  // Searching or filtering from the Brains list reaches into every Brain. A
-  // kind is a kind of item, so it lists items only.
-  var brains=(q&&curMemKind==='ALL')?allBrains.filter(function(b){return memMatchesBrain(b,q);}):[];
-  var hits=allMemItems.filter(function(it){return memKindOk(it)&&memMatchesItem(it,q);});
-  paintActiveFilters('memory',{kind:hits.length,results:brains.length+hits.length});
-  meta.textContent=(brains.length?memPlural(brains.length,'Brain','Brains')+' · ':'')
-    +memPlural(hits.length,'item','items');
+  // Filtering by kind from the Brains list reaches into every Brain. A kind is
+  // a kind of item, so it lists items only.
+  var hits=allMemItems.filter(memKindOk);
+  paintActiveFilters('memory',{kind:hits.length,results:hits.length});
+  meta.textContent=memPlural(hits.length,'item','items');
   meta.hidden=false;
-  list.innerHTML=(!brains.length&&!hits.length)
-    ?memEmptyHtml('🔍','Nothing matches','Try a different search or filter.')
-    :brains.map(memBrainCardHtml).join('')+hits.map(function(it){return memItemCardHtml(it,true,q);}).join('');
+  list.innerHTML=!hits.length
+    ?memEmptyHtml('🔍','Nothing matches','Try a different filter.')
+    :hits.map(function(it){return memItemCardHtml(it,true);}).join('');
 }
 
 /* ── Memory: moving around ── */
@@ -15300,26 +15183,7 @@ function closeMemSheet(now){
 })();
 
 /* ── Memory: wiring for the page and the reader ── */
-function syncMemClear(){
-  var wrap=document.getElementById('mem-srch-wrap');
-  var input=document.getElementById('mem-srch');
-  if(wrap&&input)wrap.classList.toggle('has-text',!!input.value);
-  syncAskRow('mem-srch');
-}
 (function(){
-  var mst;
-  var input=document.getElementById('mem-srch');
-  input.addEventListener('input',function(){
-    clearTimeout(mst);
-    var v=this.value;
-    syncMemClear();
-    mst=setTimeout(function(){memSearch=v;renderMemory();refreshOpenFilterPanel();},150);
-  });
-  document.getElementById('mem-srch-clear').addEventListener('click',function(){
-    input.value='';memSearch='';
-    syncMemClear();renderMemory();refreshOpenFilterPanel();input.focus();
-  });
-
   function activate(card){
     var bid=card.getAttribute('data-bid');
     if(bid){openBrain(bid);return;}
@@ -16178,33 +16042,14 @@ function assetLabelNames(id,map,paths){
     return parent?parent.name+' / '+label.name:label.name;
   }).filter(Boolean);
 }
-/* How a snippet answers the search box. The rule is not defined here: it lives
-   in extension/shared/asset-search.js, inlined above by
-   scripts/sync-asset-search.js, so the popup, the menu on a page and this app
-   find a snippet by the same words. Every typed word has to be somewhere in
-   its name, shortcut, keywords, labels or text. */
-function snippetLook(s,q){
-  return SBAssetSearch.look(q,{shown:[s.title,s.shortcut],keywords:s.alternative_queries,
-    labels:assetLabelNames(s.id,snipLabelMap,false),text:[s.body]});
-}
-function snippetSearchMatches(s,q){
-  return !!snippetLook(s,q);
-}
-/* The line under a card that says why the search found it when its name does
-   not: the keyword, the label, or the piece of its text around the word.
-   Already escaped. '' when the card shows the words itself. */
-function searchWhyHtml(look){
-  return look&&look.why?'<div class="search-match">'+SBAssetSearch.whyHtml(look.why)+'</div>':'';
-}
-function groupMatches(g,q,folder,lang){
+function groupMatches(g,folder,lang){
   // group matches if ANY variant satisfies every active filter
   for(var i=0;i<g.variants.length;i++){
     var s=g.variants[i];
     var ml=lang==='ALL'||s.lang===lang;
     /* A parent folder lists its whole subtree, matching its pill count. */
     var mf=inFolderSubtree(s.folder_id,folder);
-    var ms=snippetSearchMatches(s,q);
-    if(ml&&mf&&ms) return true;
+    if(ml&&mf) return true;
   }
   return false;
 }
@@ -16275,11 +16120,10 @@ function activateSnippet(s,variants){
 var LIST_PAGE=25, listLimit=LIST_PAGE, _listSig=null;
 function renderList(){
   var el=document.getElementById('snip-list');
-  var q=curSearch.trim().toLowerCase();
   _varIndex={};
   _groupIndex={};
   var groups=buildGroups(allSnips).filter(function(g){
-    return groupMatches(g,q,curFolder,curLang);
+    return groupMatches(g,curFolder,curLang);
   });
   // Counts are taken here, before the label filter narrows the set: a chip
   // should report what picking it would give, not what is already showing.
@@ -16291,7 +16135,7 @@ function renderList(){
   // that narrowed it is usually shut by the time you look.
   var snipMeta=document.getElementById('snip-meta');
   if(snipMeta){
-    var filtering=!!curSearch||curFolder!=='ALL'||curLang!=='ALL'||!!curLabels.length;
+    var filtering=curFolder!=='ALL'||curLang!=='ALL'||!!curLabels.length;
     snipMeta.textContent=groups.length+' of '+groupCount(allSnips);
     snipMeta.hidden=!filtering;
   }
@@ -16307,20 +16151,15 @@ function renderList(){
       :memEmptyHtml('✍️','No snippets yet',LIBRARY_PHONE_HINT);
     return;
   }
-  // A new search, folder or language is a new list, so it starts at page one.
-  var sig=JSON.stringify([curSearch,curFolder,curLang,curLabels,curLabelMode]);
+  // A new folder or language is a new list, so it starts at page one.
+  var sig=JSON.stringify([curFolder,curLang,curLabels,curLabelMode]);
   if(sig!==_listSig){_listSig=sig;listLimit=LIST_PAGE;}
   var matched=groups.length;
   groups=groups.slice(0,listLimit);
   var remaining=matched-groups.length;
   el.innerHTML=groups.map(function(g){
     var active=pickActiveVariant(g,curLang,curFolder);
-    // When only another translation matches, show that matching variant.
-    if(q&&!snippetSearchMatches(active,q)){
-      active=g.variants.find(function(v){return (curLang==='ALL'||v.lang===curLang)&&inFolderSubtree(v.folder_id,curFolder)&&snippetSearchMatches(v,q);})||active;
-    }
     var detailButton='<button type="button" class="search-details" data-detail-id="'+esc(vkey(active))+'" aria-label="Details for '+esc(active.title||'Snippet')+'">Details</button>';
-    var reason=q?searchWhyHtml(snippetLook(active,q)):'';
     g.variants.forEach(function(v){ _varIndex[vkey(v)]=v; });
     _groupIndex[g.key]=g.variants;
     var fbadge='';
@@ -16347,7 +16186,6 @@ function renderList(){
           +fbadge
           +sharingBadge(active)
         +'</div>'
-        +reason
       +'</div>'
       +(isPin?'<span class="snip-pin-flag" role="img" aria-label="Pinned" title="Pinned">'+PIN_SVG+'</span>':'')
       +'<button type="button" class="snip-menu" data-menu-id="'+esc(vkey(active))+'" aria-label="More actions">⋮</button>'
@@ -17249,29 +17087,6 @@ document.getElementById('ftabs-right').addEventListener('click',function(){scrol
 document.getElementById('ftabs').addEventListener('scroll',updateFtabsArrows,{passive:true});
 window.addEventListener('resize',updateFtabsArrows);
 
-/* ── SEARCH ─────────────────────────────────────── */
-function syncSnipClear(){
-  var wrap=document.getElementById('srch-wrap');
-  var input=document.getElementById('srch');
-  if(wrap&&input)wrap.classList.toggle('has-text',!!input.value);
-  syncAskRow('srch');
-}
-var st;
-document.getElementById('srch').addEventListener('input',function(){
-  clearTimeout(st);var v=this.value;
-  syncSnipClear();
-  st=setTimeout(function(){curSearch=v;renderList();refreshOpenFilterPanel();},150);
-});
-(function(){
-  var clearBtn=document.getElementById('srch-clear');
-  if(!clearBtn)return;
-  clearBtn.addEventListener('click',function(){
-    var input=document.getElementById('srch');
-    input.value='';curSearch='';
-    syncSnipClear();renderList();input.focus();
-  });
-})();
-
 /* ── BACK ───────────────────────────────────────── */
 document.getElementById('back-btn').addEventListener('click',function(){
   curSnip=null;
@@ -17534,21 +17349,6 @@ var ASK_ERRORS={
 var ASK_FALLBACK='Could not reach FiboChat. Try again.';
 var askState=null, _askSeq=0, _askSheetTimer=null;
 
-function syncAskRow(inputId){
-  var input=document.getElementById(inputId);
-  var row=document.querySelector('.ask-row[data-ask-for="'+inputId+'"]');
-  if(!input||!row)return;
-  var q=input.value.trim();
-  row.classList.toggle('sb-hidden',q.length<ASK_MIN);
-  row.classList.toggle('locked',!askOn());
-  row.setAttribute('aria-disabled',askOn()?'false':'true');
-  if(askOn())row.removeAttribute('title');
-  else row.setAttribute('title',PRO_SOON_LABEL);
-  /* A phone has no hover, so a locked row says why in plain sight. */
-  row.querySelector('.ask-row-q').textContent=askOn()
-    ?'Answer “'+q.slice(0,ASK_MAX)+'” from your snippets and Brains'
-    :PRO_SOON_LABEL;
-}
 function askValid(b){
   return !!b&&b.ok===true&&['answered','not_covered','no_sources'].indexOf(b.status)!==-1
     &&typeof b.answer==='string'&&typeof b.missing==='string'&&typeof b.conflicts==='string'
@@ -17786,13 +17586,6 @@ function askOpenSource(ref){
         showToast(askGaps(res.answer)>0?copied+'. Fill in the parts in brackets before you send it.':copied+' ✓');
       },function(){showToast('Could not copy. Select the text and copy it instead.');});
     }
-  });
-  document.querySelectorAll('.ask-row').forEach(function(row){
-    row.addEventListener('click',function(){
-      if(!askOn()){showToast(PRO_SOON_LABEL);return;}
-      var input=document.getElementById(row.getAttribute('data-ask-for'));
-      if(input){input.blur();openAsk(input.value);}
-    });
   });
 })();
 
@@ -18832,27 +18625,6 @@ mountQuickActions();
 document.querySelectorAll('[data-qa="prompts"]').forEach(function(b){ b.addEventListener('click',showPrompts); });
 document.querySelectorAll('[data-qa="snippets"]').forEach(function(b){ b.addEventListener('click',showSnippetsHome); });
 document.querySelectorAll('[data-qa="memory"]').forEach(function(b){ b.addEventListener('click',showMemory); });
-(function(){
-  var pst;
-  var input=document.getElementById('prompt-srch');
-  input.addEventListener('input',function(){
-    clearTimeout(pst);
-    var v=this.value;
-    syncPromptClear();
-    pst=setTimeout(function(){promptSearch=v;renderPromptList();},150);
-  });
-  var clearBtn=document.getElementById('prompt-srch-clear');
-  if(clearBtn){
-    clearBtn.addEventListener('click',function(){
-      input.value='';
-      promptSearch='';
-      syncPromptClear();
-      renderPromptList();
-      input.focus();
-    });
-  }
-})();
-
 /* Interactive Steps switch on the Prompts page. The module keeps it in
    localStorage under the key the dashboard reads too. */
 var promptStepsOn=false;
@@ -19195,12 +18967,11 @@ function renderCategoryFacet(host){
     renderPromptList();refreshOpenFilterPanel();syncFilterHeader();
   });
 }
-/* Memory's facet: the kind of item, counted over what the search leaves in the
-   open Brain, or in every Brain from the list. Counts follow the label facet:
+/* Memory's facet: the kind of item, counted over the open Brain, or over every
+   Brain from the list. Counts follow the label facet:
    they say what picking a kind would give. */
 function renderMemKindFacet(host){
-  var q=memSearch.trim().toLowerCase();
-  var pool=(curBrain?memItemsOf(curBrain):allMemItems).filter(function(it){return memMatchesItem(it,q);});
+  var pool=curBrain?memItemsOf(curBrain):allMemItems;
   if(!pool.length&&curMemKind==='ALL'){
     host.innerHTML='<div class="mfacet-empty">'+(memLoaded?'No items to filter here yet.':'Loading your Brains…')+'</div>';
     return;

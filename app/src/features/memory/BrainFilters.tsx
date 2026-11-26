@@ -8,7 +8,6 @@ import {
   FilterDropdown,
   SortControl,
 } from '@/components/shared/AssetFilterBar';
-import { normalizeQuery } from '@/lib/searchIndex';
 import {
   CONTENTS_OPTIONS,
   UPDATED_OPTIONS,
@@ -16,7 +15,6 @@ import {
 } from '@/lib/spaceFilter';
 import type { SpaceSortColumn } from '@/lib/spaceSort';
 import { useMemoryStore } from '@/stores/memoryStore';
-import { useSearchStore } from '@/stores/searchStore';
 
 // The bar under the Brains header: the same bar as Prompts and Snippets, with
 // the pieces a Brain has. Brains have no folders, strategies or labels, so the
@@ -47,11 +45,7 @@ export function BrainFilters({ count, trashCount, onOpenTrash, atlasOn, onToggle
   const sortBy = useMemoryStore((s) => s.spaceSortBy);
   const sortDir = useMemoryStore((s) => s.spaceSortDir);
   const setSpaceSort = useMemoryStore((s) => s.setSpaceSort);
-  // The one search bar in the header owns the text (SEARCH-001). It narrows
-  // this list, so it counts as a filter and "Clear" empties it, as on Prompts.
-  const searching = useSearchStore((s) => normalizeQuery(s.query) !== '');
-  const clearSearch = useSearchStore((s) => s.clear);
-  const activeCount = countActiveSpaceFilters(filters) + (searching ? 1 : 0);
+  const activeCount = countActiveSpaceFilters(filters);
 
   return (
     <AssetFilterBar
@@ -102,13 +96,7 @@ export function BrainFilters({ count, trashCount, onOpenTrash, atlasOn, onToggle
         options={UPDATED_OPTIONS}
         onSelect={(updated) => setSpaceFilters({ updated })}
       />
-      <ClearFiltersButton
-        count={activeCount}
-        onClear={() => {
-          resetSpaceFilters();
-          clearSearch();
-        }}
-      />
+      <ClearFiltersButton count={activeCount} onClear={resetSpaceFilters} />
     </AssetFilterBar>
   );
 }

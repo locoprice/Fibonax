@@ -18,8 +18,6 @@ import { SpaceDialog } from '@/features/memory/SpaceDialog';
 import { SpaceIcon } from '@/features/memory/spaceIcon';
 import { TrashPanel, type TrashPanelRow } from '@/features/memory/TrashPanel';
 import { useMemoryStore } from '@/stores/memoryStore';
-import { useSearchStore } from '@/stores/searchStore';
-import { normalizeQuery, scoreSpace } from '@/lib/searchIndex';
 import { filterSpaces } from '@/lib/spaceFilter';
 import { sortSpaces } from '@/lib/spaceSort';
 import { useUiStore } from '@/stores/uiStore';
@@ -148,9 +146,6 @@ export function MemoryPage() {
 
   const [dialogTarget, setDialogTarget] = useState<'new' | MemorySpace | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
-  // The one search bar in the header owns the text (SEARCH-001).
-  const query = useSearchStore((s) => s.query);
-  const clearSearch = useSearchStore((s) => s.clear);
 
   useEffect(() => {
     if (!loaded) void loadSpaces();
@@ -162,22 +157,15 @@ export function MemoryPage() {
     if (atlasOn && !allItemsLoaded) void loadAllItems();
   }, [atlasOn, allItemsLoaded, loadAllItems]);
 
-  const filtered = useMemo(() => {
-    const needle = normalizeQuery(query);
-    const matching = needle ? spaces.filter((space) => scoreSpace(space, needle) > 0) : spaces;
-    return sortSpaces(filterSpaces(matching, totals, filters), totals, sortBy, sortDir);
-  }, [spaces, totals, query, filters, sortBy, sortDir]);
+  const filtered = useMemo(
+    () => sortSpaces(filterSpaces(spaces, totals, filters), totals, sortBy, sortDir),
+    [spaces, totals, filters, sortBy, sortDir],
+  );
 
   const atlasBrains = useMemo(
     () => (atlasOn ? toAtlasBrains(filtered, totals, allItemsLoaded ? allItems : null) : []),
     [atlasOn, filtered, totals, allItems, allItemsLoaded],
   );
-
-  /** Empties the filter menus and the search box together, as the bar's Clear does. */
-  function clearFilters() {
-    resetSpaceFilters();
-    clearSearch();
-  }
 
   const trashPanelRows = useMemo<TrashPanelRow[]>(
     () =>
@@ -290,13 +278,13 @@ export function MemoryPage() {
             description={
               spaces.length === 0
                 ? 'A Brain holds the facts one kind of work needs. Create one, or start from the library.'
-                : 'Try a different search, or clear the filters.'
+                : 'Try other filters, or clear them.'
             }
             action={
               spaces.length === 0 ? (
                 <LibraryEmptyActions section="brains" newLabel="New Brain" onNew={() => setDialogTarget('new')} />
               ) : (
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <Button variant="ghost" size="sm" onClick={resetSpaceFilters}>
                   Clear filters
                 </Button>
               )
