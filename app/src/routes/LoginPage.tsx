@@ -52,12 +52,13 @@ export function LoginPage() {
 
   if (status === 'authed') {
     // Phones land here from a magic link — hand them to the mobile companion,
-    // unless they were on their way to answer a team invitation, which renders
-    // at any width.
+    // unless they were on their way to answer a team invitation or to connect
+    // an AI app, which render at any width.
     if (
       typeof window !== 'undefined' &&
       window.matchMedia('(max-width: 1023px)').matches &&
-      !next.startsWith('/invite')
+      !next.startsWith('/invite') &&
+      !next.startsWith('/connect')
     ) {
       void leaveForMobile();
       return null;

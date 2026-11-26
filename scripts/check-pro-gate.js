@@ -99,7 +99,6 @@ check('the phone reads its switches only through the plan check',
 
 // ── 3. Every entry point reads its switch and shows the lock ───────────────
 const ENTRY_POINTS = [
-  ['ask', 'app/src/features/search/GlobalSearch.tsx'],
   ['draft', 'app/src/components/shared/DraftWithAi.tsx'],
   ['translate', 'app/src/features/snippets/NewSnippetDialog.tsx'],
   ['labels', 'app/src/features/labels/LabelSuggestions.tsx'],
@@ -112,10 +111,18 @@ for (const [feature, file] of ENTRY_POINTS) {
   check(file.split('/').pop() + ' reads the ' + feature + ' switch', source.includes("isProFeatureAvailable('" + feature + "')"));
   check(file.split('/').pop() + ' shows the lock and its tooltip', source.includes('<ProSoonLock') && source.includes('<ProSoon'));
 }
+// FiboChat's entry point is the search window every surface shares
+// (extension/shared/command-palette.js). The window draws the lock itself, so
+// each surface hands it the label, and the window refuses to ask while it has one.
+const PALETTE = read('extension/shared/command-palette.js');
+const PALETTE_HOST = read('app/src/features/search/CommandPalette.tsx');
+check('CommandPalette.tsx reads the ask switch and hands the search window the lock',
+  /get locked\(\) \{\s*return isProFeatureAvailable\('ask'\) \? '' : PRO_SOON_LABEL;\s*\}/.test(PALETTE_HOST));
+check('the phone hands the search window the same lock', MOBILE.includes("get locked(){return askOn()?'':PRO_SOON_LABEL;}"));
+check('the search window shows the lock in plain sight', PALETTE.includes("'<p class=\"sbcp-ask-lock\">' + esc(locked) + '</p>'"));
+check('the search window asks nothing while the lock is on', PALETTE.includes('if (!cfg.ask || cfg.ask.locked || text.length < askMin()) return;'));
 check('the phone guards the question before any request', /function openAsk\(question\)\{\s*if\(!askOn\(\)\)return;/.test(MOBILE));
-check('a tap on a locked phone row says the label', MOBILE.includes('if(!askOn()){showToast(PRO_SOON_LABEL);return;}'));
-check('the phone shows the lock on all three Ask rows', (MOBILE.match(/class="ask-lock"/g) || []).length === 3);
-check('the phone row shows the label in plain sight, since a phone has no hover', MOBILE.includes(':PRO_SOON_LABEL;'));
+check('the phone says the label in plain sight, since a phone has no hover', MOBILE.includes(':PRO_SOON_LABEL;'));
 check('the phone reads no picture while its switch is off', /function readPicture\(file\)\{\s*if\(!pictureOn\(\)\|\|/.test(MOBILE));
 check('a tap on the locked Read a picture row says the label', MOBILE.includes("if(!pictureOn()){showToast(PRO_SOON_LABEL);return;}"));
 check('the locked Read a picture row shows the lock and the label in plain sight',
@@ -168,8 +175,7 @@ check('the phone sends Fill from link from one place, fillFromLink', (MOBILE.mat
   && fnBody('function fillFromLink(){').includes('/functions/v1/read-link'));
 check('the phone calls no other AI function', phoneCalls.every((fn) => PHONE_AI_FUNCTIONS.includes(fn) || PHONE_FREE_FUNCTIONS.includes(fn)),
   phoneCalls.join(', '));
-check('the search panel only opens an answer when the Ask switch is on', read(ENTRY_POINTS[0][1]).includes('const canAsk = askAvailable && showAskRow;'));
-check('Translate does nothing while locked', read(ENTRY_POINTS[2][1]).includes('if (!translateAvailable) return;'));
+check('Translate does nothing while locked', read('app/src/features/snippets/NewSnippetDialog.tsx').includes('if (!translateAvailable) return;'));
 // Add a picture uploads to storage: the window that uploads is mounted only
 // while its switch is on, and the upload has one caller.
 check('the picture window exists only while Add a picture is on',

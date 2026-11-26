@@ -54,7 +54,7 @@ import {
 } from '@/lib/pictureToken';
 
 export type BodyItemKind =
-  | 'text' | 'number' | 'date' | 'time' | 'menu' | 'button' | 'auto' | 'greeting' | 'seasonal' | 'mine' | 'picture';
+  | 'text' | 'number' | 'date' | 'time' | 'menu' | 'button' | 'auto' | 'greeting' | 'seasonal' | 'mine' | 'picture' | 'cursor';
 
 /** The details `{my: …}` can print, as the token writes them. Must match DETAILS in shared/my-details.js. */
 const MY_WORDS: Readonly<Record<string, string>> = { name: 'Your name', company: 'Company name', 'job title': 'Job title' };
@@ -73,6 +73,13 @@ export function myWordOf(raw: string): string {
  * nothing can be lost by it.
  */
 export type SeasonalConfig = Record<string, never>;
+
+/**
+ * The cursor position (`{cursor}`): where the caret waits once the text is in a
+ * field on a page. It has no settings, so there is nothing to edit: it is
+ * placed, or taken out. The engine reads the bare word only (`_isCursorHead`).
+ */
+export const CURSOR_TOKEN = '{cursor}';
 
 interface ItemBase {
   /** Where the element sits. `end` is exclusive. */
@@ -94,7 +101,8 @@ export type BodyItem =
   | (ItemBase & { kind: 'greeting'; cfg: null })
   | (ItemBase & { kind: 'seasonal'; cfg: SeasonalConfig })
   | (ItemBase & { kind: 'mine'; cfg: null })
-  | (ItemBase & { kind: 'picture'; cfg: PictureConfig | null });
+  | (ItemBase & { kind: 'picture'; cfg: PictureConfig | null })
+  | (ItemBase & { kind: 'cursor'; cfg: null });
 
 const BUTTON_CLOSE = '{/button}';
 
@@ -145,7 +153,7 @@ function nameIn(raw: string): string {
 
 export function parseFormTextToken(raw: string): FormTextConfig | null {
   const attrs = attrsOf(raw);
-  if (!attrs || !onlyKeys(attrs, ['name', 'default', 'format', 'link'])) return null;
+  if (!attrs || !onlyKeys(attrs, ['name', 'default', 'format', 'long', 'link'])) return null;
   const name = attrs.get('name') ?? '';
   if (!isValidFieldName(name)) return null;
   const format = attrs.get('format');
@@ -153,6 +161,7 @@ export function parseFormTextToken(raw: string): FormTextConfig | null {
   const cfg: FormTextConfig = {
     name,
     default: attrs.get('default') ?? '',
+    ...(attrs.get('long') === 'yes' ? { long: true } : {}),
     ...(format === 'name' ? { personName: true } : format === 'plain' ? { personName: false } : {}),
     link: readLinkAttr(innerOf(raw)),
   };
@@ -261,6 +270,8 @@ function kindOf(raw: string): BodyItemKind | null {
   if (/^\{\s*seasonal\s*\}$/i.test(raw)) return 'seasonal';
   if (/^\{\s*my\s*:/i.test(raw)) return 'mine';
   if (/^\{\s*picture:/i.test(raw)) return 'picture';
+  // The bare word only, as the engine reads it: {cursors} stays a field.
+  if (/^\{\s*cursor\s*\}$/i.test(raw)) return 'cursor';
   return null;
 }
 
@@ -291,6 +302,8 @@ function itemOf(kind: BodyItemKind, start: number, end: number, raw: string): Bo
       return { ...base, kind, name: '', cfg: null };
     case 'picture':
       return { ...base, kind, name: '', cfg: parsePictureToken(raw) };
+    case 'cursor':
+      return { ...base, kind, name: '', cfg: null };
   }
 }
 
@@ -331,7 +344,8 @@ export function bodyItems(body: string): BodyItem[] {
 export function itemDetail(item: BodyItem): string {
   switch (item.kind) {
     case 'text':
-      return item.cfg?.default ? `Starts with "${item.cfg.default}"` : 'Text';
+      if (item.cfg?.default) return `Starts with "${item.cfg.default}"`;
+      return item.cfg?.long ? 'Long text' : 'Text';
     case 'number':
       return item.cfg?.label || (item.cfg?.format === 'currency' ? `Currency, ${item.cfg.currency}` : item.cfg?.format === 'percent' ? 'Percent' : 'Number');
     case 'date':
@@ -357,6 +371,8 @@ export function itemDetail(item: BodyItem): string {
       const size = PICTURE_SIZE_OPTIONS.find((o) => o.value === item.cfg?.size)?.label;
       return size ? `${size} picture` : 'Picture';
     }
+    case 'cursor':
+      return 'Where the cursor waits after inserting';
   }
 }
 
@@ -369,6 +385,7 @@ export function itemTitle(item: BodyItem): string {
   if (item.kind === 'seasonal') return 'Seasonal line';
   if (item.kind === 'mine') return MY_WORDS[myWordOf(item.raw)] ?? 'Your details';
   if (item.kind === 'picture') return item.cfg?.alt || 'Picture';
+  if (item.kind === 'cursor') return 'Cursor position';
   return 'Unnamed';
 }
 

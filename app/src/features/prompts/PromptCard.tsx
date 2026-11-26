@@ -6,7 +6,6 @@ import { ActionMenu, ActionMenuItem, ActionMenuSeparator } from '@/components/ui
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchDetails } from '@/components/shared/SearchDetails';
-import { useSearchStore } from '@/stores/searchStore';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { TeamLastUseLine } from '@/components/shared/TeamLastUseLine';
 import { ReviewStatusBadge } from '@/components/shared/ReviewStatusBadge';
@@ -81,7 +80,6 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
   const resolveUserName = useUserNameResolver();
   const labelCatalog = useLabelStore((s) => s.labels);
   const labelAssignments = useLabelStore((s) => s.promptLabels);
-  const query = useSearchStore((s) => s.query);
   const labels = useMemo(
     () => resolveLabels(prompt.id, labelAssignments, labelCatalog),
     [prompt.id, labelAssignments, labelCatalog],
@@ -228,9 +226,6 @@ export const PromptCard = memo(function PromptCard({ prompt }: PromptCardProps) 
             const store = useLabelStore.getState();
             return store.setPromptLabels(prompt.id, (store.promptLabels.get(prompt.id) ?? []).filter((id) => id !== labelId));
           }}
-          query={query}
-          visibleText={[prompt.name, prompt.shortcut ?? '', prompt.intent_category ?? '', preview]}
-          text={[prompt.content]}
         />
         {prompt.intent_category && (
           <Badge variant="neutral" className="text-[11px]">

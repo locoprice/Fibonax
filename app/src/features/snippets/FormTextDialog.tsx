@@ -84,7 +84,10 @@ export function FormTextDialog({
   // null until the author touches the switch: it follows the field name, the
   // way the engine does, so naming a field nome_ospite turns it on by itself.
   const [personChoice, setPersonChoice] = useState<boolean | null>(null);
-  const personName = personChoice ?? isPersonNameKey(name);
+  // A long text holds several lines and prints as typed, so it is never a
+  // person's name: the switch below it goes away while this one is on.
+  const [long, setLong] = useState(false);
+  const personName = !long && (personChoice ?? isPersonNameKey(name));
   const [link, setLink] = useState<LinkRuleDraft>(TEXT_LINK_START);
 
   const nameRef = useRef<HTMLInputElement | null>(null);
@@ -98,20 +101,27 @@ export function FormTextDialog({
       setName(initial.name);
       setDefaultValue(initial.default);
       setPersonChoice(initial.personName ?? null);
+      setLong(initial.long === true);
       setLink(linkDraftFrom(initial.link, 'after'));
       return;
     }
     setName(newName || suggestedName);
     setDefaultValue(newDefault);
     setPersonChoice(null);
+    setLong(false);
     setLink(TEXT_LINK_START);
   }, [open, suggestedName, initial, newName, newDefault]);
 
   const nameValid = isValidFieldName(name);
 
   const token = useMemo(
-    () => buildFormTextToken({ name, default: defaultValue, personName, link: linkFromDraft(link) }),
-    [name, defaultValue, personName, link],
+    () =>
+      buildFormTextToken(
+        long
+          ? { name, default: defaultValue, long: true, link: linkFromDraft(link) }
+          : { name, default: defaultValue, personName, link: linkFromDraft(link) },
+      ),
+    [name, defaultValue, personName, long, link],
   );
 
   function handleSubmit() {
@@ -135,7 +145,7 @@ export function FormTextDialog({
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>{initial ? 'Edit text field' : 'Insert text field'}</DialogTitle>
           <DialogDescription>
-            One line of text, typed in when the snippet expands.
+            {long ? 'Several lines of text' : 'One line of text'}, typed in when the snippet expands.
           </DialogDescription>
         </DialogHeader>
 
@@ -213,7 +223,22 @@ export function FormTextDialog({
             </p>
           </div>
 
+          {/* ── Long text ── */}
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="form-text-long" className="text-xs font-medium text-ink-muted">
+                Long text
+              </label>
+              <Switch id="form-text-long" checked={long} onChange={setLong} />
+            </div>
+            <p className={HINT}>
+              A taller box for several lines, like a note or an address. Enter starts a new
+              line.
+            </p>
+          </div>
+
           {/* ── Person name ── */}
+          {!long && (
           <div>
             <div className="flex items-center justify-between gap-3">
               <label htmlFor="form-text-person" className="text-xs font-medium text-ink-muted">
@@ -227,6 +252,7 @@ export function FormTextDialog({
               itself when the field&apos;s name includes name, nome, nombre or nom.
             </p>
           </div>
+          )}
 
           {/* ── From a link ── */}
           <LinkRuleFields

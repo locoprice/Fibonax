@@ -87,8 +87,8 @@ check('the phone calls ask-sprintbrain', /\/functions\/v1\/ask-sprintbrain/.test
 check('the dashboard writes feedback to knowledge_feedback', /from\('knowledge_feedback'\)/.test(API));
 check('the phone writes feedback to knowledge_feedback', /\/rest\/v1\/knowledge_feedback/.test(MOBILE));
 check(
-  'the phone offers Ask under all three search fields',
-  ['srch', 'prompt-srch', 'mem-srch'].every((id) => MOBILE.includes('class="ask-row sb-hidden" data-ask-for="' + id + '"')),
+  'the phone offers Ask from the search window, and answers in its own sheet',
+  MOBILE.includes('show:function(el,question){sbSearchWindow.close();openAsk(question);}'),
 );
 
 // ── 5. Contextual replies ──────────────────────────────────────────────────

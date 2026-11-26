@@ -42,3 +42,53 @@ export function aiAppName(value: string): string | null {
   const name = value.replace(/\s+/g, ' ').trim().slice(0, AI_APP_NAME_MAX).trim();
   return name ? name : null;
 }
+
+/**
+ * "Sign in with Fibonax": what an AI app asks for when it sends a person to
+ * /connect (through the server function's /authorize, which has already
+ * checked the app and its return address).
+ */
+export interface ConnectRequest {
+  clientId: string;
+  redirectUri: string;
+  codeChallenge: string;
+  state: string;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The request in the page's address, or null when a part is missing or malformed. */
+export function readConnectRequest(search: string): ConnectRequest | null {
+  const q = new URLSearchParams(search);
+  const clientId = q.get('client_id') ?? '';
+  const redirectUri = q.get('redirect_uri') ?? '';
+  const codeChallenge = q.get('code_challenge') ?? '';
+  if (!UUID_RE.test(clientId) || !redirectUri || !/^[A-Za-z0-9_-]{43}$/.test(codeChallenge)) return null;
+  return { clientId, redirectUri, codeChallenge, state: q.get('state') ?? '' };
+}
+
+/** `redirectUri` with `params` added to its query, keeping what it already has. */
+export function connectReturnUrl(redirectUri: string, params: Record<string, string>): string {
+  const url = new URL(redirectUri);
+  for (const [name, value] of Object.entries(params)) {
+    if (value !== '') url.searchParams.set(name, value);
+  }
+  return url.toString();
+}
+
+/**
+ * Where the person goes after answering, in words: the site's name for a web
+ * address, "this computer" for an app listening locally, and the app's own
+ * scheme for an installed app. Shown on the page so nobody approves a name
+ * without seeing where it leads.
+ */
+export function connectReturnPlace(redirectUri: string): string {
+  try {
+    const url = new URL(redirectUri);
+    if (url.protocol === 'https:') return url.hostname;
+    if (url.protocol === 'http:') return 'an app on this computer';
+    return `the ${url.protocol.replace(':', '')} app on this device`;
+  } catch {
+    return 'your AI app';
+  }
+}

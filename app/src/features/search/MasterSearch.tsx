@@ -1,20 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Command, Search, X } from 'lucide-react';
+import { Command, Search } from 'lucide-react';
 import { useSearchStore } from '@/stores/searchStore';
 import { sectionForPath, spaceForPath } from '@/lib/searchIndex';
 
 // The one search bar (SEARCH-001).
 //
-// Snippets, prompts and memory each used to carry their own box. This one sits
-// in the header and does both readings of the same text: typing filters the page
-// you are on, Enter or ⌘K opens the panel that looks across all three.
+// It sits in the header, where it has always been, and looks the way it
+// always has. Since the search window arrived it no longer takes the typing
+// itself: a click, Enter or Ctrl+K opens the window (features/search/
+// CommandPalette.tsx), and the typing happens there. So it is a button that
+// looks like a field, which is also what a screen reader is told it is.
 //
-// It lives in the topbar, which mounts once for the whole dashboard, so the
-// query survives navigation unless this component clears it.
+// It lives in the topbar, which mounts once for the whole dashboard.
 
 /**
- * What the bar says it will search, given where you are.
+ * What the bar says, given where you are.
  *
  * Exported for its test. The wording follows one pattern with the noun swapped,
  * the way the three sections word everything else.
@@ -24,7 +25,6 @@ export function searchPlaceholder(pathname: string): string {
   if (section === 'snippet') return 'Search snippets…';
   if (section === 'prompt') return 'Search prompts…';
   if (section === 'memory') {
-    // A space's own page filters the notes inside it; the index filters spaces.
     return spaceForPath(pathname) !== null ? 'Search this Brain…' : 'Search Brains…';
   }
   return 'Search everything…';
@@ -32,20 +32,11 @@ export function searchPlaceholder(pathname: string): string {
 
 export function MasterSearch() {
   const { pathname } = useLocation();
-  const input = useSearchStore((s) => s.input);
-  const setInput = useSearchStore((s) => s.setInput);
-  const clear = useSearchStore((s) => s.clear);
+  const open = useSearchStore((s) => s.paletteOpen);
   const openPalette = useSearchStore((s) => s.openPalette);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Each section starts clean. Carrying "invoice" from snippets into prompts
-  // would land you on a filtered page that reads as an empty one.
-  useEffect(() => {
-    clear();
-  }, [pathname, clear]);
-
-  // ⌘K from anywhere. It used to open a prompts-only palette from the prompts
-  // page; it now opens the one panel from every page.
+  // Ctrl+K from anywhere. While the window is open it takes the same keys
+  // itself and closes on them, so this only ever opens.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -59,43 +50,22 @@ export function MasterSearch() {
 
   return (
     <div className="relative min-w-0 flex-1 md:max-w-[360px]">
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
-      <input
-        ref={inputRef}
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && input.trim() !== '') {
-            e.preventDefault();
-            openPalette();
-          } else if (e.key === 'Escape' && input !== '') {
-            e.preventDefault();
-            clear();
-          }
-        }}
-        aria-label={searchPlaceholder(pathname)}
-        placeholder={searchPlaceholder(pathname)}
-        className="h-9 w-full rounded-[10px] border border-line bg-bg-alt pl-9 pr-12 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
-      />
-      {input === '' ? (
+      <button
+        type="button"
+        data-search-bar
+        onClick={openPalette}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-keyshortcuts="Control+K Meta+K"
+        className="flex h-9 w-full cursor-text items-center rounded-[10px] border border-line bg-bg-alt pl-9 pr-12 text-left text-sm text-ink-subtle focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
+      >
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
+        <span className="truncate">{searchPlaceholder(pathname)}</span>
         <kbd className="pointer-events-none absolute right-2 top-1/2 inline-flex h-6 -translate-y-1/2 items-center gap-1 rounded-md border border-line bg-card px-1.5 text-[11px] font-medium text-ink-subtle">
           <Command className="h-3 w-3" />
           K
         </kbd>
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            clear();
-            inputRef.current?.focus();
-          }}
-          aria-label="Clear search"
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle transition-colors hover:text-ink"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
+      </button>
     </div>
   );
 }

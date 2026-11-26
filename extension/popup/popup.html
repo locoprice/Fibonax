@@ -81,6 +81,11 @@ html,body{
 }
 .sinp:focus{border-color:var(--sb-azure);box-shadow:var(--sb-shadow-glow)}
 .sinp::placeholder{color:var(--sb-ink-subtle)}
+/* The search window the bar opens (shared/command-palette.css), sized for the
+   popup: under the header, with room for a few more rows than its default.
+   Written with `body` in front so it outranks the shared sheet, which loads
+   after this one. */
+body .sbcp{--cp-top:55px;--cp-h:440px}
 .tpill{font-size:var(--sb-fs-10);font-family:var(--sb-mono);font-weight:700;color:var(--sb-azure);background:var(--sb-azure-bg);border-radius:var(--sb-r-pill);padding:5px 11px;white-space:nowrap;flex-shrink:0}
 .srow.pmode .tpill{color:var(--sb-lang-multi);background:var(--sb-lang-multi-bg)}
 .srow.pmode .sinp:focus{border-color:var(--sb-lang-multi);box-shadow:0 0 0 3px rgba(124,58,237,.14)}
@@ -161,12 +166,6 @@ html,body{
 /* The count carries the weight; the unit stays muted, so a column of these reads
    as numbers with a label rather than as sentences. */
 .i-usen{font-weight:600;color:var(--sb-ink)}
-/* Why a search found this row when its name does not say so: the keyword, the
-   label, or the piece of its text around the word (shared/asset-search.js).
-   One style for snippets, prompts and Brain items. */
-.why{font-size:var(--sb-fs-12);color:var(--sb-ink-muted);line-height:1.4;margin-top:3px;overflow-wrap:anywhere;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.why mark{background:none;color:var(--sb-azure);font-weight:600}
 
 /* ── STATUS BADGE (STATUS-ICONS-001) ──
    Mirrors the dashboard's StatusBadge component (app/src/components/shared/).
@@ -226,7 +225,10 @@ html,body{
    uppercase instead of readable choices. */
 .d-frow>label{font-size:var(--sb-fs-10);font-weight:600;color:var(--sb-ink-subtle);text-transform:uppercase;letter-spacing:.04em}
 .d-frow input,.d-frow select{width:100%;height:34px;border:1px solid var(--sb-line);border-radius:var(--sb-r-sm);padding:0 10px;font-size:var(--sb-fs-13);color:var(--sb-ink);background:var(--sb-bg);font-family:inherit;outline:none;transition:border-color var(--sb-dur-fast),box-shadow var(--sb-dur-fast)}
-.d-frow input:focus,.d-frow select:focus{border-color:var(--sb-azure);box-shadow:var(--sb-shadow-glow)}
+.d-frow input:focus,.d-frow select:focus,.d-frow textarea:focus{border-color:var(--sb-azure);box-shadow:var(--sb-shadow-glow)}
+/* A long text field: the same box, taller, growing downwards only. */
+.d-frow textarea{width:100%;min-height:68px;border:1px solid var(--sb-line);border-radius:var(--sb-r-sm);padding:8px 10px;font-size:var(--sb-fs-13);font-weight:700;line-height:1.4;color:var(--sb-ink);background:var(--sb-bg);font-family:inherit;outline:none;resize:vertical;transition:border-color var(--sb-dur-fast),box-shadow var(--sb-dur-fast)}
+.d-frow textarea::placeholder{font-weight:400}
 /* What the person types is bold and in full ink, so it stands apart from the
    snippet's own words around it, which stay muted and regular. The hint stays
    regular, so an empty box never looks filled. [data-fkey] keeps the Adjust
@@ -317,11 +319,11 @@ html,body{
 .d-edit:focus-visible{outline:2px solid var(--sb-azure);outline-offset:2px;border-radius:var(--sb-r-sm)}
 .d-edit svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-/* ── EMPTY / SEARCH-ALL ── */
+/* ── EMPTY ── */
 .empty{padding:36px 20px;text-align:center;color:var(--sb-ink-subtle);font-size:var(--sb-fs-13);line-height:1.7}
 .empty small{color:var(--sb-ink-subtle)}
-.searchall,.lib-link{margin-top:12px;height:34px;padding:0 14px;border-radius:var(--sb-r-md);border:1px solid var(--sb-line);background:var(--sb-bg);color:var(--sb-azure);font-size:var(--sb-fs-12);font-weight:600;font-family:inherit;cursor:pointer}
-.searchall:hover,.lib-link:hover{background:var(--sb-azure-bg);border-color:var(--sb-azure-bdr)}
+.lib-link{margin-top:12px;height:34px;padding:0 14px;border-radius:var(--sb-r-md);border:1px solid var(--sb-line);background:var(--sb-bg);color:var(--sb-azure);font-size:var(--sb-fs-12);font-weight:600;font-family:inherit;cursor:pointer}
+.lib-link:hover{background:var(--sb-azure-bg);border-color:var(--sb-azure-bdr)}
 
 /* ── SKELETON ── */
 .sk{background:linear-gradient(90deg,var(--sb-bg-muted) 25%,var(--sb-bg-alt) 50%,var(--sb-bg-muted) 75%);background-size:200% 100%;animation:sbShim var(--sb-dur-loop) linear infinite;border-radius:var(--sb-r-xs)}
@@ -735,7 +737,10 @@ html,body{
   <div class="srow">
     <div class="search-wrap">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="sinp" id="sq" type="search" placeholder="Search snippets…" autofocus aria-label="Search snippets or shortcut">
+      <!-- The bar opens the search window (shared/command-palette.js): a click,
+           Ctrl+K, or the first letter typed while it has focus. It takes no
+           text itself, so it is read-only. -->
+      <input class="sinp" id="sq" type="search" placeholder="Search snippets…" autofocus readonly aria-haspopup="dialog" aria-label="Search snippets or shortcut">
     </div>
     <div class="tpill" id="tp"><span class="isc-pfx">::</span>quoteEN</div>
   </div>
@@ -973,6 +978,9 @@ html,body{
 <script src="../shared/tooltip.js"></script>
 <script src="../shared/snippet-stats.js"></script>
 <script src="../shared/asset-search.js"></script>
+<script src="../shared/recents.js"></script>
+<script src="../shared/command-palette.js"></script>
+<link rel="stylesheet" href="../shared/command-palette.css">
 <script src="../shared/memory-chunk.js"></script>
 <script src="../shared/memory-pack.js"></script>
 <script src="../auth/auth.js"></script>

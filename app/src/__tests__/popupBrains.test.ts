@@ -36,15 +36,9 @@ interface Item {
   summary?: string;
   body?: string;
 }
-interface Brain {
-  name: string;
-  description?: string;
-}
 interface PopupBrains {
   brainSize: (n: number) => string;
   brainStatsLine: (nBrains: number, nItems: number | null) => string;
-  brainItemLook: (it: Item, q: string, brainName: string) => { rank: number; why: unknown } | null;
-  brainLook: (b: Brain, q: string) => { rank: number; why: unknown } | null;
   brainBlock: (items: Item[]) => string;
 }
 
@@ -52,21 +46,17 @@ const POPUP = read('extension', 'popup', 'popup.js');
 const pack = loadModule<{ formatInjectedBlock: (p: { items: Array<{ name: string; text: string }> }) => string }>(
   read('extension', 'shared', 'memory-pack.js'),
 );
-const search = loadModule<unknown>(read('extension', 'shared', 'asset-search.js'));
 const popup = new Function(
   'SBMemoryPack',
-  'SBAssetSearch',
   [
     'function brainSize(n){',
     'function brainStatsLine(nBrains, nItems){',
-    'function brainItemLook(it, q, brainName){',
-    'function brainLook(b, q){',
     'function brainBlock(items){',
   ]
     .map((sig) => sliceFunction(POPUP, sig))
     .join('\n') +
-    '\nreturn { brainSize, brainStatsLine, brainItemLook, brainLook, brainBlock };',
-)(pack, search) as PopupBrains;
+    '\nreturn { brainSize, brainStatsLine, brainBlock };',
+)(pack) as PopupBrains;
 
 const sbVersionBelow = new Function(
   sliceFunction(read('extension', 'background', 'background.js'), 'function sbVersionBelow(a, b) {') +
@@ -84,38 +74,6 @@ describe('the Brains tab words', () => {
     expect(popup.brainStatsLine(3, null)).toBe('3 Brains');
     expect(popup.brainStatsLine(1, 1)).toBe('1 Brain · 1 item');
     expect(popup.brainStatsLine(2, 40)).toBe('2 Brains · 40 items');
-  });
-});
-
-describe('Brains tab search', () => {
-  const item: Item = { name: 'Refund rules', summary: 'When money goes back', body: 'Within 14 days.' };
-
-  it("reads an item's name, summary, body and the name of its Brain", () => {
-    expect(!!popup.brainItemLook(item, 'refund', 'Policies')).toBe(true);
-    expect(!!popup.brainItemLook(item, 'money', 'Policies')).toBe(true);
-    expect(!!popup.brainItemLook(item, '14 days', 'Policies')).toBe(true);
-    expect(!!popup.brainItemLook(item, 'polic', 'Policies')).toBe(true);
-    expect(!!popup.brainItemLook(item, 'invoice', 'Policies')).toBe(false);
-  });
-
-  it('wants every typed word, in any order, and shows the sentence a word was found in', () => {
-    expect(!!popup.brainItemLook(item, 'days refund', 'Policies')).toBe(true);
-    expect(!!popup.brainItemLook(item, 'days invoice', 'Policies')).toBe(false);
-    expect(popup.brainItemLook(item, 'days', 'Policies')?.why).toEqual({ kind: 'Text', before: 'Within 14 ', hit: 'days', after: '.' });
-    expect(popup.brainItemLook(item, 'refund', 'Policies')).toEqual({ rank: 2, why: null });
-  });
-
-  it("reads a Brain's name and description", () => {
-    const brain: Brain = { name: 'Policies', description: 'What we promise customers' };
-    expect(!!popup.brainLook(brain, 'polic')).toBe(true);
-    expect(!!popup.brainLook(brain, 'promise')).toBe(true);
-    expect(!!popup.brainLook(brain, 'invoice')).toBe(false);
-  });
-
-  it('lets everything through an empty search, and survives missing fields', () => {
-    expect(!!popup.brainItemLook({ name: 'x' }, '', '')).toBe(true);
-    expect(!!popup.brainLook({ name: 'x' }, '')).toBe(true);
-    expect(!!popup.brainItemLook({ name: 'x' }, 'y', '')).toBe(false);
   });
 });
 

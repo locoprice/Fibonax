@@ -97,6 +97,8 @@ export interface SbFillField {
   otherText: string;
   /** Author-requested width in characters; 0 when unset. */
   cols: number;
+  /** A text field that holds several lines (`long=yes`): drawn as a taller box. */
+  long: boolean;
   default: string;
   value: string;
   /** The prose immediately before/after the token, so a row reads like the body. */
@@ -217,6 +219,11 @@ export interface SbFillFormViewModel {
    * preview draws: `preview` leaves the pictures out.
    */
   parts: SbPreviewPart[] | null;
+  /**
+   * Where the caret lands in `preview` once the text is in a field on a page
+   * (`{cursor}`), or -1 for the end. Only the page places a caret.
+   */
+  cursor: number;
   /**
    * How each date and time field prints, ready to hand straight to
    * `resolveBody`. A surface that resolves the body itself must pass this too,

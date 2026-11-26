@@ -140,7 +140,7 @@ export interface MemoryApi {
   documentUrl(storagePath: string): Promise<string>;
 
   listItems(spaceId: string, includeTrashed?: boolean): Promise<MemoryItem[]>;
-  /** Live items across every space. Feeds the one search bar's panel (SEARCH-001). */
+  /** Live items across every space. Feeds the search window (SEARCH-001). */
   listAllItems(): Promise<MemoryItem[]>;
   /** Returns the item id, new or existing. Appends a version and an audit entry. */
   saveItem(input: SaveMemoryItemInput): Promise<string>;

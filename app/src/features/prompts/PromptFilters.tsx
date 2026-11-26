@@ -14,7 +14,6 @@ import { FolderIcon } from '@/lib/folderIcons';
 import { FolderShareBadge } from '@/features/org/FolderTree';
 import { LabelFilter } from '@/features/labels/LabelFilter';
 import { usePromptStore, useActiveFilterCount } from '@/stores/promptStore';
-import { useSearchStore } from '@/stores/searchStore';
 import type { PromptSortColumn } from '@/lib/promptSort';
 import type { Folder, IntentCategory, Prompt, StrategyType } from '@/types/database';
 
@@ -112,9 +111,6 @@ export const PromptFilters = memo(function PromptFilters({ onManageLabels }: Pro
   const sortBy = usePromptStore((s) => s.sortBy);
   const sortDir = usePromptStore((s) => s.sortDir);
   const setSortBy = usePromptStore((s) => s.setSortBy);
-  // The search text lives in the header bar now (SEARCH-001), so clearing the
-  // filters has to reach across and empty a box this page does not own.
-  const clearSearch = useSearchStore((s) => s.clear);
   const activeCount = useActiveFilterCount();
 
   return (
@@ -149,13 +145,7 @@ export const PromptFilters = memo(function PromptFilters({ onManageLabels }: Pro
         onChange={(labels) => setFilters({ labels })}
         onManage={onManageLabels}
       />
-      <ClearFiltersButton
-        count={activeCount}
-        onClear={() => {
-          resetFilters();
-          clearSearch();
-        }}
-      />
+      <ClearFiltersButton count={activeCount} onClear={resetFilters} />
     </AssetFilterBar>
   );
 });

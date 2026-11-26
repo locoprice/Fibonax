@@ -637,7 +637,19 @@ const expansionCases = [
   ['{A} giorn(o/i), {B} giorn(o/i)', { A: '1', B: '0' }],
   ['1.000 item(s), 1,00 item(s), A1 item(s), item(s)', {}],
   ['{if: A > 0}{A} item(s){endif}', { A: '1' }],
+  // LONG TEXT: what is typed prints as written, line breaks and all, and is
+  // never re-cased as a name, whatever the field is called.
+  ['Note:\n{formtext: name=guest_name; long=yes}\nBye {guest_name}', { guest_name: 'first line\nsecond line' }],
+  ['{formtext: name=NOTE; long=yes; default=none}', {}],
 ];
+// A long text in a formatted text breaks its lines with a tag, and stays text.
+for (const [body, vals] of [['<p>{formtext: name=NOTE; long=yes}</p>', { NOTE: 'a<b\r\nc\nd' }]]) {
+  const gotE = engine.resolveBody(body, Object.assign({}, vals), { html: true });
+  const gotM = mobile.resolveBody(body, Object.assign({}, vals), { html: true });
+  if (gotE !== '<p>a&lt;b<br>c<br>d</p>' || gotM !== gotE) {
+    fail('formatted long text: engine ' + JSON.stringify(gotE) + ', mobile ' + JSON.stringify(gotM));
+  }
+}
 // The same in a formatted text, where the number and the word may sit in
 // different tags.
 for (const [body, vals] of [['<b>{A}</b> item(s) and {B}&nbsp;<i>day(s)</i>', { A: '1', B: '2' }]]) {
@@ -722,6 +734,38 @@ if (mobile.sbTokenFieldKey('seasonal') !== '' || mobile.sbTokenFieldKey('seasona
     engine.extractFields('{seasonal} {seasonally}').join() !== 'seasonally') {
   fail('{seasonal} must not be a field, and {seasonally} must stay one, on the engine and the phone');
 }
+// CURSOR POSITION: {cursor} is never a field and prints nothing, on the engine
+// and on the phone, as text and as a layout, and keeps the line it stands on.
+// Only a caller that asks (cursorMark) is told where the first one stood.
+if (mobile.sbTokenFieldKey('cursor') !== '' || mobile.sbTokenFieldKey('cursors') !== 'cursors' ||
+    engine.extractFields('{cursor} {Cursor} {cursors}').join() !== 'cursors') {
+  fail('{cursor} must not be a field, and {cursors} must stay one, on the engine and the phone');
+}
+const cursorCases = [
+  ['Hi {A},\n\n{cursor}\n\nBye', { A: 'Ada' }, 'Hi Ada,\n\n\n\nBye', 9],
+  ['{ CURSOR }start', {}, 'start', 0],
+  ['end{cursor}', {}, 'end', 3],
+  ['{if: A > 1}in {cursor}here{endif} and {cursor}there', { A: '2' }, 'in here and there', 3],
+  ['{if: A > 1}in {cursor}here{endif} and {cursor}there', { A: '0' }, ' and there', 5],
+  ['{case: upper}ab{cursor}cd{/case}', {}, 'ABCD', 2],
+  ['no mark at all', {}, 'no mark at all', -1],
+];
+for (const [body, vals, want, at] of cursorCases) {
+  const plainE = engine.resolveBody(body, Object.assign({}, vals));
+  const plainM = mobile.resolveBody(body, Object.assign({}, vals));
+  const htmlE = engine.resolveBody(body, Object.assign({}, vals), { html: true });
+  const htmlM = mobile.resolveBody(body, Object.assign({}, vals), { html: true });
+  if (plainE !== want || plainM !== want || htmlE !== htmlM || htmlE.indexOf(engine.CURSOR_MARK) !== -1) {
+    fail('{cursor} must print nothing: ' + JSON.stringify(body) + ' -> engine ' + JSON.stringify(plainE) +
+      ', mobile ' + JSON.stringify(plainM));
+  }
+  const split = engine.sbSplitCursor(engine.resolveBody(body, Object.assign({}, vals), { cursorMark: engine.CURSOR_MARK }));
+  if (split.text !== want || split.at !== at) {
+    fail('cursor position of ' + JSON.stringify(body) + ' is ' + split.at + ' in ' + JSON.stringify(split.text) +
+      ', expected ' + at);
+  }
+}
+console.log('OK Cursor position: prints nothing on engine and phone, found where asked (' + cursorCases.length + ' cases)');
 // Without an answer from a fill form, both ask the page's own SBSeason, and
 // a wish carrying the account's details asks SBMyDetails.
 const myDetails = require(path.join(__dirname, '..', 'extension', 'shared', 'my-details.js'));
@@ -867,6 +911,14 @@ const fieldCfgCases = [
   '{formtext: name=nome; format=plain}',
   '{formtext: name=guest_name; FORMAT=Plain; default=cliente}',
   '{formtext: name=guest_name}',
+  // LONG TEXT: long=yes on a text field. Both parsers must mark it long and
+  // plain, or the phone draws one line where the page draws several. Anything
+  // but yes is a one-line field, and a number is never long.
+  '{formtext: name=NOTE; long=yes}',
+  '{formtext: name=guest_name; LONG = Yes; default=none}',
+  '{formtext: name=NOTE; long=yes; format=name; label=Your note; link=after:Note}',
+  '{formtext: name=NOTE; long=no}',
+  '{formtext: name=N; type=number; long=yes}',
   '{formdate: name=CHECKIN; default=2026-08-06}',
   // NUMBER FIELD — the type and format ride on {formtext:} rather than a token
   // of their own, so both parsers must read the same attributes off the same

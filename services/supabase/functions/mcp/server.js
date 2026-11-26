@@ -19,11 +19,25 @@
 // message (or a batch, for older clients) and gets one JSON answer; there is no
 // session and no event stream, so GET answers 405 as the protocol allows.
 //
-// The key: `Authorization: Bearer <key>` when the AI app lets a person set a
-// header, otherwise `?key=<key>` in the link itself, which is what the link
-// from Settings carries because most AI apps only take a link. Never logged.
+// The key reaches this server in one of two ways, and is never logged:
+// - `?key=<key>` in the link itself: the link a person copies from Settings.
+// - `Authorization: Bearer <key>`: what an AI app sends after the person
+//   connected it with "Sign in with Fibonax" (OAuth 2.1, below), or when the
+//   app lets a person set a header by hand.
+//
+// "Sign in with Fibonax" is what the directories of Claude and ChatGPT ask
+// for. This file serves its public addresses; the database decides everything
+// (20261125130000_ai_app_sign_in.sql) and the person approves on the
+// dashboard's /connect page:
+//   /.well-known/oauth-protected-resource     where to sign in for this server
+//   /.well-known/oauth-authorization-server   the addresses below, and PKCE S256
+//   /register    an AI app registers its name and return addresses
+//   /authorize   checks the app, then sends the person to the dashboard
+//   /token       a one-time code, or a refresh secret, for a 1 hour key
+// What the app receives is one of our own keys, so it can do exactly what a
+// link can do and is listed and switched off in the same Settings card.
 
-export const SERVER_VERSION = '3.161.0';
+export const SERVER_VERSION = '3.167.0';
 
 /** Protocol versions this server speaks, newest first. */
 export const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
@@ -41,7 +55,7 @@ export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, content-type, accept, mcp-session-id, mcp-protocol-version, last-event-id',
-  'Access-Control-Expose-Headers': 'mcp-session-id',
+  'Access-Control-Expose-Headers': 'mcp-session-id, www-authenticate',
 };
 
 /** Every sentence an AI app can pass on to the person, in one place. */
@@ -55,6 +69,8 @@ export const TEXT = {
   unreachable: 'Fibonax could not be reached just now. Try again in a moment.',
   limitPrompt: "Today's free prompt uses are used up and there are no FiboTokens left. Add FiboTokens at " + PRICING + ' or try again tomorrow.',
   limitBrain: "Today's free Brain uses are used up and there are no FiboTokens left. Add FiboTokens at " + PRICING + ' or try again tomorrow.',
+  signIn: 'Connect Fibonax again: the connection has ended or was switched off.',
+  badRequest: 'This connection request is not valid. Go back to your AI app and connect Fibonax again.',
   nothingFound: 'Nothing matched. Try other words, or browse with list_prompts and list_brains.',
   deprecated: 'Marked deprecated in Fibonax: check it is still right before relying on it.',
 };
@@ -141,13 +157,33 @@ export function toolDefinitions(canSave) {
 /** A tool failure the AI app relays to the person, as opposed to a protocol error. */
 class ToolProblem extends Error {}
 
-/** The key from the Authorization header, else from ?key= in the link; null when neither is a key. */
-export function keyFrom(request) {
+/**
+ * The key and how it came: { key, signedIn }. `signedIn` is true for the
+ * Authorization header, where a key that stopped working must answer 401 so
+ * the AI app refreshes it or asks the person to connect again. Null when
+ * neither the header nor ?key= in the link holds a key.
+ */
+export function keySource(request) {
   const header = request.headers.get('authorization') || '';
   const bearer = /^Bearer\s+(\S+)$/i.exec(header.trim());
-  if (bearer && KEY_RE.test(bearer[1])) return bearer[1];
+  if (bearer && KEY_RE.test(bearer[1])) return { key: bearer[1], signedIn: true };
   const fromLink = new URL(request.url).searchParams.get('key');
-  return fromLink && KEY_RE.test(fromLink.trim()) ? fromLink.trim() : null;
+  return fromLink && KEY_RE.test(fromLink.trim()) ? { key: fromLink.trim(), signedIn: false } : null;
+}
+
+/** The key alone, wherever it came from; null when there is none. */
+export function keyFrom(request) {
+  const source = keySource(request);
+  return source ? source.key : null;
+}
+
+/** `redirect` with `params` added to its query, keeping what it already has. */
+export function withParams(redirect, params) {
+  const url = new URL(redirect);
+  for (const [name, value] of Object.entries(params)) {
+    if (value != null && value !== '') url.searchParams.set(name, value);
+  }
+  return url.toString();
 }
 
 /** `prompt:<uuid>` → { kind: 'prompt', id }, a bare uuid → { kind: null, id }; null when it is neither. */
@@ -181,10 +217,18 @@ function jsonResult(value) {
  *   that is not valid), or throws { rateLimited: true } / any other error.
  * deps.pack → extension/shared/memory-pack.js.
  * deps.log(message) → where operational errors go. Never given a key.
+ * deps.rpc(name, params) → one of the mcp_oauth_* database functions.
+ * deps.publicUrl → this server's public address, without a trailing slash.
+ * deps.consentUrl → the dashboard page where a person approves an AI app.
+ * deps.openaiChallenge → OpenAI's domain check text, when there is one.
  */
 export function createMcpServer(deps) {
   const { callDb, pack } = deps;
   const log = deps.log || (() => {});
+  const publicUrl = String(deps.publicUrl || '').replace(/\/+$/, '');
+  // Keys the database refused during the request in hand. Two requests with
+  // one key agree on whether it works, so sharing the mark between them is safe.
+  const refused = new Set();
 
   // One database call, with its refusals turned into the sentence the person reads.
   async function db(key, action, args) {
@@ -196,7 +240,10 @@ export function createMcpServer(deps) {
       log('mcp_call ' + action + ' failed: ' + (error && error.message ? error.message : String(error)));
       throw new ToolProblem(TEXT.unreachable);
     }
-    if (data == null) throw new ToolProblem(TEXT.notValid);
+    if (data == null) {
+      refused.add(key);
+      throw new ToolProblem(TEXT.notValid);
+    }
     if (data.error === 'no_prompts') throw new ToolProblem(TEXT.noPrompts);
     if (data.error === 'no_save') throw new ToolProblem(TEXT.noSave);
     if (data.error === 'not_found') throw new ToolProblem(TEXT.notFound);
@@ -210,6 +257,7 @@ export function createMcpServer(deps) {
   async function abilities(key) {
     try {
       const who = await callDb(key, 'whoami', {});
+      if (who == null) refused.add(key);
       return { prompts: !!(who && who.prompts), save: !!(who && who.save) };
     } catch (error) {
       log('whoami failed: ' + (error && error.message ? error.message : String(error)));
@@ -412,7 +460,7 @@ export function createMcpServer(deps) {
   }
 
   // One JSON-RPC request → its answer object (result or error), or null for a notification.
-  async function answer(key, message) {
+  async function answer(key, message, signedIn) {
     const isRequest = message && typeof message === 'object' && 'id' in message && message.id !== null;
     if (!message || typeof message !== 'object' || typeof message.method !== 'string') {
       return isRequest ? rpcError(message.id, -32600, 'Invalid request') : null;
@@ -422,6 +470,8 @@ export function createMcpServer(deps) {
     const params = message.params && typeof message.params === 'object' ? message.params : {};
 
     if (method === 'initialize') {
+      // A signed-in app learns at once that its key ended, and refreshes it.
+      if (signedIn) await abilities(key);
       const asked = params.protocolVersion;
       return rpcResult(id, {
         protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : DEFAULT_PROTOCOL,
@@ -473,9 +523,153 @@ export function createMcpServer(deps) {
     return rpcError(id, -32601, 'Method not found: ' + method);
   }
 
+  // ── Sign in with Fibonax ────────────────────────────────────────────────
+
+  const authServer = () => ({
+    issuer: publicUrl,
+    authorization_endpoint: publicUrl + '/authorize',
+    token_endpoint: publicUrl + '/token',
+    registration_endpoint: publicUrl + '/register',
+    response_types_supported: ['code'],
+    grant_types_supported: ['authorization_code', 'refresh_token'],
+    code_challenge_methods_supported: ['S256'],
+    token_endpoint_auth_methods_supported: ['none'],
+    scopes_supported: ['fibonax'],
+    service_documentation: 'https://docs.fibonax.com/integrations/ai-apps',
+  });
+
+  function unauthorized(id, message, invalidToken) {
+    const challenge = 'Bearer ' + (invalidToken ? 'error="invalid_token", ' : '') +
+      'resource_metadata="' + publicUrl + '/.well-known/oauth-protected-resource"';
+    return json(401, rpcError(id, -32001, message), { 'WWW-Authenticate': challenge });
+  }
+
+  async function oauthRpc(name, params) {
+    try {
+      return { data: await deps.rpc(name, params) };
+    } catch (error) {
+      log(name + ' failed: ' + (error && error.message ? error.message : String(error)));
+      return { failed: true };
+    }
+  }
+
+  // /authorize: the app and its return address are checked before anyone is
+  // sent anywhere, and a faulty request is answered here, in words. Nobody is
+  // ever sent to an app's address by this server: any app can register any
+  // address, so only the person's own Allow or Cancel, on the dashboard, does
+  // that. Otherwise this address would forward strangers wherever a link said.
+  async function authorize(url) {
+    const q = url.searchParams;
+    const clientId = q.get('client_id') || '';
+    const redirect = q.get('redirect_uri') || '';
+    if (!UUID_RE.test(clientId) || !redirect) return page(400, TEXT.badRequest);
+    const known = await oauthRpc('mcp_oauth_client', { p_client_id: clientId, p_redirect_uri: redirect });
+    if (known.failed) return page(503, TEXT.unreachable);
+    if (!known.data || !known.data.redirect_ok) return page(400, TEXT.badRequest);
+
+    const state = q.get('state') || '';
+    const challenge = q.get('code_challenge') || '';
+    if (q.get('response_type') !== 'code' || q.get('code_challenge_method') !== 'S256' || !/^[A-Za-z0-9_-]{43}$/.test(challenge)) {
+      return page(400, TEXT.badRequest);
+    }
+    return redirectTo(withParams(deps.consentUrl, { client_id: clientId, redirect_uri: redirect, code_challenge: challenge, state }));
+  }
+
+  async function readFields(request) {
+    const text = await request.text();
+    if ((request.headers.get('content-type') || '').includes('application/json')) {
+      try {
+        const body = JSON.parse(text);
+        return body && typeof body === 'object' && !Array.isArray(body) ? body : {};
+      } catch {
+        return {};
+      }
+    }
+    return Object.fromEntries(new URLSearchParams(text));
+  }
+
+  async function token(request) {
+    const f = await readFields(request);
+    const clientId = typeof f.client_id === 'string' ? f.client_id : '';
+    if (!UUID_RE.test(clientId)) return json(401, { error: 'invalid_client' }, NO_STORE);
+    const text = (value) => (typeof value === 'string' && value !== '' ? value : null);
+    const out = await oauthRpc('mcp_oauth_token', {
+      p_grant_type: text(f.grant_type) || '',
+      p_client_id: clientId,
+      p_code: text(f.code),
+      p_verifier: text(f.code_verifier),
+      p_redirect_uri: text(f.redirect_uri),
+      p_refresh: text(f.refresh_token),
+    });
+    if (out.failed || !out.data) return json(503, { error: 'temporarily_unavailable' }, NO_STORE);
+    if (out.data.error) return json(out.data.error === 'invalid_client' ? 401 : 400, out.data, NO_STORE);
+    return json(200, out.data, NO_STORE);
+  }
+
+  async function register(request) {
+    const f = await readFields(request);
+    const uris = Array.isArray(f.redirect_uris) ? f.redirect_uris.filter((u) => typeof u === 'string') : [];
+    if (!uris.length || uris.length !== (f.redirect_uris || []).length) {
+      return json(400, { error: 'invalid_redirect_uri', error_description: 'redirect_uris must be a list of addresses' });
+    }
+    const out = await oauthRpc('mcp_oauth_register', {
+      p_name: typeof f.client_name === 'string' ? f.client_name : '',
+      p_redirect_uris: uris,
+    });
+    if (out.failed || !out.data) return json(503, { error: 'temporarily_unavailable' });
+    if (out.data.error === 'slow_down') return json(429, { error: 'temporarily_unavailable', error_description: 'Too many registrations. Try again later.' });
+    if (out.data.error) {
+      return json(400, { error: 'invalid_redirect_uri', error_description: 'Each redirect URI must be https, http on localhost, or an app scheme, with no fragment.' });
+    }
+    return json(201, {
+      client_id: out.data.client_id,
+      client_name: out.data.client_name,
+      redirect_uris: out.data.redirect_uris,
+      token_endpoint_auth_method: 'none',
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      client_id_issued_at: Math.floor(Date.now() / 1000),
+    });
+  }
+
+  // The sign-in addresses, or null when the request is for MCP itself.
+  async function signInRoute(request, url) {
+    const path = url.pathname.replace(/\/+$/, '');
+    const wellKnown = path.indexOf('/.well-known/');
+    if (wellKnown !== -1) {
+      if (request.method !== 'GET') return new Response(null, { status: 405, headers: { ...CORS_HEADERS, Allow: 'GET, OPTIONS' } });
+      const [doc, ...rest] = path.slice(wellKnown + '/.well-known/'.length).split('/');
+      if (doc === 'oauth-protected-resource') {
+        return json(200, {
+          resource: publicUrl + (rest.length ? '/' + rest.join('/') : ''),
+          authorization_servers: [publicUrl],
+          bearer_methods_supported: ['header'],
+          scopes_supported: ['fibonax'],
+          resource_name: 'Fibonax',
+          resource_documentation: 'https://docs.fibonax.com/integrations/ai-apps',
+        });
+      }
+      if (doc === 'oauth-authorization-server' || doc === 'openid-configuration') return json(200, authServer());
+      if (doc === 'openai-apps-challenge' && deps.openaiChallenge) {
+        return new Response(deps.openaiChallenge, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+      }
+      return new Response(null, { status: 404, headers: CORS_HEADERS });
+    }
+    if (path.endsWith('/authorize')) {
+      return request.method === 'GET' ? authorize(url) : new Response(null, { status: 405, headers: { Allow: 'GET' } });
+    }
+    if (path.endsWith('/token') || path.endsWith('/register')) {
+      if (request.method !== 'POST') return new Response(null, { status: 405, headers: { ...CORS_HEADERS, Allow: 'POST, OPTIONS' } });
+      return path.endsWith('/token') ? token(request) : register(request);
+    }
+    return null;
+  }
+
   /** The whole HTTP exchange. `request` is a standard Fetch API Request. */
   async function handle(request) {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
+    const signIn = await signInRoute(request, new URL(request.url));
+    if (signIn) return signIn;
     if (request.method !== 'POST') {
       return new Response(null, { status: 405, headers: { ...CORS_HEADERS, Allow: 'POST, OPTIONS' } });
     }
@@ -487,21 +681,27 @@ export function createMcpServer(deps) {
       return json(400, rpcError(null, -32700, 'Parse error'));
     }
 
-    const key = keyFrom(request);
-    if (!key) return json(401, rpcError(firstId(body), -32001, TEXT.noKey));
+    const source = keySource(request);
+    if (!source) return unauthorized(firstId(body), TEXT.noKey, false);
+    const { key, signedIn } = source;
 
     const messages = Array.isArray(body) ? body : [body];
     if (!messages.length) return json(400, rpcError(null, -32600, 'Invalid request'));
+    refused.delete(key);
     const answers = [];
     for (const message of messages) {
       try {
-        const reply = await answer(key, message);
+        const reply = await answer(key, message, signedIn);
         if (reply) answers.push(reply);
       } catch (error) {
         log('request failed: ' + (error && error.message ? error.message : String(error)));
         if (message && message.id != null) answers.push(rpcError(message.id, -32603, TEXT.unreachable));
       }
     }
+    // A link keeps answering in words (the person reads them in the AI app); a
+    // signed-in app is told in HTTP, which is what makes it refresh its key.
+    const ended = refused.delete(key);
+    if (ended && signedIn) return unauthorized(firstId(body), TEXT.signIn, true);
     if (!answers.length) return new Response(null, { status: 202, headers: CORS_HEADERS });
     return json(200, Array.isArray(body) ? answers : answers[0]);
   }
@@ -522,9 +722,24 @@ function rpcError(id, code, message) {
   return { jsonrpc: '2.0', id: id == null ? null : id, error: { code, message } };
 }
 
-function json(status, value) {
+const NO_STORE = { 'Cache-Control': 'no-store', Pragma: 'no-cache' };
+
+function json(status, value, headers) {
   return new Response(JSON.stringify(value), {
     status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', ...(headers || {}) },
   });
+}
+
+function redirectTo(location) {
+  return new Response(null, { status: 302, headers: { Location: location, 'Cache-Control': 'no-store' } });
+}
+
+// A plain page for the one case with nobody to send back to. The text is ours,
+// never the request's.
+function page(status, sentence) {
+  const html = '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>Fibonax</title><body style="font:16px/1.5 system-ui,sans-serif;max-width:28rem;margin:18vh auto;padding:0 1.5rem;color:#1C1C1E">' +
+    '<h1 style="font-size:1.25rem">Fibonax</h1><p>' + sentence + '</p></body>';
+  return new Response(html, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }

@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Segmented } from '@/components/ui/segmented';
+import { GroupHeading } from '@/features/org/CardHeading';
 import { cn } from '@/lib/utils';
 import { invitationsApi } from '@/lib/api/invitationsApi';
 import {
@@ -427,8 +428,8 @@ export function InvitationRows({ org, invitations, onChanged }: InvitationRowsPr
 
   return (
     <div className="border-t border-line">
-      <p className="px-5 pb-1 pt-3 text-xs font-medium text-ink-subtle">Invited</p>
-      <ul className="divide-y divide-line">
+      <GroupHeading title="Invited" count={invitations.length} />
+      <ul className="divide-y divide-line pt-1">
         {invitations.map((invitation) => {
           const busy = busyId === invitation.id;
           // An admin invitation is an admin's to resend or withdraw: the

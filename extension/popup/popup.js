@@ -152,6 +152,8 @@ var DB = {
             // is the only reading under which a never-used snippet can ever be
             // flagged at all.
             created_at: s.created_at || null,
+            // When it last changed: the search window's Date edited chip.
+            updated_at: s.updated_at || null,
             stats: { uses: st.uses || 0, fills: st.fills || 0, lastUsed: st.last_used || null }
           };
         })
@@ -195,7 +197,7 @@ var DB = {
     // created_at joins the projection for INACTIVE-001: it is the anchor for a
     // prompt that has never been used, the same way snippets fall back to theirs.
     return supaFetch('prompts', 'GET', null,
-      'select=id,user_id,name,content,shortcut,strategy_type,intent_category,last_used_at,created_at,pinned,review_status,folder_id,organization_id' +
+      'select=id,user_id,name,content,shortcut,strategy_type,intent_category,last_used_at,created_at,updated_at,pinned,review_status,folder_id,organization_id' +
       // Archived prompts are kept to be restored, not offered (AI-KNOWLEDGE P2).
       '&review_status=neq.archived&order=updated_at.desc'
     ).then(function(r) { return r.ok ? r.json() : []; })
@@ -207,12 +209,63 @@ var DB = {
   // dashboard, not to be pasted into a chat.
   loadBrainSpaces: function() {
     return supaFetchAll('memory_spaces',
-      'select=id,name,description,is_default&deleted_at=is.null&order=is_default.desc,name.asc,id.asc');
+      'select=id,name,description,is_default,user_id,updated_at&deleted_at=is.null&order=is_default.desc,name.asc,id.asc');
   },
   loadBrainItems: function() {
     return supaFetchAll('memory_shards',
-      'select=id,space_id,name,summary,body,kind,token_estimate,pinned,review_status' +
+      'select=id,space_id,name,summary,body,kind,token_estimate,pinned,review_status,user_id,updated_at' +
       '&deleted_at=is.null&review_status=neq.archived&order=pinned.desc,updated_at.desc,id.asc');
+  },
+  // What the search window's chips offer beyond the library itself: the
+  // teammates (Created by) and the labels (Labels). Read once, the first time
+  // the window opens. Each part fails soft to nothing, and the chip it feeds
+  // is then simply not offered.
+  loadSearchMeta: function() {
+    function rows(table, qs) {
+      return supaFetch(table, 'GET', null, qs)
+        .then(function(r) { return r.ok ? r.json() : []; })
+        .then(function(data) { return Array.isArray(data) ? data : []; })
+        .catch(function(e) { console.error('[Fibonax] Search filters: could not read ' + table + ':', e); return []; });
+    }
+    // The team directory is a function that takes the team, so it is asked
+    // for directly: supaFetch tells the server to answer a POST with no body.
+    function directory(orgId) {
+      return new Promise(function(resolve) {
+        sbAuthHeaders(function(err, headers) {
+          if (err || !headers) { resolve([]); return; }
+          fetch(SUPA_URL + '/rest/v1/rpc/org_member_directory', {
+            method: 'POST',
+            headers: { apikey: headers.apikey, Authorization: headers.Authorization, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_org: orgId })
+          }).then(function(r) { return r.ok ? r.json() : []; })
+            .then(function(data) { resolve(Array.isArray(data) ? data : []); })
+            .catch(function(e) { console.error('[Fibonax] Search filters: could not read the team:', e); resolve([]); });
+        });
+      });
+    }
+    function people() {
+      if (!SB_CURRENT_USER_ID) return Promise.resolve([]);
+      return rows('organization_members',
+        'select=organization_id&user_id=eq.' + encodeURIComponent(SB_CURRENT_USER_ID) + '&order=created_at.asc&limit=1')
+        .then(function(mine) { return mine.length && mine[0].organization_id ? directory(mine[0].organization_id) : []; });
+    }
+    return Promise.all([
+      rows('labels', 'select=id,name'),
+      rows('snippet_labels', 'select=snippet_id,label_id'),
+      rows('prompt_labels', 'select=prompt_id,label_id'),
+      people()
+    ]).then(function(res) {
+      var labelName = {}, meta = { names: {}, snippetLabels: {}, promptLabels: {} };
+      res[0].forEach(function(l) { if (l && l.id) labelName[l.id] = l.name || ''; });
+      function assign(map, id, labelId) {
+        var name = labelName[labelId];
+        if (id && name) (map[id] = map[id] || []).push(name);
+      }
+      res[1].forEach(function(row) { assign(meta.snippetLabels, row.snippet_id, row.label_id); });
+      res[2].forEach(function(row) { assign(meta.promptLabels, row.prompt_id, row.label_id); });
+      res[3].forEach(function(m) { if (m && m.user_id) meta.names[m.user_id] = m.display_name || m.email || ''; });
+      return meta;
+    });
   }
 };
 
@@ -268,7 +321,6 @@ var pSelIdx         = -1;     // keyboard selection index in the prompt list
 var loaded          = false;  // true once the authoritative Supabase load resolves
 var bSelIdx         = -1;     // keyboard selection index in the Brain list
 var listAnimated    = false;  // entrance animation runs once, on first data render
-var searchAllFolders= false;  // "search all folders" escape from a folder-scoped miss
 
 // ── UNUSED-ASSET NOTICE (INACTIVE-001) ────────────────────────────
 // lastUsedMap is the server's answer (snippet_last_used(), plus prompts'
@@ -1103,9 +1155,13 @@ function refreshUI(){
   renderLibStats();
   renderFolders();
   renderInactive();
-  if(activeMode==='prompts') renderPrompts(gi('sq')?gi('sq').value:'');
-  else if(activeMode==='brains') renderBrains(gi('sq')?gi('sq').value:'');
-  else renderList(gi('sq')?gi('sq').value:'');
+  if(activeMode==='prompts') renderPrompts();
+  else if(activeMode==='brains') renderBrains();
+  else renderList();
+  // The search window lists the same library: fresh rows go in with the
+  // highlight left where it was.
+  searchItemsCache=null;
+  if(searchWindow) searchWindow.refresh();
 }
 
 // FOLDERS
@@ -1299,9 +1355,9 @@ function renderFolders(){
   el.innerHTML=h;
   el.querySelectorAll('.chip').forEach(function(c){
     c.addEventListener('click',function(){
-      selFolder=c.dataset.fid; searchAllFolders=false; expandedId=null; selIdx=-1;
+      selFolder=c.dataset.fid; expandedId=null; selIdx=-1;
       renderFolders();
-      renderList(gi('sq')?gi('sq').value:'');
+      renderList();
       try{ c.scrollIntoView({inline:'center',block:'nearest'}); }catch(e){}
     });
   });
@@ -1334,24 +1390,6 @@ function updateChipNav(){
 function findSnip(id){ for(var i=0;i<snips.length;i++){ if(snips[i].id===id) return snips[i]; } return null; }
 
 function shortWord(sc){ return String(sc||'').replace(/^[^a-zA-Z0-9]+/,''); }
-// How a snippet answers the search box (shared/asset-search.js): its name and
-// trigger, which the row prints, its search keywords, and its text in every
-// language it carries. Null when a typed word is nowhere in it.
-function snipLook(s,q){
-  var text=[s.body||''], k;
-  for(k in s.bodies){ if(typeof s.bodies[k]==='string') text.push(s.bodies[k]); }
-  return SBAssetSearch.look(q,{ shown:[s.title,s.shortcut], keywords:s.alternative_queries, text:text });
-}
-function matchSnip(s,q){ return !!snipLook(s,q); }
-// A prompt is read through its name and shortcut, its category and its text.
-function promptLook(p,q){
-  return SBAssetSearch.look(q,{ shown:[p.name,p.shortcut], also:[p.intent_category], text:[p.content] });
-}
-// The line under a row that says why the search found it, or ''.
-function whyLineHtml(look){
-  return look&&look.why ? '<div class="why">'+SBAssetSearch.whyHtml(look.why)+'</div>' : '';
-}
-
 // Escape a body for display, then wrap {field}/{=formula}/{if:\u2026} tokens so the
 // template's dynamic parts read at a glance in the detail preview.
 function highlightVars(body){
@@ -1760,6 +1798,9 @@ function renderDetailHtml(s){
           inp='<div class="d-multi"'+wide+'>'+f.options.map(function(o){
             return '<label class="d-opt"><input type="'+oType+'"'+oName+' data-fkey="'+esc(k)+'" value="'+esc(o)+'"'+(f.picks.indexOf(o)>=0?' checked':'')+'><span>'+esc(o)+'</span></label>';
           }).join('')+detailOtherHtml(f, oType, oName)+'</div>';
+        } else if(f.long){
+          // A long text: several lines. Enter starts a new line in it.
+          inp='<textarea rows="3" data-fkey="'+esc(k)+'" placeholder="'+esc(label)+'">'+esc(val)+'</textarea>';
         } else {
           // A number is a text box with the number keypad. type="number" lets
           // the browser drop a comma or a second dot as it is typed ("1,5"
@@ -1910,7 +1951,7 @@ function statBadgeHtml(kind,title){
   return '<span class="sb-stat '+kind+'" role="img" title="'+esc(title)+'" aria-label="'+esc(title)+'">'+STAT_SVG[kind]+'</span>';
 }
 
-function renderList(q){
+function renderList(){
   var el=gi('list'); if(!el) return;
   selIdx=-1;
   // Cold start: show skeleton rows instead of a false "empty" until the
@@ -1918,36 +1959,17 @@ function renderList(q){
   if(!loaded && !snips.length){ el.setAttribute('aria-busy','true'); renderSkeleton(el); return; }
   el.setAttribute('aria-busy','false');
 
-  var effFolder=(searchAllFolders && q) ? 'ALL' : selFolder;
-  var looks={};
-  var filtered=snips.filter(function(s){
-    // Selecting a parent folder lists its whole subtree, matching its badge.
-    if(!inFolderSubtree(s.folder, effFolder)) return false;
-    return !q || !!(looks[s.id]=snipLook(s,q));
-  });
+  // Selecting a parent folder lists its whole subtree, matching its badge.
+  var filtered=snips.filter(function(s){ return inFolderSubtree(s.folder, selFolder); });
 
   if(!filtered.length){
-    // Folder-scoped miss that would hit in another folder \u2192 offer "search all".
-    if(loaded && q && !searchAllFolders && selFolder!=='ALL'){
-      var other=snips.filter(function(s){ return matchSnip(s,q); });
-      if(other.length){
-        el.innerHTML='<div class="empty">No matches in this folder.<br>'
-          +'<button class="searchall" id="btn-searchall" type="button">'+other.length+' in other folders \u2014 search all</button></div>';
-        var b=gi('btn-searchall'); if(b) b.addEventListener('click',function(){ searchAllFolders=true; renderList(gi('sq')?gi('sq').value:''); });
-        return;
-      }
-    }
-    el.innerHTML='<div class="empty">'+(q?'No matches for &ldquo;'+esc(q)+'&rdquo;.':'No snippets yet.<br><small>Create snippets in the dashboard.</small>'+libraryLinkHtml('snippets'))+'</div>';
+    el.innerHTML='<div class="empty">No snippets yet.<br><small>Create snippets in the dashboard.</small>'+libraryLinkHtml('snippets')+'</div>';
     wireLibraryLink(el);
     return;
   }
 
-  // A search lists the snippets whose row already shows the words first, then
-  // the ones found through their text, so Enter still copies the one named.
-  filtered.sort(function(a,b){
-    var byRank=q ? looks[b.id].rank-looks[a.id].rank : 0;
-    return byRank || (b.pinned?1:0)-(a.pinned?1:0);
-  });
+  // Pinned snippets come first.
+  filtered.sort(function(a,b){ return (b.pinned?1:0)-(a.pinned?1:0); });
   var groups=groupSnips(filtered);
   var libIdx=SBSnippetStats.index(snips);
   var libTotals=groupExpansions(libIdx);
@@ -1981,7 +2003,6 @@ function renderList(q){
           +'<span class="isc"><span class="isc-pfx">'+esc(trig)+'</span>'+esc(shortWord(s.shortcut))+'</span></div>'
         // usesHtml is built from a coerced Number plus literals — safe unescaped.
         +'<div class="i-r2"><span class="lb '+esc(lb)+'">'+esc(lb)+'</span><span class="i-uses">'+usesHtml+'</span></div>'
-        +whyLineHtml(looks[s.id])
       +'</div>'
       +'<button class="chev" type="button" data-chev="'+esc(s.id)+'" title="Details" aria-label="Show languages and body" aria-expanded="'+(open?'true':'false')+'"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>'
     +'</div>';
@@ -2024,7 +2045,7 @@ function wireListRows(el){
     row.addEventListener('click',function(){ toggleDetail(row.dataset.id); });
   });
   el.querySelectorAll('[data-dlang]').forEach(function(p){
-    p.addEventListener('click',function(e){ e.stopPropagation(); detailLang=p.dataset.dlang; renderList(gi('sq')?gi('sq').value:''); reSel(p.dataset.did); });
+    p.addEventListener('click',function(e){ e.stopPropagation(); detailLang=p.dataset.dlang; renderList(); reSel(p.dataset.did); });
   });
   el.querySelectorAll('[data-copybody]').forEach(function(btn){
     btn.addEventListener('click',function(e){ e.stopPropagation(); copyBody(btn.dataset.copybody); });
@@ -2368,8 +2389,8 @@ function toggleDetail(id){
   detailLinked={}; detailLink=newDetailLink(); detailLinkSeq++;
   detailSeasonOff=false;
   if(expandedId===id){ expandedId=null; detailFieldVals={}; detailFieldFmts={}; }
-  else { expandedId=id; detailLang=null; detailFieldVals={}; detailFieldFmts={}; }
-  renderList(gi('sq')?gi('sq').value:'');
+  else { expandedId=id; detailLang=null; detailFieldVals={}; detailFieldFmts={}; searchNote('snippet:'+id); }
+  renderList();
   reSel(id);
 }
 
@@ -2425,7 +2446,7 @@ function loadTeamLastUse(){
   DB.loadTeamLastUse().then(function(res){
     if(!res) return;
     teamLastUse=res;
-    if(activeMode==='prompts') renderPrompts(gi('sq')?gi('sq').value:'');
+    if(activeMode==='prompts') renderPrompts();
     else paintTeamLastUse();
   });
 }
@@ -2494,31 +2515,21 @@ function flashChip(id){
 }
 
 // ── PROMPT LIST RENDER ─────────────────────────────────────────────
-function renderPrompts(q) {
+function renderPrompts() {
   var el = gi('plist'); if (!el) return;
   var ct = gi('mct-prmpt');
-  var filtered = prompts;
-  var looks = {};
-  if (q) {
-    var lq = q.replace(/^"+/,'').trim();
-    filtered = prompts.filter(function(p) { return !!(looks[p.id] = promptLook(p, lq)); });
-  }
   if (ct) ct.textContent = prompts.length;
-  if (!filtered.length) {
-    el.innerHTML = '<div class="p-empty">'+(q?'No prompts match &ldquo;'+esc(q)+'&rdquo;':'No prompts yet.<br>Create and edit prompts in the <strong>dashboard</strong>.'+libraryLinkHtml('prompts'))+'</div>';
+  if (!prompts.length) {
+    el.innerHTML = '<div class="p-empty">No prompts yet.<br>Create and edit prompts in the <strong>dashboard</strong>.'+libraryLinkHtml('prompts')+'</div>';
     wireLibraryLink(el);
     return;
   }
   // Pinned prompts float to the top (pin is set on the dashboard or mobile);
   // slice first so the shared `prompts` array is never reordered in place.
-  // A search lists the prompts named that way first, as the snippet list does.
-  filtered = filtered.slice().sort(function(a, b) {
-    var byRank = q ? looks[b.id].rank - looks[a.id].rank : 0;
-    return byRank || (b.pinned?1:0) - (a.pinned?1:0);
-  });
+  var sorted = prompts.slice().sort(function(a, b) { return (b.pinned?1:0) - (a.pinned?1:0); });
   var pt = triggerCfg.promptTrigger || '"""';
   var h = '';
-  filtered.forEach(function(p) {
+  sorted.forEach(function(p) {
     // Strategy is the one label a prompt carries (it covers one-shot and
     // few-shot); no strategy, no badge.
     var stratHtml = p.strategy_type
@@ -2534,7 +2545,6 @@ function renderPrompts(q) {
       + '<div class="p-name" id="pname-'+esc(p.id)+'">'+esc(p.name||'Untitled')+reviewChipHtml(p.review_status)+'</div>'
       + '<div class="p-meta">'+stratHtml+scHtml+'</div>'
       + (luLine ? '<div class="p-lastuse">'+esc(luLine)+'</div>' : '')
-      + whyLineHtml(looks[p.id])
       + '</div>'
       + '<button class="p-copy" type="button" title="Copy prompt" aria-label="Copy prompt"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>'
       + '</div>';
@@ -2574,6 +2584,7 @@ function promptBrainText(p, cb){
 
 function copyPrompt(pid){
   var p = findPrompt(pid); if (!p) return;
+  searchNote('prompt:'+p.id);
   promptBrainText(p, function(content, note){
     var text = SBInteractiveSteps.apply(content, interactiveStepsOn);
     var msg = text !== content ? 'Prompt copied with Interactive Steps' : 'Prompt copied';
@@ -2586,7 +2597,7 @@ function copyPrompt(pid){
       catch(e) { console.error('[Fibonax] prompt use not recorded:', e); }
       if (p.organization_id && p.folder_id && teamLastUse) {
         markTeamUse('prompts', p.id);
-        renderPrompts(gi('sq') ? gi('sq').value : '');
+        renderPrompts();
       }
       var nm = gi('pname-'+pid);
       var orig = nm ? nm.textContent : '';
@@ -2628,19 +2639,6 @@ function brainStatsLine(nBrains, nItems){
   var line = nBrains + ' ' + (nBrains === 1 ? 'Brain' : 'Brains');
   return nItems === null ? line : line + ' · ' + nItems + ' ' + (nItems === 1 ? 'item' : 'items');
 }
-// Search reads what the phone's reads: an item's name, summary, body and the
-// name of its Brain; a Brain's name and description. Every typed word has to
-// be somewhere in them (shared/asset-search.js), and a match the row does not
-// show comes back with the piece of text that holds it.
-function brainItemLook(it, q, brainName){
-  return SBAssetSearch.look(q, { shown: [it.name], also: [brainName], text: [it.summary, it.body] });
-}
-function brainLook(b, q){
-  return SBAssetSearch.look(q, { shown: [b.name], text: [b.description] });
-}
-// Search results, best first: the rows that already show every word, then the
-// ones found through their text. Rows of one rank keep the order they had.
-function byLookRank(a, b){ return b.look.rank - a.look.rank; }
 function findBrain(id){ for (var i = 0; i < brains.length; i++) { if (brains[i].id === id) return brains[i]; } return null; }
 function findBrainItem(id){ for (var i = 0; i < brainItems.length; i++) { if (brainItems[i].id === id) return brainItems[i]; } return null; }
 function brainItemsOf(bid){ return brainItems.filter(function(it){ return it.space_id === bid; }); }
@@ -2674,30 +2672,24 @@ function loadBrains(){
   });
 }
 
-// `look` is how the row answered a search, when one is on.
-function brainRowHtml(b, look){
+function brainRowHtml(b){
   var n = brainItemsOf(b.id).length;
   return '<div class="p-item brain" data-bid="'+esc(b.id)+'" tabindex="-1" role="button" aria-label="Open '+esc(b.name || 'Brain')+'">'
     + '<div class="p-body">'
     + '<div class="p-name" id="bname-'+esc(b.id)+'">'+esc(b.name || 'Brain')+'</div>'
     + '<div class="p-meta"><span class="b-info">'+esc(brainSize(n))+'</span></div>'
-    + whyLineHtml(look)
     + '</div>'
     + '<button class="p-copy" type="button" data-copy-brain="'+esc(b.id)+'" title="Copy whole Brain" aria-label="Copy whole Brain">'+BRAIN_COPY_SVG+'</button>'
     + '<span class="chev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span>'
     + '</div>';
 }
 
-// `brain` names the item's Brain on the row: only where items from several
-// Brains share one list. `look` is how the row answered a search.
-function brainItemRowHtml(it, brain, look){
+function brainItemRowHtml(it){
   var info = BRAIN_KIND_LABEL[it.kind] || it.kind || '';
-  if (brain) info += (info ? ' · ' : '') + (brain.name || '');
   return '<div class="p-item brain" data-mid="'+esc(it.id)+'" tabindex="-1" role="button" aria-label="Copy '+esc(it.name || 'item')+'">'
     + '<div class="p-body">'
     + '<div class="p-name" id="bname-'+esc(it.id)+'">'+esc(it.name || 'Untitled')+reviewChipHtml(it.review_status)+'</div>'
     + '<div class="p-meta"><span class="b-info">'+esc(info)+'</span></div>'
-    + whyLineHtml(look)
     + '</div>'
     + '<button class="p-copy" type="button" title="Copy text" aria-label="Copy text">'+BRAIN_COPY_SVG+'</button>'
     + '</div>';
@@ -2722,7 +2714,7 @@ function renderBrainHead(brain){
   gi('b-copyall').addEventListener('click', function(){ copyBrain(brain.id); });
 }
 
-function renderBrains(q){
+function renderBrains(){
   var el = gi('blist'); if (!el) return;
   bSelIdx = -1;
   var brain = openBrainId ? findBrain(openBrainId) : null;
@@ -2741,41 +2733,14 @@ function renderBrains(q){
     wireLibraryLink(el);
     return;
   }
-  var lq = String(q || '').trim();
-  // The items of `list` the search finds, each beside how it answered.
-  function foundItems(list){
-    var out = [];
-    list.forEach(function(it){
-      var b = findBrain(it.space_id);
-      var look = brainItemLook(it, lq, b ? b.name : '');
-      if (look) out.push({ row: it, look: look });
-    });
-    return out.sort(byLookRank);
-  }
   var h;
   if (brain) {
     var all = brainItemsOf(brain.id);
-    var items = foundItems(all);
     h = !all.length
       ? '<div class="p-empty">Nothing in this Brain yet.<br>Add items in the <strong>dashboard</strong>.</div>'
-      : !items.length
-        ? '<div class="p-empty">No items match &ldquo;'+esc(q)+'&rdquo;</div>'
-        : items.map(function(f){ return brainItemRowHtml(f.row, null, f.look); }).join('');
-  } else if (!lq) {
-    h = brains.map(function(b){ return brainRowHtml(b); }).join('');
+      : all.map(function(it){ return brainItemRowHtml(it); }).join('');
   } else {
-    // Searching the list of Brains reaches into every Brain, as on the phone.
-    var hitBrains = [];
-    brains.forEach(function(b){
-      var look = brainLook(b, lq);
-      if (look) hitBrains.push({ row: b, look: look });
-    });
-    hitBrains.sort(byLookRank);
-    var hitItems = foundItems(brainItems);
-    h = (!hitBrains.length && !hitItems.length)
-      ? '<div class="p-empty">Nothing matches &ldquo;'+esc(q)+'&rdquo;</div>'
-      : hitBrains.map(function(f){ return brainRowHtml(f.row, f.look); }).join('')
-        + hitItems.map(function(f){ return brainItemRowHtml(f.row, findBrain(f.row.space_id), f.look); }).join('');
+    h = brains.map(function(b){ return brainRowHtml(b); }).join('');
   }
   el.innerHTML = h;
   el.querySelectorAll('.p-item').forEach(function(row){
@@ -2792,16 +2757,15 @@ function activateBrainRow(row){
   else if (row.dataset.mid) copyBrainItem(row.dataset.mid);
 }
 
-// Opening a Brain shows all of it, so a search that led there is cleared.
 function openBrain(id){
   if (!findBrain(id)) return;
+  searchNote('brain:'+id);
   openBrainId = id;
-  var sq = gi('sq'); if (sq) sq.value = '';
-  renderBrains('');
+  renderBrains();
 }
 function closeBrain(){
   openBrainId = null;
-  renderBrains(gi('sq') ? gi('sq').value : '');
+  renderBrains();
 }
 
 // Clipboard, then the row's name says so and a toast confirms. A failed copy
@@ -2829,6 +2793,7 @@ function copyBrain(id){
 }
 function copyBrainItem(id){
   var it = findBrainItem(id); if (!it) return;
+  searchNote('item:'+id);
   copyBrainText(it.body || '', 'bname-'+id,
     it.review_status === 'deprecated' ? 'Copied. Deprecated: check it is still right' : 'Text copied');
 }
@@ -2950,7 +2915,7 @@ function setMode(m) {
     if (pMain) pMain.className = 'p-main on';
     if (sq) sq.placeholder = 'Search prompts…';
     if (tp) tp.innerHTML = '<span class="isc-pfx">'+esc(ptTrig)+'</span>name';
-    renderPrompts(sq ? sq.value : '');
+    renderPrompts();
   } else if (m === 'brains') {
     if (srow) srow.classList.remove('pmode');
     if (snipChips) snipChips.style.display = 'none';
@@ -2958,7 +2923,7 @@ function setMode(m) {
     if (pMain) pMain.className = 'p-main';
     if (sq) sq.placeholder = 'Search Brains…';
     if (!brainsLoaded) loadBrains();
-    renderBrains(sq ? sq.value : '');
+    renderBrains();
   } else {
     if (srow) srow.classList.remove('pmode');
     if (snipChips) snipChips.style.display = '';
@@ -2966,7 +2931,7 @@ function setMode(m) {
     if (pMain) pMain.className = 'p-main';
     if (sq) sq.placeholder = 'Search snippets…';
     if (tp) tp.innerHTML = '<span class="isc-pfx">'+esc(trig)+'</span>quoteEN';
-    renderList(sq ? sq.value : '');
+    renderList();
   }
 }
 
@@ -3308,13 +3273,6 @@ on('brel','click', function(){
   });
   loadTeamLastUse();
 });
-on('sq','input', function(e){
-  expandedId=null;
-  if(!e.target.value) searchAllFolders=false;
-  if(activeMode==='prompts'){ pSelIdx=-1; renderPrompts(e.target.value); }
-  else if(activeMode==='brains') renderBrains(e.target.value);
-  else { selIdx=-1; renderList(e.target.value); }
-});
 on('wel-ok','click', dismissWelcome);
 on('rev-go','click', function(e){ e.preventDefault(); openReviewPage(); });
 on('rev-stop','click', function(){ stopReviewPrompt(SBReviewPrompt.STOP_DISMISSED); });
@@ -3329,6 +3287,190 @@ if (gi('p-steps-on')) {
 // Mode tabs
 document.querySelectorAll('.mode-tab').forEach(function(tab){
   tab.addEventListener('click', function(){ setMode(tab.dataset.mode); });
+});
+
+// SEARCH WINDOW ("Search or ask")
+// The search bar no longer takes the typing itself. A click on it, Ctrl+K, or
+// the first letter typed while it has focus opens the search window every
+// surface shares (shared/command-palette.js), with that letter already in it:
+// "open the popup, type, Enter" needs no click, as before. The window looks
+// across snippets, prompts and Brains at once; this block hands it the popup's
+// library and says what "open" means here.
+var searchWindow = null;
+var searchRecents = null, searchRecentsFor = null;
+var searchMeta = null, searchMetaAsked = false;
+var searchItemsCache = null;
+
+function searchPerson(id){
+  if(!id) return '';
+  if(id===SB_CURRENT_USER_ID) return 'You';
+  return (searchMeta && searchMeta.names[id]) || 'Teammate';
+}
+function searchFolderName(id){
+  for(var i=0;i<folders.length;i++){ if(folders[i].id===id) return folders[i].name||''; }
+  return '';
+}
+function searchWhen(iso){
+  var at=iso ? Date.parse(iso) : NaN;
+  return isFinite(at) ? at : 0;
+}
+function searchLabelsOf(kind,id){
+  return (searchMeta && searchMeta[kind][id]) || [];
+}
+function searchOnce(values){
+  var out=[];
+  values.forEach(function(v){ if(v && out.indexOf(v)<0) out.push(v); });
+  return out;
+}
+
+// The library as the rows the window lists. A snippet in several languages is
+// one row, found by the text of any of them, as it is one row in the list.
+function searchItems(){
+  if(searchItemsCache) return searchItemsCache;
+  var out=[];
+  groupSnips(snips).forEach(function(g){
+    var s=g.master, text=[], keywords=[], labels=[], edited=0;
+    g.rows.forEach(function(r){
+      text.push(r.body||'');
+      for(var k in r.bodies){ if(typeof r.bodies[k]==='string') text.push(r.bodies[k]); }
+      keywords=keywords.concat(r.alternative_queries||[]);
+      labels=labels.concat(searchLabelsOf('snippetLabels', r.id));
+      edited=Math.max(edited, searchWhen(r.updated_at));
+    });
+    out.push({
+      key:'snippet:'+s.id, kind:'snippet', id:s.id, spaceId:null,
+      title:String(s.title||'').replace(/\s*(EN|ES|IT|FR)$/,''),
+      shortcut:s.shortcut ? trig+shortWord(s.shortcut) : '',
+      place:searchFolderName(s.folder), placeKey:s.folder ? 'folder:'+s.folder : '',
+      byName:searchPerson(s.user_id), edited:edited,
+      labels:searchOnce(labels), keywords:searchOnce(keywords), text:searchOnce(text)
+    });
+  });
+  prompts.forEach(function(p){
+    out.push({
+      key:'prompt:'+p.id, kind:'prompt', id:p.id, spaceId:null,
+      title:p.name||'', shortcut:p.shortcut||'',
+      place:searchFolderName(p.folder_id), placeKey:p.folder_id ? 'folder:'+p.folder_id : '',
+      byName:searchPerson(p.user_id), edited:searchWhen(p.updated_at),
+      labels:searchLabelsOf('promptLabels', p.id),
+      keywords:p.intent_category ? [p.intent_category] : [], text:[p.content||'']
+    });
+  });
+  brains.forEach(function(b){
+    out.push({
+      key:'brain:'+b.id, kind:'brain', id:b.id, spaceId:null,
+      title:b.name||'Brain', shortcut:'', place:'', placeKey:'brain:'+b.id,
+      byName:searchPerson(b.user_id), edited:searchWhen(b.updated_at),
+      labels:[], keywords:[], text:[b.description||'']
+    });
+  });
+  brainItems.forEach(function(it){
+    var b=findBrain(it.space_id); if(!b) return;
+    out.push({
+      key:'item:'+it.id, kind:'item', id:it.id, spaceId:it.space_id,
+      title:it.name||'Untitled', shortcut:'', place:b.name||'Brain', placeKey:'brain:'+it.space_id,
+      byName:searchPerson(it.user_id), edited:searchWhen(it.updated_at),
+      labels:[], keywords:[], text:[it.summary||'', it.body||'']
+    });
+  });
+  searchItemsCache=out;
+  return out;
+}
+
+// What was opened lately, kept on this computer, one list per account.
+function searchRecentStore(){
+  if(!window.SBRecents) return null;
+  if(!searchRecents || searchRecentsFor!==SB_CURRENT_USER_ID){
+    searchRecentsFor=SB_CURRENT_USER_ID;
+    searchRecents=SBRecents.open(SBRecents.chromeStore('sb_recents_'+(SB_CURRENT_USER_ID||'guest')));
+  }
+  return searchRecents;
+}
+function searchNote(key){
+  var store=searchRecentStore();
+  if(store) store.record(key);
+}
+
+// The item's own page on the dashboard, in a new tab: the links the Review
+// button of the unused-item notice uses.
+function searchOpenInDashboard(item){
+  var id=encodeURIComponent(item.id);
+  var url=item.kind==='snippet' ? SB_DASHBOARD_HOME_URL+'?snippet='+id
+    : item.kind==='prompt' ? SB_DASHBOARD_HOME_URL+'prompts?prompt='+id
+    : item.kind==='brain' ? SB_DASHBOARD_HOME_URL+'memory/'+id
+    : SB_DASHBOARD_HOME_URL+'memory/'+encodeURIComponent(item.spaceId)+'?item='+id;
+  try { chrome.tabs.create({ url: url }); }
+  catch(e) {
+    try { window.open(url, '_blank'); }
+    catch(e2) { console.error('[Fibonax] Could not open the dashboard:', e2); showToast('Could not open the dashboard'); }
+  }
+}
+
+// Opening means what a click on that row means in its own tab: a snippet shows
+// its detail with the fill form, a prompt or a Brain item is copied, a Brain
+// opens.
+function searchOpen(item, secondary){
+  if(secondary){ searchOpenInDashboard(item); return; }
+  if(item.kind==='snippet'){
+    if(activeMode!=='snippets') setMode('snippets');
+    var s=null;
+    for(var i=0;i<snips.length;i++){ if(snips[i].id===item.id){ s=snips[i]; break; } }
+    // A folder chip that does not hold it would leave the row off the list.
+    if(s && !inFolderSubtree(s.folder, selFolder)){ selFolder='ALL'; renderFolders(); }
+    if(expandedId!==item.id) toggleDetail(item.id); else reSel(item.id);
+  } else if(item.kind==='prompt'){
+    if(activeMode!=='prompts') setMode('prompts');
+    copyPrompt(item.id);
+  } else if(item.kind==='brain'){
+    if(activeMode!=='brains') setMode('brains');
+    openBrain(item.id);
+  } else {
+    if(activeMode!=='brains') setMode('brains');
+    openBrain(item.spaceId);
+    copyBrainItem(item.id);
+  }
+}
+
+// The first time the window opens it asks for what it lists beyond the tab in
+// view: the Brains (loaded with their own tab otherwise), and the teammates
+// and labels its chips offer.
+function searchOpened(){
+  if(!brainsLoaded) loadBrains();
+  if(searchMetaAsked) return;
+  searchMetaAsked=true;
+  DB.loadSearchMeta().then(function(meta){
+    searchMeta=meta;
+    searchItemsCache=null;
+    if(searchWindow) searchWindow.refresh();
+  });
+}
+
+function openSearchWindow(text){
+  if(!window.SBCommandPalette || !window.SBRecents) return;
+  // Another account signed in since it was built: its recents are not this one's.
+  if(searchWindow && searchRecentsFor!==SB_CURRENT_USER_ID){ searchWindow.destroy(); searchWindow=null; }
+  if(!searchWindow){
+    searchWindow=SBCommandPalette.create({
+      name:'sb-search',
+      items:searchItems,
+      loading:function(){ return !loaded && !snips.length; },
+      recents:searchRecentStore(),
+      secondaryLabel:'Open in dashboard',
+      onOpen:searchOpen,
+      onToggle:function(open){ if(open) searchOpened(); },
+      trigger:function(){ return gi('sq'); }
+    });
+  }
+  searchWindow.open(text||'');
+}
+
+on('sq','click', function(){ openSearchWindow(''); });
+// Pasting into the bar searches for what was pasted.
+on('sq','paste', function(e){
+  var data=e.clipboardData||window.clipboardData;
+  var text=data ? String(data.getData('text')||'') : '';
+  e.preventDefault();
+  openSearchWindow(text.replace(/\s+/g,' ').replace(/^ | $/g,''));
 });
 
 // ── KEYBOARD NAVIGATION (popup only, guarded by #pane-list) ─────────────
@@ -3367,29 +3509,28 @@ document.addEventListener('keydown', function(e){
 
   if(k==='/' && document.activeElement!==sq){ if(sq){ e.preventDefault(); sq.focus(); } return; }
 
+  // The search window: Ctrl+K from anywhere on the list, or the first letter
+  // typed while the search bar has focus, which goes into the window with it.
+  if((e.ctrlKey||e.metaKey) && String(k).toLowerCase()==='k'){ e.preventDefault(); openSearchWindow(''); return; }
+  if(ae===sq && String(k).length===1 && k!==' ' && !e.ctrlKey && !e.metaKey && !e.altKey){ e.preventDefault(); openSearchWindow(k); return; }
+
   if(activeMode==='prompts'){
     if(k==='ArrowDown'){ e.preventDefault(); setPSel(pSelIdx+1); }
     else if(k==='ArrowUp'){ e.preventDefault(); setPSel(pSelIdx-1); }
     else if(k==='Enter'){ if(pSelIdx<0 && pRows().length) setPSel(0); var pr=pRows()[pSelIdx]; if(pr){ e.preventDefault(); copyPrompt(pr.dataset.pid); } }
-    else if(k==='Escape' && sq && sq.value){ e.preventDefault(); sq.value=''; pSelIdx=-1; renderPrompts(''); }
     return;
   }
 
-  // Brains: Enter opens a Brain or copies an item; Escape clears the search,
-  // then steps back to the list of Brains. A focused button keeps its own Enter.
+  // Brains: Enter opens a Brain or copies an item; Escape steps back to the
+  // list of Brains. A focused button keeps its own Enter.
   if(activeMode==='brains'){
     if(k==='ArrowDown'){ e.preventDefault(); setBSel(bSelIdx+1); }
     else if(k==='ArrowUp'){ e.preventDefault(); setBSel(bSelIdx-1); }
     else if(k==='Enter' && !(ae && ae.tagName==='BUTTON')){ if(bSelIdx<0 && bRows().length) setBSel(0); var br=bRows()[bSelIdx]; if(br){ e.preventDefault(); activateBrainRow(br); } }
-    else if(k==='Escape'){
-      if(sq && sq.value){ e.preventDefault(); sq.value=''; renderBrains(''); }
-      else if(openBrainId){ e.preventDefault(); closeBrain(); }
-    }
+    else if(k==='Escape' && openBrainId){ e.preventDefault(); closeBrain(); }
     return;
   }
 
-  var atEnd  = sq ? (sq.selectionStart===sq.value.length && sq.selectionEnd===sq.value.length) : true;
-  var atStart= sq ? (sq.selectionStart===0 && sq.selectionEnd===0) : true;
   if(k==='ArrowDown'){ e.preventDefault(); setSel(selIdx+1); }
   else if(k==='ArrowUp'){ e.preventDefault(); setSel(selIdx-1); }
   else if(k==='Enter'){
@@ -3397,14 +3538,11 @@ document.addEventListener('keydown', function(e){
     var row=listRows()[selIdx];
     if(row){ e.preventDefault(); if(expandedId===row.dataset.id) copyDetailPrimary(row.dataset.id); else toggleDetail(row.dataset.id); }
   }
-  else if(k==='ArrowRight' && selIdx>=0 && atEnd){
+  else if(k==='ArrowRight' && selIdx>=0){
     var rr=listRows()[selIdx]; if(rr && expandedId!==rr.dataset.id){ e.preventDefault(); toggleDetail(rr.dataset.id); }
   }
-  else if(k==='ArrowLeft' && expandedId && atStart){ e.preventDefault(); toggleDetail(expandedId); }
-  else if(k==='Escape'){
-    if(expandedId){ e.preventDefault(); toggleDetail(expandedId); }
-    else if(sq && sq.value){ e.preventDefault(); sq.value=''; searchAllFolders=false; selIdx=-1; renderList(''); }
-  }
+  else if(k==='ArrowLeft' && expandedId){ e.preventDefault(); toggleDetail(expandedId); }
+  else if(k==='Escape' && expandedId){ e.preventDefault(); toggleDetail(expandedId); }
 });
 
 // ── SANTO DEL GIORNO + DAYS TO CHRISTMAS (footer) ──────────────────
@@ -3546,12 +3684,6 @@ function showToast(msg){
   clearTimeout(t._to); t._to=setTimeout(function(){ t.style.opacity='0'; },1800);
 }
 
-// Paste handler for the search input — route by active mode.
-on('sq','paste', function(){ setTimeout(function(){
-  var v=gi('sq')?gi('sq').value:'';
-  expandedId=null; if(!v) searchAllFolders=false;
-  if(activeMode==='prompts') renderPrompts(v); else if(activeMode==='brains') renderBrains(v); else renderList(v);
-},0); });
 
 // ── AUTH GATE (AUTH-EXT-001 phase A) ──────────────────────────────
 // The extension signs in only through the dashboard (AUTH-EXT-002). Sign-in

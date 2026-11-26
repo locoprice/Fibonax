@@ -84,10 +84,10 @@ for (const [key, want] of TYPE_CASES) {
 console.log('OK Field kind inferred from the name (' + TYPE_CASES.length + ' cases)');
 
 // ── THE VIEW MODEL EVERY SURFACE READS ──────────────────────────────
-const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'layout', 'steps', 'fmtOverride', 'linkable', 'progress', 'season'];
+const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'cursor', 'layout', 'steps', 'fmtOverride', 'linkable', 'progress', 'season'];
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
                      'other', 'otherOn', 'otherText',
-                     'cols', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
+                     'cols', 'long', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
                      'link', 'fromLink', 'prints'];
 
 const vm1 = ff.fillForm(
@@ -119,6 +119,28 @@ if (!Array.isArray(plan.options) || plan.options.join('|') !== 'A|B|C') {
   fail('a menu no longer exposes its options as an array: ' + JSON.stringify(plan.options));
 }
 if (!plan.block) fail('a menu must be marked block, so its prose goes above and below');
+
+// A long text field is a text field with a taller box: marked long and block on
+// every surface, never re-cased as a name, and a one-line field stays as it was.
+const vmLongText = ff.fillForm('Note: {formtext: name=guest_name; long=yes} {formtext: name=REF}', {}, opt());
+if (vmLongText.fields[0].long !== true || vmLongText.fields[0].block !== true || vmLongText.fields[0].type !== 'text') {
+  fail('a long text field is not marked long and block: ' + JSON.stringify(vmLongText.fields[0]));
+}
+if (vmLongText.fields[1].long !== false || vmLongText.fields[1].block !== false) {
+  fail('a one-line text field must stay one line');
+}
+const LONG_TYPED = ['first line', 'second line'].join(String.fromCharCode(10));
+const vmLongTextFilled = ff.fillForm('Note: {formtext: name=guest_name; long=yes}', { guest_name: LONG_TYPED }, opt());
+if (vmLongTextFilled.preview !== 'Note: ' + LONG_TYPED) {
+  fail('a long text field must print what was typed, line breaks included: ' + JSON.stringify(vmLongTextFilled.preview));
+}
+// CURSOR POSITION: the form says where the caret lands in its finished text,
+// the text itself stays clean, and a text without {cursor} says -1.
+const vmCursor = ff.fillForm('Hi {NAME},\n\n{cursor}\n\nBye', { NAME: 'Ada' }, opt());
+if (vmCursor.preview !== 'Hi Ada,\n\n\n\nBye' || vmCursor.cursor !== 9 || vmCursor.fields.length !== 1) {
+  fail('cursor position in a form: ' + JSON.stringify([vmCursor.preview, vmCursor.cursor, vmCursor.fields.length]));
+}
+if (vm1.cursor !== -1) fail('a text without {cursor} must report -1, got ' + vm1.cursor);
 if (plan.picks.join(',') !== 'B') {
   fail('menu preselection is ' + JSON.stringify(plan.picks) + ', expected the declared default');
 }

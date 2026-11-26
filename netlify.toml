@@ -15,6 +15,18 @@
   status = 301
   force  = true
 
+# The AI app link's own address. AI apps (Claude, ChatGPT and others) are given
+# https://mcp.fibonax.com/mcp; everything on that name is the `mcp` server
+# function (services/supabase/functions/mcp), which also serves the sign-in
+# addresses under it. Forced and ahead of the dashboard's rules, so nothing of
+# the dashboard is ever served on that name. Needs mcp.fibonax.com added to this
+# site as a domain alias.
+[[redirects]]
+  from   = "https://mcp.fibonax.com/*"
+  to     = "https://eyowustlbqujaimaxggt.supabase.co/functions/v1/mcp/:splat"
+  status = 200
+  force  = true
+
 # Mobile app at /mobile/
 [[redirects]]
   from   = "/mobile"
@@ -31,3 +43,11 @@
   from   = "/*"
   to     = "/index.html"
   status = 200
+
+# The page where a person allows an AI app (/connect) must never be drawn inside
+# another site, where a click on Allow could be tricked out of someone.
+[[headers]]
+  for = "/connect"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    Content-Security-Policy = "frame-ancestors 'none'"

@@ -31,6 +31,7 @@ interface FieldCfg {
   type: string;
   default?: string;
   format?: string;
+  long?: boolean;
 }
 
 interface FormulaEngine {
@@ -291,5 +292,40 @@ describe('formTextToken — round trip through the shipping engine', () => {
     expect(engine.buildFormFieldCfg('{formtext: default=Ada}')).toEqual({});
     expect(engine.extractFields('{formtext: default=Ada}')).toEqual([]);
     expect(engine.resolveBody('Hi {formtext: default=Ada}!', {})).toBe('Hi !');
+  });
+});
+
+describe('formTextToken: a long text through the shipping engine', () => {
+  it('writes long=yes and never a name format beside it', () => {
+    expect(buildFormTextToken({ name: 'NOTE', default: '', long: true })).toBe(
+      '{formtext: name=NOTE; long=yes}',
+    );
+    expect(buildFormTextToken({ name: 'guest_name', default: '', long: true, personName: true })).toBe(
+      '{formtext: name=guest_name; long=yes}',
+    );
+  });
+
+  it('declares a text field that holds several lines', () => {
+    const token = buildFormTextToken({ name: 'guest_name', default: 'none', long: true });
+    expect(engine.buildFormFieldCfg(token).guest_name).toEqual({
+      type: 'text',
+      default: 'none',
+      long: true,
+      format: 'plain',
+    });
+  });
+
+  it('prints what was typed, line breaks included and no capitals added', () => {
+    const token = buildFormTextToken({ name: 'guest_name', default: '', long: true });
+    expect(engine.resolveBody(`Note:\n${token}`, { guest_name: 'first line\nsecond line' })).toBe(
+      'Note:\nfirst line\nsecond line',
+    );
+  });
+
+  it('leaves a one-line field exactly as it was', () => {
+    expect(engine.buildFormFieldCfg('{formtext: name=REF; default=x}').REF).toEqual({
+      type: 'text',
+      default: 'x',
+    });
   });
 });
