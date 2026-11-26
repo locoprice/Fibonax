@@ -187,7 +187,9 @@ function _ceCaretAt(el, offset) {
 // `snapshot` is the field state Undo would use: in a rich editor its end
 // offset is where the first text ends. `finish` runs once they are in (the
 // caller's processing flag). Null when nothing is offered.
-function _cardNext(el, snip, text, inField, snapshot, finish) {
+// `caretAt` is where the first text's {cursor} stands in it (-1 or absent for
+// none): the caret goes back there once the added snippets are in.
+function _cardNext(el, snip, text, inField, snapshot, finish, caretAt) {
   var list = _nextsFor(snip);
   if (!list.length) return null;
   var ui = window.SBFillFormUI;
@@ -199,11 +201,22 @@ function _cardNext(el, snip, text, inField, snapshot, finish) {
       // The first text went in formatted when one of these is: so do they all.
       var formatted = _takesFormatting(el) && picked.some(function(next) { return !!ui.nextText(next).formatted; });
       var add = ui.nextAddition(picked, formatted);
+      var marked = typeof caretAt === 'number' && caretAt >= 0;
       if (inField) {
         if (snapshot && snapshot.type === 'ce' && typeof snapshot.endCharOffset === 'number') _ceCaretAt(el, snapshot.endCharOffset);
+        // A plain box whose caret went to the {cursor}: the added text still
+        // goes after the first one. Its end is counted from the end of the
+        // box, which holds whatever the person typed at the cursor meanwhile.
+        else if (marked && snapshot && snapshot.syncInsertedValue && typeof el.value === 'string') {
+          var endOfFirst = el.value.length - (snapshot.prevValue.length - snapshot.prevSelEnd);
+          try { el.setSelectionRange(endOfFirst, endOfFirst); } catch (e) { console.error('[Fibonax] could not move to the end of the snippet:', e); }
+        }
         insertText(el, add.text, add.html);
+        // Back to the cursor, unless the person has typed there since: then
+        // what follows no longer reads as the snippet, and the caret stays put.
+        if (marked && !add.html) _placeCursor(el, text.slice(caretAt).replace(/\r\n?/g, '\n') + add.text);
       } else {
-        insertText(el, text + add.text);
+        insertText(el, text + add.text, null, marked ? caretAt : -1);
       }
       logEvent(snip, 0);
       picked.forEach(function(next) { logEvent(next, 0); });
@@ -1415,7 +1428,8 @@ function handleMatch(el, snip, scLen) {
 function _proceedInsert(el, snip, fieldSnapshot, scLen) {
   var fields = extractFields(snip.body);
   if (!fields.length) {
-    var text = resolveBody(snip.body, {}, { lang: snip.lang });
+    var landing = _landing(snip.body, snip.lang);
+    var text = landing.text, caretAt = landing.at;
     var _isCE = el && (el.isContentEditable || (el.getAttribute &&
       (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
     var pics = _pictureForm(snip);
@@ -1431,7 +1445,7 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
         // purely informational; onConfirm only logs. onUndo deletes the inserted
         // region (see restoreFieldState) so the field returns to its pre-trigger state.
         var before = _ceMeasureBefore(el);
-        insertText(el, text, html);
+        insertText(el, text, html, caretAt);
         _markSyncInserted(fieldSnapshot, el, before, text, html ? pics : null);
         showCelebration(
           text,
@@ -1444,7 +1458,7 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
             processing = false;
           },
           { inserted: true, target: el, warning: reviewWarning(snip), note: note,
-            next: _cardNext(el, snip, text, true, fieldSnapshot, function() { processing = false; }) }
+            next: _cardNext(el, snip, text, true, fieldSnapshot, function() { processing = false; }, caretAt) }
         );
       } else {
         // Non-CE (textarea / input): deleteChars already stripped the trigger.
@@ -1452,7 +1466,7 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
         showCelebration(
           text,
           function onConfirm() {           // timer expired or user clicked OK
-            insertText(el, text);
+            insertText(el, text, null, caretAt);
             logEvent(snip, 0);
             processing = false;
           },
@@ -1461,7 +1475,7 @@ function _proceedInsert(el, snip, fieldSnapshot, scLen) {
             processing = false;
           },
           { inserted: false, target: el, warning: reviewWarning(snip), note: note,
-            next: _cardNext(el, snip, text, false, null, function() { processing = false; }) }
+            next: _cardNext(el, snip, text, false, null, function() { processing = false; }, caretAt) }
         );
       }
     }, function() {
@@ -1967,14 +1981,126 @@ function _pictureNote(note, vm, html) {
 
 // `html` is the formatted copy of a text with pictures, for a field that takes
 // formatting (_takesFormatting); null everywhere else.
-function insertText(el, text, html) {
+// ── CURSOR POSITION ────────────────────────────────────────────────
+// A snippet can say where the caret lands once its text is in the field
+// ({cursor}, see the engine): "Hi Ada," then an empty line to type on, then the
+// sign-off. The text always goes in whole, in one insert, exactly as it did
+// before; the caret is then walked back from the end of it. Nothing here ever
+// touches the text, and a caret that cannot be placed with certainty stays at
+// the end, where it always was.
+
+// The text of a snippet without a form, and where its {cursor} stands in it:
+// { text, at }, `at` -1 for a snippet without one.
+function _landing(body, lang) {
+  if (!_SBFE.CURSOR_MARK || !_SBFE.sbSplitCursor) return { text: resolveBody(body, {}, { lang: lang }), at: -1 };
+  return _SBFE.sbSplitCursor(resolveBody(body, {}, { lang: lang, cursorMark: _SBFE.CURSOR_MARK }));
+}
+
+// How long a rich editor is given to write a text before the caret is looked
+// for, and again when it had not landed yet (Lexical pastes a moment later).
+var CURSOR_WAITS_MS = [200, 300, 500];
+// Past this many steps back the caret stays at the end: a walk that long is
+// slower than scrolling up and clicking.
+var CURSOR_MAX_STEPS = 4000;
+
+// Text compared without its spaces and line breaks: an editor may join spaces,
+// keep them as non-breaking ones, or drop one at the end of a line.
+var _CURSOR_GAPS_RE = new RegExp('[\\s' + String.fromCharCode(160) + ']+', 'g');
+function _cursorLoose(s) { return String(s).replace(_CURSOR_GAPS_RE, ''); }
+
+// What the caret crosses in one step: a letter, a line break, a whole emoji.
+function _cursorSteps(s) {
+  if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+    var n = 0, it = new Intl.Segmenter().segment(s)[Symbol.iterator]();
+    while (!it.next().done) n++;
+    return n;
+  }
+  return Array.from(s).length;
+}
+
+// `tail` is what the text just inserted holds after its {cursor}. Empty: the
+// mark stood at the very end, and the caret is already there.
+function _placeCursor(el, tail) {
+  if (!el || !tail) return;
+  if (_isCEEl(el)) { _cePlaceCursorSoon(el, tail, 0); return; }
+  _valuePlaceCursor(el, tail);
+}
+
+// A textarea or an input: the caret sits at the end of what was inserted.
+function _valuePlaceCursor(el, tail) {
+  var end;
+  // Some inputs (email, number) have no caret a script may read or set: the
+  // browser throws, and the caret stays at the end.
+  try { end = el.selectionEnd; } catch (e) { return; }
+  if (typeof end !== 'number') return;
+  // A one-line box drops line breaks as the text lands.
+  var landed = el.tagName === 'TEXTAREA' ? tail : tail.replace(/\n/g, '');
+  var at = end - landed.length;
+  if (at < 0 || el.value.slice(at, end) !== landed) return;
+  try { el.setSelectionRange(at, at); } catch (e) { console.error('[Fibonax] could not place the cursor in the field:', e); }
+}
+
+function _cePlaceCursorSoon(el, tail, attempt) {
+  if (attempt >= CURSOR_WAITS_MS.length) return;
+  setTimeout(function() {
+    if (_cePlaceCursor(el, tail) === 'not-yet') _cePlaceCursorSoon(el, tail, attempt + 1);
+  }, CURSOR_WAITS_MS[attempt]);
+}
+
+// A rich editor. Positions counted in characters cannot tell an empty line
+// from the end of the line above it, and an empty line is where the caret most
+// often goes. So the caret is stepped back the way an arrow key moves it, then
+// what lies between it and the end is read back and compared with `tail`. Too
+// far or not far enough (an editor that dropped a space) is corrected a step at
+// a time; anything else puts the caret back at the end.
+// Returns 'placed', 'left' (at the end, for good) or 'not-yet' (the text has
+// not landed, or the caret is not in the field: worth another look).
+function _cePlaceCursor(el, tail) {
+  var host = _ceHost(el), sel = window.getSelection();
+  if (!host || !sel || !sel.rangeCount || typeof sel.modify !== 'function') return 'left';
+  var endCO = _ceCaretCharOffset(host);
+  if (endCO < 0 || !sel.isCollapsed) return 'not-yet';
+  var want = _cursorLoose(tail);
+  var shown = _ceVisibleText(host);
+  var upTo = _cursorLoose(shown.slice(0, endCO));
+  if (want && upTo.slice(-want.length) !== want) return 'not-yet';
+  var steps = _cursorSteps(tail);
+  if (steps > CURSOR_MAX_STEPS) return 'left';
+  var endRange = sel.getRangeAt(0).cloneRange();
+  function between() {
+    var co = _ceCaretCharOffset(host);
+    return co < 0 ? null : _cursorLoose(_ceVisibleText(host).slice(co, endCO));
+  }
+  try {
+    for (var i = 0; i < steps; i++) sel.modify('move', 'backward', 'character');
+    var got = between(), tries = 0;
+    while (got !== null && got !== want && tries++ < 40) {
+      sel.modify('move', got.length < want.length ? 'backward' : 'forward', 'character');
+      got = between();
+    }
+    if (got === want) return 'placed';
+  } catch (e) {
+    console.error('[Fibonax] could not place the cursor in the editor:', e);
+  }
+  sel.removeAllRanges();
+  sel.addRange(endRange);
+  return 'left';
+}
+
+// `caretAt` is where the text's {cursor} stands in `text` (see _landing), or
+// absent. Formatted text (`html`) keeps the caret at the end: a layout's lines
+// and cells do not land as the plain text reads.
+function insertText(el, text, html, caretAt) {
   if (!el) return;
+  var headLen = (typeof caretAt === 'number' && caretAt >= 0 && !html)
+    ? String(text == null ? '' : text).slice(0, caretAt).replace(/\r\n?/g, '\n').length : -1;
   // Normalize CRLF/CR to LF first. A body carrying Windows line endings (JSON
   // import, text pasted from a desktop editor) otherwise splits into lines that
   // each keep a trailing CR: the CR survives into the message as an invisible
   // character, and a blank line — the lone "\r" segment — loses its break
   // entirely, collapsing paragraphs into one block.
   text = String(text == null ? '' : text).replace(/\r\n?/g, '\n');
+  var tail = headLen >= 0 ? text.slice(headLen) : '';
   // Read the caret's surroundings BEFORE anything below focuses or moves it.
   // Not for formatted text: its copy would keep the small letter, and the
   // landing check would read the body as missing and insert it again.
@@ -2003,12 +2129,12 @@ function insertText(el, text, html) {
         try { el.focus(); } catch(_) {}
       }
       if (html && !_isLexicalHost(_ceHost(el)) && _cePasteInsert(el, text, html)) return;
-      if ((text.indexOf('\n') > -1 || _isLexicalHost(_ceHost(el))) && _cePasteInsert(el, text)) return;
-      _ceLineInsert(text);
+      if (!((text.indexOf('\n') > -1 || _isLexicalHost(_ceHost(el))) && _cePasteInsert(el, text))) _ceLineInsert(text);
+      _placeCursor(el, tail);
       return;
     }
     el.focus();
-    if (document.execCommand('insertText', false, text)) return;
+    if (document.execCommand('insertText', false, text)) { _placeCursor(el, tail); return; }
   } catch(e) {}
   try {
     var s = el.selectionStart || 0;
@@ -2018,6 +2144,7 @@ function insertText(el, text, html) {
     if (desc && desc.set) desc.set.call(el, nv); else el.value = nv;
     el.setSelectionRange(s + text.length, s + text.length);
     el.dispatchEvent(new Event('input', {bubbles:true}));
+    _placeCursor(el, tail);
   } catch(e) {}
 }
 
@@ -2960,7 +3087,7 @@ function doInsert(targetEl, snip, checked) {
   // path in _proceedInsert (see restoreFieldState).
   function insertSyncCE() {
     var before = _ceMeasureBefore(targetEl);
-    insertText(targetEl, text, html);
+    insertText(targetEl, text, html, vm.cursor);
     var snapshot = captureFieldState(targetEl, overlayTriggerLen);
     _markSyncInserted(snapshot, targetEl, before, text, html ? vm : null);
     showCelebration(
@@ -3002,7 +3129,7 @@ function doInsert(targetEl, snip, checked) {
     var snapshot = captureFieldState(targetEl, overlayTriggerLen);
     showCelebration(
       text,
-      function onConfirm() { insertText(targetEl, text); logUses(); },
+      function onConfirm() { insertText(targetEl, text, null, vm.cursor); logUses(); },
       function onUndo()    { restoreFieldState(snapshot); },
       { inserted: false, target: targetEl, warning: reviewWarning(snip), note: note }
     );
@@ -4291,7 +4418,8 @@ function selectTriggerItem(idx) {
       var fields = extractFields(item.body);
       processing = true;
       if (!fields.length) {
-        var text = resolveBody(item.body, {}, { lang: item.lang });
+        var landing = _landing(item.body, item.lang);
+        var text = landing.text, caretAt = landing.at;
         var _isCE2 = el && (el.isContentEditable || (el.getAttribute &&
           (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
         var pics = _pictureForm(item);
@@ -4302,7 +4430,7 @@ function selectTriggerItem(idx) {
           if (_isCE2) {
             // Same sync-insert fix as _proceedInsert: insert while selection is live.
             var before = _ceMeasureBefore(el);
-            insertText(el, text, html);
+            insertText(el, text, html, caretAt);
             _markSyncInserted(fieldSnapshot, el, before, text, html ? pics : null);
             showCelebration(
               text,
@@ -4315,14 +4443,14 @@ function selectTriggerItem(idx) {
                 processing = false;
               },
               { inserted: true, target: el, warning: reviewWarning(item), note: note,
-                next: _cardNext(el, item, text, true, fieldSnapshot, function() { processing = false; }) }
+                next: _cardNext(el, item, text, true, fieldSnapshot, function() { processing = false; }, caretAt) }
             );
           } else {
             // Non-CE: trigger already stripped; defer insertion to onConfirm.
             showCelebration(
               text,
               function onConfirm() {     // timer expired or user clicked OK
-                insertText(el, text);
+                insertText(el, text, null, caretAt);
                 logEvent(item, 0);
                 processing = false;
               },
@@ -4331,7 +4459,7 @@ function selectTriggerItem(idx) {
                 processing = false;
               },
               { inserted: false, target: el, warning: reviewWarning(item), note: note,
-                next: _cardNext(el, item, text, false, null, function() { processing = false; }) }
+                next: _cardNext(el, item, text, false, null, function() { processing = false; }, caretAt) }
             );
           }
         }, function() {
@@ -4908,7 +5036,8 @@ chrome.runtime.onMessage.addListener(function(msg) {
 function _proceedContextInsert(el, snip) {
   var fields = extractFields(snip.body);
   if (fields.length === 0) {
-    var text = resolveBody(snip.body, {}, { lang: snip.lang });
+    var landing = _landing(snip.body, snip.lang);
+    var text = landing.text, caretAt = landing.at;
     var isCE = el && (el.isContentEditable || (el.getAttribute &&
       (el.getAttribute('contenteditable') === 'true' || el.getAttribute('contenteditable') === '')));
     var isValueField = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
@@ -4926,14 +5055,14 @@ function _proceedContextInsert(el, snip) {
         // region so restoreFieldState can Range-delete it. onUndo skips logEvent.
         var snapCE = captureFieldState(el, 0);
         var before = _ceMeasureBefore(el);
-        insertText(el, text, html);
+        insertText(el, text, html, caretAt);
         _markSyncInserted(snapCE, el, before, text, html ? pics : null);
         showCelebration(
           text,
           function onConfirm() { logEvent(snip, 0); processing = false; },
           function onUndo()    { restoreFieldState(snapCE); processing = false; },
           { inserted: true, target: el, warning: reviewWarning(snip), note: note,
-            next: _cardNext(el, snip, text, true, snapCE, function() { processing = false; }) }
+            next: _cardNext(el, snip, text, true, snapCE, function() { processing = false; }, caretAt) }
         );
       } else if (isValueField) {
         // Textarea/input: the context menu inserts synchronously (no trigger to
@@ -4944,17 +5073,17 @@ function _proceedContextInsert(el, snip) {
         snapVal.prevValue    = el.value;
         snapVal.prevSelStart = el.selectionStart;
         snapVal.prevSelEnd   = el.selectionEnd;
-        insertText(el, text);
+        insertText(el, text, null, caretAt);
         showCelebration(
           text,
           function onConfirm() { logEvent(snip, 0); processing = false; },
           function onUndo()    { restoreFieldState(snapVal); processing = false; },
           { inserted: true, target: el, warning: reviewWarning(snip), note: note,
-            next: _cardNext(el, snip, text, true, snapVal, function() { processing = false; }) }
+            next: _cardNext(el, snip, text, true, snapVal, function() { processing = false; }, caretAt) }
         );
       } else {
         // No editable target: do not claim that text was inserted.
-        if (el) insertText(el, text);
+        if (el) insertText(el, text, null, caretAt);
         logEvent(snip, 0);
         processing = false;
       }

@@ -74,13 +74,30 @@ export function normalizeQuery(raw: string): string {
 // src/__tests__/assetSearch.test.ts holds them to the module, result for
 // result.
 
-// Lower case that never changes the length of the text, so a position found
-// in the lowered copy is the same position in the text that is printed.
+// An accent counts as the letter under it: "cafe" finds "Café". Must equal
+// MARKS, WIDE and lower() in extension/shared/asset-search.js.
+const MARKS = new RegExp(`[${String.fromCharCode(0x300)}-${String.fromCharCode(0x36f)}]`, 'g');
+const WIDE = new RegExp(`[${String.fromCharCode(0x80)}-${String.fromCharCode(0xffff)}]`);
+const FOLD_CACHE_LIMIT = 5000;
+let foldCache = new Map<string, string>();
+
+// Lower case with the accents off, and never a change in the length of the
+// text, so a position found in the folded copy is the same position in the
+// text that is printed.
 function lowerSameLength(text: string): string {
-  const low = text.toLowerCase();
-  if (low.length === text.length) return low;
+  if (!WIDE.test(text)) return text.toLowerCase();
+  const cached = foldCache.get(text);
+  if (cached !== undefined) return cached;
   let out = '';
-  for (let i = 0; i < text.length; i++) out += text.charAt(i).toLowerCase().charAt(0) || text.charAt(i);
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charAt(i);
+    let low = c.toLowerCase();
+    if (low.length !== 1) low = low.charAt(0) || c;
+    const base = c.charCodeAt(0) < 0x80 ? low : low.normalize('NFD').replace(MARKS, '');
+    out += base.length === 1 ? base : low;
+  }
+  if (foldCache.size >= FOLD_CACHE_LIMIT) foldCache = new Map();
+  foldCache.set(text, out);
   return out;
 }
 

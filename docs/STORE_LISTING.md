@@ -200,7 +200,7 @@ Rules applied:
 | Mobile browser access | `app/public/mobile/` (read-only browse, search, copy) | ✅ |
 | Devices list, login activity, sign out everywhere | v2.86.0 `SecurityPanel.tsx` | ✅ |
 | Supabase in the EU with RLS | Project `eyowustlbqujaimaxggt`, region eu-west-1, RLS on all tables | ✅ |
-| One search bar across snippets, prompts and memory | `MasterSearch.tsx` in the topbar filters the page you are on; Enter or ⌘K opens `GlobalSearch.tsx`, results grouped by type. Rules in `searchIndex.ts`. Shipped SEARCH-001 | ✅ Closes the Audit P1 stub |
+| One search bar across snippets, prompts and memory | `MasterSearch.tsx` in the topbar opens the search window on a click or ⌘K (`CommandPalette.tsx`, drawn by `extension/shared/command-palette.js`, the window the popup and the phone open too): recently opened by day, results as you type, filter chips. Rules in `extension/shared/asset-search.js`. Shipped SEARCH-001; the window replaced the grouped panel on 2026-11-25 | ✅ Closes the Audit P1 stub |
 
 No aspirational or unshipped feature is claimed. Mobile is described as browse, search, and
 copy only, with no sharing UI, matching the build.

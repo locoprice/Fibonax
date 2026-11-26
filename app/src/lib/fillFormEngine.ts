@@ -220,6 +220,11 @@ export interface SbFillFormViewModel {
    */
   parts: SbPreviewPart[] | null;
   /**
+   * Where the caret lands in `preview` once the text is in a field on a page
+   * (`{cursor}`), or -1 for the end. Only the page places a caret.
+   */
+  cursor: number;
+  /**
    * How each date and time field prints, ready to hand straight to
    * `resolveBody`. A surface that resolves the body itself must pass this too,
    * or what it produces prints differently from the preview it just showed.

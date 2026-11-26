@@ -137,7 +137,10 @@ const fnSource = [
   'function _ceBringBackTrigger(held) {',
   'function _cePasteInsert(el, text, html) {',
   'function _cePasteLand(el, host, dt, text) {',
-  'function insertText(el, text, html) {',
+  // Asked on every insert, and a no-op here: none of these bodies carries a
+  // {cursor}, so there is nothing after it to step back over.
+  'function _placeCursor(el, tail) {',
+  'function insertText(el, text, html, caretAt) {',
 ]
   .map((sig) => sliceFunction(source, sig))
   .join('\n');
@@ -1055,5 +1058,53 @@ describe('Undo keeps the space in front of the snippet', () => {
 
   it('has nothing to keep when the snippet opened the field', () => {
     expect(undoLeaves({ before: '', snippet: SNIPPET, drawn: false })).toBe('');
+  });
+});
+
+// {cursor}: once the text is in a plain box, the caret goes back from the end
+// of it to where the mark stood. `tail` is what the text holds after the mark.
+describe('cursor position in a textarea or an input', () => {
+  interface Box {
+    tagName: string;
+    value: string;
+    selectionEnd: number;
+    at: number;
+    setSelectionRange: (start: number, end: number) => void;
+  }
+  const place = new Function(
+    sliceFunction(source, 'function _valuePlaceCursor(el, tail) {') + '\nreturn _valuePlaceCursor;',
+  )() as (el: Box, tail: string) => void;
+  function box(tagName: string, value: string): Box {
+    const b: Box = {
+      tagName,
+      value,
+      selectionEnd: value.length,
+      at: -1,
+      setSelectionRange: (start) => {
+        b.at = start;
+      },
+    };
+    return b;
+  }
+
+  it('lands on the empty line the mark stood on', () => {
+    const b = box('TEXTAREA', 'typed before Hi,\n\n\n\nBye');
+    place(b, '\n\nBye');
+    expect(b.value.slice(0, b.at)).toBe('typed before Hi,\n\n');
+  });
+
+  it('counts a one-line box without the line breaks it dropped', () => {
+    const b = box('INPUT', 'Order  is ready');
+    place(b, ' is ready');
+    expect(b.value.slice(0, b.at)).toBe('Order ');
+    const dropped = box('INPUT', 'ab');
+    place(dropped, '\nb');
+    expect(dropped.at).toBe(1);
+  });
+
+  it('leaves the caret at the end when the box does not end with that text', () => {
+    const b = box('TEXTAREA', 'Hi, something else');
+    place(b, '\n\nBye');
+    expect(b.at).toBe(-1);
   });
 });

@@ -126,6 +126,18 @@ describe('the shared search rule', () => {
     });
   });
 
+  it('ignores capitals and accents, and prints the word as it is written', () => {
+    expect(S.words('CAFÉ Résumé')).toEqual(['cafe', 'resume']);
+    expect(S.look('cafe', { shown: ['Café hours'] })).toEqual({ rank: 2, why: null });
+    expect(S.look('CAFÉ', { shown: ['cafe hours'] })).toEqual({ rank: 2, why: null });
+    expect(S.excerpt('Send your résumé today', ['resume'])).toEqual({
+      kind: 'Text',
+      before: 'Send your ',
+      hit: 'résumé',
+      after: ' today',
+    });
+  });
+
   it('prints the reason escaped, the found word marked', () => {
     expect(S.whyHtml({ kind: 'Text', before: '<b>at the ', hit: 'parking', after: ' & more' })).toBe(
       '&lt;b&gt;at the <mark>parking</mark> &amp; more',
@@ -142,9 +154,10 @@ describe("the dashboard's copy of the rule", () => {
     'Write about {topic} as {"tone": "calm"}',
     '{case: upper}{formtext: name=city}{/case} and {button: label=Go}x{/button}',
     'Line one\n\nline   two\ttabbed',
+    'The café opens at 8, and the RÉSUMÉ goes to Zoë',
     '',
   ];
-  const queries = ['parking', 'hours parking', 'ARRIVAL parking', 'welcome', 'clients', 'formtext', 'city', 'two line', 'nope', ''];
+  const queries = ['parking', 'hours parking', 'ARRIVAL parking', 'welcome', 'clients', 'formtext', 'city', 'two line', 'cafe', 'resume zoe', 'nope', ''];
 
   it('reads words and texts as the module does', () => {
     for (const query of queries) expect(searchWords(query)).toEqual(S.words(query));

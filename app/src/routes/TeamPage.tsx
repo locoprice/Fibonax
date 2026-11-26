@@ -4,7 +4,7 @@ import { EmptyState } from '@/components/layout/EmptyState';
 import { LoadingBlock } from '@/components/layout/LoadingBlock';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
-import { CardHeading } from '@/features/org/CardHeading';
+import { CardHeading, GroupHeading, TEAM_TILE, TEAM_TILE_GRID } from '@/features/org/CardHeading';
 import { CreateTeamPanel } from '@/features/org/CreateTeamPanel';
 import { DepartmentsDialog } from '@/features/org/DepartmentsDialog';
 import { FolderShareModal } from '@/features/org/FolderShareModal';
@@ -32,7 +32,13 @@ import { useOrgStore } from '@/stores/orgStore';
 import { useAuthStore } from '@/stores/authStore';
 import { permissionsApi } from '@/lib/api/permissionsApi';
 import { FolderIcon } from '@/lib/folderIcons';
-import { groupByDepartment, hasOwnName } from '@/lib/orgChart';
+import {
+  groupByDepartment,
+  hasOwnName,
+  memberName,
+  peopleCount,
+  splitEmptyDepartments,
+} from '@/lib/orgChart';
 import { describeFolderContents } from '@/lib/teamFolders';
 import { teamGameStandings } from '@/lib/teamGame';
 import type {
@@ -60,6 +66,10 @@ const NO_ITEMS: FolderCounts = { snippets: 0, prompts: 0 };
  * what it holds, with Manage sharing beside it. Sharing itself stays
  * folder-level (Phase B org ACL) and is managed through FolderShareModal;
  * the items inside a folder are read on the Snippets and Prompts pages.
+ *
+ * Where the page has room (960px of its own width, measured by the page and
+ * not the window, since the sidebar folds), People and Shared folders sit
+ * side by side on the golden ratio, 1.618 to 1; below that they stack.
  */
 export function TeamPage() {
   const folders = useSnippetStore((s) => s.folders);
@@ -81,6 +91,10 @@ export function TeamPage() {
 
   const [shareFolder, setShareFolder] = useState<Folder | null>(null);
   const [grantsByFolder, setGrantsByFolder] = useState<Map<string, FolderPermission[]>>(new Map());
+  // Where the keyboard focus goes back to when the sharing window closes:
+  // the button that opened it, looked up again since the list may have moved.
+  const columnsRef = useRef<HTMLDivElement>(null);
+  const lastSharedId = useRef<string | null>(null);
 
   // Per-folder grants drive the "who has access" faces. Non-fatal: a failure
   // degrades to scope-only badges (the store's folderShares stays authoritative).
@@ -181,18 +195,34 @@ export function TeamPage() {
     [currentUserId, activeOrg],
   );
 
-  function renderRow(folder: Folder) {
+  function renderTile(folder: Folder) {
+    const owner =
+      folder.user_id && folder.user_id !== currentUserId
+        ? memberById.get(folder.user_id)
+        : undefined;
     return (
-      <SharedFolderRow
+      <SharedFolderTile
         key={folder.id}
         folder={folder}
         scope={folderShares.get(folder.id)?.scope ?? 'shared'}
         faces={accessFaces(folder)}
         counts={countsByFolder.get(folder.id) ?? NO_ITEMS}
+        ownerName={owner ? memberName(owner) : null}
         canManage={canManage(folder)}
-        onManage={() => setShareFolder(folder)}
+        onManage={() => {
+          lastSharedId.current = folder.id;
+          setShareFolder(folder);
+        }}
       />
     );
+  }
+
+  function focusLastShared() {
+    const id = lastSharedId.current;
+    if (id === null) return;
+    columnsRef.current
+      ?.querySelector<HTMLButtonElement>(`button[data-share-folder="${CSS.escape(id)}"]`)
+      ?.focus();
   }
 
   // The Team game: read only while the team's game is on.
@@ -223,7 +253,7 @@ export function TeamPage() {
         // No team yet: offer the one action that unblocks everything else.
         <CreateTeamPanel />
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 [container-type:inline-size]">
           {gameOn && (
             <TeamGameCard
               isAdmin={activeOrg.myRole === 'admin'}
@@ -235,35 +265,42 @@ export function TeamPage() {
             />
           )}
 
-          <PeopleCard
-            org={activeOrg}
-            members={members}
-            departments={departments}
-            currentUserId={currentUserId}
-            gameTitles={gameTitles}
-          />
-
-          {foldersLoading ? (
-            <LoadingBlock what="shared folders" />
-          ) : sharedFolders.length === 0 ? (
-            <EmptyState
-              icon={Share2}
-              title="Nothing shared yet"
-              description="On the Snippets page, right-click a folder and choose Share with team. Everyone you share it with gets its snippets and prompts straight away."
+          <div ref={columnsRef} className={PAGE_COLUMNS}>
+            <PeopleCard
+              org={activeOrg}
+              members={members}
+              departments={departments}
+              currentUserId={currentUserId}
+              gameTitles={gameTitles}
             />
-          ) : (
-            <section
-              className="rounded-[16px] border border-line bg-card"
-              aria-labelledby="team-folders-title"
-            >
-              <CardHeading id="team-folders-title" title="Shared folders" detail={sharedFolders.length} />
-              {mine.length > 0 && <FolderGroup title="Shared by you">{mine.map(renderRow)}</FolderGroup>}
-              {mine.length > 0 && withMe.length > 0 && <div className="h-px bg-line" />}
-              {withMe.length > 0 && (
-                <FolderGroup title="Shared with you">{withMe.map(renderRow)}</FolderGroup>
-              )}
-            </section>
-          )}
+
+            {foldersLoading ? (
+              <LoadingBlock what="shared folders" />
+            ) : sharedFolders.length === 0 ? (
+              <EmptyState
+                icon={Share2}
+                title="Nothing shared yet"
+                description="On the Snippets page, right-click a folder and choose Share with team. Everyone you share it with gets its snippets and prompts straight away."
+              />
+            ) : (
+              <section
+                className="rounded-[16px] border border-line bg-card pb-5"
+                aria-labelledby="team-folders-title"
+              >
+                <CardHeading id="team-folders-title" title="Shared folders" detail={sharedFolders.length} />
+                {mine.length > 0 && (
+                  <FolderGroup title="Shared by you" count={mine.length}>
+                    {mine.map(renderTile)}
+                  </FolderGroup>
+                )}
+                {withMe.length > 0 && (
+                  <FolderGroup title="Shared with you" count={withMe.length}>
+                    {withMe.map(renderTile)}
+                  </FolderGroup>
+                )}
+              </section>
+            )}
+          </div>
 
           {!gameOn && activeOrg.myRole === 'admin' && <TeamGameStart />}
         </div>
@@ -273,6 +310,7 @@ export function TeamPage() {
         folder={shareFolder}
         onClose={() => setShareFolder(null)}
         onShared={reload}
+        onRestoreFocus={focusLastShared}
       />
     </>
   );
@@ -280,8 +318,19 @@ export function TeamPage() {
 
 /* ------------------------------------------------------------------ */
 
-/** The tile grid every group of people uses, grouped by department or not. */
-const PEOPLE_GRID = 'grid grid-cols-2 gap-x-2 gap-y-1 p-3 xl:grid-cols-3 2xl:grid-cols-4';
+/**
+ * People beside Shared folders on the golden ratio once the page itself is
+ * 960px wide; one column below that. A container query, so the split follows
+ * the room the page has, whether the sidebar is open or folded.
+ */
+const PAGE_COLUMNS =
+  'grid items-start gap-4 [@container(min-width:960px)]:grid-cols-[minmax(0,1.618fr)_minmax(0,1fr)]';
+
+/** People tiles: as many columns of at least 240px as the card holds. */
+const PEOPLE_GRID = `${TEAM_TILE_GRID} grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]`;
+
+/** Folder tiles are wider: a name, what it holds, who has it and a button. */
+const FOLDER_GRID = `${TEAM_TILE_GRID} grid-cols-[repeat(auto-fill,minmax(17.5rem,1fr))]`;
 
 function PeopleCard({
   org,
@@ -310,12 +359,13 @@ function PeopleCard({
   const departmentsButtonRef = useRef<HTMLButtonElement>(null);
   const lastEditedId = useRef<string | null>(null);
 
-  const groups = useMemo(() => groupByDepartment(members, departments), [members, departments]);
-  // A department nobody sits in is an admin's to fill; everyone else sees
-  // only the ones with people in them.
-  const shownGroups = groups.filter((g) => g.members.length > 0 || isAdmin);
-  // The how-to is said once, on the first empty department, not on each.
-  const firstEmpty = shownGroups.find((g) => g.members.length === 0) ?? null;
+  // Departments with people in them come first, in the chart's order. The
+  // ones nobody sits in are an admin's to fill: they close the list as one
+  // short group, so an empty department never opens the page.
+  const { filled, empty } = useMemo(
+    () => splitEmptyDepartments(groupByDepartment(members, departments)),
+    [members, departments],
+  );
   const editing = members.find((m) => m.user_id === editingId) ?? null;
 
   function renderTile(m: OrgMember) {
@@ -385,31 +435,48 @@ function PeopleCard({
         </p>
       ) : departments.length === 0 ? (
         // No departments yet: one grid of faces, in the directory's own order.
-        <ul className={PEOPLE_GRID}>{members.map(renderTile)}</ul>
+        <ul className={`${PEOPLE_GRID} py-5`}>{members.map(renderTile)}</ul>
       ) : (
         // The org chart: one block per department, its lead first, then the
-        // people who have no department yet.
-        <div className="divide-y divide-line">
-          {shownGroups.map((group) => {
+        // people who have no department yet, then the empty departments.
+        <div className="pb-5">
+          {filled.map((group) => {
             const headingId = `team-department-${group.department?.id ?? 'none'}`;
             return (
               <section key={headingId} aria-labelledby={headingId}>
-                <h3 id={headingId} className="px-5 pt-3.5 text-[13px] font-semibold text-ink">
-                  {group.department?.name ?? 'No department yet'}{' '}
-                  <span className="font-normal text-ink-subtle">· {group.members.length}</span>
-                </h3>
-                {group.members.length === 0 ? (
-                  <p className="px-5 pb-3.5 pt-1 text-sm text-ink-subtle">
-                    Nobody here yet.
-                    {group === firstEmpty &&
-                      ' Click the pencil beside a person to choose their department.'}
-                  </p>
-                ) : (
-                  <ul className={`${PEOPLE_GRID} pt-1.5`}>{group.members.map(renderTile)}</ul>
-                )}
+                <GroupHeading
+                  id={headingId}
+                  title={group.department?.name ?? 'No department yet'}
+                  count={group.members.length}
+                  ownWords={group.department !== null}
+                />
+                <ul className={`${PEOPLE_GRID} pt-2.5`}>{group.members.map(renderTile)}</ul>
               </section>
             );
           })}
+          {isAdmin && empty.length > 0 && (
+            <section aria-labelledby="team-department-empty">
+              <GroupHeading
+                id="team-department-empty"
+                title="Empty departments"
+                count={empty.length}
+              />
+              <ul className="flex flex-wrap gap-2 px-5 pt-2.5">
+                {empty.map((d) => (
+                  <li
+                    key={d.id}
+                    translate="no"
+                    className="max-w-full truncate rounded-full border border-line px-3 py-1 text-xs font-medium text-ink-muted"
+                  >
+                    {d.name}
+                  </li>
+                ))}
+              </ul>
+              <p className="px-5 pt-2 text-sm text-ink-subtle">
+                Nobody here yet. Click the pencil beside a person to choose their department.
+              </p>
+            </section>
+          )}
         </div>
       )}
 
@@ -455,7 +522,7 @@ function MemberTile({
   const named = hasOwnName(member);
   const name = named ? member.display_name.trim() : member.email;
   return (
-    <li className="flex min-w-0 items-center gap-3 rounded-[12px] px-2 py-2">
+    <li className={`${TEAM_TILE} flex items-center gap-3`}>
       <span className="relative shrink-0">
         <Avatar
           src={member.avatar_url}
@@ -468,7 +535,7 @@ function MemberTile({
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate text-sm font-medium text-ink">
+          <span className="truncate text-sm font-medium text-ink" title={name}>
             <span translate="no">{isYou ? `${name} ` : name}</span>
             {isYou && <span className="font-normal text-ink-subtle">(you)</span>}
           </span>
@@ -489,7 +556,7 @@ function MemberTile({
         </span>
       </span>
       {onEdit && (
-        <Tooltip label="Department and job title" className="shrink-0">
+        <Tooltip label="Department and job title" className="-mr-1 shrink-0 self-start">
           <button
             type="button"
             onClick={onEdit}
@@ -505,52 +572,95 @@ function MemberTile({
   );
 }
 
-function FolderGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function FolderGroup({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count: number;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <p className="px-5 pb-1 pt-3 text-xs font-medium text-ink-subtle">{title}</p>
-      <ul className="divide-y divide-line">{children}</ul>
+      <GroupHeading title={title} count={count} />
+      <ul className={`${FOLDER_GRID} pt-2.5`}>{children}</ul>
     </div>
   );
 }
 
-interface SharedFolderRowProps {
+interface SharedFolderTileProps {
   folder: Folder;
   scope: FolderShareScope;
   faces: StackMember[];
   counts: FolderCounts;
+  /** Who shared it, for a folder that is someone else's. Null on your own. */
+  ownerName: string | null;
   canManage: boolean;
   onManage: () => void;
 }
 
-function SharedFolderRow({ folder, scope, faces, counts, canManage, onManage }: SharedFolderRowProps) {
+/**
+ * One shared folder: its icon and name with what it holds (and whose it is,
+ * when it is not yours), then who has it beside the button that opens sharing.
+ */
+function SharedFolderTile({
+  folder,
+  scope,
+  faces,
+  counts,
+  ownerName,
+  canManage,
+  onManage,
+}: SharedFolderTileProps) {
+  const action = canManage ? 'Manage sharing' : 'View access';
   return (
-    <li className="flex items-center gap-3 px-5 py-3">
-      <FolderIcon icon={folder.icon} className="h-[18px] w-[18px] text-ink-muted" />
-      <span className="flex min-w-0 flex-1 items-baseline gap-2">
-        <span className="truncate text-sm font-medium text-ink" translate="no">{folder.name}</span>
-        <span className="shrink-0 text-xs text-ink-subtle">
-          {describeFolderContents(counts.snippets, counts.prompts)}
+    <li className={`${TEAM_TILE} flex flex-col gap-3`}>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary-light text-primary">
+          <FolderIcon icon={folder.icon} className="h-[18px] w-[18px]" />
         </span>
-      </span>
-
-      {scope === 'team' ? (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-semibold text-primary">
-          <Globe className="h-3 w-3" aria-hidden="true" />
-          Whole team
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-medium text-ink" title={folder.name} translate="no">
+            {folder.name}
+          </span>
+          <span className="truncate text-xs text-ink-subtle">
+            {describeFolderContents(counts.snippets, counts.prompts)}
+            {ownerName && (
+              <>
+                {' · from'}
+                <span translate="no">{` ${ownerName}`}</span>
+              </>
+            )}
+          </span>
         </span>
-      ) : (
-        faces.length > 0 && <AvatarStack members={faces} className="shrink-0" />
-      )}
+      </div>
 
-      <button
-        type="button"
-        onClick={onManage}
-        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[8px] border border-line bg-card px-3 text-xs font-medium text-ink-muted transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-      >
-        <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
-        {canManage ? 'Manage sharing' : 'View access'}
-      </button>
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        {scope === 'team' ? (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-semibold text-primary">
+            <Globe className="h-3 w-3" aria-hidden="true" />
+            Whole team
+          </span>
+        ) : (
+          <span className="flex min-w-0 items-center gap-2">
+            {/* Four faces at most: the count beside them says how many there are. */}
+            {faces.length > 0 && <AvatarStack members={faces.slice(0, 4)} className="shrink-0" />}
+            <span className="truncate text-xs text-ink-subtle">{peopleCount(faces.length)}</span>
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={onManage}
+          data-share-folder={folder.id}
+          aria-label={`${action}: ${folder.name}`}
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[8px] border border-line bg-card px-3 text-xs font-medium text-ink-muted transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
+          {action}
+        </button>
+      </div>
     </li>
   );
 }

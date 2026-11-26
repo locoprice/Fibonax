@@ -117,6 +117,20 @@ A **Button** changes numbers while you fill the form, like a "10% off" button. I
 - **What it does**: each line sets one field, for example `PRICE` = `PRICE * 0.9`. Later lines use the results of earlier ones.
 - **Spacing**: whether the button removes the space around it, so it leaves no blank line behind.
 
+## Cursor position
+
+**Cursor position**, under **Actions**, marks where the cursor waits after the snippet goes in, so you can keep typing in the right spot. A reply can open with a greeting, leave an empty line, and end with your sign-off: the cursor waits on the empty line.
+
+- Click in the text where you want the cursor, then choose **Insert cursor position**.
+- A snippet takes one. To move it, **Remove** it in the list under the button and insert it again. **Undo** follows every Remove.
+- It never prints anything.
+
+It works when the snippet is inserted on a web page: with a trigger, from the menu or with a right-click. The cursor stays at the end, as before, in three cases:
+
+- In the extension popup and on your phone, which copy the text for you to paste.
+- For a snippet with an email layout or a picture.
+- In the few editors that don't let the cursor be moved for you.
+
 ## Fill from a pasted link
 
 In the side panel, **Fill from a pasted link** under **Actions** adds a new field that fills itself from a web page: type the word that comes before the value on the page, pick **Text**, **Number**, **Date** or **Choice**, and click **Add field**. The field is named after the word, like `CUSTOMER`. For a field already in the snippet, the Text, Number, Date/Time and Choice windows have the same **Fill from a pasted link** option. Either way, the form gets a box where you paste the page's link to fill the fields. See [Fill a form from a link](/text-snippets/fill-from-link).
@@ -153,5 +167,6 @@ You can also type fields straight into the body:
 | Choice that only decides what shows | `{formmenu: Basic,Pro; name=PLAN; print=no}` |
 | Choice with an Other answer | `{formmenu: Email,Phone; name=CHANNEL; other=Other}` |
 | Button | `{button label="10% off"}PRICE = PRICE * 0.9{/button}` |
+| Cursor position | `{cursor}` |
 
 To repeat a field's answer elsewhere in the body, write its name in braces, like `{CLIENT}`.

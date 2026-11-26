@@ -69,6 +69,7 @@ import { cn, countWords } from '@/lib/utils';
 import { findMenuTokenAt, nextMenuName } from '@/lib/formMenuToken';
 import {
   bodyItems,
+  CURSOR_TOKEN,
   changedSpan,
   itemTitle,
   readersOf,
@@ -461,6 +462,7 @@ const DATE_KINDS: readonly BodyItemKind[] = ['date', 'time'];
 const AUTO_KINDS: readonly BodyItemKind[] = ['auto'];
 const GREETING_KINDS: readonly BodyItemKind[] = ['greeting'];
 const SEASONAL_KINDS: readonly BodyItemKind[] = ['seasonal'];
+const CURSOR_KINDS: readonly BodyItemKind[] = ['cursor'];
 const MINE_KINDS: readonly BodyItemKind[] = ['mine'];
 const PICTURE_KINDS: readonly BodyItemKind[] = ['picture'];
 const TEXT_NOUN = { one: 'text field', many: 'text fields' };
@@ -471,6 +473,7 @@ const DATE_NOUN = { one: 'date or time field', many: 'date and time fields' };
 const AUTO_NOUN = { one: 'automatic date', many: 'automatic dates' };
 const GREETING_NOUN = { one: 'greeting', many: 'greetings' };
 const SEASONAL_NOUN = { one: 'seasonal line', many: 'seasonal lines' };
+const CURSOR_NOUN = { one: 'cursor position', many: 'cursor positions' };
 const MINE_NOUN = { one: 'detail', many: 'details' };
 const PICTURE_NOUN = { one: 'picture', many: 'pictures' };
 const RANGE_NOUN = { one: 'date range count', many: 'date range counts' };
@@ -635,6 +638,11 @@ export function NewSnippetDialog() {
   // Your occasions: the calendar every seasonal line prints from. A seasonal
   // line's Edit opens it too, since the line has nothing of its own to change.
   const [occasionsOpen, setOccasionsOpen] = useState(false);
+  // One cursor position per snippet: the engine reads the first and no other.
+  const hasCursorMark = useMemo(
+    () => bodyItems(form.content).some((i) => i.kind === 'cursor'),
+    [form.content],
+  );
   // What {my: …} prints for the person writing, shown beside each detail.
   const myDetailsNow = useSettingsStore((s) => s.myDetails);
   const openOccasions = useCallback(() => setOccasionsOpen(true), []);
@@ -2036,6 +2044,48 @@ export function NewSnippetDialog() {
                     only={readsPage}
                     detail={pageDetail}
                     onEdit={openItemWindow}
+                  />
+                </div>
+              </Toggle>
+
+              {/* Where the caret lands once the text is in a field on a page.
+                  One per snippet, and nothing to set: it is placed, or taken
+                  out. */}
+              <Toggle
+                label="Cursor position"
+                className="mb-2.5"
+                footer={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    disabled={saving || hasCursorMark}
+                    title={hasCursorMark ? 'This snippet already has a cursor position. Remove it to place it somewhere else.' : undefined}
+                    onClick={() => insertAtCursor(CURSOR_TOKEN)}
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    Insert cursor position
+                  </Button>
+                }
+              >
+                <p className="text-[11px] text-ink-subtle leading-tight">
+                  Where the cursor waits after the snippet goes in, so you can keep typing
+                  in the right spot. Click in the text where you want it, then insert.
+                </p>
+                <p className="mt-2 rounded-[8px] border border-primary/25 bg-primary-light px-2 py-1.5 text-[11px] leading-snug text-ink">
+                  Hello, then an empty line, then your sign-off: the cursor waits on the
+                  empty line.
+                </p>
+                <p className="mt-2 text-[11px] text-ink-subtle leading-tight">
+                  Works when the snippet is inserted on a web page. The popup and the phone
+                  copy the text, so the cursor stays where you paste it. One per snippet.
+                </p>
+                <div className="mt-2.5">
+                  <ItemListSection
+                    body={form.content}
+                    onReplace={replaceRange}
+                    kinds={CURSOR_KINDS}
+                    noun={CURSOR_NOUN}
                   />
                 </div>
               </Toggle>

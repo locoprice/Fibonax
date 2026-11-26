@@ -81,6 +81,11 @@ html,body{
 }
 .sinp:focus{border-color:var(--sb-azure);box-shadow:var(--sb-shadow-glow)}
 .sinp::placeholder{color:var(--sb-ink-subtle)}
+/* The search window the bar opens (shared/command-palette.css), sized for the
+   popup: under the header, with room for a few more rows than its default.
+   Written with `body` in front so it outranks the shared sheet, which loads
+   after this one. */
+body .sbcp{--cp-top:55px;--cp-h:440px}
 .tpill{font-size:var(--sb-fs-10);font-family:var(--sb-mono);font-weight:700;color:var(--sb-azure);background:var(--sb-azure-bg);border-radius:var(--sb-r-pill);padding:5px 11px;white-space:nowrap;flex-shrink:0}
 .srow.pmode .tpill{color:var(--sb-lang-multi);background:var(--sb-lang-multi-bg)}
 .srow.pmode .sinp:focus{border-color:var(--sb-lang-multi);box-shadow:0 0 0 3px rgba(124,58,237,.14)}
@@ -738,7 +743,10 @@ html,body{
   <div class="srow">
     <div class="search-wrap">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input class="sinp" id="sq" type="search" placeholder="Search snippets…" autofocus aria-label="Search snippets or shortcut">
+      <!-- The bar opens the search window (shared/command-palette.js): a click,
+           Ctrl+K, or the first letter typed while it has focus. It takes no
+           text itself, so it is read-only. -->
+      <input class="sinp" id="sq" type="search" placeholder="Search snippets…" autofocus readonly aria-haspopup="dialog" aria-label="Search snippets or shortcut">
     </div>
     <div class="tpill" id="tp"><span class="isc-pfx">::</span>quoteEN</div>
   </div>
@@ -976,6 +984,9 @@ html,body{
 <script src="../shared/tooltip.js"></script>
 <script src="../shared/snippet-stats.js"></script>
 <script src="../shared/asset-search.js"></script>
+<script src="../shared/recents.js"></script>
+<script src="../shared/command-palette.js"></script>
+<link rel="stylesheet" href="../shared/command-palette.css">
 <script src="../shared/memory-chunk.js"></script>
 <script src="../shared/memory-pack.js"></script>
 <script src="../auth/auth.js"></script>

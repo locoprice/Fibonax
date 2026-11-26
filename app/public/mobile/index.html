@@ -1905,7 +1905,7 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <div class="lib-search">
       <div class="psearch-wrap" id="srch-wrap">
-        <input id="srch" type="search" placeholder="Search snippets…" aria-label="Search snippets"
+        <input id="srch" type="search" readonly aria-haspopup="dialog" placeholder="Search snippets…" aria-label="Search snippets"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" id="srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
@@ -2035,7 +2035,7 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <div class="lib-search">
       <div class="psearch-wrap" id="prompt-srch-wrap">
-        <input id="prompt-srch" type="search" placeholder="Search prompts…" aria-label="Search prompts"
+        <input id="prompt-srch" type="search" readonly aria-haspopup="dialog" placeholder="Search prompts…" aria-label="Search prompts"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" id="prompt-srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
@@ -2095,7 +2095,7 @@ svg.brain-type-icon{stroke-width:1.8}
     </div>
     <div class="lib-search">
       <div class="psearch-wrap" id="mem-srch-wrap">
-        <input id="mem-srch" type="search" placeholder="Search Brains…" aria-label="Search Brains"
+        <input id="mem-srch" type="search" readonly aria-haspopup="dialog" placeholder="Search Brains…" aria-label="Search Brains"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <button type="button" id="mem-srch-clear" class="psearch-clear" aria-label="Clear search">✕</button>
       </div>
@@ -3421,6 +3421,18 @@ svg.brain-type-icon{stroke-width:1.8}
     }
     var preview = finished(values);
 
+    // Where {cursor} stands in the finished text, or -1: the text resolved once
+    // more with the engine's mark in its place. Decided here so the page reads
+    // one answer; a surface that copies text never looks at it. An engine that
+    // cannot mark it (the phone's) leaves it at -1.
+    var cursor = -1;
+    if (E.CURSOR_MARK && E.sbSplitCursor && /\{\s*cursor\s*\}/i.test(src)) {
+      resolveOpts.cursorMark = E.CURSOR_MARK;
+      var split = E.sbSplitCursor(finished(values));
+      delete resolveOpts.cursorMark;
+      if (split.text === preview) cursor = split.at;
+    }
+
     // Whether an empty box's answer would reach the text. A box inside a Show
     // or hide section that is closed prints nothing either way, so the
     // unfinished-text check does not call it empty. Answered one at a time with
@@ -3492,7 +3504,7 @@ svg.brain-type-icon{stroke-width:1.8}
         }).join('');
       }
     }
-    return { preview: preview, errors: errors, formatted: formatted, parts: parts };
+    return { preview: preview, errors: errors, formatted: formatted, parts: parts, cursor: cursor };
   }
 
   // ── FORMATTED LAYOUT ────────────────────────────────────────────
@@ -3521,7 +3533,7 @@ svg.brain-type-icon{stroke-width:1.8}
 
     // No engine means the page loaded wrong. Degrade to an empty form rather
     // than throw inside a content script running on somebody else's page.
-    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, errors: [], sections: [], progress: progress([]), season: null, layout: 'flat', steps: [] };
+    if (!E) return { fields: [], buttons: [], preview: src, formatted: null, parts: null, cursor: -1, errors: [], sections: [], progress: progress([]), season: null, layout: 'flat', steps: [] };
 
     var now = o.now || new Date();
     var fmt = E.sbFormatDate || null;
@@ -3758,6 +3770,10 @@ svg.brain-type-icon{stroke-width:1.8}
       // The text with its pictures, in order: [{ text } | { picture }], or
       // null when there is no picture. What a preview draws.
       parts: resolved.parts,
+      // Where the caret lands in `preview` once the text is in a field on a
+      // page ({cursor}), or -1 for the end as always. Only the page places a
+      // caret; the popup and the phone copy the text and leave this alone.
+      cursor: resolved.cursor,
       errors: resolved.errors,
       sections: sectionsFor(fields),
       // How far along the form is, for the line a long form carries above its
@@ -7603,6 +7619,8 @@ svg.brain-type-icon{stroke-width:1.8}
 //   4. Text is read the way a person reads it: a field or a formula counts as
 //      the name it carries, never as the code that writes it, so "formtext"
 //      finds nothing and a field called "address" is found by "address".
+//   5. Capitals and accents never matter: "cafe" finds "Café", and "RESUME"
+//      finds "résumé".
 (function (root) {
   'use strict';
 
@@ -7615,13 +7633,32 @@ svg.brain-type-icon{stroke-width:1.8}
   var TOKEN_RE = /\{(?:=|\/?[a-z]+:)[^{}]*\}|\{(?:endif|else|\/[a-z]+)\}/gi;
   var TOKEN_NAME_RE = /(?:^|[;:{]\s*)name=([^;}]*)/i;
 
-  // Lower case that never changes the length of the text, so a position found
-  // in the lowered copy is the same position in the text that is printed.
+  // An accent counts as the letter under it: "cafe" finds "Café". A letter is
+  // split into its base and its marks, and the marks (U+0300 to U+036F) are
+  // dropped. Both ranges are built from their codes, so no invisible character
+  // sits in this file.
+  var MARKS = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g');
+  var WIDE = new RegExp('[' + String.fromCharCode(0x80) + '-' + String.fromCharCode(0xffff) + ']');
+  var foldCache = {}, foldCount = 0;
+
+  // Lower case with the accents off, and never a change in the length of the
+  // text, so a position found in the folded copy is the same position in the
+  // text that is printed.
   function lower(text) {
-    var low = text.toLowerCase();
-    if (low.length === text.length) return low;
+    if (!WIDE.test(text)) return text.toLowerCase();
+    var hit = foldCache[text];
+    if (hit !== undefined) return hit;
     var out = '';
-    for (var i = 0; i < text.length; i++) out += text.charAt(i).toLowerCase().charAt(0) || text.charAt(i);
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charAt(i);
+      var low = c.toLowerCase();
+      if (low.length !== 1) low = low.charAt(0) || c;
+      var base = c.charCodeAt(0) < 0x80 ? low : low.normalize('NFD').replace(MARKS, '');
+      out += base.length === 1 ? base : low;
+    }
+    // Bounded, like the cache of readable texts below.
+    if (foldCount >= 5000) { foldCache = {}; foldCount = 0; }
+    foldCache[text] = out; foldCount++;
     return out;
   }
 
@@ -7768,6 +7805,7 @@ svg.brain-type-icon{stroke-width:1.8}
   }
 
   var API = {
+    fold: function (text) { return lower(str(text)); },
     words: words,
     readable: readable,
     excerpt: excerpt,
@@ -7785,6 +7823,1670 @@ svg.brain-type-icon{stroke-width:1.8}
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
 </script>
 <!-- SB_ASSET_SEARCH:END -->
+<!-- SB_COMMAND_PALETTE:BEGIN (generated from extension/shared/recents.js, command-palette.js and command-palette.css by scripts/sync-command-palette.js, do not edit) -->
+<style>
+/* THE SEARCH WINDOW ("Search or ask"): the look of shared/command-palette.js.
+ *
+ * One stylesheet for the popup, the dashboard and the phone (an inlined copy,
+ * scripts/sync-command-palette.js). It brings no colours of its own: every
+ * value is read from the tokens of the surface it is on, the extension's
+ * (--sb-*) first, then the dashboard's (--color-*), then the phone's, and the
+ * canonical hex from docs/DESIGN_SYSTEM.md last. The dashboard's dark theme is
+ * the only place two tints are spelled out, because the brand tints are fixed
+ * across themes there and would glare on a dark card.
+ *
+ * Every rule is written out in full: the popup and the phone have no reset,
+ * the dashboard has Tailwind's, and the window has to look the same on all.
+ */
+.sbcp {
+  --cp-card: var(--sb-bg, var(--color-card, var(--card, #FFFFFF)));
+  --cp-alt: var(--sb-bg-muted, var(--color-bg-alt, var(--bg-alt, #F2F2F7)));
+  --cp-line: var(--sb-line, var(--color-line, var(--border, #E5E5EA)));
+  --cp-ink: var(--sb-ink, var(--color-ink, var(--text, #1C1C1E)));
+  --cp-muted: var(--sb-ink-muted, var(--color-ink-muted, var(--text2, #6E6E73)));
+  /* The popup's own hint grey is too light to read as text, so its secondary
+     grey stands in there. */
+  --cp-subtle: var(--color-ink-subtle, var(--sb-ink-muted, var(--text3, #6B6B70)));
+  --cp-primary: var(--sb-azure, #1B4FD8);
+  --cp-primary-text: var(--sb-azure, var(--activity-4, var(--primary-copy, #1B4FD8)));
+  --cp-primary-bg: var(--sb-azure-bg, var(--primary-lt, #EEF2FF));
+  --cp-primary-bdr: var(--sb-azure-bdr, #BED0FF);
+  --cp-glow: var(--sb-azure-glow, rgba(27, 79, 216, .14));
+  --cp-backdrop: rgba(28, 28, 30, .4);
+  --cp-shadow: 0 12px 40px rgba(0, 0, 0, .12), 0 2px 8px rgba(0, 0, 0, .06);
+  --cp-mono: var(--sb-mono, var(--mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace));
+  /* 610 by 377: two Fibonacci numbers, a golden rectangle. */
+  --cp-w: 610px;
+  --cp-h: 377px;
+  --cp-top: 12vh;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--cp-top) 13px 13px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--cp-ink);
+}
+[data-theme='dark'] .sbcp {
+  --cp-primary-bg: rgba(27, 79, 216, .24);
+  --cp-primary-bdr: rgba(110, 150, 240, .45);
+  --cp-backdrop: rgba(0, 0, 0, .55);
+  --cp-shadow: 0 16px 48px rgba(0, 0, 0, .5), 0 2px 8px rgba(0, 0, 0, .3);
+}
+.sbcp[hidden],
+.sbcp [hidden] { display: none !important; }
+.sbcp *,
+.sbcp *::before,
+.sbcp *::after { box-sizing: border-box; }
+.sbcp button {
+  margin: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.sbcp p { margin: 0; }
+
+.sbcp-back {
+  position: absolute;
+  inset: 0;
+  background: var(--cp-backdrop);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.sbcp-dlg {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: var(--cp-w);
+  max-width: 100%;
+  height: var(--cp-h);
+  max-height: 100%;
+  background: var(--cp-card);
+  border: 1px solid var(--cp-line);
+  border-radius: 12px;
+  box-shadow: var(--cp-shadow);
+  opacity: 0;
+  transform: scale(.98);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.sbcp-on .sbcp-back { opacity: 1; }
+.sbcp-on .sbcp-dlg { opacity: 1; transform: none; }
+
+.sbcp-svg { width: 16px; height: 16px; flex-shrink: 0; }
+.sbcp-svg-s { width: 12px; height: 12px; stroke-width: 2.2; }
+
+/* The box */
+.sbcp-in {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  height: 55px;
+  padding: 0 13px 0 16px;
+  border-bottom: 1px solid var(--cp-line);
+}
+.sbcp-glass { width: 18px; height: 18px; color: var(--cp-subtle); }
+.sbcp-asking .sbcp-glass { display: none; }
+.sbcp-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border: 1px solid var(--cp-primary-bdr);
+  border-radius: 999px;
+  background: var(--cp-primary-bg);
+  color: var(--cp-primary-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+.sbcp .sbcp-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  color: var(--cp-ink);
+  font: inherit;
+  font-size: 16px;
+}
+.sbcp .sbcp-input::placeholder { color: var(--cp-subtle); opacity: 1; }
+.sbcp .sbcp-ai,
+.sbcp .sbcp-gear,
+.sbcp .sbcp-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cp-subtle);
+  cursor: pointer;
+}
+.sbcp .sbcp-ai:hover,
+.sbcp .sbcp-gear:hover { background: var(--cp-alt); color: var(--cp-ink); }
+.sbcp .sbcp-ai[aria-pressed='true'] { background: var(--cp-primary-bg); color: var(--cp-primary-text); }
+.sbcp .sbcp-close {
+  display: none;
+  width: auto;
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--cp-primary-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+.sbcp button:focus-visible {
+  outline: 2px solid var(--cp-primary);
+  outline-offset: 1px;
+}
+
+/* The chips */
+.sbcp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--cp-line);
+}
+.sbcp .sbcp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--cp-line);
+  border-radius: 8px;
+  background: var(--cp-card);
+  color: var(--cp-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sbcp button.sbcp-chip:hover { background: var(--cp-alt); color: var(--cp-ink); }
+.sbcp .sbcp-chip-add { border-style: dashed; }
+.sbcp .sbcp-chip-on {
+  gap: 0;
+  padding: 0;
+  border-color: var(--cp-primary-bdr);
+  background: var(--cp-primary-bg);
+  color: var(--cp-primary-text);
+  font-weight: 600;
+  cursor: default;
+}
+.sbcp .sbcp-chip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px 0 9px;
+  border: 0;
+  border-radius: 7px 0 0 7px;
+  background: transparent;
+  color: inherit;
+  font-weight: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.sbcp .sbcp-chip-x {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0 7px 7px 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.sbcp .sbcp-chip-x:hover { background: var(--cp-primary-bdr); }
+
+/* The list */
+.sbcp-list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 5px 8px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sbcp-g {
+  padding: 10px 8px 4px;
+  color: var(--cp-subtle);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.sbcp-group:first-child .sbcp-g { padding-top: 5px; }
+.sbcp-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.sbcp-row-why { padding: 6px 8px; }
+.sbcp-row[aria-selected='true'] { background: var(--cp-primary-bg); }
+.sbcp-r1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.sbcp-r1 .sbcp-svg { color: var(--cp-muted); }
+.sbcp-t {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--cp-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sbcp-c {
+  flex: 0 100 auto;
+  min-width: 34px;
+  overflow: hidden;
+  color: var(--cp-subtle);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sbcp-k {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--cp-subtle);
+  font-family: var(--cp-mono);
+  font-size: 11.5px;
+}
+/* The line that says why a result is listed: the same line every search in
+   Fibonax draws (docs/DESIGN_SYSTEM.md, "The line that says why"). */
+.sbcp-w {
+  display: -webkit-box;
+  margin: 2px 0 0 26px;
+  overflow: hidden;
+  color: var(--cp-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+.sbcp mark {
+  padding: 0;
+  background: transparent;
+  color: var(--cp-primary-text);
+  font-weight: 700;
+}
+.sbcp .sbcp-w mark { font-weight: 600; }
+
+.sbcp-empty {
+  padding: 34px 21px;
+  color: var(--cp-muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+  text-align: center;
+}
+.sbcp-empty b { color: var(--cp-ink); font-weight: 600; overflow-wrap: anywhere; }
+.sbcp .sbcp-btn {
+  margin-top: 10px;
+  min-height: 32px;
+  padding: 0 13px;
+  border: 1px solid var(--cp-line);
+  border-radius: 8px;
+  background: var(--cp-card);
+  color: var(--cp-primary-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sbcp .sbcp-btn:hover { background: var(--cp-alt); }
+.sbcp .sbcp-btn:disabled { color: var(--cp-subtle); cursor: default; }
+.sbcp .sbcp-btn:disabled:hover { background: var(--cp-card); }
+
+/* Thin rows while the very first copy of the library arrives. */
+.sbcp-skel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 8px;
+}
+.sbcp-skel i {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--cp-alt);
+  animation: sbcp-pulse 1.2s ease-in-out infinite;
+}
+.sbcp-skel i:first-child { width: 16px; height: 16px; border-radius: 4px; }
+@keyframes sbcp-pulse { 50% { opacity: .45; } }
+
+/* Ask. An answer is longer than a list of names, so the window may grow down
+   to the foot of the screen while one is asked for. */
+.sbcp-asking .sbcp-dlg {
+  height: auto;
+  min-height: var(--cp-h);
+}
+.sbcp-ask {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sbcp-ask-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 21px;
+  color: var(--cp-muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.sbcp-ask-t {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cp-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.sbcp-ask-t .sbcp-svg { color: var(--cp-primary-text); }
+.sbcp-ask-lock { color: var(--cp-subtle); font-size: 12.5px; }
+.sbcp .sbcp-btn-go { margin-top: 5px; }
+
+/* The foot */
+.sbcp-ft {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 8px 0 16px;
+  border-top: 1px solid var(--cp-line);
+  color: var(--cp-subtle);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sbcp-hint { display: inline-flex; align-items: center; gap: 4px; }
+.sbcp kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--cp-line);
+  border-radius: 4px;
+  background: var(--cp-card);
+  color: var(--cp-subtle);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+}
+.sbcp .sbcp-gear { width: 26px; height: 26px; margin-left: auto; }
+
+/* Menus */
+.sbcp-menu {
+  position: absolute;
+  z-index: 5;
+  min-width: 233px;
+  max-width: calc(100% - 16px);
+  max-height: 250px;
+  padding: 5px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--cp-line);
+  border-radius: 10px;
+  background: var(--cp-card);
+  box-shadow: var(--cp-shadow);
+}
+.sbcp-mh {
+  padding: 6px 8px 3px;
+  color: var(--cp-subtle);
+  font-size: 11px;
+  font-weight: 600;
+}
+.sbcp .sbcp-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cp-ink);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.sbcp .sbcp-menu button > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sbcp .sbcp-menu button:hover { background: var(--cp-alt); }
+.sbcp-box {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--cp-subtle);
+  border-radius: 4px;
+}
+.sbcp [role='menuitemradio'] .sbcp-box { border-radius: 50%; }
+.sbcp [aria-checked='true'] .sbcp-box { border-color: var(--cp-primary); background: var(--cp-primary); }
+.sbcp [aria-checked='true'] .sbcp-box::after {
+  content: "";
+  width: 7px;
+  height: 4px;
+  border: 2px solid #FFFFFF;
+  border-top: 0;
+  border-right: 0;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.sbcp-note {
+  padding: 4px 8px 6px;
+  color: var(--cp-subtle);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* The whole screen, for a phone (shared/command-palette.js puts the class on
+   below 420px, or when the surface asks for it): no backdrop to tap, so a
+   Close button comes in, the key hints go, and touch targets grow to a thumb. */
+.sbcp.sbcp-full { padding: 0; }
+.sbcp-full .sbcp-dlg {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+.sbcp-full .sbcp-close { display: grid; }
+.sbcp-full .sbcp-ai { width: 44px; height: 44px; }
+.sbcp-full .sbcp-hint { display: none; }
+.sbcp-full .sbcp-ft { min-height: 44px; }
+.sbcp-full .sbcp-gear { width: 44px; height: 44px; }
+.sbcp-full .sbcp-chip { height: 34px; }
+.sbcp-full .sbcp-chip-x { width: 34px; }
+.sbcp-full .sbcp-row { min-height: 44px; }
+.sbcp-full .sbcp-t { font-size: 15px; }
+.sbcp-full .sbcp-menu button { min-height: 44px; font-size: 15px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sbcp-back,
+  .sbcp-dlg { transition: none; }
+  .sbcp-skel i { animation: none; }
+}
+</style>
+<script>
+// RECENTLY OPENED: what the search window lists before anything is typed.
+//
+// One helper for every surface that opens the window (the popup, the dashboard,
+// the phone through an inlined copy, scripts/sync-command-palette.js). It keeps
+// which item was opened and when, nothing else: no name, no text. The name is
+// read from the library when the list is drawn, so an item that was renamed
+// shows its new name and one that was deleted leaves the list by itself.
+//
+// The list stays on the device, per account, newest first, 50 at most. An item
+// opened again moves to the top instead of appearing twice.
+(function (root) {
+  'use strict';
+
+  var LIMIT = 50;
+  var DAY = 24 * 60 * 60 * 1000;
+  // The headings of the list, in the order they are drawn. An empty one is
+  // left out.
+  var GROUPS = ['Today', 'Yesterday', 'Past week', 'Past 30 days', 'Older'];
+
+  /** A stored list as this file wants it: valid rows, newest first, each key once. */
+  function clean(list) {
+    var rows = [], seen = {};
+    (Array.isArray(list) ? list : []).forEach(function (row) {
+      if (!row || typeof row.k !== 'string' || !row.k) return;
+      var at = Number(row.t);
+      if (!isFinite(at) || at <= 0) return;
+      rows.push({ k: row.k, t: at });
+    });
+    rows.sort(function (a, b) { return b.t - a.t; });
+    return rows.filter(function (row) {
+      if (seen[row.k]) return false;
+      seen[row.k] = true;
+      return true;
+    }).slice(0, LIMIT);
+  }
+
+  /** The list after `key` was opened at `now`. The list given is not changed. */
+  function record(list, key, now) {
+    if (typeof key !== 'string' || !key) return clean(list);
+    var at = isFinite(Number(now)) ? Number(now) : Date.now();
+    return clean([{ k: key, t: at }].concat(Array.isArray(list) ? list : []));
+  }
+
+  /** The list without `keys`, for items that no longer exist. */
+  function forget(list, keys) {
+    var gone = {};
+    (Array.isArray(keys) ? keys : []).forEach(function (key) { gone[key] = true; });
+    return clean(list).filter(function (row) { return !gone[row.k]; });
+  }
+
+  // Midnight of the day `ms` falls in, on this device's clock.
+  function dayStart(ms) {
+    var d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  /**
+   * The heading a moment sits under, counted in whole days on the calendar:
+   * something opened at 23:50 is "Yesterday" ten minutes later.
+   */
+  function groupOf(at, now) {
+    var today = dayStart(isFinite(Number(now)) ? Number(now) : Date.now());
+    var day = dayStart(at);
+    if (day >= today) return GROUPS[0];
+    if (day >= today - DAY) return GROUPS[1];
+    if (day >= today - 7 * DAY) return GROUPS[2];
+    if (day >= today - 30 * DAY) return GROUPS[3];
+    return GROUPS[4];
+  }
+
+  /**
+   * `rows` under their headings, in order, empty headings left out:
+   * [{ label, rows }]. `atOf` reads the moment of a row (its `t` by default).
+   */
+  function group(rows, now, atOf) {
+    var read = typeof atOf === 'function' ? atOf : function (row) { return row.t; };
+    var buckets = {};
+    (Array.isArray(rows) ? rows : []).forEach(function (row) {
+      var label = groupOf(read(row), now);
+      (buckets[label] = buckets[label] || []).push(row);
+    });
+    return GROUPS.filter(function (label) { return !!buckets[label]; }).map(function (label) {
+      return { label: label, rows: buckets[label] };
+    });
+  }
+
+  // Where a list is kept. Each one answers get(cb) with whatever is stored and
+  // takes set(list). A device that refuses storage keeps the list for the
+  // visit only: the window still works, it just forgets on reload.
+
+  /** A page's own storage (the dashboard, the phone). */
+  function localStore(name) {
+    return {
+      get: function (cb) {
+        var stored = null;
+        try { stored = JSON.parse(root.localStorage.getItem(name) || 'null'); } catch (e) { stored = null; }
+        cb(stored);
+      },
+      set: function (list) {
+        try { root.localStorage.setItem(name, JSON.stringify(list)); } catch (e) { /* kept for this visit only */ }
+      }
+    };
+  }
+
+  /** The extension's storage. */
+  function chromeStore(name) {
+    return {
+      get: function (cb) {
+        try {
+          root.chrome.storage.local.get(name, function (data) { cb(data ? data[name] : null); });
+        } catch (e) { cb(null); }
+      },
+      set: function (list) {
+        var patch = {};
+        patch[name] = list;
+        try { root.chrome.storage.local.set(patch); } catch (e) { /* kept for this visit only */ }
+      }
+    };
+  }
+
+  /**
+   * A list that is read once and then answers at once.
+   *
+   *   ready(cb)    calls back when the stored list has been read
+   *   list()       the rows, newest first: [{ k, t }]
+   *   record(key)  `key` was opened now
+   *   forget(keys) these items no longer exist
+   *   clear()      empty the list
+   */
+  function open(store) {
+    var rows = [], loaded = false, waiting = [];
+    store.get(function (stored) {
+      // Anything opened while the stored list was still being read stays.
+      rows = clean(rows.concat(Array.isArray(stored) ? stored : []));
+      loaded = true;
+      waiting.splice(0).forEach(function (cb) { cb(); });
+    });
+    function save() { store.set(rows); }
+    return {
+      ready: function (cb) { if (loaded) cb(); else waiting.push(cb); },
+      list: function () { return rows.slice(); },
+      record: function (key, now) { rows = record(rows, key, now); save(); },
+      forget: function (keys) {
+        var next = forget(rows, keys);
+        if (next.length !== rows.length) { rows = next; save(); }
+      },
+      clear: function () { rows = []; save(); }
+    };
+  }
+
+  var API = {
+    LIMIT: LIMIT,
+    GROUPS: GROUPS,
+    clean: clean,
+    record: record,
+    forget: forget,
+    groupOf: groupOf,
+    group: group,
+    localStore: localStore,
+    chromeStore: chromeStore,
+    open: open
+  };
+
+  // UMD: browser globals, CommonJS (the node gate and the dashboard's test).
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = API;
+  } else {
+    root.SBRecents = API;
+  }
+
+}(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
+</script>
+<script>
+// THE SEARCH WINDOW: "Search or ask", one window for every surface.
+//
+// Clicking a search bar (or Ctrl+K / Cmd+K) opens this window over the page.
+// The popup and the dashboard load this file; the phone carries an inlined
+// copy (scripts/sync-command-palette.js). Each surface hands it its library
+// and says what "open" means there; everything a person sees and presses is
+// decided here, so the three cannot drift.
+//
+// What it does:
+//   Nothing typed   what was opened lately, under Today, Yesterday, Past week,
+//                   Past 30 days and Older (shared/recents.js). An empty
+//                   heading is left out.
+//   Something typed results from the one search rule (shared/asset-search.js):
+//                   every word, anywhere, any order, capitals and accents
+//                   ignored. Names first, then what was found in the text,
+//                   with the sentence it was found in.
+//   Chips           Title only, Created by, In, and + Filter (Type, Labels,
+//                   Date edited). A chip that is on is tinted and has a cross.
+//   Keys            Up and Down move the highlight (the mouse moves the same
+//                   one), Enter opens, Ctrl+Enter is the surface's second way
+//                   to open, Esc clears the text first and closes second.
+//   Ask             the sparkle button hands the question to the surface's
+//                   own FiboChat, where there is one.
+//
+// An item, as a surface hands it over:
+//   key       unique, also what the recents list keeps: 'snippet:<id>'
+//   kind      'snippet' | 'prompt' | 'brain' | 'item' (an item inside a Brain)
+//   title     its name
+//   shortcut  its trigger or shortcut, '' when it has none
+//   place     the folder or the Brain it sits in, '' when none
+//   placeKey  what the In filter keeps for that place (a Brain names itself)
+//   byName    who created it: 'You' or a teammate's name, '' when unknown
+//   edited    when it was last changed, in milliseconds, 0 when unknown
+//   labels    the names of its labels
+//   keywords  its search keywords
+//   text      its texts, one per language
+(function (root) {
+  'use strict';
+
+  var DEBOUNCE_MS = 130;
+  var DAY = 24 * 60 * 60 * 1000;
+  var CLOSE_MS = 120;
+
+  var SECTION = { snippet: 'Snippets', prompt: 'Prompts', brain: 'Brains', item: 'Brains' };
+  var TYPES = [['snippet', 'Snippets'], ['prompt', 'Prompts'], ['brain', 'Brains']];
+  var EDITED = [['today', 'Today'], ['week', 'Past week'], ['month', 'Past 30 days'], ['older', 'Older']];
+  var MORE = [['type', 'Type'], ['labels', 'Labels'], ['edited', 'Date edited']];
+
+  function rule() { return root.SBAssetSearch; }
+  function recentsApi() { return root.SBRecents; }
+
+  function svg(body, cls) {
+    return '<svg class="sbcp-svg' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + body + '</svg>';
+  }
+  var ICON = {
+    search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', 'sbcp-glass'),
+    snippet: svg('<path d="M7 3H5a2 2 0 0 0-2 2v2m14-4h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8h10M7 12h10M7 16h6"/>'),
+    prompt: svg('<rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 9 3 3-3 3m6 0h4"/>'),
+    brain: svg('<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/>'),
+    item: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>'),
+    spark: svg('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/>'),
+    gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>'),
+    cross: svg('<path d="M18 6 6 18M6 6l12 12"/>', 'sbcp-svg-s'),
+    down: svg('<path d="m6 9 6 6 6-6"/>', 'sbcp-svg-s'),
+    plus: svg('<path d="M12 5v14M5 12h14"/>', 'sbcp-svg-s'),
+    check: svg('<path d="m5 12 5 5 9-10"/>', 'sbcp-svg-s')
+  };
+
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function list(values) { return Array.isArray(values) ? values : []; }
+
+  /** Where an item sits, as the grey text after its name. */
+  function crumb(item) {
+    var section = SECTION[item.kind] || '';
+    return item.place ? section + ' / ' + item.place : section;
+  }
+
+  /** A Brain and the items inside one are both "Brains" to the Type filter. */
+  function typeOf(item) { return item.kind === 'item' ? 'brain' : item.kind; }
+
+  function emptyFilters() {
+    return { titleOnly: false, by: [], places: [], more: [], types: [], labels: [], edited: null };
+  }
+
+  function filtersOn(f) {
+    return !!(f.titleOnly || f.by.length || f.places.length || f.more.length);
+  }
+
+  function dayStart(ms) {
+    var d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  /** Whether something changed at `at` falls in one of the Date edited choices. */
+  function editedIn(at, key, now) {
+    if (!at) return false;
+    var age = now - at;
+    if (key === 'today') return dayStart(at) >= dayStart(now);
+    if (key === 'week') return age <= 7 * DAY;
+    if (key === 'month') return age <= 30 * DAY;
+    return age > 30 * DAY;
+  }
+
+  /** Whether the chips let an item through. Title only is not decided here: it changes what is read. */
+  function passes(item, f, now) {
+    if (f.by.length && f.by.indexOf(item.byName || '') < 0) return false;
+    if (f.places.length && f.places.indexOf(item.placeKey || '') < 0) return false;
+    if (f.more.indexOf('type') > -1 && f.types.length && f.types.indexOf(typeOf(item)) < 0) return false;
+    if (f.more.indexOf('labels') > -1 && f.labels.length) {
+      var labels = list(item.labels), any = false;
+      for (var i = 0; i < labels.length && !any; i++) any = f.labels.indexOf(labels[i]) > -1;
+      if (!any) return false;
+    }
+    if (f.more.indexOf('edited') > -1 && f.edited && !editedIn(item.edited, f.edited, now)) return false;
+    return true;
+  }
+
+  /**
+   * What the chips can offer, read from the library itself: the people who
+   * created something, the places things sit in, the labels in use, and
+   * whether anything says when it was edited.
+   */
+  function facets(items) {
+    var people = [], places = [], labels = [], seen = {}, edited = false;
+    list(items).forEach(function (item) {
+      var who = item.byName || '';
+      if (who && !seen['p:' + who]) { seen['p:' + who] = true; people.push(who); }
+      var key = item.placeKey || '';
+      var name = item.kind === 'brain' ? item.title : item.place;
+      if (key && name && !seen['l:' + key]) {
+        seen['l:' + key] = true;
+        places.push({ section: SECTION[item.kind] || '', key: key, name: name });
+      }
+      list(item.labels).forEach(function (label) {
+        if (label && !seen['t:' + label]) { seen['t:' + label] = true; labels.push(label); }
+      });
+      if (item.edited) edited = true;
+    });
+    people.sort(function (a, b) { return a === 'You' ? -1 : b === 'You' ? 1 : a.localeCompare(b); });
+    places.sort(function (a, b) { return a.name.localeCompare(b.name); });
+    labels.sort(function (a, b) { return a.localeCompare(b); });
+    return { people: people, places: places, labels: labels, edited: edited };
+  }
+
+  /**
+   * The results for what was typed: [{ item, rank, why }], best first.
+   *
+   *   rank 2  the name or the shortcut holds every word
+   *   rank 1  found through the text, a keyword, a label or the place
+   *
+   * Within a rank, a name that starts with the first word comes first, then
+   * what was opened or edited most recently. `opened` maps a key to when it
+   * was last opened.
+   */
+  function find(items, query, f, now, opened) {
+    var S = rule(), words = S.words(query), rows = [];
+    if (!words.length) return rows;
+    var when = opened || {};
+    list(items).forEach(function (item) {
+      if (!passes(item, f, now)) return;
+      var look = S.look(query, f.titleOnly
+        ? { shown: [item.title, item.shortcut] }
+        : {
+            shown: [item.title, item.shortcut],
+            keywords: item.keywords,
+            labels: item.labels,
+            also: [item.place, SECTION[item.kind]],
+            text: item.text
+          });
+      if (!look) return;
+      rows.push({
+        item: item,
+        rank: look.rank,
+        why: look.why,
+        starts: S.fold(item.title).indexOf(words[0]) === 0 ? 1 : 0,
+        when: when[item.key] || item.edited || 0
+      });
+    });
+    rows.sort(function (a, b) {
+      return (b.rank - a.rank) || (b.starts - a.starts) || (b.when - a.when) ||
+        String(a.item.title).localeCompare(String(b.item.title));
+    });
+    return rows;
+  }
+
+  /** What was opened lately and still exists, newest first: [{ item, at }]. */
+  function recentRows(items, recent, f, now) {
+    var byKey = {};
+    list(items).forEach(function (item) { byKey[item.key] = item; });
+    var rows = [];
+    list(recent).forEach(function (row) {
+      var item = byKey[row.k];
+      if (item && passes(item, f, now)) rows.push({ item: item, at: row.t });
+    });
+    return rows;
+  }
+
+  /** A name with the typed words wrapped in <mark>, escaped. */
+  function markTitle(title, words) {
+    var text = String(title == null ? '' : title);
+    var folded = rule().fold(text), hits = [];
+    list(words).forEach(function (word) {
+      if (!word) return;
+      var at = folded.indexOf(word);
+      while (at > -1) { hits.push([at, at + word.length]); at = folded.indexOf(word, at + 1); }
+    });
+    if (!hits.length) return esc(text);
+    hits.sort(function (a, b) { return a[0] - b[0]; });
+    var merged = [hits[0]];
+    for (var i = 1; i < hits.length; i++) {
+      var last = merged[merged.length - 1];
+      if (hits[i][0] <= last[1]) last[1] = Math.max(last[1], hits[i][1]);
+      else merged.push(hits[i]);
+    }
+    var out = '', pos = 0;
+    merged.forEach(function (m) {
+      out += esc(text.slice(pos, m[0])) + '<mark>' + esc(text.slice(m[0], m[1])) + '</mark>';
+      pos = m[1];
+    });
+    return out + esc(text.slice(pos));
+  }
+
+  function isMac() {
+    var nav = root.navigator;
+    return !!nav && /Mac|iPhone|iPad/.test(String(nav.platform || nav.userAgent || ''));
+  }
+
+  /**
+   * Draws the window and returns its handle.
+   *
+   * cfg:
+   *   host            where the window is added (the page's body by default)
+   *   name            a prefix for the ids it writes ('sbcp' by default)
+   *   items()         the library, as the items described at the top
+   *   loading()       true while the very first copy of the library is on its way
+   *   recents         a list from SBRecents.open(...), or nothing
+   *   secondaryLabel  what Ctrl+Enter does here ('Open in new tab'), '' for none
+   *   onOpen(item, secondary)
+   *   onToggle(open)  the window opened or closed
+   *   trigger         the search bar, or a function that returns it: focus goes
+   *                   back there when nothing else opened the window
+   *   full            true, false, or a function that answers either: whether
+   *                   the window takes the whole screen. Left out, it does on
+   *                   a screen narrower than 420px.
+   *   ask             the surface's FiboChat, or nothing:
+   *                     locked            a sentence when the account cannot ask yet, else ''
+   *                     minLength         the shortest question it takes
+   *                     show(el, question) draw the answer into el
+   *                     hide(el)           take it out again
+   *
+   * Handle: open(text), close(), toggle(), isOpen(), refresh(), leaveAsk(), destroy().
+   */
+  function create(cfg) {
+    var doc = root.document;
+    var name = cfg.name || 'sbcp';
+    var mod = isMac() ? '⌘' : 'Ctrl';
+    var st = {
+      open: false, ask: false, asked: null, input: '', query: '',
+      activeKey: null, f: emptyFilters(), opener: null
+    };
+    var timer = null, closeTimer = null, menu = null, shown = [];
+
+    var el = doc.createElement('div');
+    el.className = 'sbcp';
+    el.hidden = true;
+    el.innerHTML =
+      '<div class="sbcp-back"></div>' +
+      '<div class="sbcp-dlg" role="dialog" aria-modal="true" aria-label="Search or ask">' +
+        '<div class="sbcp-in">' +
+          ICON.search +
+          '<span class="sbcp-mode" hidden>' + ICON.spark + '<span translate="no">FiboChat</span></span>' +
+          '<input class="sbcp-input" type="text" role="combobox" aria-expanded="false" aria-autocomplete="list"' +
+            ' aria-controls="' + esc(name) + '-list" autocomplete="off" autocapitalize="off" spellcheck="false">' +
+          (cfg.ask ? '<button type="button" class="sbcp-ai" aria-pressed="false" aria-label="Ask FiboChat" title="Ask FiboChat">' + ICON.spark + '</button>' : '') +
+          '<button type="button" class="sbcp-close">Close</button>' +
+        '</div>' +
+        '<div class="sbcp-chips" role="group" aria-label="Filters"></div>' +
+        '<div class="sbcp-list" role="listbox" id="' + esc(name) + '-list" aria-label="Results"></div>' +
+        '<div class="sbcp-ask" hidden><div class="sbcp-ask-intro"></div><div class="sbcp-ask-host"></div></div>' +
+        '<div class="sbcp-ft"></div>' +
+      '</div>';
+    (cfg.host || doc.body).appendChild(el);
+
+    var dlg = el.querySelector('.sbcp-dlg');
+    var input = el.querySelector('.sbcp-input');
+    var listEl = el.querySelector('.sbcp-list');
+    var chipsEl = el.querySelector('.sbcp-chips');
+    var footEl = el.querySelector('.sbcp-ft');
+    var aiBtn = el.querySelector('.sbcp-ai');
+    var modeEl = el.querySelector('.sbcp-mode');
+    var askEl = el.querySelector('.sbcp-ask');
+    var askIntro = el.querySelector('.sbcp-ask-intro');
+    var askHost = el.querySelector('.sbcp-ask-host');
+
+    function items() { return list(cfg.items ? cfg.items() : []); }
+
+    // A phone gets the whole screen: no backdrop, a Close button, no key hints.
+    function wantsFull() {
+      if (typeof cfg.full === 'function') return !!cfg.full();
+      if (typeof cfg.full === 'boolean') return cfg.full;
+      return !!(root.matchMedia && root.matchMedia('(max-width: 419px)').matches);
+    }
+
+    // On a phone the keyboard covers the foot of the page without making the
+    // page any shorter. The window follows the part that can be seen, so its
+    // last rows and its foot stay above the keyboard.
+    function fit() {
+      var view = root.visualViewport;
+      if (!view || !st.open || !el.classList.contains('sbcp-full')) {
+        el.style.top = '';
+        el.style.height = '';
+        return;
+      }
+      el.style.top = view.offsetTop + 'px';
+      el.style.height = view.height + 'px';
+    }
+    function recentList() { return cfg.recents ? cfg.recents.list() : []; }
+    function now() { return Date.now(); }
+    function askMin() { return (cfg.ask && cfg.ask.minLength) || 1; }
+
+    // Drawing
+
+    function rowHtml(row, words, index) {
+      var item = row.item, on = item.key === st.activeKey;
+      var why = row.why ? rule().whyHtml(row.why) : '';
+      return '<div class="sbcp-row' + (why ? ' sbcp-row-why' : '') + '" role="option" id="' + esc(name) + '-o-' + index + '"' +
+        ' data-key="' + esc(item.key) + '" aria-selected="' + (on ? 'true' : 'false') + '">' +
+          '<div class="sbcp-r1">' +
+            (ICON[item.kind] || ICON.item) +
+            '<span class="sbcp-t" translate="no">' + (words ? markTitle(item.title || 'Untitled', words) : esc(item.title || 'Untitled')) + '</span>' +
+            '<span class="sbcp-c" translate="no">· ' + esc(crumb(item)) + '</span>' +
+            (item.shortcut ? '<span class="sbcp-k" translate="no">' + esc(item.shortcut) + '</span>' : '') +
+          '</div>' +
+          (why ? '<div class="sbcp-w" translate="no">' + why + '</div>' : '') +
+        '</div>';
+    }
+
+    function emptyHtml(query) {
+      var on = filtersOn(st.f);
+      var first = query
+        ? 'No results for <b translate="no">“' + esc(query) + '”</b>.'
+        : (on ? 'Nothing you opened lately matches these filters.' : 'Nothing opened yet.');
+      var second = on
+        ? 'Some filters are on and may hide what you want.'
+        : (query ? 'Try fewer words, or a different one.' : 'Type to search your snippets, prompts and Brains.');
+      return '<div class="sbcp-empty"><p>' + first + '</p><p>' + second + '</p>' +
+        (on ? '<button type="button" class="sbcp-btn" data-clear-filters>Clear filters</button>' : '') + '</div>';
+    }
+
+    function skeletonHtml() {
+      var out = '';
+      for (var i = 0; i < 5; i++) {
+        out += '<div class="sbcp-skel" aria-hidden="true"><i></i><i style="width:' + (34 + (i * 13) % 21) + '%"></i><i style="width:' + (13 + (i * 8) % 13) + '%"></i></div>';
+      }
+      return out;
+    }
+
+    function drawList(keep) {
+      var all = items();
+      if (!all.length && cfg.loading && cfg.loading()) {
+        shown = [];
+        st.activeKey = null;
+        listEl.setAttribute('aria-busy', 'true');
+        listEl.innerHTML = skeletonHtml();
+        syncActive();
+        return;
+      }
+      listEl.setAttribute('aria-busy', 'false');
+      var query = st.query.replace(/^\s+|\s+$/g, '');
+      var words = rule().words(query);
+      var html = '', index = 0, keys = [];
+      if (words.length) {
+        var opened = {};
+        recentList().forEach(function (row) { opened[row.k] = row.t; });
+        var found = find(all, query, st.f, now(), opened);
+        found.forEach(function (row) { keys.push(row.item.key); });
+        if (!keep || keys.indexOf(st.activeKey) < 0) st.activeKey = keys[0] || null;
+        found.forEach(function (row) { html += rowHtml(row, words, index++); });
+      } else {
+        var recent = recentRows(all, recentList(), st.f, now());
+        recent.forEach(function (row) { keys.push(row.item.key); });
+        if (!keep || keys.indexOf(st.activeKey) < 0) st.activeKey = keys[0] || null;
+        recentsApi().group(recent, now(), function (row) { return row.at; }).forEach(function (group) {
+          html += '<div class="sbcp-group" role="group" aria-label="' + esc(group.label) + '">' +
+            '<div class="sbcp-g" aria-hidden="true">' + esc(group.label) + '</div>';
+          group.rows.forEach(function (row) { html += rowHtml(row, null, index++); });
+          html += '</div>';
+        });
+      }
+      shown = keys;
+      var top = listEl.scrollTop;
+      listEl.innerHTML = keys.length ? html : emptyHtml(query);
+      listEl.scrollTop = keep ? top : 0;
+      syncActive();
+      if (keep) reveal();
+    }
+
+    function chipHtml(key, label, on, menuChip) {
+      var attrs = menuChip ? ' aria-haspopup="menu" aria-expanded="' + (menu && menu.key === key ? 'true' : 'false') + '"'
+        : ' aria-pressed="' + (on ? 'true' : 'false') + '"';
+      var body = (key === 'title' && on ? ICON.check : '') + '<span>' + label + '</span>' + (menuChip && !on ? ICON.down : '');
+      if (!on) return '<button type="button" class="sbcp-chip" data-chip="' + key + '"' + attrs + '>' + body + '</button>';
+      return '<span class="sbcp-chip sbcp-chip-on">' +
+        '<button type="button" class="sbcp-chip-main" data-chip="' + key + '"' + attrs + '>' + body + '</button>' +
+        '<button type="button" class="sbcp-chip-x" data-x="' + key + '" aria-label="Clear this filter">' + ICON.cross + '</button>' +
+      '</span>';
+    }
+
+    function named(pairs, key) {
+      for (var i = 0; i < pairs.length; i++) if (pairs[i][0] === key) return pairs[i][1];
+      return '';
+    }
+
+    function drawChips() {
+      var f = st.f, fac = facets(items()), html = '';
+      html += chipHtml('title', 'Title only', f.titleOnly, false);
+      // One person in the whole library leaves nothing to choose between.
+      if (fac.people.length > 1 || f.by.length) {
+        html += chipHtml('by', f.by.length
+          ? 'Created by: <span translate="no">' + esc(f.by.length === 1 ? f.by[0] : '') + '</span>' + (f.by.length === 1 ? '' : f.by.length + ' people')
+          : 'Created by', f.by.length > 0, true);
+      }
+      if (fac.places.length || f.places.length) {
+        var one = '';
+        if (f.places.length === 1) fac.places.forEach(function (p) { if (p.key === f.places[0]) one = p.name; });
+        html += chipHtml('in', f.places.length
+          ? 'In: ' + (one ? '<span translate="no">' + esc(one) + '</span>' : f.places.length + ' places')
+          : 'In', f.places.length > 0, true);
+      }
+      f.more.forEach(function (key) {
+        if (key === 'type') {
+          html += chipHtml('type', f.types.length
+            ? 'Type: <span translate="no">' + esc(f.types.map(function (t) { return named(TYPES, t); }).join(', ')) + '</span>'
+            : 'Type', true, true);
+        } else if (key === 'labels') {
+          html += chipHtml('labels', f.labels.length
+            ? 'Labels: ' + (f.labels.length === 1 ? '<span translate="no">' + esc(f.labels[0]) + '</span>' : f.labels.length + ' labels')
+            : 'Labels', true, true);
+        } else if (key === 'edited') {
+          html += chipHtml('edited', f.edited ? 'Edited: ' + esc(named(EDITED, f.edited)) : 'Date edited', true, true);
+        }
+      });
+      html += '<button type="button" class="sbcp-chip sbcp-chip-add" data-chip="add" aria-haspopup="menu" aria-expanded="' +
+        (menu && menu.key === 'add' ? 'true' : 'false') + '">' + ICON.plus + '<span>Filter</span></button>';
+      chipsEl.innerHTML = html;
+    }
+
+    function kbd(text) { return '<kbd translate="no">' + text + '</kbd>'; }
+
+    function drawFooter() {
+      var hints = st.ask
+        ? '<span class="sbcp-hint">' + kbd('↵') + ' Ask</span><span class="sbcp-hint">' + kbd('Esc') + ' Close</span>'
+        : '<span class="sbcp-hint">' + kbd('↑') + kbd('↓') + ' Navigate</span>' +
+          '<span class="sbcp-hint">' + kbd('↵') + ' Open</span>' +
+          (cfg.secondaryLabel ? '<span class="sbcp-hint">' + kbd(mod + ' ↵') + ' ' + esc(cfg.secondaryLabel) + '</span>' : '') +
+          '<span class="sbcp-hint">' + kbd('Esc') + ' Close</span>';
+      footEl.innerHTML = hints + (cfg.recents
+        ? '<button type="button" class="sbcp-gear" data-gear aria-label="Search settings" title="Search settings" aria-haspopup="menu" aria-expanded="' +
+          (menu && menu.key === 'gear' ? 'true' : 'false') + '">' + ICON.gear + '</button>'
+        : '');
+    }
+
+    function drawAsk() {
+      var text = st.input.replace(/^\s+|\s+$/g, '');
+      var locked = cfg.ask.locked || '';
+      var ready = !locked && text.length >= askMin();
+      askIntro.hidden = st.asked !== null;
+      askHost.hidden = st.asked === null;
+      askIntro.innerHTML =
+        '<p class="sbcp-ask-t">' + ICON.spark + 'Ask <span translate="no">FiboChat</span></p>' +
+        '<p>Type a question in your own words. The answer comes only from your snippets and Brains, with every source linked.</p>' +
+        (locked
+          ? '<p class="sbcp-ask-lock">' + esc(locked) + '</p>'
+          : '<button type="button" class="sbcp-btn sbcp-btn-go" data-ask-go' + (ready ? '' : ' disabled') + '>Ask</button>');
+    }
+
+    function draw(keep) {
+      el.classList.toggle('sbcp-asking', st.ask);
+      modeEl.hidden = !st.ask;
+      if (aiBtn) aiBtn.setAttribute('aria-pressed', st.ask ? 'true' : 'false');
+      input.placeholder = st.ask ? 'Ask a question about your snippets and Brains…' : 'Search or ask a question…';
+      input.setAttribute('aria-label', st.ask ? 'Ask a question' : 'Search or ask a question');
+      listEl.hidden = st.ask;
+      chipsEl.hidden = st.ask;
+      askEl.hidden = !st.ask;
+      drawChips();
+      drawFooter();
+      if (st.ask) {
+        shown = [];
+        st.activeKey = null;
+        syncActive();
+        drawAsk();
+      } else {
+        drawList(keep);
+      }
+    }
+
+    // The highlighted row: one for the keys and the mouse
+
+    function rows() { return Array.prototype.slice.call(listEl.querySelectorAll('[role="option"]')); }
+
+    function syncActive() {
+      var active = null;
+      rows().forEach(function (row) {
+        var on = row.getAttribute('data-key') === st.activeKey;
+        row.setAttribute('aria-selected', on ? 'true' : 'false');
+        if (on) active = row;
+      });
+      input.setAttribute('aria-expanded', shown.length ? 'true' : 'false');
+      if (active) input.setAttribute('aria-activedescendant', active.id);
+      else input.removeAttribute('aria-activedescendant');
+    }
+
+    function reveal() {
+      var row = listEl.querySelector('[aria-selected="true"]');
+      if (!row) return;
+      var top = row.offsetTop, bottom = top + row.offsetHeight;
+      if (top < listEl.scrollTop) listEl.scrollTop = Math.max(0, top - 4);
+      else if (bottom > listEl.scrollTop + listEl.clientHeight) listEl.scrollTop = bottom - listEl.clientHeight + 4;
+    }
+
+    function setActive(key, scroll) {
+      if (shown.indexOf(key) < 0) return;
+      st.activeKey = key;
+      syncActive();
+      if (scroll) reveal();
+    }
+
+    function move(step) {
+      if (!shown.length) return;
+      var at = shown.indexOf(st.activeKey);
+      at = Math.max(0, Math.min(shown.length - 1, (at < 0 ? 0 : at) + step));
+      setActive(shown[at], true);
+    }
+
+    function openItem(key, secondary) {
+      var found = null;
+      items().forEach(function (item) { if (item.key === key) found = item; });
+      if (!found) return;
+      if (cfg.recents) cfg.recents.record(key);
+      close();
+      if (cfg.onOpen) cfg.onOpen(found, !!secondary);
+    }
+
+    // Typing
+
+    // The box shows every key at once; the list follows after a short pause,
+    // so a long library is never searched once per letter.
+    function commit() {
+      if (timer !== null) { root.clearTimeout(timer); timer = null; }
+      if (st.query !== st.input) { st.query = st.input; drawList(false); }
+    }
+
+    function onInput() {
+      st.input = input.value;
+      if (st.ask) {
+        if (st.asked !== null) hideAnswer();
+        drawAsk();
+        return;
+      }
+      if (timer !== null) root.clearTimeout(timer);
+      timer = root.setTimeout(commit, DEBOUNCE_MS);
+    }
+
+    // Ask
+
+    function hideAnswer() {
+      if (st.asked === null) return;
+      st.asked = null;
+      if (cfg.ask && cfg.ask.hide) cfg.ask.hide(askHost);
+    }
+
+    function askNow() {
+      var text = st.input.replace(/^\s+|\s+$/g, '');
+      if (!cfg.ask || cfg.ask.locked || text.length < askMin()) return;
+      hideAnswer();
+      st.asked = text;
+      drawAsk();
+      cfg.ask.show(askHost, text);
+    }
+
+    function setAsk(on) {
+      if (!cfg.ask || st.ask === on) return;
+      closeMenu();
+      hideAnswer();
+      st.ask = on;
+      if (!on) { if (timer !== null) { root.clearTimeout(timer); timer = null; } st.query = st.input; }
+      draw(false);
+      input.focus();
+    }
+
+    // Menus: under a chip, or over the settings button
+
+    function optHtml(group, value, label, on, single, plain) {
+      return '<button type="button" role="' + (single ? 'menuitemradio' : 'menuitemcheckbox') + '" aria-checked="' + (on ? 'true' : 'false') + '"' +
+        ' data-opt="' + group + '" data-val="' + esc(value) + '"><span class="sbcp-box"></span>' +
+        '<span' + (plain ? '' : ' translate="no"') + '>' + esc(label) + '</span></button>';
+    }
+
+    function menuHtml(key) {
+      var f = st.f, fac = facets(items()), html = '';
+      if (key === 'by') {
+        fac.people.forEach(function (who) { html += optHtml('by', who, who, f.by.indexOf(who) > -1, false, who === 'You'); });
+      } else if (key === 'in') {
+        var section = '';
+        ['Snippets', 'Prompts', 'Brains'].forEach(function (wanted) {
+          fac.places.forEach(function (place) {
+            if (place.section !== wanted) return;
+            if (section !== wanted) { section = wanted; html += '<div class="sbcp-mh" translate="no">' + wanted + '</div>'; }
+            html += optHtml('in', place.key, place.name, f.places.indexOf(place.key) > -1, false, false);
+          });
+        });
+      } else if (key === 'type') {
+        TYPES.forEach(function (t) { html += optHtml('type', t[0], t[1], f.types.indexOf(t[0]) > -1, false, false); });
+      } else if (key === 'labels') {
+        fac.labels.forEach(function (label) { html += optHtml('labels', label, label, f.labels.indexOf(label) > -1, false, false); });
+      } else if (key === 'edited') {
+        EDITED.forEach(function (e) { html += optHtml('edited', e[0], e[1], f.edited === e[0], true, true); });
+      } else if (key === 'add') {
+        html += '<div class="sbcp-mh">Add a filter</div>';
+        MORE.forEach(function (m) {
+          if (m[0] === 'labels' && !fac.labels.length && f.more.indexOf('labels') < 0) return;
+          if (m[0] === 'edited' && !fac.edited && f.more.indexOf('edited') < 0) return;
+          html += optHtml('add', m[0], m[1], f.more.indexOf(m[0]) > -1, false, true);
+        });
+      } else if (key === 'gear') {
+        html += '<div class="sbcp-note">What you opened lately is kept on this device only.</div>' +
+          '<button type="button" role="menuitem" data-clear-recents>Clear recently opened</button>';
+      }
+      return html;
+    }
+
+    function anchorOf(key) {
+      return key === 'gear' ? footEl.querySelector('[data-gear]') : chipsEl.querySelector('[data-chip="' + key + '"]');
+    }
+
+    function placeMenu() {
+      var anchor = anchorOf(menu.key);
+      if (!anchor) return;
+      var a = anchor.getBoundingClientRect(), d = dlg.getBoundingClientRect(), box = menu.el;
+      var left = a.left - d.left, top = a.bottom - d.top + 4;
+      if (menu.key === 'gear') {
+        left = a.right - d.left - box.offsetWidth;
+        top = a.top - d.top - box.offsetHeight - 4;
+      } else {
+        box.style.maxHeight = Math.max(89, dlg.clientHeight - top - 8) + 'px';
+      }
+      box.style.left = Math.max(8, Math.min(left, dlg.clientWidth - box.offsetWidth - 8)) + 'px';
+      box.style.top = Math.max(8, top) + 'px';
+    }
+
+    function openMenu(key, focusValue) {
+      closeMenu();
+      var box = doc.createElement('div');
+      box.className = 'sbcp-menu';
+      box.setAttribute('role', 'menu');
+      box.innerHTML = menuHtml(key);
+      dlg.appendChild(box);
+      menu = { key: key, el: box };
+      placeMenu();
+      var anchor = anchorOf(key);
+      if (anchor) anchor.setAttribute('aria-expanded', 'true');
+      var wanted = null;
+      if (focusValue !== undefined) {
+        Array.prototype.forEach.call(box.querySelectorAll('[data-val]'), function (b) {
+          if (b.getAttribute('data-val') === focusValue) wanted = b;
+        });
+      }
+      var first = wanted || box.querySelector('button');
+      if (first) first.focus();
+    }
+
+    function closeMenu(refocus) {
+      if (!menu) return false;
+      var key = menu.key;
+      menu.el.parentNode.removeChild(menu.el);
+      menu = null;
+      var anchor = anchorOf(key);
+      if (anchor) anchor.setAttribute('aria-expanded', 'false');
+      if (refocus) (anchor || input).focus();
+      return true;
+    }
+
+    function toggleIn(arr, value) {
+      var at = arr.indexOf(value);
+      if (at > -1) arr.splice(at, 1); else arr.push(value);
+    }
+
+    function clearChip(key) {
+      var f = st.f;
+      if (key === 'title') f.titleOnly = false;
+      else if (key === 'by') f.by = [];
+      else if (key === 'in') f.places = [];
+      else {
+        f.more = f.more.filter(function (k) { return k !== key; });
+        if (key === 'type') f.types = [];
+        if (key === 'labels') f.labels = [];
+        if (key === 'edited') f.edited = null;
+      }
+    }
+
+    function pick(button) {
+      var group = button.getAttribute('data-opt'), value = button.getAttribute('data-val'), f = st.f;
+      var key = menu.key;
+      if (group === 'add') {
+        if (f.more.indexOf(value) > -1) {
+          clearChip(value);
+          closeMenu();
+          draw(false);
+          input.focus();
+          return;
+        }
+        f.more.push(value);
+        closeMenu();
+        draw(false);
+        openMenu(value);
+        return;
+      }
+      if (group === 'by') toggleIn(f.by, value);
+      else if (group === 'in') toggleIn(f.places, value);
+      else if (group === 'type') toggleIn(f.types, value);
+      else if (group === 'labels') toggleIn(f.labels, value);
+      else if (group === 'edited') f.edited = f.edited === value ? null : value;
+      closeMenu();
+      draw(false);
+      // The menu stays open on the choice just made, so several can be ticked.
+      openMenu(key, value);
+    }
+
+    // Keys
+
+    // What Tab can land on: nothing switched off, nothing put away, and not
+    // the Close button while the stylesheet keeps it for narrow screens.
+    function focusables() {
+      return Array.prototype.filter.call(dlg.querySelectorAll('input, button'), function (node) {
+        if (node.disabled || node.closest('[hidden]')) return false;
+        return !root.getComputedStyle || root.getComputedStyle(node).display !== 'none';
+      });
+    }
+
+    function trap(e) {
+      var nodes = focusables();
+      if (!nodes.length) return;
+      e.preventDefault();
+      var at = nodes.indexOf(doc.activeElement);
+      nodes[(at + (e.shiftKey ? -1 : 1) + nodes.length) % nodes.length].focus();
+    }
+
+    function onKeyDown(e) {
+      // Nothing typed here reaches the page underneath: the popup and the
+      // dashboard both listen for the same keys on their own lists.
+      e.stopPropagation();
+      var key = e.key, withMod = e.ctrlKey || e.metaKey;
+      if (withMod && String(key).toLowerCase() === 'k') { e.preventDefault(); close(); return; }
+      if (key === 'Escape') {
+        e.preventDefault();
+        if (closeMenu(true)) return;
+        if (input.value) {
+          input.value = '';
+          st.input = '';
+          if (st.ask) { hideAnswer(); drawAsk(); } else commit();
+          input.focus();
+          return;
+        }
+        close();
+        return;
+      }
+      if (key === 'Tab') { trap(e); return; }
+      if (menu) {
+        if (key === 'ArrowDown' || key === 'ArrowUp') {
+          e.preventDefault();
+          var buttons = Array.prototype.slice.call(menu.el.querySelectorAll('button'));
+          var at = buttons.indexOf(doc.activeElement);
+          var next = buttons[Math.max(0, Math.min(buttons.length - 1, at + (key === 'ArrowDown' ? 1 : -1)))];
+          if (next) next.focus();
+        }
+        return;
+      }
+      if (doc.activeElement !== input) return;
+      if (st.ask) {
+        if (key === 'Enter') { e.preventDefault(); askNow(); }
+        return;
+      }
+      if (key === 'ArrowDown') { e.preventDefault(); commit(); move(1); }
+      else if (key === 'ArrowUp') { e.preventDefault(); commit(); move(-1); }
+      else if (key === 'Enter') {
+        e.preventDefault();
+        commit();
+        if (st.activeKey) openItem(st.activeKey, withMod);
+      }
+    }
+
+    function onClick(e) {
+      var target = e.target;
+      function near(selector) { return target.closest ? target.closest(selector) : null; }
+      if (near('.sbcp-back')) { close(); return; }
+      if (near('.sbcp-close')) { close(); return; }
+      if (near('.sbcp-ai')) { setAsk(!st.ask); return; }
+      var option = near('[data-opt]');
+      if (option) { pick(option); return; }
+      if (near('[data-clear-recents]')) {
+        cfg.recents.clear();
+        closeMenu();
+        draw(false);
+        input.focus();
+        return;
+      }
+      var gear = near('[data-gear]');
+      if (gear) {
+        if (menu && menu.key === 'gear') closeMenu(true); else openMenu('gear');
+        return;
+      }
+      var cross = near('[data-x]');
+      if (cross) {
+        clearChip(cross.getAttribute('data-x'));
+        closeMenu();
+        draw(false);
+        input.focus();
+        return;
+      }
+      var chip = near('[data-chip]');
+      if (chip) {
+        var key = chip.getAttribute('data-chip');
+        if (key === 'title') {
+          st.f.titleOnly = !st.f.titleOnly;
+          closeMenu();
+          draw(false);
+          var again = chipsEl.querySelector('[data-chip="title"]');
+          if (again) again.focus();
+          return;
+        }
+        if (menu && menu.key === key) closeMenu(true); else openMenu(key);
+        return;
+      }
+      if (near('[data-clear-filters]')) {
+        st.f = emptyFilters();
+        closeMenu();
+        draw(false);
+        input.focus();
+        return;
+      }
+      if (near('[data-ask-go]')) { askNow(); return; }
+      var row = near('[role="option"]');
+      if (row) { openItem(row.getAttribute('data-key'), e.ctrlKey || e.metaKey); return; }
+      // A click anywhere else in the window puts an open menu away.
+      if (menu && !near('.sbcp-menu')) closeMenu();
+    }
+
+    function onMouseMove(e) {
+      var row = e.target.closest ? e.target.closest('[role="option"]') : null;
+      if (row && row.getAttribute('data-key') !== st.activeKey) setActive(row.getAttribute('data-key'), false);
+    }
+
+    input.addEventListener('input', onInput);
+    el.addEventListener('keydown', onKeyDown);
+    el.addEventListener('click', onClick);
+    listEl.addEventListener('mousemove', onMouseMove);
+
+    // Opening and closing
+
+    function open(text) {
+      if (st.open) { input.focus(); return; }
+      if (closeTimer !== null) { root.clearTimeout(closeTimer); closeTimer = null; }
+      st.open = true;
+      st.opener = doc.activeElement;
+      st.ask = false;
+      st.asked = null;
+      // Filters start clean: one left on from last time would hide results
+      // without saying so.
+      st.f = emptyFilters();
+      st.input = st.query = typeof text === 'string' ? text : '';
+      st.activeKey = null;
+      input.value = st.input;
+      el.hidden = false;
+      el.classList.toggle('sbcp-full', wantsFull());
+      if (root.visualViewport) root.visualViewport.addEventListener('resize', fit);
+      fit();
+      draw(false);
+      // Painted closed first, so the fade and the small scale have a start.
+      void el.offsetWidth;
+      el.classList.add('sbcp-on');
+      input.focus();
+      try { input.setSelectionRange(st.input.length, st.input.length); } catch (err) { /* not every input type takes a selection */ }
+      if (cfg.onToggle) cfg.onToggle(true);
+    }
+
+    function close() {
+      if (!st.open) return;
+      closeMenu();
+      hideAnswer();
+      if (timer !== null) { root.clearTimeout(timer); timer = null; }
+      st.open = false;
+      if (root.visualViewport) root.visualViewport.removeEventListener('resize', fit);
+      el.classList.remove('sbcp-on');
+      var still = root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      closeTimer = root.setTimeout(function () {
+        closeTimer = null;
+        if (!st.open) el.hidden = true;
+      }, still ? 0 : CLOSE_MS);
+      var trigger = typeof cfg.trigger === 'function' ? cfg.trigger() : cfg.trigger;
+      var back = st.opener && st.opener !== doc.body && doc.contains(st.opener) ? st.opener : trigger;
+      st.opener = null;
+      if (back && back.focus) back.focus();
+      if (cfg.onToggle) cfg.onToggle(false);
+    }
+
+    /** The library or the recents changed: draw again, the highlight stays on its item. */
+    function refresh() {
+      if (!st.open) return;
+      var key = menu ? menu.key : null;
+      var focused = menu && doc.activeElement && doc.activeElement.getAttribute ? doc.activeElement.getAttribute('data-val') : undefined;
+      closeMenu();
+      draw(true);
+      if (key && anchorOf(key)) openMenu(key, focused === null ? undefined : focused);
+    }
+
+    if (cfg.recents) cfg.recents.ready(refresh);
+
+    return {
+      open: open,
+      close: close,
+      toggle: function (text) { if (st.open) close(); else open(text); },
+      isOpen: function () { return st.open; },
+      refresh: refresh,
+      leaveAsk: function () { setAsk(false); },
+      destroy: function () {
+        if (timer !== null) root.clearTimeout(timer);
+        if (closeTimer !== null) root.clearTimeout(closeTimer);
+        if (root.visualViewport) root.visualViewport.removeEventListener('resize', fit);
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }
+    };
+  }
+
+  var API = {
+    DEBOUNCE_MS: DEBOUNCE_MS,
+    create: create,
+    crumb: crumb,
+    emptyFilters: emptyFilters,
+    editedIn: editedIn,
+    passes: passes,
+    facets: facets,
+    find: find,
+    recentRows: recentRows,
+    markTitle: markTitle
+  };
+
+  // UMD: browser globals, CommonJS (the node gate and the dashboard's test).
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = API;
+  } else {
+    root.SBCommandPalette = API;
+  }
+
+}(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this));
+</script>
+<!-- SB_COMMAND_PALETTE:END -->
 <!-- SB_USAGE_ANALYTICS:BEGIN (generated from extension/shared/usage-analytics.js by scripts/sync-usage-analytics.js, do not edit) -->
 <script>
 // USAGE ANALYTICS — one reading of "how is my library being used".
@@ -10574,6 +12276,11 @@ function sbSeasonalText(opts){
    {my: name}, {my: company}, {my: job title} print what the account holds,
    through SBMyDetails, the generated copy of extension/shared/my-details.js. */
 function sbIsMyHead(tokLow){return /^my\s*:/.test(tokLow);}
+/* Cursor position. MIRRORED from _isCursorHead in extension/formula-engine.js.
+   {cursor} marks where the caret lands once the text is in a field on a page.
+   The phone copies text and has no caret to place, so it prints nothing here
+   and is never a field. */
+function sbIsCursorHead(tokLow){return tokLow==='cursor';}
 function sbMyText(tok){
   var D=typeof SBMyDetails!=='undefined'?SBMyDetails:null;
   return D&&typeof D.value==='function'?String(D.value(D.wordOf(tok))||''):'';
@@ -11499,7 +13206,8 @@ function sbTokenFieldKey(t){
      tLow.slice(0,7)==='elseif:'||
      tLow.slice(0,5)==='time:'||
      sbIsButtonHead(tLow)||sbIsCaseHead(tLow)||sbIsGreetingHead(tLow)||
-     sbIsPictureHead(tLow)||sbIsSeasonalHead(tLow)||sbIsMyHead(tLow))return '';
+     sbIsPictureHead(tLow)||sbIsSeasonalHead(tLow)||sbIsMyHead(tLow)||
+     sbIsCursorHead(tLow))return '';
   if(tLow.slice(0,7)==='gender:')return sbGenderTokenField(t.slice(7));
   if(sbIsFormToken(tLow))return sbFormTokenName(tLow,t.slice(9));
   return t;
@@ -11776,6 +13484,9 @@ function resolveBody(body,vals,opts){
         var sD=(html?sbDropQuietLineHtml:sbDropQuietLine)(out,body,cl+1,outer);
         out=sD.out;i=sD.i;continue;
       }
+
+      /* {cursor}: where the caret lands on a page. Nothing here, line kept. */
+      if(sbIsCursorHead(tok.toLowerCase())){i=cl+1;continue;}
 
       /* {my: company}: a detail of the account, or nothing at all */
       if(sbIsMyHead(tok.toLowerCase())){
@@ -12121,6 +13832,7 @@ function loadSnips(){
     snippetUsageLoaded=true;
     snippetUsageAvailable=!!(counts&&counts.available);
     snipsLoaded=true;
+    sbSearchRefresh();
     snipsFailed=false;
     lastUseMap={};
     lastUseLoaded=Array.isArray(uses);
@@ -12213,6 +13925,7 @@ function openDetail(snip,variants){
   prevView=curView;
   history.pushState({det:true},'');
   curSnip=snip;
+  sbSearchNote(sbSearchSnippetKey(snip));
   curVariants=(variants&&variants.length)?variants:[snip];
   /* A snippet opens with its seasonal line going in; Leave out is for this once. */
   detailSeasonOff=false;
@@ -12593,6 +14306,7 @@ function loadPrompts(){
       promptsFailed=false;
       renderPromptList();
       renderHome();
+      sbSearchRefresh();
       // A prompt that carries a Brain needs its Brain in hand before it can be
       // copied inside a tap, so the Brains the prompts name are read now.
       loadPromptBrains();
@@ -12611,6 +14325,7 @@ function loadPrompts(){
             });
           }
           renderPromptList();refreshOpenFilterPanel();syncFilterHeader();
+          sbSearchRefresh();
         });
     })
     .catch(function(){
@@ -12883,6 +14598,7 @@ function promptCopyNote(p,content){
 }
 function promptCopy(p){
   if(!promptBrainsReady(p))return;
+  sbSearchNote('prompt:'+p.id);
   var content=promptBrainText(p);
   var text=SBInteractiveSteps.apply(content,promptStepsOn);
   copyText(text,function(){
@@ -13231,6 +14947,7 @@ function loadMemory(){
     memLoading=false;
     if(memReloadQueued){memReloadQueued=false;loadMemory();return;}
     renderMemory();refreshOpenFilterPanel();syncFilterHeader();
+    sbSearchRefresh();
     if(capOpen())capFillBrains();
   });
 }
@@ -13420,6 +15137,7 @@ function hideMemory(){
 }
 function openBrain(id){
   if(!memBrainById(id))return;
+  sbSearchNote('brain:'+id);
   history.pushState({memBrain:id},'');
   curBrain=id;
   renderMemory();refreshOpenFilterPanel();syncFilterHeader();
@@ -13439,6 +15157,7 @@ function memBack(key,close){
 function openMemItem(id){
   var it=memItemById(id);
   if(!it)return;
+  sbSearchNote('item:'+id);
   var b=memBrainById(it.space_id);
   history.pushState({memItem:id},'');
   curMemItem=it;
@@ -16303,7 +18022,7 @@ var editChipsNow=[], editChipLost=[], editChipAccepted=[];
 var EDIT_TOKEN=/\{[^{}]*\}/g;
 var EDIT_CHIP_WORDS={formtext:'Text',formparagraph:'Text',formnumber:'Number',formmenu:'Choice',
   formdate:'Date',formtoggle:'Tick box',time:'Date',date:'Date','if':'Rule',elseif:'Or if',
-  'else':'Otherwise',endif:'End of rule','var':'Saved value',button:'Button',cursor:'Cursor',
+  'else':'Otherwise',endif:'End of rule','var':'Saved value',button:'Button',cursor:'Cursor position',
   clipboard:'Clipboard',key:'Key',note:'Note',link:'Link',picture:'Picture',greeting:'Greeting',
   seasonal:'Seasonal line',my:'Your details',snippet:'Snippet',brain:'Brain'};
 var EDIT_BLOCK_TYPES=['role','objective','context','examples','constraints'];
@@ -17829,18 +19548,183 @@ function closeMobileMore(restoreFocus){
   if(trigger)trigger.setAttribute('aria-expanded','false');
   if(restoreFocus&&trigger)trigger.focus();
 }
+/* SEARCH WINDOW ("Search or ask")
+   The three search boxes no longer take the typing themselves. A tap on one
+   opens the search window every surface shares (extension/shared/
+   command-palette.js, inlined above by scripts/sync-command-palette.js), on
+   the whole screen of a phone. It looks across snippets, prompts and Brains at
+   once; this block hands it the phone's library and says what "open" means
+   here. FiboChat, which lived in a row under each box, is behind the window's
+   sparkle button. */
+var sbSearchWindow=null, sbSearchRecents=null, sbSearchRecentsFor=null;
+
+function sbSearchPerson(id){
+  if(!id)return '';
+  return id===USER_ID?'You':'Teammate';
+}
+function sbSearchFolderName(id){
+  for(var i=0;i<allFolders.length;i++){if(allFolders[i].id===id)return allFolders[i].name||'';}
+  return '';
+}
+function sbSearchWhen(iso){
+  var at=iso?Date.parse(iso):NaN;
+  return isFinite(at)?at:0;
+}
+function sbSearchOnce(values){
+  var out=[];
+  values.forEach(function(v){if(v&&out.indexOf(v)<0)out.push(v);});
+  return out;
+}
+/* The library as the rows the window lists. A snippet in several languages is
+   one row, found by the text of any of them, as it is one card in the list. */
+function sbSearchItems(){
+  var out=[];
+  buildGroups(allSnips).forEach(function(g){
+    var s=g.variants[0];
+    if(!s)return;
+    var text=[],keywords=[],labels=[],edited=0;
+    g.variants.forEach(function(v){
+      text.push(v.body||'');
+      keywords=keywords.concat(v.alternative_queries||[]);
+      labels=labels.concat(assetLabelNames(v.id,snipLabelMap,false));
+      edited=Math.max(edited,sbSearchWhen(v.updated_at));
+    });
+    out.push({
+      key:'snippet:'+s.id,kind:'snippet',id:s.id,spaceId:null,
+      title:s.title||'',shortcut:s.shortcut||'',
+      place:sbSearchFolderName(s.folder_id),placeKey:s.folder_id?'folder:'+s.folder_id:'',
+      byName:sbSearchPerson(s.user_id),edited:edited,
+      labels:sbSearchOnce(labels),keywords:sbSearchOnce(keywords),text:sbSearchOnce(text)
+    });
+  });
+  allPrompts.forEach(function(p){
+    out.push({
+      key:'prompt:'+p.id,kind:'prompt',id:p.id,spaceId:null,
+      title:p.name||'',shortcut:p.shortcut||'',
+      place:sbSearchFolderName(p.folder_id),placeKey:p.folder_id?'folder:'+p.folder_id:'',
+      byName:sbSearchPerson(p.user_id),edited:sbSearchWhen(p.updated_at),
+      labels:assetLabelNames(p.id,promptLabelMap,false),
+      keywords:p.intent_category?[p.intent_category]:[],text:[p.content||'']
+    });
+  });
+  allBrains.forEach(function(b){
+    out.push({
+      key:'brain:'+b.id,kind:'brain',id:b.id,spaceId:null,
+      title:b.name||'Brain',shortcut:'',place:'',placeKey:'brain:'+b.id,
+      byName:'',edited:sbSearchWhen(b.updated_at),
+      labels:[],keywords:[],text:[b.description||'']
+    });
+  });
+  allMemItems.forEach(function(it){
+    var b=memBrainById(it.space_id);
+    if(!b)return;
+    out.push({
+      key:'item:'+it.id,kind:'item',id:it.id,spaceId:it.space_id,
+      title:it.name||'Untitled',shortcut:'',place:b.name||'Brain',placeKey:'brain:'+it.space_id,
+      byName:'',edited:sbSearchWhen(it.updated_at),
+      labels:[],keywords:[],text:[it.summary||'',it.body||'']
+    });
+  });
+  return out;
+}
+/* What was opened lately, kept on this phone, one list per account. */
+function sbSearchRecentStore(){
+  if(!window.SBRecents)return null;
+  if(!sbSearchRecents||sbSearchRecentsFor!==USER_ID){
+    sbSearchRecentsFor=USER_ID;
+    sbSearchRecents=SBRecents.open(SBRecents.localStore('sb_recents_'+(USER_ID||'guest')));
+  }
+  return sbSearchRecents;
+}
+function sbSearchNote(key){
+  var store=sbSearchRecentStore();
+  if(store)store.record(key);
+}
+/* The key the window lists a snippet under: the first language of its group. */
+function sbSearchSnippetKey(snip){
+  var first=groupForRow(snip).variants[0]||snip;
+  return 'snippet:'+first.id;
+}
+/* Opening means what a tap on that card means on its own page: a snippet
+   opens, a prompt is copied, a Brain opens, an item opens in the reader. */
+function sbSearchOpen(item){
+  if(item.kind==='snippet'){
+    var snip=null;
+    for(var i=0;i<allSnips.length;i++){if(String(allSnips[i].id)===String(item.id)){snip=allSnips[i];break;}}
+    if(!snip){showToast('This snippet is not on this phone yet. Refresh and try again.');return;}
+    var rows=groupForRow(snip).variants;
+    showList();
+    openDetail(rows[0]||snip,rows.length>1?rows:[snip]);
+  }else if(item.kind==='prompt'){
+    var p=findPrompt(item.id);
+    if(!p)return;
+    showPrompts();
+    promptCopy(p);
+  }else if(item.kind==='brain'){
+    showMemory();
+    openBrain(item.id);
+  }else{
+    showMemory();
+    if(memBrainById(item.spaceId))openBrain(item.spaceId);
+    openMemItem(item.id);
+  }
+}
+/* The window lists all three sections whichever page it is opened from, so
+   whatever has not been read yet is read now. Each list draws itself when it
+   arrives, and tells the window. */
+function sbSearchOpened(){
+  if(!promptsLoaded&&!promptsLoading)loadPrompts();
+  if(!memLoaded&&!memLoading)loadMemory();
+}
+function sbSearchRefresh(){
+  if(sbSearchWindow)sbSearchWindow.refresh();
+}
+function openSearchWindow(text){
+  if(!window.SBCommandPalette||!window.SBRecents)return;
+  /* Another account signed in since it was built: its recents are not this one's. */
+  if(sbSearchWindow&&sbSearchRecentsFor!==USER_ID){sbSearchWindow.destroy();sbSearchWindow=null;}
+  if(!sbSearchWindow){
+    sbSearchWindow=SBCommandPalette.create({
+      name:'sb-search',
+      items:sbSearchItems,
+      loading:function(){return !snipsLoaded&&!allSnips.length;},
+      recents:sbSearchRecentStore(),
+      secondaryLabel:'',
+      /* The whole screen on a phone; a window in the middle from tablet width. */
+      full:function(){return window.innerWidth<700;},
+      onOpen:sbSearchOpen,
+      onToggle:function(open){if(open)sbSearchOpened();},
+      trigger:function(){
+        var surface=curSurface();
+        return document.getElementById(surface==='prompts'?'prompt-srch':surface==='memory'?'mem-srch':'srch');
+      },
+      ask:{
+        /* Read each time it is drawn: an account can become Pro mid-visit. */
+        get locked(){return askOn()?'':PRO_SOON_LABEL;},
+        minLength:ASK_MIN,
+        /* The answer has its own sheet on the phone: the window makes way for it. */
+        show:function(el,question){sbSearchWindow.close();openAsk(question);},
+        hide:function(){}
+      }
+    });
+  }
+  sbSearchWindow.open(text||'');
+}
+['srch','prompt-srch','mem-srch'].forEach(function(id){
+  var field=document.getElementById(id);
+  if(!field)return;
+  field.addEventListener('click',function(){openSearchWindow('');});
+  /* With a keyboard: Enter opens it, and a letter opens it with that letter in. */
+  field.addEventListener('keydown',function(e){
+    if(e.ctrlKey||e.metaKey||e.altKey)return;
+    if(e.key==='Enter'){e.preventDefault();openSearchWindow('');}
+    else if(e.key.length===1&&e.key!==' '){e.preventDefault();openSearchWindow(e.key);}
+  });
+});
+/* "Search this section" in More, and Search on Home. */
 function focusCurrentSearch(){
   if(curView==='home'||curView==='analytics'||curView==='focus')showList();
-  var surface=curSurface();
-  var id=surface==='prompts'?'prompt-srch':surface==='memory'?'mem-srch':'srch';
-  var field=document.getElementById(id);
-  if(!field){
-    showList();
-    field=document.getElementById('srch');
-  }
-  if(!field)return;
-  field.scrollIntoView({behavior:'smooth',block:'center'});
-  setTimeout(function(){field.focus();},300);
+  openSearchWindow('');
 }
 document.querySelector('.mtab').addEventListener('click',function(e){
   var btn=e.target.closest('button[data-nav]');

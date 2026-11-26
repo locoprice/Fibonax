@@ -21,6 +21,8 @@
 //   4. Text is read the way a person reads it: a field or a formula counts as
 //      the name it carries, never as the code that writes it, so "formtext"
 //      finds nothing and a field called "address" is found by "address".
+//   5. Capitals and accents never matter: "cafe" finds "Café", and "RESUME"
+//      finds "résumé".
 (function (root) {
   'use strict';
 
@@ -33,13 +35,32 @@
   var TOKEN_RE = /\{(?:=|\/?[a-z]+:)[^{}]*\}|\{(?:endif|else|\/[a-z]+)\}/gi;
   var TOKEN_NAME_RE = /(?:^|[;:{]\s*)name=([^;}]*)/i;
 
-  // Lower case that never changes the length of the text, so a position found
-  // in the lowered copy is the same position in the text that is printed.
+  // An accent counts as the letter under it: "cafe" finds "Café". A letter is
+  // split into its base and its marks, and the marks (U+0300 to U+036F) are
+  // dropped. Both ranges are built from their codes, so no invisible character
+  // sits in this file.
+  var MARKS = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g');
+  var WIDE = new RegExp('[' + String.fromCharCode(0x80) + '-' + String.fromCharCode(0xffff) + ']');
+  var foldCache = {}, foldCount = 0;
+
+  // Lower case with the accents off, and never a change in the length of the
+  // text, so a position found in the folded copy is the same position in the
+  // text that is printed.
   function lower(text) {
-    var low = text.toLowerCase();
-    if (low.length === text.length) return low;
+    if (!WIDE.test(text)) return text.toLowerCase();
+    var hit = foldCache[text];
+    if (hit !== undefined) return hit;
     var out = '';
-    for (var i = 0; i < text.length; i++) out += text.charAt(i).toLowerCase().charAt(0) || text.charAt(i);
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charAt(i);
+      var low = c.toLowerCase();
+      if (low.length !== 1) low = low.charAt(0) || c;
+      var base = c.charCodeAt(0) < 0x80 ? low : low.normalize('NFD').replace(MARKS, '');
+      out += base.length === 1 ? base : low;
+    }
+    // Bounded, like the cache of readable texts below.
+    if (foldCount >= 5000) { foldCache = {}; foldCount = 0; }
+    foldCache[text] = out; foldCount++;
     return out;
   }
 
@@ -186,6 +207,7 @@
   }
 
   var API = {
+    fold: function (text) { return lower(str(text)); },
     words: words,
     readable: readable,
     excerpt: excerpt,

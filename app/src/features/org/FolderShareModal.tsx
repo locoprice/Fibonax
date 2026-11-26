@@ -27,6 +27,8 @@ interface FolderShareModalProps {
    * its items (snippets or prompts) — sharing may move them into the org.
    */
   onShared?: () => void | Promise<void>;
+  /** Puts the keyboard focus back on whatever opened the window. */
+  onRestoreFocus?: () => void;
 }
 
 const LEVEL_LABEL: Record<PermissionLevel, string> = {
@@ -42,7 +44,12 @@ const LEVEL_HELP: Record<PermissionLevel, string> = {
 
 const WHOLE_TEAM = '__org__';
 
-export function FolderShareModal({ folder, onClose, onShared }: FolderShareModalProps) {
+export function FolderShareModal({
+  folder,
+  onClose,
+  onShared,
+  onRestoreFocus,
+}: FolderShareModalProps) {
   const activeOrg = useOrgStore((s) => s.activeOrg);
   const orgs = useOrgStore((s) => s.orgs);
   const members = useOrgStore((s) => s.members);
@@ -234,7 +241,16 @@ export function FolderShareModal({ folder, onClose, onShared }: FolderShareModal
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md"
+        onCloseAutoFocus={
+          onRestoreFocus &&
+          ((event) => {
+            event.preventDefault();
+            onRestoreFocus();
+          })
+        }
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="h-4 w-4 text-primary" />

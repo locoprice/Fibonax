@@ -19,6 +19,7 @@
 //   {greeting[: lang=ES][; morning=…][; night=…]}  (greeting for the local time of day)
 //   {seasonal}  (the sentence of the occasion in season today, or nothing: shared/season.js)
 //   {my: name | company | job title}  (from the account of whoever uses it: shared/my-details.js)
+//   {cursor}  (prints nothing: where the caret lands once the text is in a field on a page)
 //   {button label="Text" [trim=yes|no|left|right]}CODE{/button}  — action button
 //
 // {button} renders in the fill form, never in the output. CODE is one or more
@@ -755,6 +756,34 @@
     return S && typeof S.currentLine === 'function' ? String(S.currentLine((opts && opts.lang) || '') || '') : '';
   }
 
+  // ── CURSOR POSITION ─────────────────────────────────────────────
+  // {cursor} marks where the caret lands once the text is in a field on a
+  // page. It prints nothing, on every surface, and keeps the line it stands
+  // on: an empty line is often exactly where the person types next.
+  //
+  // A surface that can place a caret asks where the mark stood by passing
+  // `opts.cursorMark` (CURSOR_MARK): the first {cursor} prints it, any other
+  // prints nothing, and sbSplitCursor takes it out again and says where it
+  // was. Everywhere else the option is absent and the text is clean.
+  //
+  // MIRRORED in app/public/mobile/index.html (sbIsCursorHead), where it only
+  // prints nothing: the phone copies text and has no caret to place.
+  function _isCursorHead(tokLow) { return tokLow === 'cursor'; }
+
+  // A private-use character: never typed, never in a body, printed by no font.
+  var CURSOR_MARK = String.fromCharCode(0xE000);
+
+  /**
+   * A resolved text without its cursor mark, and where the mark stood.
+   * @param {string} text  what resolveBody returned with `cursorMark` set
+   * @returns {{ text: string, at: number }}  `at` is -1 when there was no mark
+   */
+  function sbSplitCursor(text) {
+    var s = String(text === null || text === undefined ? '' : text);
+    var at = s.indexOf(CURSOR_MARK);
+    return { text: at === -1 ? s : s.split(CURSOR_MARK).join(''), at: at };
+  }
+
   // ── YOUR DETAILS ────────────────────────────────────────────────
   // {my: name}, {my: company}, {my: job title} print what the account of the
   // person using the snippet holds, decided in shared/my-details.js (the page's
@@ -1404,6 +1433,8 @@
       subOpts = {};
       for (var _k in _o) if (Object.prototype.hasOwnProperty.call(_o, _k)) subOpts[_k] = _o[_k];
       subOpts._fmtMap = fmtMap;
+      // One cursor per text, whichever branch or region it stands in.
+      subOpts._cursor = { used: false };
     }
     while (i < body.length) {
       if (body[i] === '{') {
@@ -1514,6 +1545,14 @@
           var sDrop = (html ? _dropQuietLineHtml : _dropQuietLine)(out, body, cl + 1, outer);
           out = sDrop.out; i = sDrop.i;
           continue;
+        }
+        if (_isCursorHead(tokLow)) {
+          var cur = subOpts._cursor;
+          if (typeof _o.cursorMark === 'string' && _o.cursorMark !== '' && cur && !cur.used) {
+            cur.used = true;
+            out += _o.cursorMark;
+          }
+          i = cl+1; continue;
         }
         if (_isMyHead(tokLow)) {
           var mText = sbMyText(tok);
@@ -2236,7 +2275,8 @@
         t.slice(0,5).toLowerCase() === 'time:' ||
         _isButtonHead(t.toLowerCase()) || _isCaseHead(t.toLowerCase()) ||
         _isGreetingHead(t.toLowerCase()) || _isPictureHead(t.toLowerCase()) ||
-        _isSeasonalHead(t.toLowerCase()) || _isMyHead(t.toLowerCase())) return '';
+        _isSeasonalHead(t.toLowerCase()) || _isMyHead(t.toLowerCase()) ||
+        _isCursorHead(t.toLowerCase())) return '';
     var tokLow = t.toLowerCase();
     // A {gender:} token is not a field itself — it reads one, so surface that
     // field instead. It is usually declared elsewhere too; callers de-duplicate.
@@ -2968,6 +3008,8 @@
     sbApplyCaseMode:   _applyCaseMode,
     sbApplyCaseModeHtml: _applyCaseModeHtml,
     sbEscapeHtml:      sbEscapeHtml,
+    CURSOR_MARK:       CURSOR_MARK,
+    sbSplitCursor:     sbSplitCursor,
     sbParsePicture:    sbParsePicture,
     sbPictureHtml:     sbPictureHtml,
     buildPictureToken: buildPictureToken,

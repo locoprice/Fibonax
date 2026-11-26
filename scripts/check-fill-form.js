@@ -84,7 +84,7 @@ for (const [key, want] of TYPE_CASES) {
 console.log('OK Field kind inferred from the name (' + TYPE_CASES.length + ' cases)');
 
 // ── THE VIEW MODEL EVERY SURFACE READS ──────────────────────────────
-const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'layout', 'steps', 'fmtOverride', 'linkable', 'progress', 'season'];
+const SHAPE = ['fields', 'buttons', 'preview', 'formatted', 'parts', 'cursor', 'layout', 'steps', 'fmtOverride', 'linkable', 'progress', 'season'];
 const FIELD_SHAPE = ['key', 'label', 'type', 'format', 'currency', 'options', 'picks', 'multiple',
                      'other', 'otherOn', 'otherText',
                      'cols', 'long', 'default', 'value', 'before', 'after', 'block', 'visible', 'adjust',
@@ -134,6 +134,13 @@ const vmLongTextFilled = ff.fillForm('Note: {formtext: name=guest_name; long=yes
 if (vmLongTextFilled.preview !== 'Note: ' + LONG_TYPED) {
   fail('a long text field must print what was typed, line breaks included: ' + JSON.stringify(vmLongTextFilled.preview));
 }
+// CURSOR POSITION: the form says where the caret lands in its finished text,
+// the text itself stays clean, and a text without {cursor} says -1.
+const vmCursor = ff.fillForm('Hi {NAME},\n\n{cursor}\n\nBye', { NAME: 'Ada' }, opt());
+if (vmCursor.preview !== 'Hi Ada,\n\n\n\nBye' || vmCursor.cursor !== 9 || vmCursor.fields.length !== 1) {
+  fail('cursor position in a form: ' + JSON.stringify([vmCursor.preview, vmCursor.cursor, vmCursor.fields.length]));
+}
+if (vm1.cursor !== -1) fail('a text without {cursor} must report -1, got ' + vm1.cursor);
 if (plan.picks.join(',') !== 'B') {
   fail('menu preselection is ' + JSON.stringify(plan.picks) + ', expected the declared default');
 }
